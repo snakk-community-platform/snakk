@@ -90,7 +90,12 @@ public class GrpcAuthInterceptor : Interceptor
                 _logger.LogDebug("Access token auto-refreshed via gRPC interceptor");
             }
             else
-                _logger.LogWarning("Token auto-refresh failed in gRPC interceptor");
+            {
+                _logger.LogWarning("Token auto-refresh failed in gRPC interceptor — clearing auth cookies");
+                // The refresh token was rejected (consumed/revoked). Clear all auth cookies so the
+                // browser is not stuck in a loop with a permanently invalid token.
+                AuthCookieHelper.DeleteAuthCookies(httpContext);
+            }
         }
 
         if (!string.IsNullOrEmpty(accessToken))

@@ -36,7 +36,8 @@ public class PermissionEdgeCasesTests : IDisposable
         _logger = Substitute.For<ILogger<PermissionService>>();
         _securityService = Substitute.For<ISecurityService>();
 
-        _service = new PermissionService(_context, cache, _logger, _securityService);
+        var factory = new InMemoryDbContextFactory(options);
+        _service = new PermissionService(_context, factory, cache, _logger, _securityService);
     }
 
     public void Dispose()
@@ -674,4 +675,9 @@ public class PermissionEdgeCasesTests : IDisposable
     }
 
     #endregion
+
+    private sealed class InMemoryDbContextFactory(DbContextOptions<SnakkDbContext> options) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => new(options);
+    }
 }

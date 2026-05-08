@@ -32,6 +32,7 @@ public class PostDatabaseEntity
     public bool IsOp { get; set; }
     public bool IsNecro { get; set; }
     public bool IsMilestone { get; set; }
+    public bool WasNormalized { get; set; }
 
     // Many-to-one relationships
     public int DiscussionId { get; set; }

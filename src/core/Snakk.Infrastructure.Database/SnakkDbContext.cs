@@ -1722,5 +1722,41 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             entity.HasIndex(e => new { e.EntityType, e.EntityId, e.Date })
                   .HasDatabaseName("IX_ActivityDailySnapshot_EntityType_EntityId_Date");
         });
+
+        // === Performance Indexes ===
+
+        // User login hot-paths
+        modelBuilder.Entity<UserDatabaseEntity>()
+            .HasIndex(u => u.Email)
+            .HasFilter("\"Email\" IS NOT NULL")
+            .HasDatabaseName("IX_User_Email");
+
+        modelBuilder.Entity<UserDatabaseEntity>()
+            .HasIndex(u => u.OAuthProviderId)
+            .HasFilter("\"OAuthProviderId\" IS NOT NULL")
+            .HasDatabaseName("IX_User_OAuthProviderId");
+
+        // Trending feed ordering
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .HasIndex(d => d.TrendScore)
+            .IsDescending(true)
+            .HasDatabaseName("IX_Discussion_TrendScore_Desc");
+
+        // Notification pagination without IsRead filter
+        modelBuilder.Entity<UserNotificationDatabaseEntity>()
+            .HasIndex(n => new { n.RecipientUserId, n.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_Notification_RecipientUserId_CreatedAt_Desc");
+
+        // ModerationLog scope-scoped history queries
+        modelBuilder.Entity<ModerationLogDatabaseEntity>()
+            .HasIndex(ml => new { ml.HubId, ml.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_ModerationLog_HubId_CreatedAt_Desc");
+
+        modelBuilder.Entity<ModerationLogDatabaseEntity>()
+            .HasIndex(ml => new { ml.SpaceId, ml.CreatedAt })
+            .IsDescending(false, true)
+            .HasDatabaseName("IX_ModerationLog_SpaceId_CreatedAt_Desc");
     }
 }

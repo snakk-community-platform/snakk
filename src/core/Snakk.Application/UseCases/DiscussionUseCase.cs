@@ -17,6 +17,7 @@ public class DiscussionUseCase(
     IDomainEventDispatcher eventDispatcher,
     ICounterService counterService,
     IMarkupParser markupParser,
+    IContentNormalizer contentNormalizer,
     IRealtimeNotifier realtimeNotifier,
     IMediaService mediaService,
     IModerationRepository moderationRepository) : UseCaseBase
@@ -51,12 +52,16 @@ public class DiscussionUseCase(
         // Adult-only spaces force the flag; mixed-mode spaces honour the caller's choice; standard spaces never adult.
         var effectiveIsAdult = space.IsAdultOnly || (space.AllowsAdultContent && isAdult);
 
+        // Normalize title and first post body
+        var (normalizedTitle, titleNormalized) = contentNormalizer.NormalizeTitle(title);
+        var (normalizedFirstPost, bodyNormalized) = contentNormalizer.NormalizeBody(firstPostContent);
+
         // Create discussion
-        var discussion = Discussion.Create(spaceId, userId, title, slug, type, effectiveIsAdult);
+        var discussion = Discussion.Create(spaceId, userId, normalizedTitle, slug, type, effectiveIsAdult, wasNormalized: titleNormalized || bodyNormalized);
 
         // Create first post
-        var renderedFirstPost = markupParser.ToHtml(firstPostContent, space.AutoParagraphEnabled);
-        var firstPost = Post.Create(discussion.PublicId, userId, firstPostContent, renderedFirstPost, isFirstPost: true);
+        var renderedFirstPost = markupParser.ToHtml(normalizedFirstPost, space.AutoParagraphEnabled);
+        var firstPost = Post.Create(discussion.PublicId, userId, normalizedFirstPost, renderedFirstPost, isFirstPost: true, wasNormalized: bodyNormalized);
 
         // Persist
         await discussionRepository.AddAsync(discussion);
@@ -75,7 +80,7 @@ public class DiscussionUseCase(
         firstPost.ClearDomainEvents();
 
         // Publish any draft media referenced in the first post
-        await mediaService.PublishDraftMediaAsync(firstPostContent);
+        await mediaService.PublishDraftMediaAsync(normalizedFirstPost);
 
         // Notify space subscribers about the new discussion
         await realtimeNotifier.NotifyDiscussionCreatedAsync(discussion.PublicId, spaceId, user);

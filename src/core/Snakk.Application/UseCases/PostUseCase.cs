@@ -19,6 +19,7 @@ public class PostUseCase(
     ICounterService counterService,
     IMediaService mediaService,
     IMarkupParser markupParser,
+    IContentNormalizer contentNormalizer,
     IModerationRepository moderationRepository,
     ReactionUseCase reactionUseCase) : UseCaseBase
 {
@@ -62,9 +63,10 @@ public class PostUseCase(
         // Create post with pre-rendered HTML. Auto-paragraph is per-space.
         var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
         var autoParagraph = space?.AutoParagraphEnabled ?? true;
-        var imageData = await mediaService.GetImageRenderDataFromContentAsync(content);
-        var renderedContent = markupParser.ToHtml(content, autoParagraph, imageData);
-        var post = Post.Create(discussionId, userId, content, renderedContent, replyToPostId: replyToPostId);
+        var (normalizedContent, wasNormalized) = contentNormalizer.NormalizeBody(content);
+        var imageData = await mediaService.GetImageRenderDataFromContentAsync(normalizedContent);
+        var renderedContent = markupParser.ToHtml(normalizedContent, autoParagraph, imageData);
+        var post = Post.Create(discussionId, userId, normalizedContent, renderedContent, replyToPostId: replyToPostId, wasNormalized: wasNormalized);
 
         // Auto-follow discussion if user has the preference enabled
         if (user.AutoFollowOnReply)
@@ -100,7 +102,7 @@ public class PostUseCase(
         await realtimeNotifier.NotifyPostCountUpdatedAsync(discussion.PublicId, discussion.SpaceId, 1);
 
         // Link any uploaded media to this post
-        await mediaService.LinkMediaToPostAsync(post.PublicId.Value, content);
+        await mediaService.LinkMediaToPostAsync(post.PublicId.Value, normalizedContent);
 
         return Result<Post>.Success(post);
     }
@@ -130,9 +132,10 @@ public class PostUseCase(
         {
             var space = await spaceRepository.GetByPublicIdAsync(discussion.SpaceId);
             var autoParagraph = space?.AutoParagraphEnabled ?? true;
-            var imageData = await mediaService.GetImageRenderDataFromContentAsync(newContent);
-            var renderedContent = markupParser.ToHtml(newContent, autoParagraph, imageData);
-            post.UpdateContent(newContent, renderedContent, userId);
+            var (normalizedContent, wasNormalized) = contentNormalizer.NormalizeBody(newContent);
+            var imageData = await mediaService.GetImageRenderDataFromContentAsync(normalizedContent);
+            var renderedContent = markupParser.ToHtml(normalizedContent, autoParagraph, imageData);
+            post.UpdateContent(normalizedContent, renderedContent, userId, wasNormalized);
             await postRepository.UpdateAsync(post);
 
             // Save only new/unsaved revisions
@@ -151,7 +154,7 @@ public class PostUseCase(
             await realtimeNotifier.NotifyPostEditedAsync(post, user, discussion);
 
             // Re-link media based on updated content
-            await mediaService.LinkMediaToPostAsync(post.PublicId.Value, newContent);
+            await mediaService.LinkMediaToPostAsync(post.PublicId.Value, normalizedContent);
 
             return Result<Post>.Success(post);
         }

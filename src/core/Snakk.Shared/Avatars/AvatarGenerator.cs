@@ -105,6 +105,16 @@ public static class AvatarGenerator
         return $"linear-gradient({angleDegrees}deg, {start} 0%, {end} 100%)";
     }
 
+    /// <summary>
+    /// Returns just the start (top) color of the gradient as a hex string.
+    /// Use this when you need only the first stop — e.g. a breadcrumb bar background.
+    /// </summary>
+    public static string GenerateGradientTopColor(string seed)
+    {
+        var (start, _) = GenerateGradient(seed);
+        return start;
+    }
+
     private static byte[] GetHash(string input) =>
         MD5.HashData(Encoding.UTF8.GetBytes(input));
 

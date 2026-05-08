@@ -30,6 +30,58 @@ public class DatabaseSeeder(
     private static readonly DateTime Now = DateTime.UtcNow;
     private static readonly DateTime EarliestDate = Now.AddDays(-70);
 
+    // Curated real URLs for Link-type discussions
+    private static readonly (string Url, string Title, string Description, string Domain)[] _curatedLinkUrls =
+    [
+        ("https://www.youtube.com/watch?v=a-8XiE7W7u4",
+            "Video: How it's made",
+            "A fascinating behind-the-scenes look at manufacturing and production processes.",
+            "youtube.com"),
+        ("https://www.youtube.com/watch?v=pJxeyK7it0o",
+            "Video: Mind-blowing science explained",
+            "Breaking down complex scientific phenomena in an accessible and visual way.",
+            "youtube.com"),
+        ("https://www.youtube.com/watch?v=NNS5Piu-EII",
+            "Video: Documentary worth watching",
+            "An eye-opening documentary that challenges how you think about the world.",
+            "youtube.com"),
+        ("https://edition.cnn.com/travel/mourne-mountains-northern-ireland-film-locations",
+            "The Mourne Mountains: Northern Ireland's stunning filming locations",
+            "From Game of Thrones to real-life adventure — exploring the dramatic landscapes of the Mournes.",
+            "edition.cnn.com"),
+        ("https://www.bbc.com/travel/article/20260410-why-its-impossible-to-measure-englands-coastline",
+            "Why it's impossible to measure England's coastline",
+            "The coastline paradox and what it reveals about the nature of measurement itself.",
+            "bbc.com"),
+        ("https://github.com/snakk-community-platform/snakk",
+            "snakk-community-platform/snakk — GitHub",
+            "The open-source community platform. Contributions welcome.",
+            "github.com"),
+        ("https://www.nrk.no/artikkel/bukkene-bruse-drar-til-italia-86",
+            "Bukkene Bruse drar til Italia",
+            "De norske trollene tar turen sørover. NRK rapporterer fra eventyret.",
+            "nrk.no"),
+    ];
+
+    // Curated debate topics with meaningful position labels
+    private static readonly (string Title, string[] Positions, bool AllowNeutral)[] _curatedDebateTopics =
+    [
+        ("Tabs vs spaces: which is better for code indentation?", ["Tabs", "Spaces"], false),
+        ("Is remote work better than office work?", ["Remote is better", "Office is better", "Hybrid is best"], true),
+        ("Should AI-generated content be clearly labelled?", ["Yes, always", "No, unnecessary"], false),
+        ("Is dark mode better than light mode?", ["Dark mode", "Light mode", "Context dependent"], true),
+        ("Electric vehicles vs combustion engines — which wins?", ["Electric", "Combustion", "Too early to say"], true),
+        ("Should social media platforms moderate content more strictly?", ["More moderation", "Less moderation"], false),
+        ("Is university education still worth the cost?", ["Worth it", "Not worth it", "Depends on the field"], true),
+        ("Pineapple on pizza: acceptable or not?", ["Yes", "Absolutely not"], false),
+        ("Should video games be considered art?", ["Yes", "No"], false),
+        ("Four-day work week: good or bad for productivity?", ["Good", "Bad", "Neutral"], true),
+    ];
+
+    // Per-seed-run mappings from discussion ID → curated data index
+    private readonly Dictionary<int, int> _discussionLinkIndex = new();
+    private readonly Dictionary<int, int> _discussionDebateTopicIndex = new();
+
     /// <summary>
     /// Run migrations only + ensure admin exists. No test data.
     /// </summary>
@@ -219,23 +271,55 @@ public class DatabaseSeeder(
 
     private async Task EnsureTestUserExistsAsync()
     {
-        const string testUserId = "01JJQP0000000000000000TEST";
+        var testPasswordHash = _passwordHasher.HashPassword("test123!");
 
-        var exists = await _context.Users.AnyAsync(u => u.PublicId == testUserId);
-        if (exists)
-            return;
-
-        var testUser = new UserDatabaseEntity
+        var testUsers = new[]
         {
-            PublicId = testUserId,
-            DisplayName = "Test User",
-            Email = "test@snakk.dev",
-            CreatedAt = EarliestDate.AddDays(-30),
-            LastSeenAt = Now
+            // Original "Test User" — previously created without credentials; fixed here
+            ("test@snakk.dev",       "Test User", "01JJQP0000000000000000TEST"),
+            ("alice@snakk.local",    "Alice",     "01JJQP000000000000000ALICE"),
+            ("bob@snakk.local",      "Bob",       "01JJQP00000000000000000BOB"),
+            ("charlie@snakk.local",  "Charlie",   "01JJQP0000000000000CHARLIE"),
+            ("dave@snakk.local",     "Dave",      "01JJQP0000000000000000DAVE"),
+            ("eve@snakk.local",      "Eve",       "01JJQP00000000000000000EVE"),
+            ("frank@snakk.local",    "Frank",     "01JJQP000000000000000FRANK"),
         };
-        _context.Users.Add(testUser);
+
+        var created = new List<string>();
+
+        foreach (var (email, name, publicId) in testUsers)
+        {
+            var existing = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == publicId);
+            if (existing is not null)
+            {
+                // Fix previously broken entries that were created without credentials
+                if (string.IsNullOrEmpty(existing.EmailHash))
+                {
+                    existing.Email = _emailProtector.Protect(email);
+                    existing.EmailHash = _emailProtector.ComputeHash(email);
+                    existing.PasswordHash = testPasswordHash;
+                    existing.EmailVerified = true;
+                }
+                continue;
+            }
+
+            _context.Users.Add(new UserDatabaseEntity
+            {
+                PublicId = publicId,
+                Email = _emailProtector.Protect(email),
+                EmailHash = _emailProtector.ComputeHash(email),
+                PasswordHash = testPasswordHash,
+                DisplayName = name,
+                EmailVerified = true,
+                CreatedAt = EarliestDate.AddDays(-30),
+                LastSeenAt = Now
+            });
+            created.Add(name);
+        }
+
         await _context.SaveChangesAsync();
-        Console.WriteLine("Test user created.");
+        if (created.Count > 0)
+            Console.WriteLine($"Test users created: {string.Join(", ", created)} (password: test123!)");
     }
 
     private async Task EnsureDefaultAdminExistsAsync()
@@ -309,36 +393,6 @@ public class DatabaseSeeder(
         await _context.SaveChangesAsync();
         Console.WriteLine($"Admin user created: {adminEmail}");
 
-        // Create test users
-        var testUsers = new[]
-        {
-            ("alice@snakk.local", "Alice", "01JJQP000000000000000ALICE"),
-            ("bob@snakk.local", "Bob", "01JJQP00000000000000000BOB"),
-            ("charlie@snakk.local", "Charlie", "01JJQP0000000000000CHARLIE")
-        };
-
-        var testPasswordHash = _passwordHasher.HashPassword("test123!");
-
-        foreach (var (email, name, publicId) in testUsers)
-        {
-            var exists = await _context.Users.AnyAsync(u => u.PublicId == publicId);
-            if (exists) continue;
-
-            _context.Users.Add(new UserDatabaseEntity
-            {
-                PublicId = publicId,
-                Email = email,
-                EmailHash = _emailProtector.ComputeHash(email),
-                PasswordHash = testPasswordHash,
-                DisplayName = name,
-                EmailVerified = true,
-                CreatedAt = DateTime.UtcNow,
-                LastSeenAt = DateTime.UtcNow
-            });
-        }
-
-        await _context.SaveChangesAsync();
-        Console.WriteLine("Test users created: Alice, Bob, Charlie (password: test123!)");
     }
 
     private async Task EnsureFirstCommunityAsync(bool alwaysCreate = false)
@@ -809,6 +863,12 @@ public class DatabaseSeeder(
         var discussions = new List<DiscussionDatabaseEntity>();
         var posts = new List<PostDatabaseEntity>();
 
+        // Parallel list: tracks (type, curatedDataIndex) by position, used to populate
+        // _discussionLinkIndex / _discussionDebateTopicIndex after discussion IDs are assigned.
+        var typeData = new List<(DiscussionTypeEnum Type, int DataIndex)>();
+
+        var nonStandardAllowed = allowedTypes.Where(t => t != 0).ToArray();
+
         for (var i = 0; i < count; i++)
         {
             // Spread discussions across the time window with slight clustering toward recent
@@ -818,18 +878,33 @@ public class DatabaseSeeder(
             var createdAt = spaceCreated.AddMinutes(minutesOffset);
 
             var author = _faker.PickRandom(users);
-            var title = GenerateDiscussionTitle(space.Name);
-            var slug = GenerateSlug(title);
             var isPinned = _faker.Random.Int(1, 100) <= 3;  // 3% pinned
             var isLocked = _faker.Random.Int(1, 100) <= 1;  // 1% locked
 
-            // ~33% of discussions get a non-standard type (from allowed types only)
+            // Determine type first so we can generate a type-appropriate title
             var type = (int)DiscussionTypeEnum.Standard;
-            var nonStandardAllowed = allowedTypes.Where(t => t != 0).ToArray();
             if (nonStandardAllowed.Length > 0 && _faker.Random.Int(1, 100) <= 33)
-            {
                 type = _faker.PickRandom(nonStandardAllowed);
+
+            // Pre-assign curated data index for Link and Debate
+            var dataIndex = 0;
+            string title;
+            switch ((DiscussionTypeEnum)type)
+            {
+                case DiscussionTypeEnum.Link:
+                    dataIndex = _faker.Random.Int(0, _curatedLinkUrls.Length - 1);
+                    title = _curatedLinkUrls[dataIndex].Title;
+                    break;
+                case DiscussionTypeEnum.Debate:
+                    dataIndex = _faker.Random.Int(0, _curatedDebateTopics.Length - 1);
+                    title = _curatedDebateTopics[dataIndex].Title;
+                    break;
+                default:
+                    title = GenerateDiscussionTitle(space.Name);
+                    break;
             }
+
+            var slug = GenerateSlug(title);
 
             var discussion = new DiscussionDatabaseEntity
             {
@@ -846,12 +921,20 @@ public class DatabaseSeeder(
             };
             _context.Discussions.Add(discussion);
             discussions.Add(discussion);
+            typeData.Add(((DiscussionTypeEnum)type, dataIndex));
         }
 
         await _context.SaveChangesAsync();
 
-        // Create extension records for typed discussions (after posts are saved)
-        await CreateDiscussionExtensionRecords(discussions, posts, users);
+        // Populate curated-data lookup dictionaries now that discussion IDs are known
+        for (var idx = 0; idx < discussions.Count; idx++)
+        {
+            var (dtype, dIdx) = typeData[idx];
+            if (dtype == DiscussionTypeEnum.Link)
+                _discussionLinkIndex[discussions[idx].Id] = dIdx;
+            else if (dtype == DiscussionTypeEnum.Debate)
+                _discussionDebateTopicIndex[discussions[idx].Id] = dIdx;
+        }
 
         // Track which users have posted in this space (for IsUsersFirstPostInSpace)
         var usersWhoPostedInSpace = new HashSet<int>();
@@ -951,6 +1034,9 @@ public class DatabaseSeeder(
 
         _context.Posts.AddRange(posts);
         await _context.SaveChangesAsync();
+
+        // Extension records need post IDs — call only after posts are persisted
+        await CreateDiscussionExtensionRecords(discussions, posts, users);
     }
 
     private async Task CreateDiscussionExtensionRecords(
@@ -1039,53 +1125,60 @@ public class DatabaseSeeder(
                 }
 
                 case DiscussionTypeEnum.Link:
+                {
+                    var linkIdx = _discussionLinkIndex.GetValueOrDefault(
+                        discussion.Id, discussion.Id % _curatedLinkUrls.Length);
+                    var link = _curatedLinkUrls[linkIdx];
                     _context.DiscussionLinks.Add(new DiscussionTypeLinkDatabaseEntity
                     {
                         DiscussionId = discussion.Id,
-                        Url = _faker.Internet.Url(),
-                        Title = _faker.Lorem.Sentence(3, 5).TrimEnd('.'),
-                        Description = _faker.Lorem.Paragraph(1),
-                        Domain = _faker.Internet.DomainName()
+                        Url          = link.Url,
+                        Title        = link.Title,
+                        Description  = link.Description,
+                        Domain       = link.Domain,
                     });
                     break;
+                }
 
                 case DiscussionTypeEnum.Debate:
                 {
+                    var topicIdx = _discussionDebateTopicIndex.GetValueOrDefault(
+                        discussion.Id, discussion.Id % _curatedDebateTopics.Length);
+                    var topic = _curatedDebateTopics[topicIdx];
+
                     var debate = new DiscussionTypeDebateDatabaseEntity
                     {
                         DiscussionId = discussion.Id,
-                        AllowNeutral = _faker.Random.Bool(0.5f)
+                        AllowNeutral = topic.AllowNeutral
                     };
                     _context.DiscussionDebates.Add(debate);
                     await _context.SaveChangesAsync();
 
-                    var positionCount = _faker.Random.Int(2, 3);
-                    var labels = positionCount == 2
-                        ? new[] { "For", "Against" }
-                        : new[] { "For", "Against", "Undecided" };
-
                     var positions = new List<DiscussionTypeDebatePositionDatabaseEntity>();
-                    for (var p = 0; p < positionCount; p++)
+                    for (var p = 0; p < topic.Positions.Length; p++)
                     {
                         var pos = new DiscussionTypeDebatePositionDatabaseEntity
                         {
                             DebateId = debate.Id,
-                            Index = p,
-                            Label = labels[p]
+                            Index    = p,
+                            Label    = topic.Positions[p]
                         };
                         _context.DiscussionDebatePositions.Add(pos);
                         positions.Add(pos);
                     }
                     await _context.SaveChangesAsync();
 
-                    // Every poster picks a side on first post; occasionally flips on a later post
+                    // All posts (including OP) pick a side; 10% chance to flip on subsequent posts
+                    var allPostsOrdered = discussionPosts.OrderBy(p => p.CreatedAt).ToList();
                     var userPositions = new Dictionary<int, DiscussionTypeDebatePositionDatabaseEntity>();
-                    foreach (var reply in replyPosts.OrderBy(r => r.CreatedAt))
+                    var postPositionEntries = new List<(PostDatabaseEntity Post, DiscussionTypeDebatePositionDatabaseEntity Pos)>();
+
+                    foreach (var post in allPostsOrdered)
                     {
-                        if (!userPositions.TryGetValue(reply.CreatedByUserId, out var position))
+                        if (!userPositions.TryGetValue(post.CreatedByUserId, out var position))
                         {
                             position = _faker.PickRandom(positions);
-                            userPositions[reply.CreatedByUserId] = position;
+                            userPositions[post.CreatedByUserId] = position;
                         }
                         else if (_faker.Random.Bool(0.1f))
                         {
@@ -1093,14 +1186,41 @@ public class DatabaseSeeder(
                             if (alternatives.Count > 0)
                             {
                                 position = _faker.PickRandom(alternatives);
-                                userPositions[reply.CreatedByUserId] = position;
+                                userPositions[post.CreatedByUserId] = position;
                             }
                         }
+                        postPositionEntries.Add((post, position));
+                    }
 
+                    // Guarantee at least one position change when a user has multiple posts
+                    var multiPosters = allPostsOrdered
+                        .GroupBy(p => p.CreatedByUserId)
+                        .Where(g => g.Count() >= 2)
+                        .ToList();
+
+                    var hasFlip = postPositionEntries
+                        .GroupBy(e => e.Post.CreatedByUserId)
+                        .Any(g => g.Select(e => e.Pos.Id).Distinct().Count() > 1);
+
+                    if (multiPosters.Count > 0 && !hasFlip)
+                    {
+                        var target = multiPosters[0];
+                        var lastPost = target.OrderBy(p => p.CreatedAt).Last();
+                        var currentPos = postPositionEntries.First(e => e.Post.Id == lastPost.Id).Pos;
+                        var alternatives = positions.Where(p => p.Id != currentPos.Id).ToList();
+                        if (alternatives.Count > 0)
+                        {
+                            var entryIdx = postPositionEntries.FindIndex(e => e.Post.Id == lastPost.Id);
+                            postPositionEntries[entryIdx] = (lastPost, _faker.PickRandom(alternatives));
+                        }
+                    }
+
+                    foreach (var (post, pos) in postPositionEntries)
+                    {
                         _context.DiscussionDebatePostPositions.Add(new DiscussionTypeDebatePostPositionDatabaseEntity
                         {
-                            PostId = reply.Id,
-                            PositionId = position.Id
+                            PostId     = post.Id,
+                            PositionId = pos.Id
                         });
                     }
                     break;
@@ -1301,7 +1421,7 @@ public class DatabaseSeeder(
 
             DiscussionTypeEnum.Link =>
                 $"{_faker.Lorem.Paragraph(1)}\n\n" +
-                "Thoughts?",
+                "Curious what everyone thinks — drop your thoughts below.",
 
             DiscussionTypeEnum.Journal =>
                 $"## Entry 1\n\n{_faker.Lorem.Paragraphs(2, "\n\n")}",
@@ -2810,6 +2930,9 @@ public class DatabaseSeeder(
                 var (maxPosts, maxDiscs) = spaceProfile[space.Id];
                 var p = rng.Next(0, maxPosts + 1);
                 var d = rng.Next(0, maxDiscs + 1);
+
+                // Guarantee activity in the most recent window so every space renders a sparkline
+                if (p == 0 && d == 0 && i < 7) p = 1;
 
                 if (p == 0 && d == 0) continue;
 

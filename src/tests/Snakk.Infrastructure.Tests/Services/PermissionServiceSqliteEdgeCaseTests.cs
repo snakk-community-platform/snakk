@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Snakk.Application.Services;
+using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Services;
 using Snakk.Infrastructure.Tests.Helpers;
 using Snakk.Shared.Enums;
@@ -29,8 +30,10 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
         services.AddHybridCache();
         _cacheServiceProvider = services.BuildServiceProvider();
         var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
+        var factory = new SqliteDbContextFactory(_db);
         _service = new PermissionService(
             _db.Context,
+            factory,
             cache,
             Substitute.For<ILogger<PermissionService>>(),
             Substitute.For<ISecurityService>());
@@ -432,4 +435,9 @@ public class PermissionServiceSqliteEdgeCaseTests : IDisposable
     }
 
     #endregion
+
+    private sealed class SqliteDbContextFactory(SqliteTestDatabase db) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => db.CreateSeparateContext();
+    }
 }

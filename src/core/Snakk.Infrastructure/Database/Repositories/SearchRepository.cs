@@ -671,63 +671,83 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         if (!cursorData.HasValue)
             orderedQuery = (IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
 
-        var items = await orderedQuery
+        var rawItems = await orderedQuery
             .Take(pageSize + 1)
             .Select(d => new {
                 d.Id,
-                Dto = new Application.Repositories.RecentDiscussionDto(
-                    d.PublicId,
-                    d.Title,
-                    d.Slug,
-                    d.Type,
-                    d.CreatedAt,
-                    d.LastActivityAt,
-                    d.IsPinned,
-                    d.IsLocked,
-                    d.Space.PublicId,
-                    d.Space.Slug,
-                    d.Space.Name,
-                    d.Space.Hub.PublicId,
-                    d.Space.Hub.Slug,
-                    d.Space.Hub.Name,
-                    d.Space.Hub.Community.PublicId,
-                    d.Space.Hub.Community.Slug,
-                    d.Space.Hub.Community.Name,
-                    d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName ?? "",
-                    d.CreatedByUser.AvatarFileName,
-                    d.CreatedByUser.AvatarThumbnailFileName,
-                    d.PostCount,
-                    d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                    LastReplierPublicId: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.PublicId)
-                        .FirstOrDefault(),
-                    LastReplierDisplayName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.DisplayName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarFileName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarThumbnailFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
-                        .FirstOrDefault(),
-                    LastPostExcerpt: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault(),
-                    IsAdult: d.IsAdultOnly)
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.PostCount,
+                d.ReactionCount,
+                d.Tags,
+                d.IsAdultOnly,
+                SpacePublicId = d.Space.PublicId,
+                SpaceSlug = d.Space.Slug,
+                SpaceName = d.Space.Name,
+                HubPublicId = d.Space.Hub.PublicId,
+                HubSlug = d.Space.Hub.Slug,
+                HubName = d.Space.Hub.Name,
+                CommunityPublicId = d.Space.Hub.Community.PublicId,
+                CommunitySlug = d.Space.Hub.Community.Slug,
+                CommunityName = d.Space.Hub.Community.Name,
+                AuthorPublicId = d.CreatedByUser.PublicId,
+                AuthorDisplayName = d.CreatedByUser.DisplayName,
+                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
+                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
+                LastReplier = d.Posts
+                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Select(p => new {
+                        p.CreatedByUser.PublicId,
+                        p.CreatedByUser.DisplayName,
+                        p.CreatedByUser.AvatarFileName,
+                        p.CreatedByUser.AvatarThumbnailFileName,
+                        p.PlainTextExcerpt
+                    })
+                    .FirstOrDefault()
             })
             .ToListAsync();
+
+        var items = rawItems.Select(d => new {
+            d.Id,
+            Dto = new Application.Repositories.RecentDiscussionDto(
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.SpacePublicId,
+                d.SpaceSlug,
+                d.SpaceName,
+                d.HubPublicId,
+                d.HubSlug,
+                d.HubName,
+                d.CommunityPublicId,
+                d.CommunitySlug,
+                d.CommunityName,
+                d.AuthorPublicId,
+                d.AuthorDisplayName ?? "",
+                d.AuthorAvatarFileName,
+                d.AuthorAvatarThumbnailFileName,
+                d.PostCount,
+                d.ReactionCount,
+                string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                LastReplierPublicId: d.LastReplier?.PublicId,
+                LastReplierDisplayName: d.LastReplier?.DisplayName,
+                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
+                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                IsAdult: d.IsAdultOnly)
+        }).ToList();
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems
@@ -781,63 +801,82 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
     {
         var ids = publicIds.ToList();
         if (ids.Count == 0) return [];
-        var resultItems = await _context.Discussions
+        var rawItems = await _context.Discussions
             .Where(d => ids.Contains(d.PublicId) && !d.IsDeleted)
             .Select(d => new {
                 d.Id,
-                Dto = new Application.Repositories.RecentDiscussionDto(
-                    d.PublicId,
-                    d.Title,
-                    d.Slug,
-                    d.Type,
-                    d.CreatedAt,
-                    d.LastActivityAt,
-                    d.IsPinned,
-                    d.IsLocked,
-                    d.Space.PublicId,
-                    d.Space.Slug,
-                    d.Space.Name,
-                    d.Space.Hub.PublicId,
-                    d.Space.Hub.Slug,
-                    d.Space.Hub.Name,
-                    d.Space.Hub.Community.PublicId,
-                    d.Space.Hub.Community.Slug,
-                    d.Space.Hub.Community.Name,
-                    d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName ?? "",
-                    d.CreatedByUser.AvatarFileName,
-                    d.CreatedByUser.AvatarThumbnailFileName,
-                    d.PostCount,
-                    d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                    LastReplierPublicId: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.PublicId)
-                        .FirstOrDefault(),
-                    LastReplierDisplayName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.DisplayName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarFileName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarThumbnailFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
-                        .FirstOrDefault(),
-                    LastPostExcerpt: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault(),
-                    IsAdult: d.IsAdultOnly)
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.PostCount,
+                d.ReactionCount,
+                d.Tags,
+                d.IsAdultOnly,
+                SpacePublicId = d.Space.PublicId,
+                SpaceSlug = d.Space.Slug,
+                SpaceName = d.Space.Name,
+                HubPublicId = d.Space.Hub.PublicId,
+                HubSlug = d.Space.Hub.Slug,
+                HubName = d.Space.Hub.Name,
+                CommunityPublicId = d.Space.Hub.Community.PublicId,
+                CommunitySlug = d.Space.Hub.Community.Slug,
+                CommunityName = d.Space.Hub.Community.Name,
+                AuthorPublicId = d.CreatedByUser.PublicId,
+                AuthorDisplayName = d.CreatedByUser.DisplayName,
+                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
+                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
+                LastReplier = d.Posts
+                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Select(p => new {
+                        p.CreatedByUser.PublicId,
+                        p.CreatedByUser.DisplayName,
+                        p.CreatedByUser.AvatarFileName,
+                        p.CreatedByUser.AvatarThumbnailFileName,
+                        p.PlainTextExcerpt
+                    })
+                    .FirstOrDefault()
             })
             .ToListAsync();
+        var resultItems = rawItems.Select(d => new {
+            d.Id,
+            Dto = new Application.Repositories.RecentDiscussionDto(
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.SpacePublicId,
+                d.SpaceSlug,
+                d.SpaceName,
+                d.HubPublicId,
+                d.HubSlug,
+                d.HubName,
+                d.CommunityPublicId,
+                d.CommunitySlug,
+                d.CommunityName,
+                d.AuthorPublicId,
+                d.AuthorDisplayName ?? "",
+                d.AuthorAvatarFileName,
+                d.AuthorAvatarThumbnailFileName,
+                d.PostCount,
+                d.ReactionCount,
+                string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                LastReplierPublicId: d.LastReplier?.PublicId,
+                LastReplierDisplayName: d.LastReplier?.DisplayName,
+                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
+                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                IsAdult: d.IsAdultOnly)
+        }).ToList();
         var previewMap = await BatchFetchPreviewsAsync(
             resultItems.Select(x => (x.Id, x.Dto.PublicId, x.Dto.Type)).ToList());
         return resultItems.Select(x =>
@@ -953,7 +992,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     l.DiscussionId,
                     l.Url, l.Title, l.Description, l.Domain,
                     l.ImageUrl, l.ImagePath, l.ImageThumbnailPath, l.OEmbedHtml, l.IsInternal,
-                    l.ImageBlurDataUri
+                    l.ImageBlurDataUri, l.ImageWidth, l.ImageHeight
                 })
                 .ToListAsync();
 
@@ -963,7 +1002,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 result[publicId] = new(Link: new(
                     link.Url, link.Title, link.Description, link.Domain,
                     link.ImageUrl, link.ImagePath, link.ImageThumbnailPath, link.OEmbedHtml, link.IsInternal,
-                    link.ImageBlurDataUri));
+                    link.ImageBlurDataUri, link.ImageWidth, link.ImageHeight));
             }
         }
 
@@ -1076,64 +1115,84 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             .OrderByDescending(d => d.TrendScore)
             .ThenByDescending(d => d.Id);
 
-        var items = await orderedQuery
+        var rawItems = await orderedQuery
             .Skip(offset)
             .Take(pageSize + 1)
             .Select(d => new {
                 d.Id,
-                Dto = new Application.Repositories.RecentDiscussionDto(
-                    d.PublicId,
-                    d.Title,
-                    d.Slug,
-                    d.Type,
-                    d.CreatedAt,
-                    d.LastActivityAt,
-                    d.IsPinned,
-                    d.IsLocked,
-                    d.Space.PublicId,
-                    d.Space.Slug,
-                    d.Space.Name,
-                    d.Space.Hub.PublicId,
-                    d.Space.Hub.Slug,
-                    d.Space.Hub.Name,
-                    d.Space.Hub.Community.PublicId,
-                    d.Space.Hub.Community.Slug,
-                    d.Space.Hub.Community.Name,
-                    d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName ?? "",
-                    d.CreatedByUser.AvatarFileName,
-                    d.CreatedByUser.AvatarThumbnailFileName,
-                    d.PostCount,
-                    d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                    LastReplierPublicId: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.PublicId)
-                        .FirstOrDefault(),
-                    LastReplierDisplayName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.DisplayName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarFileName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarThumbnailFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
-                        .FirstOrDefault(),
-                    LastPostExcerpt: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault(),
-                    IsAdult: d.IsAdultOnly)
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.PostCount,
+                d.ReactionCount,
+                d.Tags,
+                d.IsAdultOnly,
+                SpacePublicId = d.Space.PublicId,
+                SpaceSlug = d.Space.Slug,
+                SpaceName = d.Space.Name,
+                HubPublicId = d.Space.Hub.PublicId,
+                HubSlug = d.Space.Hub.Slug,
+                HubName = d.Space.Hub.Name,
+                CommunityPublicId = d.Space.Hub.Community.PublicId,
+                CommunitySlug = d.Space.Hub.Community.Slug,
+                CommunityName = d.Space.Hub.Community.Name,
+                AuthorPublicId = d.CreatedByUser.PublicId,
+                AuthorDisplayName = d.CreatedByUser.DisplayName,
+                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
+                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
+                LastReplier = d.Posts
+                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Select(p => new {
+                        p.CreatedByUser.PublicId,
+                        p.CreatedByUser.DisplayName,
+                        p.CreatedByUser.AvatarFileName,
+                        p.CreatedByUser.AvatarThumbnailFileName,
+                        p.PlainTextExcerpt
+                    })
+                    .FirstOrDefault()
             })
             .ToListAsync();
+
+        var items = rawItems.Select(d => new {
+            d.Id,
+            Dto = new Application.Repositories.RecentDiscussionDto(
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.SpacePublicId,
+                d.SpaceSlug,
+                d.SpaceName,
+                d.HubPublicId,
+                d.HubSlug,
+                d.HubName,
+                d.CommunityPublicId,
+                d.CommunitySlug,
+                d.CommunityName,
+                d.AuthorPublicId,
+                d.AuthorDisplayName ?? "",
+                d.AuthorAvatarFileName,
+                d.AuthorAvatarThumbnailFileName,
+                d.PostCount,
+                d.ReactionCount,
+                string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                LastReplierPublicId: d.LastReplier?.PublicId,
+                LastReplierDisplayName: d.LastReplier?.DisplayName,
+                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
+                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                IsAdult: d.IsAdultOnly)
+        }).ToList();
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
@@ -1189,64 +1248,84 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             .OrderByDescending(d => d.ReactionCount + d.PostCount)
             .ThenByDescending(d => d.Id);
 
-        var items = await orderedQuery
+        var rawItems = await orderedQuery
             .Skip(offset)
             .Take(pageSize + 1)
             .Select(d => new {
                 d.Id,
-                Dto = new Application.Repositories.RecentDiscussionDto(
-                    d.PublicId,
-                    d.Title,
-                    d.Slug,
-                    d.Type,
-                    d.CreatedAt,
-                    d.LastActivityAt,
-                    d.IsPinned,
-                    d.IsLocked,
-                    d.Space.PublicId,
-                    d.Space.Slug,
-                    d.Space.Name,
-                    d.Space.Hub.PublicId,
-                    d.Space.Hub.Slug,
-                    d.Space.Hub.Name,
-                    d.Space.Hub.Community.PublicId,
-                    d.Space.Hub.Community.Slug,
-                    d.Space.Hub.Community.Name,
-                    d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName ?? "",
-                    d.CreatedByUser.AvatarFileName,
-                    d.CreatedByUser.AvatarThumbnailFileName,
-                    d.PostCount,
-                    d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                    LastReplierPublicId: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.PublicId)
-                        .FirstOrDefault(),
-                    LastReplierDisplayName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.DisplayName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarFileName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarThumbnailFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
-                        .FirstOrDefault(),
-                    LastPostExcerpt: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault(),
-                    IsAdult: d.IsAdultOnly)
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.PostCount,
+                d.ReactionCount,
+                d.Tags,
+                d.IsAdultOnly,
+                SpacePublicId = d.Space.PublicId,
+                SpaceSlug = d.Space.Slug,
+                SpaceName = d.Space.Name,
+                HubPublicId = d.Space.Hub.PublicId,
+                HubSlug = d.Space.Hub.Slug,
+                HubName = d.Space.Hub.Name,
+                CommunityPublicId = d.Space.Hub.Community.PublicId,
+                CommunitySlug = d.Space.Hub.Community.Slug,
+                CommunityName = d.Space.Hub.Community.Name,
+                AuthorPublicId = d.CreatedByUser.PublicId,
+                AuthorDisplayName = d.CreatedByUser.DisplayName,
+                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
+                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
+                LastReplier = d.Posts
+                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Select(p => new {
+                        p.CreatedByUser.PublicId,
+                        p.CreatedByUser.DisplayName,
+                        p.CreatedByUser.AvatarFileName,
+                        p.CreatedByUser.AvatarThumbnailFileName,
+                        p.PlainTextExcerpt
+                    })
+                    .FirstOrDefault()
             })
             .ToListAsync();
+
+        var items = rawItems.Select(d => new {
+            d.Id,
+            Dto = new Application.Repositories.RecentDiscussionDto(
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.SpacePublicId,
+                d.SpaceSlug,
+                d.SpaceName,
+                d.HubPublicId,
+                d.HubSlug,
+                d.HubName,
+                d.CommunityPublicId,
+                d.CommunitySlug,
+                d.CommunityName,
+                d.AuthorPublicId,
+                d.AuthorDisplayName ?? "",
+                d.AuthorAvatarFileName,
+                d.AuthorAvatarThumbnailFileName,
+                d.PostCount,
+                d.ReactionCount,
+                string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                LastReplierPublicId: d.LastReplier?.PublicId,
+                LastReplierDisplayName: d.LastReplier?.DisplayName,
+                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
+                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                IsAdult: d.IsAdultOnly)
+        }).ToList();
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
@@ -1304,63 +1383,83 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         if (!cursorData.HasValue)
             orderedQuery = (IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
 
-        var items = await orderedQuery
+        var rawItems = await orderedQuery
             .Take(pageSize + 1)
             .Select(d => new {
                 d.Id,
-                Dto = new Application.Repositories.RecentDiscussionDto(
-                    d.PublicId,
-                    d.Title,
-                    d.Slug,
-                    d.Type,
-                    d.CreatedAt,
-                    d.LastActivityAt,
-                    d.IsPinned,
-                    d.IsLocked,
-                    d.Space.PublicId,
-                    d.Space.Slug,
-                    d.Space.Name,
-                    d.Space.Hub.PublicId,
-                    d.Space.Hub.Slug,
-                    d.Space.Hub.Name,
-                    d.Space.Hub.Community.PublicId,
-                    d.Space.Hub.Community.Slug,
-                    d.Space.Hub.Community.Name,
-                    d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName ?? "",
-                    d.CreatedByUser.AvatarFileName,
-                    d.CreatedByUser.AvatarThumbnailFileName,
-                    d.PostCount,
-                    d.ReactionCount,
-                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                    LastReplierPublicId: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.PublicId)
-                        .FirstOrDefault(),
-                    LastReplierDisplayName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.DisplayName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarFileName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarThumbnailFileName: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
-                        .FirstOrDefault(),
-                    LastPostExcerpt: d.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault(),
-                    IsAdult: d.IsAdultOnly)
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.PostCount,
+                d.ReactionCount,
+                d.Tags,
+                d.IsAdultOnly,
+                SpacePublicId = d.Space.PublicId,
+                SpaceSlug = d.Space.Slug,
+                SpaceName = d.Space.Name,
+                HubPublicId = d.Space.Hub.PublicId,
+                HubSlug = d.Space.Hub.Slug,
+                HubName = d.Space.Hub.Name,
+                CommunityPublicId = d.Space.Hub.Community.PublicId,
+                CommunitySlug = d.Space.Hub.Community.Slug,
+                CommunityName = d.Space.Hub.Community.Name,
+                AuthorPublicId = d.CreatedByUser.PublicId,
+                AuthorDisplayName = d.CreatedByUser.DisplayName,
+                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
+                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
+                LastReplier = d.Posts
+                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Select(p => new {
+                        p.CreatedByUser.PublicId,
+                        p.CreatedByUser.DisplayName,
+                        p.CreatedByUser.AvatarFileName,
+                        p.CreatedByUser.AvatarThumbnailFileName,
+                        p.PlainTextExcerpt
+                    })
+                    .FirstOrDefault()
             })
             .ToListAsync();
+
+        var items = rawItems.Select(d => new {
+            d.Id,
+            Dto = new Application.Repositories.RecentDiscussionDto(
+                d.PublicId,
+                d.Title,
+                d.Slug,
+                d.Type,
+                d.CreatedAt,
+                d.LastActivityAt,
+                d.IsPinned,
+                d.IsLocked,
+                d.SpacePublicId,
+                d.SpaceSlug,
+                d.SpaceName,
+                d.HubPublicId,
+                d.HubSlug,
+                d.HubName,
+                d.CommunityPublicId,
+                d.CommunitySlug,
+                d.CommunityName,
+                d.AuthorPublicId,
+                d.AuthorDisplayName ?? "",
+                d.AuthorAvatarFileName,
+                d.AuthorAvatarThumbnailFileName,
+                d.PostCount,
+                d.ReactionCount,
+                string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                LastReplierPublicId: d.LastReplier?.PublicId,
+                LastReplierDisplayName: d.LastReplier?.DisplayName,
+                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
+                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                IsAdult: d.IsAdultOnly)
+        }).ToList();
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;

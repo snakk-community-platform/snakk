@@ -1,7 +1,6 @@
 @page "/u/{publicId}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
-@using Snakk.Shared.Avatars
 @using Snakk.Shared.Helpers
 @using static Snakk.Web.Helpers.DisplayHelper
 @model ProfileModel
@@ -34,7 +33,7 @@
        sides and top of the center column (no padding around it). *@
     @if (Model.Profile != null)
     {
-        <div class="sn-profile-card" style="background-image: @AvatarGenerator.GenerateGradientCss($"user:{Model.Profile.PublicId}")">
+        <div class="sn-profile-card" style="background-image: @UserGradient(Model.Profile.PublicId)">
             <div class="sn-profile-card-header">
                 <img src="@SnakkUrlHelper.UserAvatar(Model.Profile.PublicId, avatarFileName: Model.Profile.HasAvatarFileName ? Model.Profile.AvatarFileName : null)"
                      alt="@Model.Profile.DisplayName"

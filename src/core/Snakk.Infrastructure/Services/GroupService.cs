@@ -10,9 +10,16 @@ namespace Snakk.Infrastructure.Services;
 
 public class GroupService(
     SnakkDbContext context,
+    IDbContextFactory<SnakkDbContext> dbFactory,
     ILogger<GroupService> logger,
     IUserGrantsCacheService grantsCache) : IGroupService
 {
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
+
     public async Task<GroupListDto> GetGroupsAsync(
         string communityId,
         CancellationToken ct = default)
@@ -153,27 +160,30 @@ public class GroupService(
         int pageSize = 50,
         CancellationToken ct = default)
     {
-        var query = context.GroupMembers
-            .Where(m => m.Group.Community.PublicId == communityId && m.Group.PublicId == groupId);
+        var offset = (page - 1) * pageSize;
 
-        var total = await query.CountAsync(ct);
+        var countTask = ReadAsync(db => db.GroupMembers
+            .Where(m => m.Group.Community.PublicId == communityId && m.Group.PublicId == groupId)
+            .CountAsync(ct));
 
-        var members = await query
+        var listTask = ReadAsync(db => db.GroupMembers
+            .Where(m => m.Group.Community.PublicId == communityId && m.Group.PublicId == groupId)
             .OrderBy(m => m.User.DisplayName)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+            .Skip(offset).Take(pageSize)
             .Select(m => new GroupMemberDto
             {
                 UserPublicId = m.User.PublicId,
                 DisplayName = m.User.DisplayName ?? "",
                 AddedAt = m.AddedAt
             })
-            .ToListAsync(ct);
+            .ToListAsync(ct));
+
+        await Task.WhenAll(countTask, listTask);
 
         return new GroupMemberListDto
         {
-            Members = members,
-            Total = total,
+            Members = listTask.Result,
+            Total = countTask.Result,
             Page = page,
             PageSize = pageSize
         };
@@ -194,19 +204,23 @@ public class GroupService(
         if (group is null)
             return false;
 
-        var user = await context.Users
+        var userTask = ReadAsync(db => db.Users
             .Where(u => u.PublicId == request.UserPublicId)
             .Select(u => new { u.Id })
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(ct));
 
+        var actingTask = ReadAsync(db => db.Users
+            .Where(u => u.PublicId == actingUserPublicId)
+            .Select(u => new { u.Id })
+            .FirstOrDefaultAsync(ct));
+
+        await Task.WhenAll(userTask, actingTask);
+
+        var user = userTask.Result;
         if (user is null)
             return false;
 
-        var actingUser = await context.Users
-            .Where(u => u.PublicId == actingUserPublicId)
-            .Select(u => new { u.Id })
-            .FirstOrDefaultAsync(ct);
-
+        var actingUser = actingTask.Result;
         if (actingUser is null)
             return false;
 

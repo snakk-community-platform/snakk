@@ -12,15 +12,6 @@
 <!-- Center Column -->
 <div class="sn-center">
     <div id="help-main" class="sn-center-inner">
-        @if (!string.IsNullOrEmpty(Model.Slug))
-        {
-            <div class="sn-page-labels">
-                <a href="/help" class="badge badge-ghost badge-sm">@T.Pages.HelpCrumb</a>
-                <span class="sn-page-labels-sep">›</span>
-                <span class="badge badge-ghost badge-sm">@Model.ArticleTitle</span>
-            </div>
-        }
-
         <h2 class="sn-section-title">
             <span class="icon icon-question-circle" aria-hidden="true"></span>
             @T.Pages.HelpHeading

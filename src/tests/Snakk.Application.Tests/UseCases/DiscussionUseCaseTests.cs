@@ -55,8 +55,8 @@ public class DiscussionUseCaseTests
 
         _useCase = new DiscussionUseCase(
             _discussionRepository, _spaceRepository, _userRepository, _postRepository,
-            _eventDispatcher, _counterService, _markupParser, _realtimeNotifier,
-            _mediaService, _moderationRepository);
+            _eventDispatcher, _counterService, _markupParser, new ContentNormalizer(),
+            _realtimeNotifier, _mediaService, _moderationRepository);
     }
 
     #region CreateDiscussionAsync Tests

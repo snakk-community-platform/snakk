@@ -66,9 +66,11 @@
 .sn-card-path {
     display: inline-flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.25rem;
     flex-wrap: wrap;
     min-width: 0;
+    flex: 1;
 }
 
 .sn-card-path-sep {
@@ -91,6 +93,25 @@
     &:hover { color: var(--link-hover); }
 }
 
+.sn-card-tag--space {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background-image: var(--space-grad);
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+
+    &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.35));
+        pointer-events: none;
+    }
+}
+
 .sn-card-path-link {
     font-size: 0.6875rem;
     font-weight: 400;
@@ -104,7 +125,15 @@
     background: color-mix(in srgb, var(--sidebar-bg) 50%, var(--bg-tertiary));
 }
 
+.sn-card-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+}
+
 .sn-card-title {
+    flex: 1;
+    min-width: 0;
     font-size: 0.9375rem;
     font-weight: 600;
     line-height: 1.35;
@@ -125,6 +154,7 @@
 
 // Interactive elements inside the card sit above the stretched title link
 .sn-card-header a,
+.sn-card-title-row .sn-card-comments,
 .sn-card-stats a,
 .sn-card-stats button,
 .sn-card-preview a,
@@ -156,7 +186,6 @@
     font-weight: 600;
     padding: 0.125rem 0.4375rem;
     border-radius: 0.25rem;
-    margin-left: 0.375rem;
     vertical-align: middle;
     background: color-mix(in srgb, var(--sidebar-bg) 60%, transparent);
     color: var(--text-secondary);
@@ -190,6 +219,8 @@
 }
 
 .sn-card-comments {
+    flex-shrink: 0;
+    font-size: 0.75rem;
     color: var(--link-primary);
     font-weight: 500;
     text-decoration: none;
@@ -219,10 +250,30 @@
     margin-top: 0.25rem;
     border-radius: 0.375rem;
     cursor: pointer;
+    background: var(--bg-secondary);
+    padding: 0.5rem;
     transition: background 0.15s ease;
 
-    &:hover {
+    .sn-card:hover & {
         background: var(--bg-hover, color-mix(in srgb, currentColor 6%, transparent));
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        right: 0.75rem;
+        top: 50%;
+        width: 0.4rem;
+        height: 0.4rem;
+        border-right: 1.5px solid var(--text-tertiary);
+        border-top: 1.5px solid var(--text-tertiary);
+        transform: translateY(-50%) rotate(45deg);
+        opacity: 0;
+        transition: opacity 0.15s ease;
+    }
+
+    &:hover::after {
+        opacity: 1;
     }
 }
 

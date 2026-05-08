@@ -53,6 +53,42 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
         await dbContext.SaveChangesAsync();
     }
 
+    public async Task BatchSaveAsync(IEnumerable<DiscussionReadState> readStates)
+    {
+        var states = readStates.ToList();
+        if (states.Count == 0) return;
+
+        var userId = states[0].UserId.Value;
+        var discussionIds = states.Select(rs => rs.DiscussionId.Value).ToList();
+
+        var existingEntities = await dbContext.DiscussionReadStates
+            .Where(rs => rs.UserId == userId && discussionIds.Contains(rs.DiscussionId))
+            .ToListAsync();
+
+        var existingMap = existingEntities.ToDictionary(rs => rs.DiscussionId);
+
+        foreach (var readState in states)
+        {
+            if (existingMap.TryGetValue(readState.DiscussionId.Value, out var existing))
+            {
+                existing.LastReadPostId = readState.LastReadPostId?.Value;
+                existing.LastReadAt = readState.LastReadAt;
+            }
+            else
+            {
+                dbContext.DiscussionReadStates.Add(new DiscussionReadStateDatabaseEntity
+                {
+                    UserId = readState.UserId.Value,
+                    DiscussionId = readState.DiscussionId.Value,
+                    LastReadPostId = readState.LastReadPostId?.Value,
+                    LastReadAt = readState.LastReadAt
+                });
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
     public async Task<List<ReadStateWithPostNumber>> GetReadStatesForDiscussionsAsync(
         UserId userId,
         List<string> discussionIds)

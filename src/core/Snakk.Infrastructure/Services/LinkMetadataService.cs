@@ -192,7 +192,9 @@ public partial class LinkMetadataService(
             {
                 ImagePath = storagePath,
                 ImageThumbnailPath = thumbnailPath ?? storagePath, // fallback to full if image was already small
-                ImageBlurDataUri = blurDataUri
+                ImageBlurDataUri = blurDataUri,
+                ImageWidth = image.Width,
+                ImageHeight = image.Height
             };
         }
         catch (Exception ex)
@@ -291,14 +293,19 @@ public partial class LinkMetadataService(
         string? description = null;
         string? imageUrl = null;
 
-        // Parse og: meta tags
-        var metaMatches = MetaTagRegex().Matches(html);
-        foreach (Match match in metaMatches)
+        // Two-pass: match entire <meta> tag first, then extract attributes within it.
+        // This handles sites (e.g. Imgur) that inject extra attributes like data-react-helmet
+        // between the property and content attributes, which a single-pass regex can't handle.
+        foreach (Match tag in MetaTagRegex().Matches(html))
         {
-            // Handle both attribute orders (prop/content or content2/prop2)
-            var property = (match.Groups["prop"].Success ? match.Groups["prop"].Value : match.Groups["prop2"].Value).ToLowerInvariant();
-            var rawContent = match.Groups["content"].Success ? match.Groups["content"].Value : match.Groups["content2"].Value;
-            var content = System.Net.WebUtility.HtmlDecode(rawContent);
+            var propMatch = MetaPropAttrRegex().Match(tag.Value);
+            if (!propMatch.Success) continue;
+
+            var contentMatch = MetaContentAttrRegex().Match(tag.Value);
+            if (!contentMatch.Success) continue;
+
+            var property = propMatch.Groups["prop"].Value.ToLowerInvariant();
+            var content = System.Net.WebUtility.HtmlDecode(contentMatch.Groups["content"].Value);
 
             switch (property)
             {
@@ -308,6 +315,7 @@ public partial class LinkMetadataService(
                 case "twitter:title": title ??= content; break;
                 case "twitter:description": description ??= content; break;
                 case "twitter:image": imageUrl ??= content; break;
+                case "description": description ??= content; break;
             }
         }
 
@@ -317,17 +325,6 @@ public partial class LinkMetadataService(
             var titleMatch = TitleTagRegex().Match(html);
             if (titleMatch.Success)
                 title = System.Net.WebUtility.HtmlDecode(titleMatch.Groups[1].Value.Trim());
-        }
-
-        // Fallback: <meta name="description">
-        if (description is null)
-        {
-            var descMatch = DescriptionMetaRegex().Match(html);
-            if (descMatch.Success)
-                description = System.Net.WebUtility.HtmlDecode(
-                    descMatch.Groups[1].Success && descMatch.Groups[1].Length > 0
-                        ? descMatch.Groups[1].Value
-                        : descMatch.Groups[2].Value);
         }
 
         if (title is null && description is null && imageUrl is null)
@@ -423,17 +420,21 @@ public partial class LinkMetadataService(
         }
     }
 
-    // Regex patterns compiled at build time
-    // Matches both attribute orders: property/name before content, or content before property/name
-    [GeneratedRegex("""<meta\s+(?:(?:property|name)=["'](?<prop>[^"']+)["']\s+content=["'](?<content>[^"']*)["']|content=["'](?<content2>[^"']*)["']\s+(?:property|name)=["'](?<prop2>[^"']+)["'])""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    // Two-pass meta tag parsing regex set.
+    // Pass 1: capture the whole <meta ...> element so attribute order doesn't matter.
+    [GeneratedRegex("""<meta\s[^>]+/?>""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex MetaTagRegex();
+
+    // Pass 2a: extract property/name attribute value from within a matched tag.
+    [GeneratedRegex("""\b(?:property|name)=["'](?<prop>[^"']+)["']""", RegexOptions.IgnoreCase)]
+    private static partial Regex MetaPropAttrRegex();
+
+    // Pass 2b: extract content attribute value from within a matched tag.
+    [GeneratedRegex("""\bcontent=["'](?<content>[^"']*)["']""", RegexOptions.IgnoreCase)]
+    private static partial Regex MetaContentAttrRegex();
 
     [GeneratedRegex("""<title[^>]*>([^<]+)</title>""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex TitleTagRegex();
-
-    // Matches both: name then content, or content then name
-    [GeneratedRegex("""<meta\s+(?:name=["']description["']\s+content=["']([^"']*)["']|content=["']([^"']*)["']\s+name=["']description["'])""", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
-    private static partial Regex DescriptionMetaRegex();
 
     private bool IsInternalUrl(string url)
     {

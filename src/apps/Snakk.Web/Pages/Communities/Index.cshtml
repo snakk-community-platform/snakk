@@ -1,7 +1,6 @@
 @page "/communities"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
-@using Snakk.Shared.Avatars
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Communities.IndexModel
 @{
@@ -35,7 +34,7 @@
                 {
                     <a href="/c/@community.Slug" class="sn-community-list-card">
                         <div class="sn-community-list-banner"
-                             style="background-image: @AvatarGenerator.GenerateGradientCss($"community:{community.PublicId}")">
+                             style="background-image: @CommunityGradient(community.PublicId)">
                             <img src="@SnakkUrlHelper.CommunityAvatar(community.PublicId, avatarFileName: community.HasAvatarFileName ? community.AvatarFileName : null)"
                                  alt="" width="48" height="48"
                                  class="sn-community-list-avatar"

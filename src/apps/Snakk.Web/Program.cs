@@ -1,5 +1,6 @@
 using Snakk.Web.Services;
 using Snakk.Web.Filters;
+using System.Threading.RateLimiting;
 using Snakk.Web.Middleware;
 using Snakk.Web.Endpoints;
 using Snakk.Web.Helpers;
@@ -107,7 +108,10 @@ builder.Services.AddOutputCache(options =>
     // Pages: 30s cache for anonymous visitors
     // Vary by HX-Request header so HTMX boosted requests get separate cache entries
     options.AddPolicy("AnonymousPage", builder => builder
-        .With(ctx => !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
+        .With(ctx =>
+            !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName) &&
+            !ctx.HttpContext.Request.Cookies.ContainsKey(AdultContentGate.ConfirmedCookie) &&
+            !ctx.HttpContext.Request.Cookies.ContainsKey(AdultContentGate.DeclinedCookie))
         .Expire(TimeSpan.FromSeconds(30))
         .SetLocking(false)
         .SetVaryByHeader("HX-Request")
@@ -116,7 +120,10 @@ builder.Services.AddOutputCache(options =>
 
     // HTMX partials: 10s cache for anonymous visitors
     options.AddPolicy("AnonymousPartial", builder => builder
-        .With(ctx => !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
+        .With(ctx =>
+            !ctx.HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName) &&
+            !ctx.HttpContext.Request.Cookies.ContainsKey(AdultContentGate.ConfirmedCookie) &&
+            !ctx.HttpContext.Request.Cookies.ContainsKey(AdultContentGate.DeclinedCookie))
         .Expire(TimeSpan.FromSeconds(10))
         .SetLocking(false)
         .SetVaryByHeader("HX-Request")
@@ -131,8 +138,14 @@ builder.Services.AddOutputCache(options =>
         .SetVaryByRouteValue("publicId"));
 });
 
-// OAuth provider availability flags (used by _RegistrationNudge partial)
-builder.Services.Configure<OAuthProvidersOptions>(builder.Configuration.GetSection("OAuthProviders"));
+// OAuth provider availability — derived from Authentication:*:ClientId presence, same as Snakk.Auth
+builder.Services.Configure<OAuthProvidersOptions>(opts =>
+{
+    var c = builder.Configuration;
+    opts.Google  = !string.IsNullOrEmpty(c["Authentication:Google:ClientId"]);
+    opts.GitHub  = !string.IsNullOrEmpty(c["Authentication:GitHub:ClientId"]);
+    opts.Discord = !string.IsNullOrEmpty(c["Authentication:Discord:ClientId"]);
+});
 
 // Community context (scoped per request)
 builder.Services.AddScoped<ICommunityContext, CommunityContext>();
@@ -277,6 +290,62 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+var disableRateLimiting = builder.Configuration.GetValue<bool>("DisableRateLimiting");
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        var retryAfter = context.Lease.TryGetMetadata(
+            MetadataName.RetryAfter, out var retry)
+            ? (int)retry.TotalSeconds : 60;
+        context.HttpContext.Response.Headers.RetryAfter = retryAfter.ToString();
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { error = "Too many requests", retryAfter }, cancellationToken);
+    };
+
+    // Content posts: 10 per 5 minutes per user
+    options.AddPolicy("flood-post", httpContext =>
+        RateLimitPartition.GetTokenBucketLimiter(GetRateLimitPartitionKey(httpContext),
+            _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 10, TokensPerPeriod = 10,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(5),
+                QueueLimit = 0, AutoReplenishment = true
+            }));
+
+    // Engagement: 20 per 5 minutes per user (reactions, votes)
+    options.AddPolicy("flood-engage", httpContext =>
+        RateLimitPartition.GetTokenBucketLimiter(GetRateLimitPartitionKey(httpContext),
+            _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 20, TokensPerPeriod = 20,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(5),
+                QueueLimit = 0, AutoReplenishment = true
+            }));
+
+    // Uploads: burst of 15 (full 12-image post), then 3/min sustained
+    options.AddPolicy("flood-upload", httpContext =>
+        RateLimitPartition.GetTokenBucketLimiter(GetRateLimitPartitionKey(httpContext),
+            _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 15, TokensPerPeriod = 3,
+                ReplenishmentPeriod = TimeSpan.FromSeconds(60),
+                QueueLimit = 0, AutoReplenishment = true
+            }));
+});
+
+builder.Services.AddSingleton<DiscussionCreateRateLimiter>();
+
+static string GetRateLimitPartitionKey(HttpContext ctx)
+{
+    var userId = ctx.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    return string.IsNullOrEmpty(userId)
+        ? $"ip:{ctx.Connection.RemoteIpAddress}"
+        : $"user:{userId}";
+}
 
 // Persist Data Protection keys to shared storage so antiforgery + auth cookies
 // survive container restarts and can be decrypted by Snakk.Auth/Snakk.Admin too.
@@ -512,6 +581,7 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
+if (!disableRateLimiting) app.UseRateLimiter();
 
 // SameSite=Strict mutation guard: BFF state-changing requests (POST/PUT/DELETE) require
 // the Strict auth cookie, not just the Lax session cookie. This prevents CSRF attacks

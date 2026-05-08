@@ -138,27 +138,6 @@
         <span class="icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") w-5 h-5" aria-hidden="true"></span>
     </a>
 </div>
-<script nonce="@(Context.Items["csp-nonce"] as string)">
-(function () {
-    const fab = document.getElementById('new-discussion-fab');
-    const target = document.getElementById('rp-new-discussion');
-    if (!fab || !target || !('IntersectionObserver' in window)) return;
-
-    let intersecting = true;
-    function update() {
-        const root = document.documentElement;
-        const sticky = root.classList.contains('sticky-none') || root.classList.contains('sticky-left-only');
-        fab.classList.toggle('fab-collapsed', intersecting || !sticky);
-    }
-    const observer = new IntersectionObserver(function (entries) {
-        intersecting = entries[0].isIntersecting;
-        update();
-    });
-    observer.observe(target);
-    window.addEventListener('snakk:sticky-changed', update);
-    update();
-})();
-</script>
 }
 
 @if (!isAuth)

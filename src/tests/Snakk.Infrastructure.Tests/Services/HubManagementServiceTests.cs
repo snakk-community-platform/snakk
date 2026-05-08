@@ -20,7 +20,8 @@ public class HubManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"HubManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _service = new HubManagementService(_context);
+        var factory = new InMemoryDbContextFactory(options);
+        _service = new HubManagementService(_context, factory);
     }
 
     public void Dispose()
@@ -272,4 +273,9 @@ public class HubManagementServiceTests : IDisposable
     }
 
     #endregion
+
+    private sealed class InMemoryDbContextFactory(DbContextOptions<SnakkDbContext> options) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => new(options);
+    }
 }

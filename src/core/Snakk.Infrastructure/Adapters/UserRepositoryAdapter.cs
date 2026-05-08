@@ -142,6 +142,9 @@ public class UserRepositoryAdapter(
         entity.FeedToken = user.FeedToken;
         entity.LastModifiedAt = user.LastModifiedAt;
         entity.LastSeenAt = user.LastSeenAt;
+        entity.LastLoginAt = user.LastLoginAt;
+        entity.FailedLoginAttempts = user.FailedLoginAttempts;
+        entity.LockoutEnd = user.LockoutEnd;
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -171,6 +174,8 @@ public class UserRepositoryAdapter(
         public DateTime? LastModifiedAt { get; init; }
         public DateTime? LastSeenAt { get; init; }
         public DateTime? LastLoginAt { get; init; }
+        public int FailedLoginAttempts { get; init; }
+        public DateTime? LockoutEnd { get; init; }
         public bool NeedsProfileSetup { get; init; }
         public int DiscussionCount { get; init; }
         public int ReplyCount { get; init; }
@@ -201,6 +206,8 @@ public class UserRepositoryAdapter(
             LastModifiedAt = u.LastModifiedAt;
             LastSeenAt = u.LastSeenAt;
             LastLoginAt = u.LastLoginAt;
+            FailedLoginAttempts = u.FailedLoginAttempts;
+            LockoutEnd = u.LockoutEnd;
             NeedsProfileSetup = u.NeedsProfileSetup;
             DiscussionCount = u.DiscussionCount;
             ReplyCount = u.ReplyCount;
@@ -229,7 +236,9 @@ public class UserRepositoryAdapter(
                 feedToken: FeedToken,
                 allowAdultContent: AllowAdultContent,
                 discussionCount: DiscussionCount,
-                replyCount: ReplyCount);
+                replyCount: ReplyCount,
+                failedLoginAttempts: FailedLoginAttempts,
+                lockoutEnd: LockoutEnd);
         }
     }
 }

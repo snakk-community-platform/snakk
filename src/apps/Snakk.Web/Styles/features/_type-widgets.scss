@@ -7,6 +7,12 @@
     margin: 1.25rem 0;
 }
 
+#link-preview-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
 // --- Question: Solved badge + accepted answer ---
 
 .type-widget-solved {
@@ -50,15 +56,17 @@
 
 .debate-distribution {
     display: flex;
-    height: 0.5rem;
     border-radius: 0.25rem;
     overflow: hidden;
     gap: 2px;
     margin-bottom: 0.5rem;
+    background: var(--bg-primary);
+    padding: 1px;
 }
 
 .debate-position-bar {
     min-width: 4px;
+    height: 1rem;
     border-radius: 0.25rem;
     transition: width 0.3s ease;
 }
@@ -151,41 +159,45 @@
 
 .link-preview-card {
     display: flex;
+    flex-direction: column;
     border: 1px solid var(--border-primary);
     border-radius: 0.5rem;
     overflow: hidden;
     background: var(--bg-tertiary);
-    margin-bottom: 0.75rem;
 }
 
-.link-preview-image {
-    width: 200px;
-    min-height: 120px;
-    flex-shrink: 0;
-    background-image: var(--blur, none);
-    background-size: cover;
-    background-position: center;
-    position: relative;
+.link-preview-banner {
+    border-radius: 0 !important;
 
-    > img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+    .sn-images-frame,
+    .sn-images-slide-wrapper {
+        border-radius: 0;
     }
+}
 
-    .link-preview-lqip {
-        z-index: 0;
-        pointer-events: none;
+.link-preview-compact {
+    .link-preview-card {
+        flex-direction: row;
     }
+    .link-preview-banner {
+        width: 200px;
+        min-height: 120px;
+        flex-shrink: 0;
+        align-self: stretch;
 
-    .link-preview-img {
-        z-index: 1;
-        opacity: 0;
-        transition: opacity 0.15s ease;
-
-        &.images-loaded { opacity: 1; }
+        .sn-images-frame {
+            aspect-ratio: unset !important;
+            max-height: none;
+            height: 100%;
+        }
+        .sn-images-slide-wrapper { height: 100%; }
+        .sn-images-slide {
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+        }
     }
 }
 
@@ -285,7 +297,7 @@
 .link-embed-denied-msg {
     font-size: 0.8125rem;
     color: var(--text-secondary);
-    margin: 0.5rem 0 0;
+    margin: 0;
 
     a {
         color: var(--link-primary);
@@ -293,17 +305,6 @@
     }
 }
 
-// Mobile: stack image on top
-@media (max-width: 640px) {
-    .link-preview-card {
-        flex-direction: column;
-    }
-
-    .link-preview-image {
-        width: 100%;
-        height: 160px;
-    }
-}
 
 // --- Journal: Entry badge ---
 
@@ -651,7 +652,6 @@
     margin-bottom: 1rem;
     border-radius: 0.5rem;
     overflow: hidden;
-    padding-right: 0.5rem;
 
     // Clicking any image opens the lightbox — signal that with zoom-in.
     // The compare (reveal) layout overrides this to ew-resize via .gup-compare

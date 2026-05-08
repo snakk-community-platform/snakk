@@ -180,38 +180,33 @@ public class SettingsService : ISettingsService
     public async Task<List<OAuthProviderDto>> GetOAuthProvidersAsync()
     {
         var providers = new[] { "Google", "GitHub", "Discord", "Microsoft", "Facebook", "Apple" };
-        var result = new List<OAuthProviderDto>();
-
-        foreach (var provider in providers)
+        var s = await LoadCategoryAsync("OAuth");
+        return providers.Select(provider => new OAuthProviderDto
         {
-            var enabled = await GetSettingValueAsync<bool>("OAuth", $"{provider}.Enabled");
-            var configured = IsOAuthProviderConfigured(provider);
-
-            result.Add(new OAuthProviderDto
-            {
-                Provider = provider,
-                Enabled = enabled,
-                Configured = configured
-            });
-        }
-
-        return result;
+            Provider = provider,
+            Enabled = GetValue<bool>(s, $"{provider}.Enabled"),
+            Configured = IsOAuthProviderConfigured(provider)
+        }).ToList();
     }
 
     public async Task UpdateOAuthProviderAsync(string provider, bool enabled, string adminUserId) =>
         await UpdateSettingAsync("OAuth", $"{provider}.Enabled", enabled, adminUserId);
 
-    public async Task<EmailConfigDto> GetEmailConfigAsync() => new EmailConfigDto
+    public async Task<EmailConfigDto> GetEmailConfigAsync()
     {
-        Enabled = await GetSettingValueAsync<bool>("Email", "Enabled"),
-        SmtpHost = await GetSettingValueAsync<string>("Email", "SmtpHost") ?? string.Empty,
-        SmtpPort = await GetSettingValueAsync<int>("Email", "SmtpPort"),
-        UseSsl = await GetSettingValueAsync<bool>("Email", "UseSsl"),
-        SmtpUsername = await GetSettingValueAsync<string>("Email", "SmtpUsername") ?? string.Empty,
-        SmtpPassword = await GetSettingValueAsync<string>("Email", "SmtpPassword") ?? string.Empty,
-        FromEmail = await GetSettingValueAsync<string>("Email", "FromEmail") ?? string.Empty,
-        FromName = await GetSettingValueAsync<string>("Email", "FromName") ?? string.Empty
-    };
+        var s = await LoadCategoryAsync("Email");
+        return new EmailConfigDto
+        {
+            Enabled = GetValue<bool>(s, "Enabled"),
+            SmtpHost = GetValue<string>(s, "SmtpHost") ?? string.Empty,
+            SmtpPort = GetValue<int>(s, "SmtpPort"),
+            UseSsl = GetValue<bool>(s, "UseSsl"),
+            SmtpUsername = GetValue<string>(s, "SmtpUsername") ?? string.Empty,
+            SmtpPassword = GetValue<string>(s, "SmtpPassword") ?? string.Empty,
+            FromEmail = GetValue<string>(s, "FromEmail") ?? string.Empty,
+            FromName = GetValue<string>(s, "FromName") ?? string.Empty
+        };
+    }
 
     public async Task UpdateEmailConfigAsync(EmailConfigDto config, string adminUserId)
     {
@@ -228,13 +223,17 @@ public class SettingsService : ISettingsService
     public async Task<SiteInfoDto> GetSiteInfoAsync() =>
         await _cache.GetOrCreateAsync(
             SiteInfoCacheKey,
-            async cancel => new SiteInfoDto
+            async cancel =>
             {
-                SiteName = await GetSettingValueAsync<string>("General", "SiteName") ?? "Snakk",
-                SiteDescription = await GetSettingValueAsync<string>("General", "SiteDescription") ?? string.Empty,
-                LogoUrl = await GetSettingValueAsync<string>("General", "LogoUrl") ?? string.Empty,
-                Timezone = await GetSettingValueAsync<string>("General", "Timezone") ?? "UTC",
-                Language = await GetSettingValueAsync<string>("General", "Language") ?? "en"
+                var s = await LoadCategoryAsync("General");
+                return new SiteInfoDto
+                {
+                    SiteName = GetValue<string>(s, "SiteName") ?? "Snakk",
+                    SiteDescription = GetValue<string>(s, "SiteDescription") ?? string.Empty,
+                    LogoUrl = GetValue<string>(s, "LogoUrl") ?? string.Empty,
+                    Timezone = GetValue<string>(s, "Timezone") ?? "UTC",
+                    Language = GetValue<string>(s, "Language") ?? "en"
+                };
             },
             LongCacheOptions);
 
@@ -248,13 +247,17 @@ public class SettingsService : ISettingsService
         await _cache.RemoveAsync(SiteInfoCacheKey);
     }
 
-    public async Task<AvatarSettingsDto> GetAvatarSettingsAsync() => new AvatarSettingsDto
+    public async Task<AvatarSettingsDto> GetAvatarSettingsAsync()
     {
-        DefaultAvatarSize = await GetSettingValueAsync<int>("Avatar", "DefaultAvatarSize"),
-        MaxUploadSizeMb = await GetSettingValueAsync<int>("Avatar", "MaxUploadSizeMb"),
-        AllowUploads = await GetSettingValueAsync<bool>("Avatar", "AllowUploads"),
-        GenerateOnStartup = await GetSettingValueAsync<bool>("Avatar", "GenerateOnStartup")
-    };
+        var s = await LoadCategoryAsync("Avatar");
+        return new AvatarSettingsDto
+        {
+            DefaultAvatarSize = GetValue<int>(s, "DefaultAvatarSize"),
+            MaxUploadSizeMb = GetValue<int>(s, "MaxUploadSizeMb"),
+            AllowUploads = GetValue<bool>(s, "AllowUploads"),
+            GenerateOnStartup = GetValue<bool>(s, "GenerateOnStartup")
+        };
+    }
 
     public async Task UpdateAvatarSettingsAsync(AvatarSettingsDto settings, string adminUserId)
     {
@@ -264,14 +267,18 @@ public class SettingsService : ISettingsService
         await UpdateSettingAsync("Avatar", "GenerateOnStartup", settings.GenerateOnStartup, adminUserId);
     }
 
-    public async Task<ContentSettingsDto> GetContentSettingsAsync() => new ContentSettingsDto
+    public async Task<ContentSettingsDto> GetContentSettingsAsync()
     {
-        PostMaxLength = await GetSettingValueAsync<int>("Content", "PostMaxLength"),
-        DiscussionTitleMaxLength = await GetSettingValueAsync<int>("Content", "DiscussionTitleMaxLength"),
-        AllowMarkdown = await GetSettingValueAsync<bool>("Content", "AllowMarkdown"),
-        AllowHtml = await GetSettingValueAsync<bool>("Content", "AllowHtml"),
-        RequireModeration = await GetSettingValueAsync<bool>("Content", "RequireModeration")
-    };
+        var s = await LoadCategoryAsync("Content");
+        return new ContentSettingsDto
+        {
+            PostMaxLength = GetValue<int>(s, "PostMaxLength"),
+            DiscussionTitleMaxLength = GetValue<int>(s, "DiscussionTitleMaxLength"),
+            AllowMarkdown = GetValue<bool>(s, "AllowMarkdown"),
+            AllowHtml = GetValue<bool>(s, "AllowHtml"),
+            RequireModeration = GetValue<bool>(s, "RequireModeration")
+        };
+    }
 
     public async Task UpdateContentSettingsAsync(ContentSettingsDto settings, string adminUserId)
     {
@@ -282,15 +289,19 @@ public class SettingsService : ISettingsService
         await UpdateSettingAsync("Content", "RequireModeration", settings.RequireModeration, adminUserId);
     }
 
-    public async Task<RateLimitingSettingsDto> GetRateLimitingSettingsAsync() => new RateLimitingSettingsDto
+    public async Task<RateLimitingSettingsDto> GetRateLimitingSettingsAsync()
     {
-        AuthPermitLimit = await GetSettingValueAsync<int>("RateLimiting", "AuthPermitLimit"),
-        AuthWindowMinutes = await GetSettingValueAsync<int>("RateLimiting", "AuthWindowMinutes"),
-        ApiPermitLimit = await GetSettingValueAsync<int>("RateLimiting", "ApiPermitLimit"),
-        ApiWindowMinutes = await GetSettingValueAsync<int>("RateLimiting", "ApiWindowMinutes"),
-        ExpensivePermitLimit = await GetSettingValueAsync<int>("RateLimiting", "ExpensivePermitLimit"),
-        ExpensiveWindowMinutes = await GetSettingValueAsync<int>("RateLimiting", "ExpensiveWindowMinutes")
-    };
+        var s = await LoadCategoryAsync("RateLimiting");
+        return new RateLimitingSettingsDto
+        {
+            AuthPermitLimit = GetValue<int>(s, "AuthPermitLimit"),
+            AuthWindowMinutes = GetValue<int>(s, "AuthWindowMinutes"),
+            ApiPermitLimit = GetValue<int>(s, "ApiPermitLimit"),
+            ApiWindowMinutes = GetValue<int>(s, "ApiWindowMinutes"),
+            ExpensivePermitLimit = GetValue<int>(s, "ExpensivePermitLimit"),
+            ExpensiveWindowMinutes = GetValue<int>(s, "ExpensiveWindowMinutes")
+        };
+    }
 
     public async Task UpdateRateLimitingSettingsAsync(RateLimitingSettingsDto settings, string adminUserId)
     {
@@ -306,11 +317,15 @@ public class SettingsService : ISettingsService
             adminUserId);
     }
 
-    public async Task<RegistrationSettingsDto> GetRegistrationSettingsAsync() => new RegistrationSettingsDto
+    public async Task<RegistrationSettingsDto> GetRegistrationSettingsAsync()
     {
-        Mode = await GetSettingValueAsync<string>("Registration", "Mode") ?? "Open",
-        InviteCode = await GetSettingValueAsync<string>("Registration", "InviteCode") ?? ""
-    };
+        var s = await LoadCategoryAsync("Registration");
+        return new RegistrationSettingsDto
+        {
+            Mode = GetValue<string>(s, "Mode") ?? "Open",
+            InviteCode = GetValue<string>(s, "InviteCode") ?? ""
+        };
+    }
 
     public async Task UpdateRegistrationSettingsAsync(RegistrationSettingsDto settings, string adminUserId)
     {
@@ -321,6 +336,18 @@ public class SettingsService : ISettingsService
     #endregion
 
     #region Helper Methods
+
+    private async Task<Dictionary<string, string?>> LoadCategoryAsync(string category)
+    {
+        var response = await GetSettingsByCategoryAsync(category);
+        return response.Settings.ToDictionary(s => s.Key, s => (string?)s.Value);
+    }
+
+    private T? GetValue<T>(Dictionary<string, string?> dict, string key)
+    {
+        var raw = dict.GetValueOrDefault(key);
+        return raw is null ? default : DeserializeValue<T>(raw, typeof(T).Name);
+    }
 
     private string EncryptValue(string value) => _dataProtector.Protect(value);
 

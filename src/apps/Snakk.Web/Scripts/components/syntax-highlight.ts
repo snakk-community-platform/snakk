@@ -10,6 +10,7 @@
 
     const CSS_ID = 'prism-css';
     const LINE_NUMBERS_CSS_ID = 'prism-line-numbers-css';
+    const PRISM_VERSION = '1.30.0';
     let loadPromise: Promise<any> | null = null;
 
     const EXPAND_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4V1h3M8 1h3v3M11 8v3H8M4 11H1V8"/></svg>';
@@ -99,25 +100,31 @@
 
     async function loadPrism(): Promise<any> {
         if (!loadPromise) {
+            console.log('[SnakkSyntax] loadPrism: starting fresh load');
             loadPromise = (async () => {
                 try {
-                    loadCSS(CSS_ID, '/css/vendor/prism.css');
-                    loadCSS(LINE_NUMBERS_CSS_ID, '/css/vendor/prism-line-numbers.css');
-                    await loadScript('/js/vendor/prism.js');
+                    loadCSS(CSS_ID, `/css/vendor/prism.css?v=${PRISM_VERSION}`);
+                    loadCSS(LINE_NUMBERS_CSS_ID, `/css/vendor/prism-line-numbers.css?v=${PRISM_VERSION}`);
+                    console.log('[SnakkSyntax] loadPrism: fetching /js/vendor/prism.js');
+                    await loadScript(`/js/vendor/prism.js?v=${PRISM_VERSION}`);
+                    console.log('[SnakkSyntax] loadPrism: script loaded, window.Prism =', !!(window as any).Prism);
                     const Prism = (window as any).Prism;
                     if (!Prism) {
-                        console.error('Prism not found on window.Prism');
+                        console.error('[SnakkSyntax] loadPrism: Prism not found on window.Prism after load');
                         return null;
                     }
                     // Disable Prism's automatic highlighting on page load
                     Prism.manual = true;
+                    console.log('[SnakkSyntax] loadPrism: ready (manual=true)');
                     return Prism;
                 } catch (e) {
-                    console.error('Failed to load Prism:', e);
+                    console.error('[SnakkSyntax] loadPrism: FAILED', e);
                     loadPromise = null;
                     return null;
                 }
             })();
+        } else {
+            console.log('[SnakkSyntax] loadPrism: reusing existing promise, resolved =', (loadPromise as any)._resolved ?? '(unknown)');
         }
         return loadPromise;
     }
@@ -126,12 +133,34 @@
      * Highlight all code blocks within the given container (or document if omitted).
      * Only processes elements that haven't been highlighted yet.
      */
-    async function highlightAll(container?: HTMLElement): Promise<void> {
+    async function highlightAll(container?: HTMLElement, label?: string): Promise<void> {
+        // Re-ensure stylesheets are present — head-support (merge mode) removes
+        // dynamically-added <link> tags that aren't in the new page's <head>.
+        loadCSS(CSS_ID, `/css/vendor/prism.css?v=${PRISM_VERSION}`);
+        loadCSS(LINE_NUMBERS_CSS_ID, `/css/vendor/prism-line-numbers.css?v=${PRISM_VERSION}`);
+
+        const src = label ?? 'unknown';
+        const allBlocks = (container || document).querySelectorAll('pre > code');
+        const unhighlighted = (container || document).querySelectorAll('pre > code:not(.prism-highlighted)');
+        console.group(`[SnakkSyntax] highlightAll — caller: ${src}`);
+        console.log('  readyState:', document.readyState);
+        console.log('  container:', container ?? 'document');
+        console.log('  pre>code total:', allBlocks.length, '  not-yet-highlighted:', unhighlighted.length);
+        if (allBlocks.length > 0) {
+            allBlocks.forEach((el, i) => {
+                const classes = Array.from(el.classList).join(' ') || '(none)';
+                console.log(`    block[${i}] classes: ${classes}, parent.id: ${el.parentElement?.id ?? '-'}, inDOM: ${document.contains(el)}`);
+            });
+        }
+        console.groupEnd();
+
         const Prism = await loadPrism();
+        console.log(`[SnakkSyntax] highlightAll (${src}) after loadPrism — Prism present: ${!!Prism}`);
         if (!Prism) return;
 
         const root = container || document;
         const codeBlocks = root.querySelectorAll('pre > code:not(.prism-highlighted)');
+        console.log(`[SnakkSyntax] highlightAll (${src}) post-await — unhighlighted blocks now: ${codeBlocks.length}`);
 
         const LANG_LABELS: Record<string, string> = {
             javascript: 'JavaScript', typescript: 'TypeScript', csharp: 'C#',
@@ -140,7 +169,8 @@
             yaml: 'YAML', xml: 'XML', markup: 'HTML',
         };
 
-        codeBlocks.forEach((block: Element) => {
+        codeBlocks.forEach((block: Element, i: number) => {
+            console.log(`[SnakkSyntax] highlighting block[${i}] classes=${Array.from(block.classList).join(' ')} inDOM=${document.contains(block)}`);
             const pre = block.parentElement;
             if (pre) pre.classList.add('line-numbers');
             Prism.highlightElement(block);
@@ -156,12 +186,26 @@
                 pre.parentNode!.insertBefore(wrapper, pre);
                 wrapper.appendChild(pre);
 
-                if (lang && lang !== 'none') {
-                    const label = document.createElement('span');
-                    label.className = 'code-language-label';
-                    label.textContent = LANG_LABELS[lang] || lang;
-                    wrapper.appendChild(label);
-                }
+                const header = document.createElement('div');
+                header.className = 'code-block-header';
+
+                const label = document.createElement('span');
+                label.className = 'code-language-label';
+                label.textContent = (lang && lang !== 'none') ? (LANG_LABELS[lang] || lang) : 'Plain text';
+                header.appendChild(label);
+
+                const actions = document.createElement('div');
+                actions.className = 'code-block-header-actions';
+
+                // Expand button
+                const expandBtn = document.createElement('button');
+                expandBtn.type = 'button';
+                expandBtn.className = 'code-expand-btn';
+                expandBtn.title = 'Expand code';
+                expandBtn.setAttribute('aria-label', 'Expand code');
+                expandBtn.innerHTML = EXPAND_SVG;
+                expandBtn.addEventListener('click', () => toggleCodeBlockExpand(wrapper, expandBtn));
+                actions.appendChild(expandBtn);
 
                 // Copy button
                 const copyBtn = document.createElement('button');
@@ -182,30 +226,49 @@
                         }, 1500);
                     } catch { /* ignore */ }
                 });
-                wrapper.appendChild(copyBtn);
+                actions.appendChild(copyBtn);
 
-                // Expand button
-                const expandBtn = document.createElement('button');
-                expandBtn.type = 'button';
-                expandBtn.className = 'code-expand-btn';
-                expandBtn.title = 'Expand code';
-                expandBtn.setAttribute('aria-label', 'Expand code');
-                expandBtn.innerHTML = EXPAND_SVG;
-                expandBtn.addEventListener('click', () => toggleCodeBlockExpand(wrapper, expandBtn));
-                wrapper.appendChild(expandBtn);
+                header.appendChild(actions);
+                wrapper.insertBefore(header, pre);
             }
         });
     }
 
-    (window as any).SnakkSyntax = { highlightAll, loadPrism };
+    function resetHighlighting(container?: HTMLElement): void {
+        const root = container || document;
+        root.querySelectorAll<HTMLElement>('code.prism-highlighted').forEach(el => {
+            el.classList.remove('prism-highlighted');
+        });
+        root.querySelectorAll<HTMLElement>('.code-block-wrapper').forEach(wrapper => {
+            const pre = wrapper.querySelector('pre');
+            if (pre && wrapper.parentNode) {
+                wrapper.parentNode.insertBefore(pre, wrapper);
+                wrapper.remove();
+            }
+        });
+    }
+
+    (window as any).SnakkSyntax = { highlightAll, loadPrism, resetHighlighting };
 
     // Run once on load, then after every HTMX swap. Scoped to document so we
     // catch blocks wherever they land. `:not(.prism-highlighted)` makes repeats free.
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => highlightAll());
+        document.addEventListener('DOMContentLoaded', () => highlightAll(undefined, 'DOMContentLoaded'));
     } else {
-        highlightAll();
+        console.log('[SnakkSyntax] init: readyState already complete/interactive — calling highlightAll immediately');
+        highlightAll(undefined, 'init-immediate');
     }
-    document.body.addEventListener('htmx:load', () => highlightAll());
-    document.body.addEventListener('htmx:historyRestore', () => highlightAll());
+    document.addEventListener('htmx:afterSwap', (e) => {
+        console.log('[SnakkSyntax] htmx:afterSwap fired, target:', (e as any).detail?.target?.id ?? (e as any).detail?.target?.tagName);
+        highlightAll(undefined, 'htmx:afterSwap');
+    });
+    document.addEventListener('htmx:afterSettle', () => {
+        console.log('[SnakkSyntax] htmx:afterSettle fired');
+        highlightAll(undefined, 'htmx:afterSettle');
+    });
+    document.addEventListener('htmx:historyRestore', () => {
+        console.log('[SnakkSyntax] htmx:historyRestore fired');
+        resetHighlighting();
+        highlightAll(undefined, 'htmx:historyRestore');
+    });
 })();

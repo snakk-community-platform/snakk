@@ -26,7 +26,8 @@ public class DiscussionGrpcService(
     IPollService pollService,
     IDiscussionTypeQueryService typeQueryService,
     IFileStorage fileStorage,
-    IGroupAccessService groupAccessService) : DiscussionService.DiscussionServiceBase
+    IGroupAccessService groupAccessService,
+    IServiceScopeFactory scopeFactory) : DiscussionService.DiscussionServiceBase
 {
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
@@ -145,8 +146,25 @@ public class DiscussionGrpcService(
 
         var d = result.Value;
 
-        // Create type-specific extension records
-        await CreateExtensionRecordsAsync(d.PublicId.Value, type, request);
+        // For link type, fire extension record creation in the background so the metadata
+        // fetch (external HTTP + image processing) doesn't block the gRPC response and
+        // cause a false "failed to create" error due to the client-side deadline.
+        if (type == DiscussionTypeEnum.Link)
+        {
+            var publicId = d.PublicId.Value;
+            var linkUrl = request.LinkUrl;
+            _ = Task.Run(async () =>
+            {
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var svc = scope.ServiceProvider.GetRequiredService<IDiscussionExtensionService>();
+                try { await svc.CreateLinkAsync(publicId, linkUrl); }
+                catch { }
+            });
+        }
+        else
+        {
+            await CreateExtensionRecordsAsync(d.PublicId.Value, type, request);
+        }
 
         return new DiscussionCreatedInfo
         {
@@ -870,6 +888,8 @@ public class DiscussionGrpcService(
         if (link.OEmbedHtml is not null) response.OembedHtml = link.OEmbedHtml;
         if (link.ImagePath is not null) response.ImagePathUrl = fileStorage.GetPublicUrl(link.ImagePath);
         if (link.BlurDataUri is not null) response.BlurDataUri = link.BlurDataUri;
+        if (link.ImageWidth is not null) response.ImageWidth = link.ImageWidth.Value;
+        if (link.ImageHeight is not null) response.ImageHeight = link.ImageHeight.Value;
         response.IsInternal = link.IsInternal;
         return response;
     }

@@ -17,7 +17,7 @@ public class SecurityServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"SecurityServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _securityService = new SecurityService(_context);
+        _securityService = new SecurityService(_context, new InMemoryDbContextFactory(options));
     }
 
     public void Dispose()
@@ -418,4 +418,9 @@ public class SecurityServiceTests : IDisposable
     }
 
     #endregion
+
+    private sealed class InMemoryDbContextFactory(DbContextOptions<SnakkDbContext> options) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => new(options);
+    }
 }

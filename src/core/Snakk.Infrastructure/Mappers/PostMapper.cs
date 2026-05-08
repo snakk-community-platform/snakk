@@ -26,7 +26,8 @@ public static class PostMapper
             entity.IsOp,
             entity.IsNecro,
             entity.IsMilestone,
-            entity.RevisionCount);
+            entity.RevisionCount,
+            wasNormalized: entity.WasNormalized);
 
     public static PostDatabaseEntity ToPersistence(this Post post) =>
         // Note: Navigation properties and post flags will be set by repository adapter
@@ -41,7 +42,8 @@ public static class PostMapper
             IsFirstPost = post.IsFirstPost,
             IsDeleted = post.IsDeleted,
             HasCodeBlock = post.HasCodeBlock,
-            RevisionCount = post.RevisionCount
+            RevisionCount = post.RevisionCount,
+            WasNormalized = post.WasNormalized
             // DiscussionId, CreatedByUserId, ReplyToPostId, and post flags will be set by repository adapter
         };
 }

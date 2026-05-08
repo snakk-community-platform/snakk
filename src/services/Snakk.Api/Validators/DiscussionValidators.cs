@@ -23,6 +23,8 @@ public class CreateDiscussionRequestValidator : AbstractValidator<CreateDiscussi
             .MinimumLength(1).WithMessage("First post content cannot be empty")
             .MaximumLength(50000).WithMessage("First post content too long");
 
+        RuleFor(x => x.FirstPostContent).Custom((c, ctx) => BlockLimitValidator.Validate(c, ctx));
+
         RuleFor(x => x.SpaceId)
             .NotEmpty().WithMessage("Space ID is required");
     }

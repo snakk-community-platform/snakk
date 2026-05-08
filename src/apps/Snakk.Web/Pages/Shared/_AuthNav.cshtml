@@ -42,12 +42,13 @@
         </label>
         <ul tabindex="0" class="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-base-100 border border-subtle rounded-lg w-52">
             <li>
-                <a href="@SnakkUrlHelper.UserProfile(publicId)" class="font-semibold">
-                    <span class="icon icon-user h-4 w-4" aria-hidden="true"></span>
-                    @displayName
+                <a href="@SnakkUrlHelper.UserProfile(publicId)" class="sn-user-menu-card"
+                   style="--user-grad: @UserGradient(publicId)">
+                    <img src="@avatarUrl" alt="@displayName" class="sn-user-menu-card-avatar" loading="lazy" />
+                    <span class="sn-user-menu-card-name">@displayName</span>
                     @if (emailVerified != "True")
                     {
-                        <span class="badge badge-warning badge-xs ml-2">@T.AuthNav.Unverified</span>
+                        <span class="badge badge-warning badge-xs">@T.AuthNav.Unverified</span>
                     }
                 </a>
             </li>

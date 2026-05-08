@@ -1,6 +1,5 @@
 @page "/c/{slug}/moderators"
 @using Snakk.Web.Helpers
-@using Snakk.Shared.Avatars
 @model Snakk.Web.Pages.Communities.ModeratorsModel
 @{
     Layout = "_Layout";
@@ -10,6 +9,13 @@
 
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
+}
+
+@section CenterHeader {
+    @if (Model.CommunityDetail != null)
+    {
+        <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)" class="badge badge-ghost badge-sm">@Model.CommunityDetail.Name</a>
+    }
 }
 
 @if (Model.CommunityDetail == null)
@@ -26,9 +32,6 @@
 else
 {
     <div class="sn-center">
-        <div class="sn-page-labels">
-            <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)" class="badge badge-ghost badge-sm">@Model.CommunityDetail.Name</a>
-        </div>
         <div class="sn-center-inner">
             <h2 class="sn-section-title">
                 <span class="icon icon-user-add" aria-hidden="true"></span>
@@ -64,7 +67,7 @@ else
                             <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="sn-mod-list-card"
                                data-popup-type="user" data-popup-id="@mod.UserPublicId" data-popup-name="@mod.DisplayName">
                                 <div class="sn-mod-list-banner"
-                                     style="background-image: @AvatarGenerator.GenerateGradientCss($"user:{mod.UserPublicId}")">
+                                     style="background-image: @UserGradient(mod.UserPublicId)">
                                     <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
                                          alt="" width="34" height="34"
                                          class="sn-mod-list-avatar"
@@ -82,7 +85,7 @@ else
 
             <div class="mt-6 pt-4" style="border-top: 1px solid var(--border-secondary)">
                 <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: var(--text-tertiary)">@T.Pages.CommSeeAlso</p>
-                <a href="/moderators" class="flex items-center justify-between py-1.5 text-sm transition-colors" style="color: var(--text-secondary)" onmouseover="this.style.color='var(--link-primary)'" onmouseout="this.style.color='var(--text-secondary)'">
+                <a href="/moderators" class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors" style="color: var(--text-secondary)">
                     <span>@T.Pages.CommSiteModerators</span>
                     <span class="icon icon-chevron-right w-3.5 h-3.5" aria-hidden="true"></span>
                 </a>

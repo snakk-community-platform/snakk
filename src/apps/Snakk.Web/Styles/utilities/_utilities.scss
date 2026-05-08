@@ -12,6 +12,20 @@
     gap: 0.25rem;
 }
 
+// User preference: cap image preview height in discussion list
+.discussion-list-compact .sn-images-frame,
+.discussion-list-compact .sn-compare-frame {
+    max-height: 20rem;
+}
+
+.discussion-list-compact .sn-debate-bar {
+    height: 0.5rem;
+}
+
+.discussion-list-compact .sn-debate-segment span {
+    display: none;
+}
+
 // User preference: disable all animations and transitions
 .no-animations *,
 .no-animations *::before,

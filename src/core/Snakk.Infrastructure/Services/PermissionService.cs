@@ -12,11 +12,18 @@ namespace Snakk.Infrastructure.Services;
 
 public class PermissionService(
     SnakkDbContext context,
+    IDbContextFactory<SnakkDbContext> dbFactory,
     HybridCache cache,
     ILogger<PermissionService> logger,
     ISecurityService securityService) : IPermissionService
 {
     private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
 
     // Regular async queries — compiled queries are incompatible with multiple EF providers
     // (InMemory + SQLite in tests) because they lock to the first provider's model.
@@ -103,10 +110,10 @@ public class PermissionService(
 
     private async Task<List<UserRoleScope>> GetUserRolesWithScopeAsync(int userId)
     {
-        var roles = await context.UserRoles
-            .Where(ur =>
-                ur.UserId == userId
-                && ur.RevokedAt == null)
+        var now = DateTime.UtcNow;
+
+        var rolesTask = ReadAsync(db => db.UserRoles
+            .Where(ur => ur.UserId == userId && ur.RevokedAt == null)
             .Select(ur => new UserRoleScope
             {
                 RoleType = ((UserRoleTypeEnum)ur.RoleId).ToString(),
@@ -114,16 +121,10 @@ public class PermissionService(
                 HubId = ur.HubId,
                 SpaceId = ur.SpaceId
             })
-            .ToListAsync();
+            .ToListAsync());
 
-        // Also include active temporary role elevations
-        var now = DateTime.UtcNow;
-
-        var tempRoles = await context.TemporaryRoleElevations
-            .Where(e =>
-                e.UserId == userId
-                && e.RevokedAt == null
-                && e.ExpiresAt > now)
+        var tempRolesTask = ReadAsync(db => db.TemporaryRoleElevations
+            .Where(e => e.UserId == userId && e.RevokedAt == null && e.ExpiresAt > now)
             .Select(e => new UserRoleScope
             {
                 RoleType = e.RoleType,
@@ -131,9 +132,11 @@ public class PermissionService(
                 HubId = e.Scope == "Hub" ? e.ScopeId : (int?)null,
                 SpaceId = e.Scope == "Space" ? e.ScopeId : (int?)null
             })
-            .ToListAsync();
+            .ToListAsync());
 
-        roles.AddRange(tempRoles);
+        await Task.WhenAll(rolesTask, tempRolesTask);
+        var roles = rolesTask.Result;
+        roles.AddRange(tempRolesTask.Result);
 
         return roles;
     }
@@ -537,29 +540,24 @@ public class PermissionService(
             .Include(e => e.RevokedBy)
             .ToListAsync();
 
-        var result = new List<TemporaryRoleElevationDto>();
+        var scopePublicIds = await BulkResolveScopePublicIdsAsync(elevations.Select(e => (e.Scope, e.ScopeId)));
 
-        foreach (var e in elevations)
+        return elevations.Select(e => new TemporaryRoleElevationDto
         {
-            result.Add(new TemporaryRoleElevationDto
-            {
-                PublicId = e.PublicId,
-                UserPublicId = e.User!.PublicId,
-                UserDisplayName = e.User.DisplayName ?? "",
-                RoleType = e.RoleType,
-                Scope = e.Scope,
-                ScopePublicId = await ResolveScopePublicIdAsync(e.Scope, e.ScopeId),
-                ExpiresAt = e.ExpiresAt,
-                Reason = e.Reason,
-                GrantedByDisplayName = e.GrantedBy!.DisplayName ?? "",
-                RevokedAt = e.RevokedAt,
-                RevokedByDisplayName = e.RevokedBy?.DisplayName,
-                RevokedReason = e.RevokedReason,
-                CreatedAt = e.CreatedAt
-            });
-        }
-
-        return result;
+            PublicId = e.PublicId,
+            UserPublicId = e.User!.PublicId,
+            UserDisplayName = e.User.DisplayName ?? "",
+            RoleType = e.RoleType,
+            Scope = e.Scope,
+            ScopePublicId = scopePublicIds.GetValueOrDefault((e.Scope, e.ScopeId), ""),
+            ExpiresAt = e.ExpiresAt,
+            Reason = e.Reason,
+            GrantedByDisplayName = e.GrantedBy!.DisplayName ?? "",
+            RevokedAt = e.RevokedAt,
+            RevokedByDisplayName = e.RevokedBy?.DisplayName,
+            RevokedReason = e.RevokedReason,
+            CreatedAt = e.CreatedAt
+        }).ToList();
     }
 
     public async Task<List<TemporaryRoleElevationDto>> GetUserTemporaryRolesAsync(string userId)
@@ -577,27 +575,57 @@ public class PermissionService(
             .Include(e => e.RevokedBy)
             .ToListAsync();
 
-        var result = new List<TemporaryRoleElevationDto>();
+        var scopePublicIds = await BulkResolveScopePublicIdsAsync(elevations.Select(e => (e.Scope, e.ScopeId)));
 
-        foreach (var e in elevations)
+        return elevations.Select(e => new TemporaryRoleElevationDto
         {
-            result.Add(new TemporaryRoleElevationDto
-            {
-                PublicId = e.PublicId,
-                UserPublicId = e.User!.PublicId,
-                UserDisplayName = e.User.DisplayName ?? "",
-                RoleType = e.RoleType,
-                Scope = e.Scope,
-                ScopePublicId = await ResolveScopePublicIdAsync(e.Scope, e.ScopeId),
-                ExpiresAt = e.ExpiresAt,
-                Reason = e.Reason,
-                GrantedByDisplayName = e.GrantedBy!.DisplayName ?? "",
-                RevokedAt = e.RevokedAt,
-                RevokedByDisplayName = e.RevokedBy?.DisplayName,
-                RevokedReason = e.RevokedReason,
-                CreatedAt = e.CreatedAt
-            });
-        }
+            PublicId = e.PublicId,
+            UserPublicId = e.User!.PublicId,
+            UserDisplayName = e.User.DisplayName ?? "",
+            RoleType = e.RoleType,
+            Scope = e.Scope,
+            ScopePublicId = scopePublicIds.GetValueOrDefault((e.Scope, e.ScopeId), ""),
+            ExpiresAt = e.ExpiresAt,
+            Reason = e.Reason,
+            GrantedByDisplayName = e.GrantedBy!.DisplayName ?? "",
+            RevokedAt = e.RevokedAt,
+            RevokedByDisplayName = e.RevokedBy?.DisplayName,
+            RevokedReason = e.RevokedReason,
+            CreatedAt = e.CreatedAt
+        }).ToList();
+    }
+
+    private async Task<Dictionary<(string Scope, int ScopeId), string>> BulkResolveScopePublicIdsAsync(
+        IEnumerable<(string Scope, int ScopeId)> scopePairs)
+    {
+        var pairs = scopePairs.Distinct().ToList();
+
+        var communityIds = pairs.Where(p => p.Scope == "Community").Select(p => p.ScopeId).ToList();
+        var hubIds       = pairs.Where(p => p.Scope == "Hub").Select(p => p.ScopeId).ToList();
+        var spaceIds     = pairs.Where(p => p.Scope == "Space").Select(p => p.ScopeId).ToList();
+
+        var tasks = new List<Task<List<(string Key, int Id, string PublicId)>>>();
+
+        if (communityIds.Count > 0)
+            tasks.Add(ReadAsync(db => db.Communities.Where(c => communityIds.Contains(c.Id))
+                .Select(c => new { c.Id, c.PublicId }).ToListAsync()
+                .ContinueWith(t => t.Result.Select(c => ("Community", c.Id, c.PublicId)).ToList())));
+
+        if (hubIds.Count > 0)
+            tasks.Add(ReadAsync(db => db.Hubs.Where(h => hubIds.Contains(h.Id))
+                .Select(h => new { h.Id, h.PublicId }).ToListAsync()
+                .ContinueWith(t => t.Result.Select(h => ("Hub", h.Id, h.PublicId)).ToList())));
+
+        if (spaceIds.Count > 0)
+            tasks.Add(ReadAsync(db => db.Spaces.Where(s => spaceIds.Contains(s.Id))
+                .Select(s => new { s.Id, s.PublicId }).ToListAsync()
+                .ContinueWith(t => t.Result.Select(s => ("Space", s.Id, s.PublicId)).ToList())));
+
+        await Task.WhenAll(tasks);
+
+        var result = new Dictionary<(string, int), string>();
+        foreach (var row in tasks.SelectMany(t => t.Result))
+            result[(row.Key, row.Id)] = row.PublicId;
 
         return result;
     }
@@ -625,11 +653,9 @@ public class PermissionService(
 
     private async Task InvalidateRoleCacheAsync(int roleId)
     {
-        // Get all user IDs that have this role
+        // roleId is the UserRole.Id (specific assignment PK) — RolePermissions.RoleId references it
         var userIds = await context.UserRoles
-            .Where(ur =>
-                ur.Id == roleId
-                && ur.RevokedAt == null)
+            .Where(ur => ur.Id == roleId)
             .Select(ur => ur.User.PublicId)
             .ToListAsync();
 

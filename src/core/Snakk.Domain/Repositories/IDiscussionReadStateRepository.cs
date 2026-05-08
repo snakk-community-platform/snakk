@@ -9,5 +9,6 @@ public interface IDiscussionReadStateRepository
 {
     Task<DiscussionReadState?> GetAsync(UserId userId, DiscussionId discussionId);
     Task SaveAsync(DiscussionReadState readState);
+    Task BatchSaveAsync(IEnumerable<DiscussionReadState> readStates);
     Task<List<ReadStateWithPostNumber>> GetReadStatesForDiscussionsAsync(UserId userId, List<string> discussionIds);
 }

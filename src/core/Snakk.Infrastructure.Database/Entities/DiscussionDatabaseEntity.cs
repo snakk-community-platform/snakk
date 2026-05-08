@@ -26,6 +26,7 @@ public class DiscussionDatabaseEntity
     public bool IsPinned { get; set; }
     public bool IsLocked { get; set; }
     public bool IsAdultOnly { get; set; }
+    public bool WasNormalized { get; set; }
     public int PostCount { get; set; }
     public int ReactionCount { get; set; } // Total reactions across all posts in discussion
     public int FollowerCount { get; set; }

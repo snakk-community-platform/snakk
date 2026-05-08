@@ -13,7 +13,8 @@ public class HtmxLayoutFilter : IPageFilter
     {
         // Check if this is an HTMX boosted request
         if (context.HttpContext.Request.Headers.ContainsKey("HX-Request")
-            && context.HttpContext.Request.Headers.ContainsKey("HX-Boosted"))
+            && (context.HttpContext.Request.Headers.ContainsKey("HX-Boosted")
+                || context.HttpContext.Request.Headers.ContainsKey("HX-History-Restore-Request")))
         {
             // Set a flag that _ViewStart can use to switch layouts
             context.HttpContext.Items["UsePartialLayout"] = true;

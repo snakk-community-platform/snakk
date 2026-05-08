@@ -252,6 +252,8 @@ message LinkPreview {
   bool is_internal = 8;
   optional string image_thumbnail_url = 9;
   optional string blur_data_uri = 10;
+  optional int32 image_width = 11;
+  optional int32 image_height = 12;
 }
 
 message ImagesPreview {
@@ -436,6 +438,8 @@ message DiscussionLinkResponse {
   optional string image_path_url = 7;
   optional string blur_data_uri = 8;
   bool is_internal = 9;
+  optional int32 image_width = 10;
+  optional int32 image_height = 11;
 }
 
 

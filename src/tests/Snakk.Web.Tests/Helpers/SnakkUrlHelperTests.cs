@@ -8,8 +8,9 @@ namespace Snakk.Web.Tests.Helpers;
 /// Uses real CommunityContext instances to test URL prefix logic.
 ///
 /// URL rules:
-/// - All URLs always include /c/{slug} prefix regardless of single/multi-community mode
-/// - Custom domain: still gets /c/{slug} prefix (consistent routing)
+/// - Single-community mode: no /c/{slug} prefix — hubs/spaces use /h/... directly
+/// - Multi-community mode: /c/{slug}/h/... prefix on all content URLs
+/// - Community() in single-community mode returns "/" (root)
 /// </summary>
 public class SnakkUrlHelperTests
 {
@@ -26,11 +27,11 @@ public class SnakkUrlHelperTests
     // ===== Community Prefix Tests =====
 
     [Test]
-    public async Task CommunityPrefix_SingleCommunity_ReturnsCSlug()
+    public async Task CommunityPrefix_SingleCommunity_ReturnsEmpty()
     {
         var context = CreateContext(isMultiCommunity: false);
         var result = SnakkUrlHelper.CommunityPrefix(context);
-        await Assert.That(result).IsEqualTo("/c/test-community");
+        await Assert.That(result).IsEqualTo("");
     }
 
     [Test]
@@ -52,11 +53,11 @@ public class SnakkUrlHelperTests
     // ===== Hub URL Tests =====
 
     [Test]
-    public async Task Hub_SingleCommunity_IncludesPrefix()
+    public async Task Hub_SingleCommunity_OmitsPrefix()
     {
         var context = CreateContext(isMultiCommunity: false);
         var result = SnakkUrlHelper.Hub(context, "tech");
-        await Assert.That(result).IsEqualTo("/c/test-community/h/tech");
+        await Assert.That(result).IsEqualTo("/h/tech");
     }
 
     [Test]
@@ -76,21 +77,21 @@ public class SnakkUrlHelperTests
     }
 
     [Test]
-    public async Task Hub_ExplicitSlug_SingleCommunity_IncludesPrefix()
+    public async Task Hub_ExplicitSlug_SingleCommunity_OmitsPrefix()
     {
         var context = CreateContext(isMultiCommunity: false);
         var result = SnakkUrlHelper.Hub("main", context, "my-hub");
-        await Assert.That(result).IsEqualTo("/c/main/h/my-hub");
+        await Assert.That(result).IsEqualTo("/h/my-hub");
     }
 
     // ===== Space URL Tests =====
 
     [Test]
-    public async Task Space_SingleCommunity_IncludesPrefix()
+    public async Task Space_SingleCommunity_OmitsPrefix()
     {
         var context = CreateContext(isMultiCommunity: false);
         var result = SnakkUrlHelper.Space(context, "tech", "csharp");
-        await Assert.That(result).IsEqualTo("/c/test-community/h/tech/csharp");
+        await Assert.That(result).IsEqualTo("/h/tech/csharp");
     }
 
     [Test]
@@ -110,21 +111,21 @@ public class SnakkUrlHelperTests
     }
 
     [Test]
-    public async Task Space_ExplicitSlug_SingleCommunity_IncludesPrefix()
+    public async Task Space_ExplicitSlug_SingleCommunity_OmitsPrefix()
     {
         var context = CreateContext(isMultiCommunity: false);
         var result = SnakkUrlHelper.Space("main", context, "my-hub", "my-space");
-        await Assert.That(result).IsEqualTo("/c/main/h/my-hub/my-space");
+        await Assert.That(result).IsEqualTo("/h/my-hub/my-space");
     }
 
     // ===== Discussion URL Tests =====
 
     [Test]
-    public async Task Discussion_SingleCommunity_IncludesPrefix()
+    public async Task Discussion_SingleCommunity_OmitsPrefix()
     {
         var context = CreateContext(isMultiCommunity: false);
         var result = SnakkUrlHelper.Discussion(context, "tech", "csharp", "my-thread-abc123");
-        await Assert.That(result).IsEqualTo("/c/test-community/h/tech/csharp/my-thread-abc123");
+        await Assert.That(result).IsEqualTo("/h/tech/csharp/my-thread-abc123");
     }
 
     [Test]
@@ -146,11 +147,11 @@ public class SnakkUrlHelperTests
     // ===== Manage URL Tests =====
 
     [Test]
-    public async Task ManageCommunity_SingleCommunity_IncludesPrefix()
+    public async Task ManageCommunity_SingleCommunity_OmitsPrefix()
     {
         var context = CreateContext(slug: "main", isMultiCommunity: false);
         var result = SnakkUrlHelper.ManageCommunity(context);
-        await Assert.That(result).IsEqualTo("/admin/c/main");
+        await Assert.That(result).IsEqualTo("/admin");
     }
 
     [Test]
@@ -162,11 +163,11 @@ public class SnakkUrlHelperTests
     }
 
     [Test]
-    public async Task ManageHub_SingleCommunity_IncludesPrefix()
+    public async Task ManageHub_SingleCommunity_OmitsPrefix()
     {
         var context = CreateContext(slug: "main", isMultiCommunity: false);
         var result = SnakkUrlHelper.ManageHub(context, "my-hub");
-        await Assert.That(result).IsEqualTo("/admin/c/main/h/my-hub");
+        await Assert.That(result).IsEqualTo("/admin/h/my-hub");
     }
 
     [Test]
@@ -178,11 +179,11 @@ public class SnakkUrlHelperTests
     }
 
     [Test]
-    public async Task ManageSpace_SingleCommunity_IncludesPrefix()
+    public async Task ManageSpace_SingleCommunity_OmitsPrefix()
     {
         var context = CreateContext(slug: "main", isMultiCommunity: false);
         var result = SnakkUrlHelper.ManageSpace(context, "my-hub", "my-space");
-        await Assert.That(result).IsEqualTo("/admin/c/main/h/my-hub/s/my-space");
+        await Assert.That(result).IsEqualTo("/admin/h/my-hub/s/my-space");
     }
 
     [Test]

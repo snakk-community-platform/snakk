@@ -8,8 +8,15 @@ using Snakk.Shared.Enums;
 namespace Snakk.Infrastructure.Services;
 
 public class SpaceManagementService(
-    SnakkDbContext context) : ISpaceManagementService
+    SnakkDbContext context,
+    IDbContextFactory<SnakkDbContext> dbFactory) : ISpaceManagementService
 {
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
+
     public async Task<SpaceOverviewDto?> GetOverviewAsync(
         string spaceId,
         CancellationToken cancellationToken = default)
@@ -26,60 +33,42 @@ public class SpaceManagementService(
         var now = DateTime.UtcNow;
         var today = now.Date;
         var weekAgo = today.AddDays(-7);
+        var spaceDbId = space.Id;
+        var spaceSlug = space.Slug;
+        var communitySlug = space.Hub.Community.Slug;
 
-        var followers = await context.UserFollows
-            .Where(f => f.SpaceId == space.Id)
-            .CountAsync(cancellationToken);
+        var followersTask = ReadAsync(db => db.UserFollows
+            .Where(f => f.SpaceId == spaceDbId)
+            .CountAsync(cancellationToken));
 
-        // Get activity stats
-        var postsToday = await context.Posts
-            .Where(p =>
-                p.Discussion.SpaceId == space.Id
-                && p.CreatedAt >= today)
-            .CountAsync(cancellationToken);
+        var postCountsTask = ReadAsync(db => db.Posts
+            .Where(p => p.Discussion.SpaceId == spaceDbId && p.CreatedAt >= weekAgo)
+            .GroupBy(_ => true)
+            .Select(g => new { Today = g.Count(p => p.CreatedAt >= today), Week = g.Count() })
+            .FirstOrDefaultAsync(cancellationToken));
 
-        var postsThisWeek = await context.Posts
-            .Where(p =>
-                p.Discussion.SpaceId == space.Id
-                && p.CreatedAt >= weekAgo)
-            .CountAsync(cancellationToken);
+        var discussionCountsTask = ReadAsync(db => db.Discussions
+            .Where(d => d.SpaceId == spaceDbId && d.CreatedAt >= weekAgo)
+            .GroupBy(_ => true)
+            .Select(g => new { Today = g.Count(d => d.CreatedAt >= today), Week = g.Count() })
+            .FirstOrDefaultAsync(cancellationToken));
 
-        var newDiscussionsToday = await context.Discussions
-            .Where(d =>
-                d.SpaceId == space.Id
-                && d.CreatedAt >= today)
-            .CountAsync(cancellationToken);
+        var pendingReportsTask = ReadAsync(db => db.Reports
+            .Where(r => r.SpaceId == spaceDbId && r.StatusId == (int)ReportStatusEnum.Pending)
+            .CountAsync(cancellationToken));
 
-        var newDiscussionsThisWeek = await context.Discussions
-            .Where(d =>
-                d.SpaceId == space.Id
-                && d.CreatedAt >= weekAgo)
-            .CountAsync(cancellationToken);
-
-        // Get pending reports
-        var pendingReports = await context.Reports
-            .Where(r =>
-                r.SpaceId == space.Id
-                && r.StatusId == (int)ReportStatusEnum.Pending)
-            .CountAsync(cancellationToken);
-
-        // Get moderators
-        var moderators = await context.UserRoles
-            .Where(ur =>
-                ur.RoleId == (int)UserRoleTypeEnum.SpaceMod
-                && ur.SpaceId == space.Id
-                && ur.RevokedAt == null)
+        var moderatorsTask = ReadAsync(db => db.UserRoles
+            .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.SpaceMod && ur.SpaceId == spaceDbId && ur.RevokedAt == null)
             .Select(ur => new SpaceModeratorDto
             {
                 UserId = ur.User.PublicId,
                 DisplayName = ur.User.DisplayName ?? "",
                 AssignedAt = ur.AssignedAt
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
 
-        // Get recent activity
-        var recentActivity = await context.Posts
-            .Where(p => p.Discussion.SpaceId == space.Id)
+        var recentActivityTask = ReadAsync(db => db.Posts
+            .Where(p => p.Discussion.SpaceId == spaceDbId)
             .OrderByDescending(p => p.CreatedAt)
             .Take(10)
             .Select(p => new RecentActivityItemDto
@@ -88,9 +77,23 @@ public class SpaceManagementService(
                 Description = p.Discussion.Title,
                 UserDisplayName = p.CreatedByUser.DisplayName ?? "",
                 Timestamp = p.CreatedAt,
-                LinkUrl = $"/c/{space.Hub.Community.Slug}/s/{space.Slug}/d/{p.Discussion.Id}"
+                LinkUrl = "/c/" + communitySlug + "/s/" + spaceSlug + "/d/" + p.Discussion.Id
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
+
+        await Task.WhenAll(followersTask, postCountsTask, discussionCountsTask, pendingReportsTask, moderatorsTask, recentActivityTask);
+
+        var followers         = followersTask.Result;
+        var postCounts        = postCountsTask.Result;
+        var discussionCounts  = discussionCountsTask.Result;
+        var pendingReports    = pendingReportsTask.Result;
+        var moderators        = moderatorsTask.Result;
+        var recentActivity    = recentActivityTask.Result;
+
+        var postsToday            = postCounts?.Today ?? 0;
+        var postsThisWeek         = postCounts?.Week ?? 0;
+        var newDiscussionsToday   = discussionCounts?.Today ?? 0;
+        var newDiscussionsThisWeek = discussionCounts?.Week ?? 0;
 
         return new SpaceOverviewDto
         {
@@ -126,18 +129,21 @@ public class SpaceManagementService(
         if (space is null)
             return null;
 
-        var allowedTypes = await context.SpaceAllowedDiscussionTypes
-            .Where(x => x.SpaceId == space.Id)
-            .Select(x => (DiscussionTypeEnum)x.DiscussionType)
-            .ToListAsync(cancellationToken);
+        var sid = space.Id;
 
-        var modUserIds = await context.UserRoles
-            .Where(ur =>
-                ur.RoleId == (int)UserRoleTypeEnum.SpaceMod
-                && ur.SpaceId == space.Id
-                && ur.RevokedAt == null)
+        var allowedTypesTask = ReadAsync(db => db.SpaceAllowedDiscussionTypes
+            .Where(x => x.SpaceId == sid)
+            .Select(x => (DiscussionTypeEnum)x.DiscussionType)
+            .ToListAsync(cancellationToken));
+
+        var modUserIdsTask = ReadAsync(db => db.UserRoles
+            .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.SpaceMod && ur.SpaceId == sid && ur.RevokedAt == null)
             .Select(ur => ur.User.PublicId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
+
+        await Task.WhenAll(allowedTypesTask, modUserIdsTask);
+        var allowedTypes = allowedTypesTask.Result;
+        var modUserIds   = modUserIdsTask.Result;
 
         return new SpaceSettingsDto
         {
@@ -216,11 +222,8 @@ public class SpaceManagementService(
         var now = DateTime.UtcNow;
         var weekAgo = now.AddDays(-7);
 
-        // Get pending reports
-        var pendingReports = await context.Reports
-            .Where(r =>
-                r.SpaceId == spaceDbId
-                && r.StatusId == (int)ReportStatusEnum.Pending)
+        var pendingReportsTask = ReadAsync(db => db.Reports
+            .Where(r => r.SpaceId == spaceDbId && r.StatusId == (int)ReportStatusEnum.Pending)
             .OrderByDescending(r => r.CreatedAt)
             .Take(50)
             .Select(r => new ModerationReportDto
@@ -230,26 +233,18 @@ public class SpaceManagementService(
                 ReportedByUserId = r.ReporterUser.PublicId,
                 ReportedByDisplayName = r.ReporterUser.DisplayName ?? "",
                 CreatedAt = r.CreatedAt,
-
                 Status = ((ReportStatusEnum)r.StatusId).ToString(),
-
-                Type =
-                    r.ReportedPost != null
-                    ? "Post" : r.ReportedDiscussion != null
-                        ? "Discussion" : "User",
+                Type = r.ReportedPost != null ? "Post" : r.ReportedDiscussion != null ? "Discussion" : "User",
                 Reason = r.Reason != null ? r.Reason.Name : "Other",
                 TargetUserId = r.ReportedUser != null ? r.ReportedUser.PublicId : null,
                 TargetUserDisplayName = r.ReportedUser != null ? r.ReportedUser.DisplayName : null,
                 TargetPostPublicId = r.ReportedPost != null ? r.ReportedPost.PublicId : null,
                 TargetDiscussionPublicId = r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
 
-        // Get recent moderation actions
-        var recentActions = await context.AuditLogs
-            .Where(a =>
-                a.Category == "Moderation"
-                && (a.Action.Contains("Ban") || a.Action.Contains("Delete") || a.Action.Contains("Moderate")))
+        var recentActionsTask = ReadAsync(db => db.AuditLogs
+            .Where(a => a.Category == "Moderation" && (a.Action.Contains("Ban") || a.Action.Contains("Delete") || a.Action.Contains("Moderate")))
             .OrderByDescending(a => a.CreatedAt)
             .Take(20)
             .Select(a => new ModerationActionDto
@@ -258,29 +253,25 @@ public class SpaceManagementService(
                 ActionType = a.Action,
                 Reason = a.Reason ?? "",
                 Timestamp = a.CreatedAt,
-
                 ModeratorDisplayName = a.ActorUser != null ? a.ActorUser.DisplayName ?? "" : "System",
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
 
-        // Get stats
-        var totalReports = await context.Reports
+        var reportCountsTask = ReadAsync(db => db.Reports
             .Where(r => r.SpaceId == spaceDbId)
-            .CountAsync(cancellationToken);
+            .GroupBy(r => r.StatusId)
+            .Select(g => new { StatusId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken));
 
-        var pendingCount = pendingReports.Count;
+        await Task.WhenAll(pendingReportsTask, recentActionsTask, reportCountsTask);
+        var pendingReports = pendingReportsTask.Result;
+        var recentActions  = recentActionsTask.Result;
+        var reportCounts   = reportCountsTask.Result;
 
-        var resolvedCount = await context.Reports
-            .Where(r =>
-                r.SpaceId == spaceDbId
-                && r.StatusId == (int)ReportStatusEnum.Resolved)
-            .CountAsync(cancellationToken);
-
-        var dismissedCount = await context.Reports
-            .Where(r =>
-                r.SpaceId == spaceDbId
-                && r.StatusId == (int)ReportStatusEnum.Dismissed)
-            .CountAsync(cancellationToken);
+        var totalReports = reportCounts.Sum(c => c.Count);
+        var pendingCount = reportCounts.FirstOrDefault(c => c.StatusId == (int)ReportStatusEnum.Pending)?.Count ?? pendingReports.Count;
+        var resolvedCount = reportCounts.FirstOrDefault(c => c.StatusId == (int)ReportStatusEnum.Resolved)?.Count ?? 0;
+        var dismissedCount = reportCounts.FirstOrDefault(c => c.StatusId == (int)ReportStatusEnum.Dismissed)?.Count ?? 0;
 
         var actionsThisWeek = recentActions.Count(a => a.Timestamp >= weekAgo);
 

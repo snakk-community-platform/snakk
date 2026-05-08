@@ -6,16 +6,22 @@
     margin: 1rem 0;
 }
 
+#poll-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
 .poll-options {
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
+    gap: 0.5rem;
 }
 
 .poll-option {
     cursor: pointer;
     border-radius: 0.5rem;
-    padding: 0.5rem 0.625rem;
+    padding: 0;
     transition: background 0.15s, border-color 0.15s;
     border: 1px solid transparent;
     position: relative;
@@ -87,7 +93,7 @@
 
 .poll-option-track {
     flex: 1;
-    height: 8px;
+    height: 1rem;
     border-radius: 9999px;
     background: var(--bg-secondary);
     overflow: hidden;
@@ -108,7 +114,6 @@
     transition: width 600ms ease;
 
     .poll-option-selected & {
-        box-shadow: 0 0 0 1px var(--link-primary);
     }
 }
 
@@ -116,9 +121,6 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-top: 0.75rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--border-secondary);
 }
 
 .poll-total {

@@ -47,19 +47,14 @@ public class PollService(SnakkDbContext context) : IPollService
             if (userId > 0)
             {
                 var optionIds = poll.Options.Select(o => o.Id).ToList();
-                userVotedIds = await context.DiscussionPollVotes
+                var userVotes = await context.DiscussionPollVotes
                     .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
-                    .Select(v => v.OptionId)
+                    .Select(v => new { v.OptionId, v.SegmentIndex })
                     .ToListAsync();
 
-                // Get user's segment index if segmented
+                userVotedIds = userVotes.Select(v => v.OptionId).ToList();
                 if (poll.IsSegmented)
-                {
-                    userSegmentIndex = await context.DiscussionPollVotes
-                        .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
-                        .Select(v => v.SegmentIndex)
-                        .FirstOrDefaultAsync();
-                }
+                    userSegmentIndex = userVotes.FirstOrDefault()?.SegmentIndex;
             }
         }
 

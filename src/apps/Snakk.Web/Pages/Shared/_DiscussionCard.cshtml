@@ -50,26 +50,6 @@
             <time class="sn-card-time dt-published"
                   datetime="@(discussion.CreatedAt?.ToDateTime().ToString("o"))">@FormatRelativeTime(discussion.CreatedAt?.ToDateTime())</time>
         </div>
-        <span class="sn-card-dot">&middot;</span>
-        <span class="sn-card-path">
-            @if (Model.ShowCommunity)
-            {
-                <a href="@communityUrl" class="sn-card-path-link"
-                   data-popup-type="community"
-                   data-popup-id="@discussion.Community.PublicId"
-                   data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
-                <span class="sn-card-path-sep">&rsaquo;</span>
-            }
-            <a href="@hubUrl" class="sn-card-path-link"
-               data-popup-type="hub"
-               data-popup-id="@discussion.Hub.PublicId"
-               data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
-            <span class="sn-card-path-sep">&rsaquo;</span>
-            <a href="@spaceUrl" class="sn-card-tag"
-               data-popup-type="space"
-               data-popup-id="@discussion.Space.PublicId"
-               data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
-        </span>
         @{
             var preview = discussion.Preview;
             var pollPreview = preview?.Poll;
@@ -101,10 +81,43 @@
                 <span class="sn-card-type-meta">(@phaseLabel)</span>
             }
         }
+        <span class="sn-card-path">
+            @if (Model.ShowCommunity)
+            {
+                <a href="@communityUrl" class="sn-card-path-link"
+                   data-popup-type="community"
+                   data-popup-id="@discussion.Community.PublicId"
+                   data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
+                <span class="sn-card-path-sep">&rsaquo;</span>
+            }
+            <a href="@hubUrl" class="sn-card-path-link"
+               data-popup-type="hub"
+               data-popup-id="@discussion.Hub.PublicId"
+               data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
+            <span class="sn-card-path-sep">&rsaquo;</span>
+            <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space"
+               style="--space-grad: @SpaceGradient(discussion.Space.PublicId)"
+               data-popup-type="space"
+               data-popup-id="@discussion.Space.PublicId"
+               data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
+        </span>
     </div>
 
-    <div class="sn-card-title">
-        <a href="@baseUrl" class="u-url p-name">@discussion.Title</a>
+    <div class="sn-card-title-row">
+        <div class="sn-card-title">
+            <a href="@baseUrl" class="u-url p-name">@discussion.Title</a>
+        </div>
+        @if (discussion.ReactionCount > 0)
+        {
+            <span class="sn-card-stat sn-card-reactions">
+                <span class="icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
+                @discussion.ReactionCount
+            </span>
+        }
+        <a href="@baseUrl" class="sn-card-stat sn-card-comments">
+            <span class="icon icon-chat-bubble-filled" aria-hidden="true"></span>
+            @replyCount @T.Card.Comments
+        </a>
     </div>
 
     @if (pollPreview != null || debatePreview != null || (galleryPreview != null && galleryPreview.Items.Count > 0) || linkPreview != null || iamaPreview != null)
@@ -469,6 +482,15 @@
                                     <span>@T.Settings.AdultPreviewBlurReveal</span>
                                 </div>
                             }
+                            <span class="sn-link-card-chain-badge">
+                                <span class="icon icon-link-chain" aria-hidden="true"></span>
+                            </span>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="sn-link-card-thumb sn-link-card-thumb--empty" aria-hidden="true">
+                            <span class="icon icon-link-chain"></span>
                         </div>
                     }
                     <div class="sn-link-card-content">
@@ -523,27 +545,16 @@
             </div>
         </div>
     }
-    <div class="sn-card-stats">
-        @if (discussion.ReactionCount > 0)
-        {
-            <span class="sn-card-stat sn-card-reactions">
-                <span class="icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
-                @discussion.ReactionCount
-            </span>
-        }
-        <a href="@baseUrl" class="sn-card-stat sn-card-comments">
-            <span class="icon icon-chat-bubble-filled" aria-hidden="true"></span>
-            @replyCount @T.Card.Comments
-        </a>
-        @if (Model.UnfollowId != null)
-        {
+    @if (Model.UnfollowId != null)
+    {
+        <div class="sn-card-stats">
             <button type="button" class="btn btn-ghost btn-xs ml-auto shrink-0"
                     data-unfollow-type="discussion" data-unfollow-id="@Model.UnfollowId"
                     title="@T.Card.Unsubscribe">
                 @T.Card.Subscribed
             </button>
-        }
-    </div>
+        </div>
+    }
 </article>
 @if (!ViewContext.HttpContext.Items.ContainsKey("iama-countdown-loaded"))
 {

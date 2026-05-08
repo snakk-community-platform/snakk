@@ -19,5 +19,7 @@ public class DiscussionTypeLinkDatabaseEntity
     public string? ImagePath { get; set; }
     public string? ImageThumbnailPath { get; set; }
     public string? ImageBlurDataUri { get; set; }
+    public int? ImageWidth { get; set; }
+    public int? ImageHeight { get; set; }
     public bool IsInternal { get; set; }
 }

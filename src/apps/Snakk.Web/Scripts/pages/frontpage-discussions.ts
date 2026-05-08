@@ -99,11 +99,26 @@
         (window as any).SnakkFrontpageDiscussions.init();
     }
 
-    // Update counter and scroll position when HTMX loads new discussion batches
+    // Track card count before each discussions swap so we can scroll to the first
+    // new card after load. This keeps the new sentinel below the viewport and
+    // prevents it from firing immediately (which would chain-load all pages).
+    let prevTopicCount = 0;
+    document.body.addEventListener('htmx:beforeSwap', (e: any) => {
+        const target = e.detail?.target as Element | null;
+        if (target?.closest('#discussions-container')) {
+            prevTopicCount = document.querySelectorAll('#discussions-container .topic-item-wrapper').length;
+        }
+    });
+
     document.body.addEventListener('htmx:afterSwap', () => {
-        if (document.getElementById('discussions-container')) {
-            (window as any).SnakkFrontpageDiscussions.updateScrollCounter();
-            (window as any).SnakkFrontpageDiscussions.handleScrollPosition();
+        if (!document.getElementById('discussions-container')) return;
+        (window as any).SnakkFrontpageDiscussions.updateScrollCounter();
+        (window as any).SnakkFrontpageDiscussions.handleScrollPosition();
+
+        if (prevTopicCount > 0) {
+            const wrappers = document.querySelectorAll<HTMLElement>('#discussions-container .topic-item-wrapper');
+            wrappers[prevTopicCount]?.scrollIntoView({ behavior: 'instant', block: 'start' });
+            prevTopicCount = 0;
         }
     });
 })();

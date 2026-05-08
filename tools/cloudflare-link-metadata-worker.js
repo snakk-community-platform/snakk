@@ -167,12 +167,24 @@ function parseOgTags(html) {
   let description = null;
   let imageUrl = null;
 
-  // OG meta tags
-  const metaRegex = /<meta\s+(?:property|name)=["']([^"']+)["']\s+content=["']([^"']*)["']/gi;
-  let match;
-  while ((match = metaRegex.exec(html)) !== null) {
-    const prop = match[1].toLowerCase();
-    const content = decodeHtmlEntities(match[2]);
+  // Two-pass: match entire <meta> tag first, then extract attributes within it.
+  // This handles sites (e.g. Imgur) that inject extra attributes like data-react-helmet
+  // between the property and content attributes, which single-pass regexes can't handle.
+  const metaTagRegex = /<meta\s[^>]+\/?>/gi;
+  const propAttrRegex = /\b(?:property|name)=["']([^"']+)["']/i;
+  const contentAttrRegex = /\bcontent=["']([^"']*)["']/i;
+
+  let tag;
+  while ((tag = metaTagRegex.exec(html)) !== null) {
+    const tagStr = tag[0];
+    const propMatch = propAttrRegex.exec(tagStr);
+    if (!propMatch) continue;
+
+    const contentMatch = contentAttrRegex.exec(tagStr);
+    if (!contentMatch) continue;
+
+    const prop = propMatch[1].toLowerCase();
+    const content = decodeHtmlEntities(contentMatch[1]);
 
     switch (prop) {
       case 'og:title': title = title || content; break;
@@ -181,22 +193,7 @@ function parseOgTags(html) {
       case 'twitter:title': title = title || content; break;
       case 'twitter:description': description = description || content; break;
       case 'twitter:image': imageUrl = imageUrl || content; break;
-    }
-  }
-
-  // Also try content="..." property="..." order (some sites use this)
-  const metaRegex2 = /<meta\s+content=["']([^"']*)["']\s+(?:property|name)=["']([^"']+)["']/gi;
-  while ((match = metaRegex2.exec(html)) !== null) {
-    const content = decodeHtmlEntities(match[1]);
-    const prop = match[2].toLowerCase();
-
-    switch (prop) {
-      case 'og:title': title = title || content; break;
-      case 'og:description': description = description || content; break;
-      case 'og:image': imageUrl = imageUrl || content; break;
-      case 'twitter:title': title = title || content; break;
-      case 'twitter:description': description = description || content; break;
-      case 'twitter:image': imageUrl = imageUrl || content; break;
+      case 'description': description = description || content; break;
     }
   }
 
@@ -204,12 +201,6 @@ function parseOgTags(html) {
   if (!title) {
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
     if (titleMatch) title = decodeHtmlEntities(titleMatch[1].trim());
-  }
-
-  // Fallback: <meta name="description">
-  if (!description) {
-    const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i);
-    if (descMatch) description = decodeHtmlEntities(descMatch[1]);
   }
 
   if (!title && !description && !imageUrl) return null;

@@ -15,14 +15,16 @@
             </p>
 
             <div class="flex flex-col gap-2 pt-2">
-                <form method="post" action="/bff/adult-consent">
+                <form method="post" action="/bff/adult-consent" hx-boost="false">
+                    @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
                     <button type="submit" class="btn btn-primary btn-sm w-full">
                         @T.Adult.Confirm
                     </button>
                 </form>
 
-                <form method="post" action="/bff/adult-decline">
+                <form method="post" action="/bff/adult-decline" hx-boost="false">
+                    @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
                     <button type="submit" class="btn btn-ghost btn-sm w-full">
                         @T.Adult.Decline

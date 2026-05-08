@@ -12,6 +12,24 @@
 <partial name="Shared/_LeftSidebar" />
 }
 
+@section CenterHeader {
+    @if (Model.ShowCommunityInBreadcrumb)
+    {
+        <a href="/c/@Model.CommunitySlug" class="badge badge-ghost badge-sm">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a>
+        <span class="sn-page-labels-sep">›</span>
+    }
+    @if (Model.Space != null)
+    {
+        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+        <span class="sn-page-labels-sep">›</span>
+        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="badge badge-ghost badge-sm">@Model.Space.Name</a>
+        <span class="sn-page-labels-sep">›</span>
+        <a href="/new?spaceId=@Model.SpaceId" class="badge badge-ghost badge-sm">@T.Pages.SpacesNewCrumbNew</a>
+        <span class="sn-page-labels-sep">›</span>
+        <span class="badge badge-ghost badge-sm">@T.Pages.SpacesNewIamaCrumb</span>
+    }
+}
+
 @if (User.Identity?.IsAuthenticated != true) {
     { ViewData["AuthPrompt.Title"] = T.Pages.SpacesNewAuthPrompt; }
     <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
@@ -20,20 +38,6 @@
 @if (Model.Space == null) { <div class="empty-state-simple"><h3>@T.Pages.SpacesNewSpaceNotFound</h3></div> return; }
 
 <div class="sn-center">
-    <div class="breadcrumb-bar">
-        <nav class="breadcrumb">
-            <a href="/">@T.Pages.SpacesNewHome</a>
-            @if (Model.ShowCommunityInBreadcrumb) { <span class="breadcrumb-separator">/</span><a href="/c/@Model.CommunitySlug">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a> }
-            <span class="breadcrumb-separator">/</span>
-            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-            <span class="breadcrumb-separator">/</span>
-            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)">@Model.Space.Name</a>
-            <span class="breadcrumb-separator">/</span>
-            <a href="/new?spaceId=@Model.SpaceId">@T.Pages.SpacesNewCrumbNew</a>
-            <span class="breadcrumb-separator">/</span>
-            <span>@T.Pages.SpacesNewIamaCrumb</span>
-        </nav>
-    </div>
     <div class="sn-center-inner">
         <div class="max-w-3xl py-8">
             <h1 class="text-xl font-semibold mb-6">@T.Pages.SpacesNewIamaHeading</h1>
@@ -59,7 +63,7 @@
                     <div class="space-y-3">
                         <label class="flex items-center gap-2 text-sm cursor-pointer">
                             <input type="checkbox" name="IamaIsScheduled" value="true" class="checkbox checkbox-sm"
-                                   id="iama-scheduled-toggle" onchange="var f=document.getElementById('iama-schedule-fields');var s=document.getElementById('iama-start');f.classList.toggle('hidden',!this.checked);s.required=this.checked;" />
+                                   id="iama-scheduled-toggle" />
                             @T.Pages.SpacesNewIamaScheduleToggle
                         </label>
 
@@ -121,3 +125,4 @@
 
 <script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true" defer></script>
 <script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true" defer></script>
+<script src="@SnakkUrlHelper.Js("pages/new-iama")" asp-append-version="true" defer></script>

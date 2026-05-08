@@ -9,10 +9,17 @@ namespace Snakk.Infrastructure.Services;
 
 public class AdminUserService(
     SnakkDbContext context,
+    IDbContextFactory<SnakkDbContext> dbFactory,
     HybridCache cache,
     ILogger<AdminUserService> logger) : IAdminUserService
 {
     private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
 
     public async Task<AdminUserDto?> GetUserByIdAsync(string userId)
     {
@@ -41,17 +48,14 @@ public class AdminUserService(
         var offset = (page - 1) * pageSize;
         var now = DateTime.UtcNow;
 
-        var query = context.UserBans
-            .Where(b =>
-                b.UnbannedAt == null
-                && (b.ExpiresAt == null || b.ExpiresAt > now))
-            .OrderByDescending(b => b.BannedAt);
+        var countTask = ReadAsync(db => db.UserBans
+            .Where(b => b.UnbannedAt == null && (b.ExpiresAt == null || b.ExpiresAt > now))
+            .CountAsync());
 
-        var total = await query.CountAsync();
-
-        var bans = await query
-            .Skip(offset)
-            .Take(pageSize)
+        var listTask = ReadAsync(db => db.UserBans
+            .Where(b => b.UnbannedAt == null && (b.ExpiresAt == null || b.ExpiresAt > now))
+            .OrderByDescending(b => b.BannedAt)
+            .Skip(offset).Take(pageSize)
             .Select(b => new AdminBanDto
             {
                 UserId = b.User.PublicId,
@@ -61,14 +65,16 @@ public class AdminUserService(
                 BannedAt = b.BannedAt,
                 ExpiresAt = b.ExpiresAt
             })
-            .ToListAsync();
+            .ToListAsync());
 
-        logger.LogInformation("Retrieved {Count} active bans (page {Page})", bans.Count, page);
+        await Task.WhenAll(countTask, listTask);
+
+        logger.LogInformation("Retrieved {Count} active bans (page {Page})", listTask.Result.Count, page);
 
         return new PaginatedResponse<AdminBanDto>
         {
-            Items = bans,
-            Total = total,
+            Items = listTask.Result,
+            Total = countTask.Result,
             Page = page,
             PageSize = pageSize
         };

@@ -587,6 +587,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("WasNormalized")
+                        .HasColumnType("boolean");
+
                     b.HasKey("Id");
 
                     b.HasIndex("IsDeleted")
@@ -601,6 +604,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
 
                     b.HasIndex("Slug");
+
+                    b.HasIndex("TrendScore")
+                        .IsDescending()
+                        .HasDatabaseName("IX_Discussion_TrendScore_Desc");
 
                     b.HasIndex("CreatedAt", "IsDeleted")
                         .IsDescending(true, false)
@@ -931,6 +938,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("ImageBlurDataUri")
                         .HasColumnType("text");
 
+                    b.Property<int?>("ImageHeight")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ImagePath")
                         .HasColumnType("text");
 
@@ -939,6 +949,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("text");
+
+                    b.Property<int?>("ImageWidth")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsInternal")
                         .HasColumnType("boolean");
@@ -1503,12 +1516,8 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("HubId");
-
                     b.HasIndex("PublicId")
                         .IsUnique();
-
-                    b.HasIndex("SpaceId");
 
                     b.HasIndex("TargetDiscussionId");
 
@@ -1529,6 +1538,14 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("CommunityId", "CreatedAt")
                         .IsDescending(false, true)
                         .HasDatabaseName("IX_ModerationLog_CommunityId_CreatedAt_Desc");
+
+                    b.HasIndex("HubId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_ModerationLog_HubId_CreatedAt_Desc");
+
+                    b.HasIndex("SpaceId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_ModerationLog_SpaceId_CreatedAt_Desc");
 
                     b.ToTable("ModerationLog");
                 });
@@ -1753,6 +1770,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("tsvector")
                         .HasComputedColumnSql("to_tsvector('english', coalesce(\"Content\", ''))", true);
+
+                    b.Property<bool>("WasNormalized")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 
@@ -2937,12 +2957,20 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("DisplayName")
                         .HasDatabaseName("IX_User_DisplayName");
 
+                    b.HasIndex("Email")
+                        .HasDatabaseName("IX_User_Email")
+                        .HasFilter("\"Email\" IS NOT NULL");
+
                     b.HasIndex("EmailHash")
                         .IsUnique()
                         .HasFilter("\"EmailHash\" IS NOT NULL");
 
                     b.HasIndex("IsDeleted")
                         .HasDatabaseName("IX_User_IsDeleted");
+
+                    b.HasIndex("OAuthProviderId")
+                        .HasDatabaseName("IX_User_OAuthProviderId")
+                        .HasFilter("\"OAuthProviderId\" IS NOT NULL");
 
                     b.HasIndex("PublicId")
                         .IsUnique();
@@ -3127,6 +3155,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("SourcePostId");
 
                     b.HasIndex("SourceSpaceId");
+
+                    b.HasIndex("RecipientUserId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Notification_RecipientUserId_CreatedAt_Desc");
 
                     b.HasIndex("RecipientUserId", "IsRead", "CreatedAt");
 

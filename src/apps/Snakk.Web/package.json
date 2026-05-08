@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm run build:locales && npm run build:ts && npm run build:css && npm run build:editor && npm run build:prism",
+    "build": "npm run build:locales && npm run build:ts && npm run build:css && npm run build:editor && npm run build:prism && npm run build:charts",
     "build:locales": "node Locales/gen-strings.mjs && node Locales/gen-ts.mjs",
     "build:ts": "tsc && node esbuild.minify.mjs",
     "build:css": "npm run build:tailwind && npm run build:tailwind-dark && npm run build:custom",
@@ -20,9 +20,15 @@
     "watch:custom": "sass Styles/site.scss:wwwroot/css/dist/site.css --watch --no-source-map",
     "build:editor": "node esbuild.editor.mjs",
     "build:prism": "node esbuild.prism.mjs",
+    "build:charts": "node esbuild.charts.mjs",
     "copy:libs": "powershell -Command \"Copy-Item 'node_modules/htmx.org/dist/htmx.min.js' 'wwwroot/js/vendor/htmx.min.js'; Copy-Item 'node_modules/htmx.org/dist/ext/head-support.js' 'wwwroot/js/vendor/htmx-head-support.js'; Copy-Item 'node_modules/prismjs/themes/prism-tomorrow.min.css' 'wwwroot/css/vendor/prism.css'; Copy-Item 'node_modules/dompurify/dist/purify.min.js' 'wwwroot/js/vendor/dompurify.min.js'\"",
-    "postinstall": "npm run copy:libs && npm run build:editor && npm run build:prism",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postinstall": "npm run copy:libs && npm run build:editor && npm run build:prism && npm run build:charts",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "concurrently \"npm:dev:*\"",
+    "dev:ts": "tsc --watch --preserveWatchOutput",
+    "dev:tailwind": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/vendor/tailwind.css --watch",
+    "dev:tailwind-dark": "tailwindcss -i ./Styles/dark-input.css -o ./wwwroot/css/vendor/dark-theme.css --watch",
+    "dev:sass": "sass Styles/site.scss:wwwroot/css/dist/site.css --watch --no-source-map"
   },
   "keywords": [],
   "author": "",
@@ -33,6 +39,7 @@
     "@tailwindcss/cli": "^4.2.2",
     "@types/dompurify": "^3.0.5",
     "@types/node": "^25.5.2",
+    "concurrently": "^9.2.1",
     "daisyui": "^5.0.0",
     "dompurify": "^3.4.0",
     "esbuild": "^0.28.0",
@@ -42,6 +49,7 @@
   },
   "dependencies": {
     "@milkdown/kit": "^7.20.0",
+    "chart.js": "^4.4.9",
     "prismjs": "^1.30.0"
   }
 }

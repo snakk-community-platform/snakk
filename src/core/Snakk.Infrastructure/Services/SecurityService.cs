@@ -7,8 +7,32 @@ using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 
-public class SecurityService(SnakkDbContext context) : ISecurityService
+public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbContext> dbFactory) : ISecurityService
 {
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
+
+    private static IQueryable<Database.Entities.AuditLogDatabaseEntity> ApplyAuditLogFilters(
+        IQueryable<Database.Entities.AuditLogDatabaseEntity> query,
+        string? category, string? action, string? actorUserId,
+        DateTime? from, DateTime? to)
+    {
+        if (!string.IsNullOrEmpty(category))
+            query = query.Where(a => a.Category == category);
+        if (!string.IsNullOrEmpty(action))
+            query = query.Where(a => a.Action == action);
+        if (!string.IsNullOrEmpty(actorUserId))
+            query = query.Where(a => a.ActorUser!.PublicId == actorUserId);
+        if (from.HasValue)
+            query = query.Where(a => a.CreatedAt >= from.Value);
+        if (to.HasValue)
+            query = query.Where(a => a.CreatedAt <= to.Value);
+        return query;
+    }
+
     public async Task<AuditLogsResponse> GetAuditLogsAsync(
         int page,
         string? category = null,
@@ -19,52 +43,40 @@ public class SecurityService(SnakkDbContext context) : ISecurityService
     {
         const int pageSize = 50;
         var offset = (page - 1) * pageSize;
-        var query = context.AuditLogs.AsQueryable();
 
-        if (!string.IsNullOrEmpty(category))
-            query = query.Where(a => a.Category == category);
+        DateTime? from = !string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var f) ? f : null;
+        DateTime? to   = !string.IsNullOrEmpty(toDate)   && DateTime.TryParse(toDate,   out var t) ? t : null;
 
-        if (!string.IsNullOrEmpty(action))
-            query = query.Where(a => a.Action == action);
+        var countTask = ReadAsync(db =>
+            ApplyAuditLogFilters(db.AuditLogs.AsQueryable(), category, action, actorUserId, from, to)
+                .CountAsync());
 
-        if (!string.IsNullOrEmpty(actorUserId))
-            query = query.Where(a => a.ActorUser!.PublicId == actorUserId);
+        var listTask = ReadAsync(db =>
+            ApplyAuditLogFilters(db.AuditLogs.AsQueryable(), category, action, actorUserId, from, to)
+                .OrderByDescending(a => a.CreatedAt)
+                .Skip(offset).Take(pageSize)
+                .Select(a => new AuditLogDto
+                {
+                    Id = a.PublicId,
+                    Action = a.Action,
+                    Category = a.Category,
+                    TargetType = a.TargetType,
+                    TargetId = a.TargetId,
+                    Details = a.Details,
+                    IpAddress = a.IpAddress,
+                    Success = a.Success,
+                    CreatedAt = a.CreatedAt,
+                    Severity = ((AuditLogSeverityEnum)a.SeverityId).ToString(),
+                    ActorUsername = a.ActorUser != null ? a.ActorUser.DisplayName : null,
+                })
+                .ToListAsync());
 
-        if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var from))
-            query = query.Where(a => a.CreatedAt >= from);
-
-        if (!string.IsNullOrEmpty(toDate) && DateTime.TryParse(toDate, out var to))
-            query = query.Where(a => a.CreatedAt <= to);
-
-        query = query.OrderByDescending(a => a.CreatedAt);
-
-        var total = await query.CountAsync();
-
-        var logs = await query
-            .Skip(offset)
-            .Take(pageSize)
-            .Select(a => new AuditLogDto
-            {
-                Id = a.PublicId,
-                Action = a.Action,
-                Category = a.Category,
-                TargetType = a.TargetType,
-                TargetId = a.TargetId,
-                Details = a.Details,
-                IpAddress = a.IpAddress,
-                Success = a.Success,
-                CreatedAt = a.CreatedAt,
-
-                Severity = ((AuditLogSeverityEnum)a.SeverityId).ToString(),
-
-                ActorUsername = a.ActorUser != null ? a.ActorUser.DisplayName : null,
-            })
-            .ToListAsync();
+        await Task.WhenAll(countTask, listTask);
 
         return new AuditLogsResponse
         {
-            Logs = logs,
-            Total = total,
+            Logs = listTask.Result,
+            Total = countTask.Result,
             Page = page,
             PageSize = pageSize
         };

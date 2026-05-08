@@ -87,6 +87,10 @@ secrets.json
 **/wwwroot/css/styles.css
 **/wwwroot/css/tailwind.css
 
+# Compiled frontend dist (rebuilt by npm run build in Dockerfile and local builds)
+**/wwwroot/js/dist/
+**/wwwroot/css/dist/
+
 # Generated i18n code (rebuilt from Locales/*.json)
 src/apps/Snakk.Web/Helpers/T.g.cs
 src/apps/Snakk.Web/Scripts/locales/t.g.ts

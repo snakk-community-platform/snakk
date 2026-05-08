@@ -122,6 +122,8 @@ internal static class PagedDiscussionListMapper
                     if (lp.ImageThumbnailPath is not null) preview.Link.ImageThumbnailUrl = fileStorage.GetPublicUrl(lp.ImageThumbnailPath);
                     if (lp.OEmbedHtml is not null) preview.Link.OembedHtml = lp.OEmbedHtml;
                     if (lp.BlurDataUri is not null) preview.Link.BlurDataUri = lp.BlurDataUri;
+                    if (lp.ImageWidth is not null) preview.Link.ImageWidth = lp.ImageWidth.Value;
+                    if (lp.ImageHeight is not null) preview.Link.ImageHeight = lp.ImageHeight.Value;
                 }
 
                 if (d.Preview.Images is not null)

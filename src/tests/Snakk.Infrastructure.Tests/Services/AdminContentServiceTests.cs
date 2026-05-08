@@ -37,8 +37,11 @@ public class AdminContentServiceTests : IDisposable
                 Arg.Any<AuditLogSeverityEnum>())
             .Returns(Task.CompletedTask);
 
+        var factory = new InMemoryDbContextFactory(options);
+
         _service = new AdminContentService(
             _context,
+            factory,
             cache,
             _securityService,
             Substitute.For<ILogger<AdminContentService>>());
@@ -365,4 +368,9 @@ public class AdminContentServiceTests : IDisposable
     }
 
     #endregion
+
+    private sealed class InMemoryDbContextFactory(DbContextOptions<SnakkDbContext> options) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => new(options);
+    }
 }

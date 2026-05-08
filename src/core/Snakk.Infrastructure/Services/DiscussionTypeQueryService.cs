@@ -132,11 +132,16 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
 
         if (debate is null) return null;
 
-        // Count users per position — only the latest post per user counts.
+        // Single query — used for both user-per-position counts and post→position mapping.
         var positionIds = debate.Positions.Select(p => p.Id).ToList();
         var allPostPositions = await context.DiscussionDebatePostPositions
             .Where(pp => positionIds.Contains(pp.PositionId))
-            .Select(pp => new { pp.PositionId, pp.Post.CreatedByUserId, pp.Post.CreatedAt })
+            .Select(pp => new {
+                pp.PositionId,
+                pp.Post.CreatedByUserId,
+                pp.Post.CreatedAt,
+                PostPublicId = pp.Post.PublicId
+            })
             .ToListAsync();
 
         var positionCounts = allPostPositions
@@ -145,11 +150,8 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             .GroupBy(x => x.PositionId)
             .ToDictionary(g => g.Key, g => g.Count());
 
-        // Get post → position mapping
-        var postPositions = await context.DiscussionDebatePostPositions
-            .Where(pp => positionIds.Contains(pp.PositionId))
-            .Select(pp => new { PostPublicId = pp.Post.PublicId, pp.PositionId })
-            .ToDictionaryAsync(x => x.PostPublicId, x => x.PositionId);
+        var postPositions = allPostPositions
+            .ToDictionary(x => x.PostPublicId, x => x.PositionId);
 
         var positions = debate.Positions.Select(p => new DebatePositionData(
             p.Id,
@@ -217,12 +219,12 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
     {
         var link = await context.DiscussionLinks
             .Where(l => l.Discussion.PublicId == discussionPublicId && !l.Discussion.IsDeleted)
-            .Select(l => new { l.Url, l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.ImagePath, l.ImageBlurDataUri, l.IsInternal })
+            .Select(l => new { l.Url, l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.ImagePath, l.ImageBlurDataUri, l.IsInternal, l.ImageWidth, l.ImageHeight })
             .FirstOrDefaultAsync();
 
         if (link is null) return null;
 
-        return new LinkInfo(link.Url, link.Title, link.Description, link.ImageUrl, link.Domain, link.OEmbedHtml, link.ImagePath, link.ImageBlurDataUri, link.IsInternal);
+        return new LinkInfo(link.Url, link.Title, link.Description, link.ImageUrl, link.Domain, link.OEmbedHtml, link.ImagePath, link.ImageBlurDataUri, link.IsInternal, link.ImageWidth, link.ImageHeight);
     }
 
     // === Journal ===
@@ -433,15 +435,15 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
 
         context.DiscussionIamaBestQuestions.RemoveRange(existingBest);
 
-        // Add new best questions
+        // Bulk-fetch all post IDs in one query instead of N sequential lookups
+        var idMap = await context.Posts
+            .Where(p => postPublicIds.Contains(p.PublicId) && !p.IsDeleted)
+            .Select(p => new { p.PublicId, p.Id })
+            .ToDictionaryAsync(p => p.PublicId, p => p.Id);
+
         for (var i = 0; i < postPublicIds.Count; i++)
         {
-            var postId = await context.Posts
-                .Where(p => p.PublicId == postPublicIds[i] && !p.IsDeleted)
-                .Select(p => p.Id)
-                .FirstOrDefaultAsync();
-
-            if (postId == 0)
+            if (!idMap.TryGetValue(postPublicIds[i], out var postId))
                 return (false, $"Post '{postPublicIds[i]}' not found");
 
             context.DiscussionIamaBestQuestions.Add(new Database.Entities.DiscussionTypeIamaBestQuestionDatabaseEntity

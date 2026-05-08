@@ -45,19 +45,30 @@
             <div id="section-behavior" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.BrowserBehaviorTitle</h3>
                 <div class="flex flex-col gap-5">
-                    <label class="flex items-start justify-between gap-6 cursor-pointer">
+                    <div class="flex items-start justify-between gap-6">
                         <div>
-                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserPreviewsTitle</p>
-                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserPreviewsHelp</p>
+                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserListLayoutTitle</p>
+                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserListLayoutHelp</p>
                         </div>
-                        <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-discussion-previews" />
-                    </label>
+                        <select id="pref-discussion-list-layout" class="select select-sm select-bordered shrink-0 mt-0.5">
+                            <option value="full">@T.Settings.BrowserListLayoutFull</option>
+                            <option value="compact">@T.Settings.BrowserListLayoutCompact</option>
+                            <option value="none">@T.Settings.BrowserListLayoutNone</option>
+                        </select>
+                    </div>
                     <label class="flex items-start justify-between gap-6 cursor-pointer">
                         <div>
                             <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserAnimationsTitle</p>
                             <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserAnimationsHelp</p>
                         </div>
                         <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-animations" />
+                    </label>
+                    <label class="flex items-start justify-between gap-6 cursor-pointer">
+                        <div>
+                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserLinkPreviewLargeTitle</p>
+                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserLinkPreviewLargeHelp</p>
+                        </div>
+                        <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-link-preview-large" />
                     </label>
                 </div>
             </div>

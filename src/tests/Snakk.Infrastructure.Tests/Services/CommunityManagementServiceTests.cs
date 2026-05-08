@@ -20,7 +20,8 @@ public class CommunityManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"CommunityManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _service = new CommunityManagementService(_context);
+        var factory = new InMemoryDbContextFactory(options);
+        _service = new CommunityManagementService(_context, factory);
     }
 
     public void Dispose()
@@ -342,4 +343,9 @@ public class CommunityManagementServiceTests : IDisposable
     }
 
     #endregion
+
+    private sealed class InMemoryDbContextFactory(DbContextOptions<SnakkDbContext> options) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => new(options);
+    }
 }

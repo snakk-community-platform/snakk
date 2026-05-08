@@ -42,6 +42,9 @@ public static class HtmlHelperExtensions
         sanitizer.AllowedAttributes.Add("type");
         sanitizer.AllowedAttributes.Add("aria-label");
 
+        // Allow canvas for chart blocks (rendered by chart-renderer.ts via Chart.js)
+        sanitizer.AllowedTags.Add("canvas");
+
         // Ensure javascript: and data: hrefs are stripped (already default, made explicit)
         sanitizer.AllowedSchemes.Add("https");
         sanitizer.AllowedSchemes.Add("http");

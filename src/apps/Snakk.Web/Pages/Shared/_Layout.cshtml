@@ -85,7 +85,7 @@
        For authenticated users: server already rendered the correct data-theme from the cookie.
        This script only needs to handle the "auto" case (system dark preference) and inject the
        dark CSS link. For unauthenticated users: always lofi, nothing to do. *@
-    <script nonce="@(Context.Items["csp-nonce"] as string)">
+    <script id="theme-fouc-script" hx-preserve nonce="@(Context.Items["csp-nonce"] as string)">
         (function () {
             try {
                 @if (isAuth) {
@@ -110,15 +110,14 @@
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 
-    <script src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true"></script>
-    <script src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("htmx-preload", isVendor: true)" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("core/actions")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("core/upload")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
+    <script id="js-dompurify"    hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true"></script>
+    <script id="js-htmx"         hx-preserve src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
+    <script id="js-htmx-preload" hx-preserve src="@SnakkUrlHelper.Js("htmx-preload", isVendor: true)" asp-append-version="true" defer></script>
+    <script id="js-htmx-head"    hx-preserve src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
+    <script id="js-loading-bar"  hx-preserve src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
+    <script id="js-actions"      hx-preserve src="@SnakkUrlHelper.Js("core/actions")" asp-append-version="true" defer></script>
+    <script id="js-auth"         hx-preserve src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
+    <script id="js-theme"        hx-preserve src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/prefs")" asp-append-version="true"></script>
 
     <meta name="realtime-service-url" content="@(Configuration["RealtimeServiceUrl"] ?? "/realtime")" />
@@ -129,45 +128,6 @@
    anchors look up hx-target via inheritance, so we can't disinherit at body level. *@
 <body class="antialiased" data-auth="@(isAuth ? "1" : "0")" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="preload,head-support" preload>
     <div id="loading-bar" class="loading-bar"></div>
-
-    @{
-        var siteName = CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null
-            ? CommunityContext.CommunityName
-            : "Snakk";
-    }
-
-    <!-- Navbar -->
-    <nav id="sn-navbar" class="sn-navbar">
-        <button type="button"
-                class="sn-nav-hamburger"
-                data-mobile-nav-toggle
-                aria-label="@T.MobileNav.Open"
-                aria-controls="sn-left-drawer"
-                aria-expanded="false">
-            <span class="icon icon-menu" aria-hidden="true"></span>
-        </button>
-        <div class="sn-navbar-brand">
-            <a href="/">
-                <picture>
-                    <source media="(max-width: 1023.98px)" srcset="/img/logo-square-sm.webp" width="40" height="40" />
-                    <img src="/img/logo-wide.webp" alt="@siteName" class="sn-navbar-logo" width="159" height="40" fetchpriority="high" />
-                </picture>
-            </a>
-        </div>
-        <div class="sn-navbar-content">
-            <div class="sn-navbar-search">
-                <span class="icon icon-search" aria-hidden="true"></span>
-                <form method="get" action="/search" hx-boost="false">
-                    <input type="text" name="q" placeholder="@T.Common.SearchPlaceholder" autocomplete="off" />
-                </form>
-            </div>
-            <div class="sn-navbar-right">
-                <div id="auth-nav" class="flex items-center">
-                    <partial name="Shared/_AuthNav" />
-                </div>
-            </div>
-        </div>
-    </nav>
 
     @{
         var _tz = Context.Request.Cookies[".Snakk.Pref.Timezone"];
@@ -183,15 +143,54 @@
     <script src="@SnakkUrlHelper.Js("components/mobile-nav")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/lightbox")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("services/cache-manager")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("services/save-cache")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("components/save")" asp-append-version="true" defer></script>
+    @if (isAuth) {
+        <script src="@SnakkUrlHelper.Js("core/upload")" asp-append-version="true" defer></script>
+        <script src="@SnakkUrlHelper.Js("services/save-cache")" asp-append-version="true" defer></script>
+        <script src="@SnakkUrlHelper.Js("components/save")" asp-append-version="true" defer></script>
+    }
     <script src="@SnakkUrlHelper.Js("components/share")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/sparkline")" asp-append-version="true" defer></script>
 
     <!-- 3-column layout -->
     <div class="sn-layout">
         @await RenderSectionAsync("LeftColumn", required: false)
+        <!-- Persistent right-column auth header — always present, outside the HTMX swap target -->
+        <div class="sn-right-auth-header">
+            <div id="auth-nav" class="flex items-center">
+                <partial name="Shared/_AuthNav" />
+            </div>
+        </div>
         <div id="main-content" class="sn-main-body">
+            <div class="sn-center-header">
+                <div class="sn-search-wrap" id="sn-search-wrap">
+                    <span class="icon icon-search sn-search-icon" aria-hidden="true"></span>
+                    <input type="search" class="sn-search-input" id="sn-search-input"
+                           placeholder="@T.Common.SearchPlaceholder" autocomplete="off" spellcheck="false"
+                           aria-label="@T.Common.SearchPlaceholder" />
+                    <div class="sn-search-popup" id="sn-search-popup" hidden>
+                        <div class="sn-search-popup-row">
+                            <span class="sn-search-popup-label">@T.Pages.SearchTypeLabel</span>
+                            <div class="join flex-wrap">
+                                <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="post" aria-label="@T.Pages.SearchTypePost" />
+                                <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="discussion" aria-label="@T.Pages.SearchTypeDiscussion" />
+                                <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="space" aria-label="@T.Pages.SearchTypeSpace" />
+                                <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="user" aria-label="@T.Pages.SearchTypeUser" />
+                            </div>
+                        </div>
+                        <div class="sn-search-popup-row">
+                            <span class="sn-search-popup-label">@T.Pages.SearchDateLabel</span>
+                            <div class="join flex-wrap">
+                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="past hour" aria-label="@T.Pages.SearchDatePastHour" />
+                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="today" aria-label="@T.Pages.SearchDateToday" />
+                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="past week" aria-label="@T.Pages.SearchDatePastWeek" />
+                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="past month" aria-label="@T.Pages.SearchDatePastMonth" />
+                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="all time" aria-label="@T.Pages.SearchDateAllTime" checked />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @{ IgnoreSection("CenterHeader"); }
             @RenderBody()
             @* Synchronous (non-deferred) spoiler-reveal restore. Runs after the main
                content is parsed but before first paint so the spoiler overlay
@@ -207,6 +206,8 @@
     <script src="@SnakkUrlHelper.Js("core/script-loader")" asp-append-version="true" defer></script>
 
     <partial name="Shared/_MobileTabBar" />
+
+    <script src="@SnakkUrlHelper.Js("components/search-bar")" asp-append-version="true" defer></script>
 
     <!-- External Link Warning Modal -->
     <dialog id="external-link-modal" class="modal">
@@ -230,6 +231,7 @@
     </dialog>
     <script src="@SnakkUrlHelper.Js("components/external-link-guard")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/syntax-highlight")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/chart-renderer")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/inline-gallery")" asp-append-version="true" defer></script>
 
     @if (HostEnvironment.IsDevelopment())

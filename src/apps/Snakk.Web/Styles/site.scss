@@ -28,6 +28,7 @@
 @use 'components/icons';
 @use 'components/skeletons';
 @use 'components/search-focus';
+@use 'components/search-modal';
 @use 'components/sparkline';
 @use 'components/mobile-nav';
 
@@ -62,7 +63,6 @@
 @use 'pages/profile' as page-profile;
 @use 'pages/stats-chart';
 @use 'pages/settings';
-@use 'pages/navbar' as page-navbar;
 @use 'pages/help';
 
 // ============================================

@@ -68,6 +68,12 @@ public class MarkupParser : IMarkupParser
         // Replace image-group fenced blocks with gallery HTML (uses imageData for srcset + blur)
         html = ReplaceImageGroups(html, imageData);
 
+        // Replace chart fenced blocks with canvas containers for client-side rendering
+        html = ReplaceChartBlocks(html);
+
+        // Replace callout fenced blocks with styled admonition HTML
+        html = ReplaceCalloutBlocks(html);
+
         // Enrich standalone <img> tags from plain markdown with srcset + data-blur
         html = TransformStandaloneImages(html, imageData);
 
@@ -239,6 +245,12 @@ public class MarkupParser : IMarkupParser
             if (IsImageGroupBlock(codeBlock))
                 continue;
 
+            if (IsChartBlock(codeBlock))
+                continue;
+
+            if (IsCalloutBlock(codeBlock))
+                continue;
+
             if (codeBlock.Lines.Count == 0)
                 continue;
 
@@ -268,6 +280,23 @@ public class MarkupParser : IMarkupParser
                 continue;
             }
 
+            if (IsChartBlock(fenced))
+            {
+                var chartAttrs = fenced.GetAttributes();
+                chartAttrs.Classes?.Clear();
+                chartAttrs.AddProperty("data-chart", "");
+                continue;
+            }
+
+            if (IsCalloutBlock(fenced))
+            {
+                var calloutType = fenced.Info!.Trim()["callout-".Length..].ToLowerInvariant();
+                var calloutAttrs = fenced.GetAttributes();
+                calloutAttrs.Classes?.Clear();
+                calloutAttrs.AddProperty("data-callout-type", calloutType);
+                continue;
+            }
+
             var lang = fenced.Info.Trim().ToLowerInvariant();
             var attrs = fenced.GetAttributes();
             attrs.Classes?.Clear();
@@ -278,6 +307,15 @@ public class MarkupParser : IMarkupParser
     private static bool IsImageGroupBlock(FencedCodeBlock block) =>
         block.Info?.TrimStart().StartsWith("image-group", StringComparison.OrdinalIgnoreCase) == true;
 
+    private static bool IsChartBlock(FencedCodeBlock block) =>
+        string.Equals(block.Info?.Trim(), "chart", StringComparison.OrdinalIgnoreCase);
+
+    private static readonly string[] CalloutTypes = ["info", "warning", "tip", "note"];
+
+    private static bool IsCalloutBlock(FencedCodeBlock block) =>
+        block.Info?.Trim().StartsWith("callout-", StringComparison.OrdinalIgnoreCase) == true
+        && CalloutTypes.Contains(block.Info.Trim()["callout-".Length..].ToLowerInvariant());
+
     private static string ParseImageGroupLayout(string info)
     {
         foreach (var part in info.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries))
@@ -286,9 +324,10 @@ public class MarkupParser : IMarkupParser
             {
                 return part[7..].ToLowerInvariant() switch
                 {
-                    "masonry" => "masonry",
+                    "masonry"  => "masonry",
                     "justified" => "justified",
                     "carousel" => "carousel",
+                    "single"   => "single",
                     _ => "grid"
                 };
             }
@@ -300,6 +339,63 @@ public class MarkupParser : IMarkupParser
         @"<pre><code[^>]*\bdata-image-group=""(\w+)""[^>]*>(.*?)</code></pre>",
         RegexOptions.Singleline | RegexOptions.Compiled,
         TimeSpan.FromMilliseconds(500));
+
+    private static readonly Regex ChartHtmlRegex = new(
+        @"<pre><code[^>]*\bdata-chart=""""[^>]*>(.*?)</code></pre>",
+        RegexOptions.Singleline | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(500));
+
+    private static string ReplaceChartBlocks(string html)
+    {
+        try
+        {
+            return ChartHtmlRegex.Replace(html, match =>
+            {
+                var rawContent = WebUtility.HtmlDecode(match.Groups[1].Value);
+                var base64Config = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawContent));
+                return $"<div class=\"snakk-chart\" data-chart-config=\"{base64Config}\"><canvas></canvas></div>";
+            });
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return html;
+        }
+    }
+
+    private static readonly Regex CalloutHtmlRegex = new(
+        @"<pre><code[^>]*\bdata-callout-type=""(\w+)""[^>]*>(.*?)</code></pre>",
+        RegexOptions.Singleline | RegexOptions.Compiled,
+        TimeSpan.FromMilliseconds(500));
+
+    private static string ReplaceCalloutBlocks(string html)
+    {
+        try
+        {
+            return CalloutHtmlRegex.Replace(html, match =>
+            {
+                var calloutType = match.Groups[1].Value;
+                var rawContent = WebUtility.HtmlDecode(match.Groups[2].Value);
+                var bodyHtml = Markdown.ToHtml(rawContent.Trim(), Pipeline);
+                var icon = calloutType switch
+                {
+                    "warning" => "⚠",
+                    "tip"     => "💡",
+                    "note"    => "📝",
+                    _         => "ℹ",
+                };
+                return $"""
+                    <div class="callout callout-{calloutType}">
+                      <span class="callout-icon" aria-hidden="true">{icon}</span>
+                      <div class="callout-body">{bodyHtml}</div>
+                    </div>
+                    """;
+            });
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            return html;
+        }
+    }
 
     private const string ImageSizes =
         "(min-width: 1540px) 864px, (min-width: 1024px) calc(100vw - 16rem), 100vw";
@@ -393,6 +489,31 @@ public class MarkupParser : IMarkupParser
                     var imgData = data is not null && data.TryGetValue(rawSrc, out var d) ? d : null;
                     var blurAttr = imgData?.BlurDataUri is not null ? $" data-blur=\"{imgData.BlurDataUri}\"" : "";
                     return $"<div class=\"images-upload-item\" data-full=\"{src}\"{blurAttr}>{ImgTag(src, alt, imgData)}</div>";
+                }
+
+                if (lines.Count == 1) layout = "single";
+                else if (layout == "single") layout = "grid";
+
+                if (layout == "single")
+                {
+                    var first = lines.FirstOrDefault();
+                    if (first == default) return string.Empty;
+                    var (src, alt, rawSrc) = first;
+                    var imgData = imageData is not null && imageData.TryGetValue(rawSrc, out var d) ? d : null;
+                    var inlineStyle = new System.Text.StringBuilder();
+                    if (imgData?.BlurDataUri is not null)
+                        inlineStyle.Append($"--blur-bg: url({imgData.BlurDataUri}); ");
+                    if (imgData?.Width is not null)
+                        inlineStyle.Append($"max-width: {imgData.Width}px; ");
+                    var styleAttr = inlineStyle.Length > 0
+                        ? $" style=\"{inlineStyle.ToString().TrimEnd()}\""
+                        : "";
+                    var dataBlur = imgData?.BlurDataUri is not null
+                        ? $" data-blur=\"{imgData.BlurDataUri}\""
+                        : "";
+                    return $"<div class=\"ig-single\" data-full=\"{src}\"{dataBlur}{styleAttr}>" +
+                           ImgTag(src, alt, imgData) +
+                           "</div>";
                 }
 
                 if (layout == "carousel")

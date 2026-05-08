@@ -141,4 +141,13 @@
     .search-focus-pane {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
+
+    // Hero overlays — deeper gradient for legibility on dark displays
+    .sn-breadcrumb-bar--colored::before {
+        background: linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.75));
+    }
+
+    .sn-discussion-header::before {
+        background: linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,.75));
+    }
 }

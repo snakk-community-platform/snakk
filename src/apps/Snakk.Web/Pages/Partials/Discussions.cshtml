@@ -25,7 +25,7 @@
                 ? $"/partials/discussions?sort=my-feed&cursor={Model.NextCursor}&pageSize=20{offsetParam}"
                 : $"/partials/discussions?cursor={Model.NextCursor}&pageSize=20{communityParam}{(Model.HubId != null ? $"&hubId={Model.HubId}" : "")}{(Model.SpaceId != null ? $"&spaceId={Model.SpaceId}" : "")}{(Model.HideCommunity ? "&hideCommunity=true" : "")}{(Model.HideHub ? "&hideHub=true" : "")}{offsetParam}";
     <div hx-get="@nextUrl"
-         hx-trigger="revealed"
+         hx-trigger="revealed once"
          hx-swap="outerHTML"
          hx-target="this"
          hx-push-url="false"

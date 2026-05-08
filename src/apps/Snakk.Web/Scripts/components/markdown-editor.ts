@@ -14,8 +14,6 @@ import {
     toggleLinkCommand,
     wrapInHeadingCommand,
     wrapInBlockquoteCommand,
-    wrapInBulletListCommand,
-    wrapInOrderedListCommand,
     createCodeBlockCommand,
     updateCodeBlockLanguageCommand,
     insertHrCommand,
@@ -31,13 +29,6 @@ import {
     strikethroughSchema,
     toggleStrikethroughCommand,
     insertTableCommand,
-    addRowAfterCommand,
-    addColAfterCommand,
-    deleteSelectedCellsCommand,
-    selectRowCommand,
-    selectColCommand,
-    selectTableCommand,
-    setAlignCommand,
 } from '@milkdown/kit/preset/gfm';
 import { history } from '@milkdown/kit/plugin/history';
 import { listener, listenerCtx } from '@milkdown/kit/plugin/listener';
@@ -49,7 +40,7 @@ import { Decoration } from '@milkdown/kit/prose/view';
 import { Plugin, PluginKey, TextSelection } from '@milkdown/kit/prose/state';
 import { Slice, Fragment } from '@milkdown/kit/prose/model';
 import type { Node } from '@milkdown/kit/prose/model';
-import { createImageGroupPlugin, removeImageFromEditor, replaceImageSrc, updateUploadProgress, validateImageFile, MAX_IMAGE_BYTES } from './image-group-node';
+import { createImageGroupPlugin, createGapCursorPlugin, createGapParaPlugin, createEmptyParaCursorPlugin, setEmptyParaCursorCallback, setChartEditCallback, setTableEditCallback, setImageEditCallback, setCodeEditCallback, setListEditCallback, countImagesFromView, countBlocksInEditor, replaceImageSrc, buildListNode, type TableModalData, type ImageModalData, type CodeModalData, type ListModalData, type ListItem, type BlockCounts } from './editor-node-views';
 
 // ============================================================================
 // Code Block Language Options (must match Prism grammars in prism-entry.mjs)
@@ -69,6 +60,7 @@ const CODE_LANGUAGES: { value: string; label: string }[] = [
     { value: 'markdown', label: 'Markdown' },
     { value: 'yaml', label: 'YAML' },
     { value: 'xml', label: 'XML' },
+    { value: 'chart', label: 'Chart' },
 ];
 
 // ============================================================================
@@ -80,6 +72,8 @@ interface EditorInstance {
     setMarkdown(markdown: string): void;
     focus(): void;
     destroy(): void;
+    hasPendingUploads(): boolean;
+    flushUploads(onProgress?: (done: number, total: number) => void): Promise<void>;
 }
 
 interface SnakkEditorOptions {
@@ -104,7 +98,7 @@ interface ToolbarItem {
     title: string;
     action: (editor: Editor) => void;
     className?: string;
-    allowInTable?: boolean;
+    allowInBlock?: boolean;
     opensDialog?: boolean;
     hasDropdown?: boolean;
     separator?: false;
@@ -356,7 +350,7 @@ const remarkEmphasisExtras = $remark('emphasisExtras', () => emphasisExtrasRemar
 // ============================================================================
 
 const ALLOWED_NODE_TYPES = new Set([
-    'doc', 'paragraph', 'heading', 'blockquote', 'bullet_list', 'ordered_list',
+    'doc', 'paragraph', 'blockquote', 'bullet_list', 'ordered_list',
     'list_item', 'code_block', 'horizontal_rule', 'table', 'table_row',
     'table_header', 'table_cell', 'text', 'hard_break',
 ]);
@@ -408,113 +402,56 @@ const pasteSanitize = $prose(() => new Plugin({
 function buildToolbarItems(): ToolbarEntry[] {
     return [
         {
-            icon: '😀', title: 'Emoji', className: 'toolbar-emoji', allowInTable: true, hasDropdown: true,
+            icon: '😀', title: 'Emoji', className: 'toolbar-emoji', allowInBlock: true, hasDropdown: true,
             action: (e) => showEmojiPicker(e),
         },
         { separator: true },
         {
-            icon: 'B', title: 'Bold (Ctrl+B)', className: 'toolbar-bold', allowInTable: true,
+            icon: 'B', title: 'Bold (Ctrl+B)', className: 'toolbar-bold', allowInBlock: true,
             action: (e) => e.action(callCommand(toggleStrongCommand.key)),
         },
         {
-            icon: 'I', title: 'Italic (Ctrl+I)', className: 'toolbar-italic', allowInTable: true,
+            icon: 'I', title: 'Italic (Ctrl+I)', className: 'toolbar-italic', allowInBlock: true,
             action: (e) => e.action(callCommand(toggleEmphasisCommand.key)),
         },
         {
-            icon: 'S', title: 'Strikethrough (Ctrl+Shift+X)', className: 'toolbar-strikethrough', allowInTable: true,
-            action: (e) => e.action(callCommand(toggleStrikethroughCommand.key)),
+            icon: 'U', title: 'Underline (Ctrl+U)', className: 'toolbar-underline', allowInBlock: true,
+            action: (e) => e.action(callCommand(toggleInsertedCommand.key)),
         },
         {
             groupIcon: 'Aₓ', groupTitle: 'Text Effects', groupClassName: 'toolbar-group-extras',
             children: [
                 {
-                    icon: 'x₂', title: 'Subscript', className: 'toolbar-subscript', allowInTable: true,
+                    icon: 'S', title: 'Strikethrough (Ctrl+Shift+X)', className: 'toolbar-strikethrough', allowInBlock: true,
+                    action: (e) => e.action(callCommand(toggleStrikethroughCommand.key)),
+                },
+                {
+                    icon: 'x₂', title: 'Subscript', className: 'toolbar-subscript', allowInBlock: true,
                     action: (e) => e.action(callCommand(toggleSubscriptCommand.key)),
                 },
                 {
-                    icon: 'x²', title: 'Superscript', className: 'toolbar-superscript', allowInTable: true,
+                    icon: 'x²', title: 'Superscript', className: 'toolbar-superscript', allowInBlock: true,
                     action: (e) => e.action(callCommand(toggleSuperscriptCommand.key)),
                 },
-                {
-                    icon: 'ins', title: 'Inserted', className: 'toolbar-inserted', allowInTable: true,
-                    action: (e) => e.action(callCommand(toggleInsertedCommand.key)),
-                },
-                {
-                    icon: 'mark', title: 'Highlight', className: 'toolbar-marked', allowInTable: true,
-                    action: (e) => e.action(callCommand(toggleMarkedCommand.key)),
-                },
-                {
-                    icon: '||', title: 'Spoiler', className: 'toolbar-spoiler', allowInTable: true,
-                    action: (e) => e.action(callCommand(toggleSpoilerCommand.key)),
-                },
             ],
         },
         { separator: true },
         {
-            groupIcon: 'H', groupTitle: 'Headings', groupClassName: 'toolbar-group-headings',
-            children: [
-                {
-                    icon: 'H1', title: 'Heading 1',
-                    action: (e) => e.action(callCommand(wrapInHeadingCommand.key, 1)),
-                },
-                {
-                    icon: 'H2', title: 'Heading 2',
-                    action: (e) => e.action(callCommand(wrapInHeadingCommand.key, 2)),
-                },
-                {
-                    icon: 'H3', title: 'Heading 3',
-                    action: (e) => e.action(callCommand(wrapInHeadingCommand.key, 3)),
-                },
-            ],
-        },
-        { separator: true },
-        {
-            groupIcon: '☰', groupTitle: 'Lists', groupClassName: 'toolbar-group-lists',
-            children: [
-                {
-                    icon: '•', title: 'Bullet List',
-                    action: (e) => e.action(callCommand(wrapInBulletListCommand.key)),
-                },
-                {
-                    icon: '1.', title: 'Ordered List',
-                    action: (e) => e.action(callCommand(wrapInOrderedListCommand.key)),
-                },
-                {
-                    icon: '☑', title: 'Task List',
-                    action: (e) => insertTaskList(e),
-                },
-            ],
-        },
-        { separator: true },
-        {
-            icon: '❝', title: 'Blockquote',
-            action: (e) => e.action(callCommand(wrapInBlockquoteCommand.key)),
+            icon: '🖌', title: 'Highlight', className: 'toolbar-marked', allowInBlock: true,
+            action: (e) => e.action(callCommand(toggleMarkedCommand.key)),
         },
         {
-            icon: '⟨⟩', title: 'Inline Code', allowInTable: true,
+            icon: '⟨⟩', title: 'Inline Code',
             action: (e) => e.action(callCommand(toggleInlineCodeCommand.key)),
         },
         {
-            icon: '{ }', title: 'Code Block',
-            action: (e) => e.action(callCommand(createCodeBlockCommand.key)),
+            icon: '👁', title: 'Spoiler', className: 'toolbar-spoiler', allowInBlock: true,
+            action: (e) => e.action(callCommand(toggleSpoilerCommand.key)),
         },
         { separator: true },
         {
-            icon: '🔗', title: 'Link', className: 'toolbar-link', allowInTable: true, opensDialog: true,
+            icon: '🔗', title: 'Link', className: 'toolbar-link', allowInBlock: true, opensDialog: true,
             action: (e) => showLinkDialog(e),
-        },
-        {
-            icon: '🖼', title: 'Image',
-            action: (e) => insertImageFromFile(e),
-        },
-        { separator: true },
-        {
-            icon: '⊞', title: 'Table', className: 'toolbar-table', hasDropdown: true,
-            action: (e) => showTablePicker(e),
-        },
-        {
-            icon: '—', title: 'Horizontal Rule',
-            action: (e) => e.action(callCommand(insertHrCommand.key)),
         },
     ];
 }
@@ -528,8 +465,11 @@ let activeGroupDropdown: HTMLElement | null = null;
 function showGroupDropdown(editor: Editor, triggerBtn: HTMLElement, children: ToolbarItem[]): void {
     closeGroupDropdown();
     closeEmojiPicker();
-    closeTablePicker();
+    closeTableModal();
     closeLinkDialog();
+    closeChartModal();
+    closeImageModal();
+    closeCodeModal();
 
     const dropdown = document.createElement('div');
     dropdown.className = 'milkdown-group-dropdown';
@@ -622,6 +562,24 @@ function closeGroupDropdown(): void {
 }
 
 // ============================================================================
+// Block Adder State
+// ============================================================================
+
+let activeBlockPicker: HTMLElement | null = null;
+let blockPickerCleanup: (() => void) | null = null;
+
+function closeBlockPicker(): void {
+    if (activeBlockPicker) {
+        activeBlockPicker.remove();
+        activeBlockPicker = null;
+    }
+    if (blockPickerCleanup) {
+        blockPickerCleanup();
+        blockPickerCleanup = null;
+    }
+}
+
+// ============================================================================
 // Link Dialog
 // ============================================================================
 
@@ -631,6 +589,7 @@ function showLinkDialog(editor: Editor): void {
     // Close any existing dialog/picker
     closeLinkDialog();
     closeGroupDropdown();
+    closeImageModal();
 
     // Get selected text to pre-fill link text
     let selectedText = '';
@@ -771,147 +730,1453 @@ function closeLinkDialog(): void {
 }
 
 // ============================================================================
-// Task List
+// Scroll lock helpers
+// Uses position:fixed + negative top to prevent scroll-position reset.
 // ============================================================================
 
-function insertTaskList(editor: Editor): void {
-    // First wrap in bullet list, then convert the current list item to a task item
-    editor.action(callCommand(wrapInBulletListCommand.key));
+let scrollLockDepth = 0;
+let scrollLockY = 0;
+
+function lockBodyScroll(): void {
+    if (scrollLockDepth++ > 0) return;
+    scrollLockY = window.scrollY;
+    document.body.style.top = `-${scrollLockY}px`;
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+}
+
+function unlockBodyScroll(): void {
+    if (scrollLockDepth === 0 || --scrollLockDepth > 0) return;
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.width = '';
+    window.scrollTo(0, scrollLockY);
+}
+
+// ============================================================================
+// Chart Editor Modal
+// ============================================================================
+
+let activeChartModal: HTMLElement | null = null;
+
+function closeChartModal(): void {
+    if (activeChartModal) {
+        activeChartModal.remove();
+        activeChartModal = null;
+        unlockBodyScroll();
+    }
+}
+
+function showChartPickerModal(editor: Editor): void {
+    closeChartModal();
+    closeListModal();
+
+    const chartTypes = [
+        { icon: '≡',   label: 'Bar',         type: 'bar' },
+        { icon: '∿',   label: 'Line',        type: 'line' },
+        { icon: '◿',   label: 'Area',        type: 'area' },
+        { icon: '▤',   label: 'Stacked Bar', type: 'stacked' },
+        { icon: '◔',   label: 'Pie',         type: 'pie' },
+        { icon: '◎',   label: 'Donut',       type: 'donut' },
+        { icon: '∷',   label: 'Scatter',     type: 'scatter' },
+    ];
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'chart-modal-backdrop';
+    activeChartModal = backdrop;
+
+    const modal = document.createElement('div');
+    modal.className = 'chart-modal chart-picker-modal';
+
+    const header = document.createElement('div');
+    header.className = 'chart-modal-header';
+    const title = document.createElement('span');
+    title.textContent = 'Insert Chart';
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'chart-modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = closeChartModal;
+    header.append(title, closeBtn);
+
+    const body = document.createElement('div');
+    body.className = 'chart-modal-body chart-picker-body';
+    const grid = document.createElement('div');
+    grid.className = 'chart-picker-grid';
+
+    for (const ct of chartTypes) {
+        const card = document.createElement('button');
+        card.className = 'chart-picker-card';
+        card.type = 'button';
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'chart-picker-card-icon';
+        iconSpan.textContent = ct.icon;
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'chart-picker-card-label';
+        labelSpan.textContent = ct.label;
+        card.append(iconSpan, labelSpan);
+        card.onclick = () => {
+            closeChartModal();
+            showChartEditorModal(ct.type, { onConfirm: (c) => insertChartBlock(editor, c) });
+        };
+        grid.appendChild(card);
+    }
+
+    body.appendChild(grid);
+    modal.append(header, body);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    lockBodyScroll();
+
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeChartModal(); });
+}
+
+function buildChartModalField(labelText: string, input: HTMLElement): HTMLElement {
+    const wrap = document.createElement('div');
+    wrap.className = 'chart-modal-field';
+    const lbl = document.createElement('label');
+    lbl.className = 'chart-modal-label';
+    lbl.textContent = labelText;
+    wrap.appendChild(lbl);
+    wrap.appendChild(input);
+    return wrap;
+}
+
+function makeChartInput(placeholder: string, value = '', extraClass = ''): HTMLInputElement {
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.className = `chart-modal-input${extraClass ? ' ' + extraClass : ''}`;
+    inp.placeholder = placeholder;
+    inp.value = value;
+    return inp;
+}
+
+interface ChartFormData {
+    title: string;
+    labels: string;
+    series: Array<{ name: string; values: string }>;
+    data: Array<{ label: string; value: string }>;
+}
+
+function parseChartFormData(configStr: string): Partial<ChartFormData> {
+    const result: Partial<ChartFormData> = {};
+    const lines = configStr.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i]!.trim();
+        if (line.startsWith('title:')) {
+            result.title = line.slice(6).trim();
+        } else if (line.startsWith('labels:')) {
+            result.labels = line.slice(7).trim().replace(/^\[|\]$/g, '');
+        } else if (line === 'data:') {
+            const items: Array<{ label: string; value: string }> = [];
+            i++;
+            while (i < lines.length && (lines[i]!.startsWith(' ') || lines[i]!.startsWith('\t'))) {
+                const dl = lines[i]!.trim();
+                const colon = dl.indexOf(':');
+                if (colon > 0) items.push({ label: dl.slice(0, colon).trim(), value: dl.slice(colon + 1).trim() });
+                i++;
+            }
+            result.data = items;
+            i--;
+        } else if (line === 'series:') {
+            const series: Array<{ name: string; values: string }> = [];
+            let cur: { name: string; values: string } | null = null;
+            i++;
+            while (i < lines.length) {
+                const sl = lines[i]!;
+                if (!sl.trim()) { i++; continue; }
+                const nm = sl.match(/^\s*-\s+name:\s*(.+)/);
+                if (nm) { cur = { name: nm[1]!.trim(), values: '' }; series.push(cur); i++; continue; }
+                const dm = sl.match(/^\s+data:\s*(\[.+\])/);
+                if (dm && cur) {
+                    const raw = dm[1]!.trim();
+                    // Scatter [[x,y],...] → "x,y x,y"; others [v,...] → "v, v"
+                    cur.values = raw.startsWith('[[')
+                        ? raw.replace(/^\[|\]$/g, '').split(/\],\s*\[/).map(p => p.replace(/[\[\]]/g, '').trim()).join(' ')
+                        : raw.replace(/^\[|\]$/g, '');
+                    i++; continue;
+                }
+                if (!sl.startsWith(' ') && !sl.startsWith('\t') && !sl.trim().startsWith('-')) break;
+                i++;
+            }
+            result.series = series;
+            i--;
+        }
+    }
+    return result;
+}
+
+function buildChartForm(type: string, form: HTMLElement, initial?: Partial<ChartFormData>): void {
+    form.appendChild(buildChartModalField(
+        'Title (optional)',
+        makeChartInput('My Chart', initial?.title ?? '', 'chart-title-input'),
+    ));
+
+    const CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>';
+    const WARN_ICON = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>';
+
+    if (type === 'pie' || type === 'donut') {
+        const listWrap = document.createElement('div');
+        listWrap.className = 'chart-modal-field';
+        const lbl = document.createElement('label');
+        lbl.className = 'chart-modal-label';
+        lbl.textContent = 'Data';
+        listWrap.appendChild(lbl);
+
+        const list = document.createElement('div');
+        list.className = 'chart-series-list';
+        listWrap.appendChild(list);
+
+        const addRow = (label = '', value = '') => {
+            const row = document.createElement('div');
+            row.className = 'chart-series-row';
+
+            const nameWrap = document.createElement('div');
+            nameWrap.className = 'chart-series-name-wrap';
+            const nameIcon = document.createElement('span');
+            nameIcon.className = 'chart-series-name-icon chart-series-name-icon-hidden';
+            nameIcon.setAttribute('aria-hidden', 'true');
+            const labelInp = makeChartInput('Label', label, 'chart-series-name');
+            nameWrap.appendChild(nameIcon);
+            nameWrap.appendChild(labelInp);
+
+            const valInp = document.createElement('input');
+            valInp.type = 'number';
+            valInp.className = 'chart-modal-input chart-series-values';
+            valInp.placeholder = '0';
+            valInp.value = value;
+
+            const updateNameIcon = () => {
+                const hasName = !!labelInp.value.trim();
+                const hasData = !!valInp.value.trim();
+                if (!hasData || hasName) {
+                    nameIcon.className = 'chart-series-name-icon chart-series-name-icon-hidden';
+                } else {
+                    nameIcon.className = 'chart-series-name-icon chart-series-name-icon-warn';
+                    nameIcon.innerHTML = WARN_ICON;
+                }
+            };
+            labelInp.addEventListener('input', updateNameIcon);
+            valInp.addEventListener('input', updateNameIcon);
+            updateNameIcon();
+
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'chart-series-remove';
+            rm.textContent = '×';
+            rm.addEventListener('click', () => { if (list.children.length > 1) row.remove(); });
+            row.appendChild(nameWrap);
+            row.appendChild(valInp);
+            row.appendChild(rm);
+            list.appendChild(row);
+        };
+        const pieDefaults = initial?.data?.length
+            ? initial.data
+            : [{ label: '', value: '' }];
+        pieDefaults.forEach(d => addRow(d.label, d.value));
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'chart-add-btn';
+        addBtn.textContent = '+ Add Item';
+        addBtn.addEventListener('click', () => { addRow(); list.dispatchEvent(new Event('input', { bubbles: true })); });
+        listWrap.appendChild(addBtn);
+        form.appendChild(listWrap);
+
+    } else if (type === 'scatter') {
+        const listWrap = document.createElement('div');
+        listWrap.className = 'chart-modal-field';
+        const lbl = document.createElement('label');
+        lbl.className = 'chart-modal-label';
+        lbl.textContent = 'Series';
+        listWrap.appendChild(lbl);
+
+        const list = document.createElement('div');
+        list.className = 'chart-series-list';
+        listWrap.appendChild(list);
+
+        const addSeries = (name = '', points = '') => {
+            const row = document.createElement('div');
+            row.className = 'chart-series-row';
+
+            const nameWrap = document.createElement('div');
+            nameWrap.className = 'chart-series-name-wrap';
+            const nameIcon = document.createElement('span');
+            nameIcon.className = 'chart-series-name-icon chart-series-name-icon-hidden';
+            nameIcon.setAttribute('aria-hidden', 'true');
+            const nameInp = makeChartInput('Name', name, 'chart-series-name');
+            nameWrap.appendChild(nameIcon);
+            nameWrap.appendChild(nameInp);
+
+            const ptsInp = makeChartInput('0,0 1,1 2,4', points, 'chart-series-values');
+
+            const updateNameIcon = () => {
+                const hasName = !!nameInp.value.trim();
+                const hasData = !!ptsInp.value.trim();
+                if (!hasData || hasName) {
+                    nameIcon.className = 'chart-series-name-icon chart-series-name-icon-hidden';
+                } else {
+                    nameIcon.className = 'chart-series-name-icon chart-series-name-icon-warn';
+                    nameIcon.innerHTML = WARN_ICON;
+                }
+            };
+            nameInp.addEventListener('input', updateNameIcon);
+            ptsInp.addEventListener('input', updateNameIcon);
+            updateNameIcon();
+
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'chart-series-remove';
+            rm.textContent = '×';
+            rm.addEventListener('click', () => { if (list.children.length > 1) row.remove(); });
+            row.appendChild(nameWrap);
+            row.appendChild(ptsInp);
+            row.appendChild(rm);
+            list.appendChild(row);
+        };
+        const scatterDefaults = initial?.series?.length ? initial.series : [{ name: '', values: '' }];
+        scatterDefaults.forEach(s => addSeries(s.name, s.values));
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'chart-add-btn';
+        addBtn.textContent = '+ Add Series';
+        addBtn.addEventListener('click', () => { addSeries(); list.dispatchEvent(new Event('input', { bubbles: true })); });
+        listWrap.appendChild(addBtn);
+        form.appendChild(listWrap);
+
+    } else {
+        form.appendChild(buildChartModalField(
+            'Labels',
+            makeChartInput('Jan, Feb, Mar, Apr', initial?.labels ?? '', 'chart-labels-input'),
+        ));
+
+        const listWrap = document.createElement('div');
+        listWrap.className = 'chart-modal-field';
+        const lbl = document.createElement('label');
+        lbl.className = 'chart-modal-label';
+        lbl.textContent = 'Series';
+        listWrap.appendChild(lbl);
+
+        const list = document.createElement('div');
+        list.className = 'chart-series-list';
+        listWrap.appendChild(list);
+
+        const iconUpdaters: Array<() => void> = [];
+
+        const addSeries = (name = '', values = '') => {
+            const row = document.createElement('div');
+            row.className = 'chart-series-row';
+
+            const nameWrap = document.createElement('div');
+            nameWrap.className = 'chart-series-name-wrap';
+            const nameIcon = document.createElement('span');
+            nameIcon.className = 'chart-series-name-icon chart-series-name-icon-hidden';
+            nameIcon.setAttribute('aria-hidden', 'true');
+            const nameInp = makeChartInput('Series name', name, 'chart-series-name');
+            nameWrap.appendChild(nameIcon);
+            nameWrap.appendChild(nameInp);
+
+            const valWrap = document.createElement('div');
+            valWrap.className = 'chart-series-val-wrap';
+            const icon = document.createElement('span');
+            icon.className = 'chart-series-val-icon chart-series-val-icon-hidden';
+            icon.setAttribute('aria-hidden', 'true');
+            const valInp = makeChartInput('Values (comma-separated)', values, 'chart-series-values');
+            valWrap.appendChild(icon);
+            valWrap.appendChild(valInp);
+
+            const updateIcon = () => {
+                const hasName = !!nameInp.value.trim();
+                const hasVals = !!valInp.value.trim();
+
+                // Name icon: warn when vals has content but name is empty
+                if (!hasVals || hasName) {
+                    nameIcon.className = 'chart-series-name-icon chart-series-name-icon-hidden';
+                } else {
+                    nameIcon.className = 'chart-series-name-icon chart-series-name-icon-warn';
+                    nameIcon.innerHTML = WARN_ICON;
+                }
+
+                // Val icon: hidden when no name; ok/warn by label count match
+                if (!hasName) {
+                    icon.className = 'chart-series-val-icon chart-series-val-icon-hidden';
+                    return;
+                }
+                const labelsEl = form.querySelector<HTMLInputElement>('.chart-labels-input');
+                const labelCount = labelsEl ? csvCount(labelsEl.value) : 0;
+                if (!labelCount) {
+                    icon.className = 'chart-series-val-icon chart-series-val-icon-hidden';
+                    return;
+                }
+                if (csvCount(valInp.value) === labelCount) {
+                    icon.className = 'chart-series-val-icon chart-series-val-icon-ok';
+                    icon.innerHTML = CHECK_ICON;
+                } else {
+                    icon.className = 'chart-series-val-icon chart-series-val-icon-warn';
+                    icon.innerHTML = WARN_ICON;
+                }
+            };
+
+            iconUpdaters.push(updateIcon);
+            nameInp.addEventListener('input', updateIcon);
+            valInp.addEventListener('input', updateIcon);
+            updateIcon();
+
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'chart-series-remove';
+            rm.textContent = '×';
+            rm.addEventListener('click', () => {
+                if (list.children.length > 1) {
+                    const idx = iconUpdaters.indexOf(updateIcon);
+                    if (idx !== -1) iconUpdaters.splice(idx, 1);
+                    row.remove();
+                }
+            });
+            row.appendChild(nameWrap);
+            row.appendChild(valWrap);
+            row.appendChild(rm);
+            list.appendChild(row);
+        };
+        const seriesDefaults = initial?.series?.length ? initial.series : [{ name: '', values: '' }];
+        seriesDefaults.forEach(s => addSeries(s.name, s.values));
+
+        const labelsInp = form.querySelector<HTMLInputElement>('.chart-labels-input');
+        if (labelsInp) labelsInp.addEventListener('input', () => iconUpdaters.forEach(fn => fn()));
+
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'chart-add-btn';
+        addBtn.textContent = '+ Add Series';
+        addBtn.addEventListener('click', () => { addSeries(); list.dispatchEvent(new Event('input', { bubbles: true })); });
+        listWrap.appendChild(addBtn);
+        form.appendChild(listWrap);
+    }
+}
+
+function csvCount(s: string): number {
+    return s.split(',').filter(t => t.trim()).length;
+}
+
+function isChartFormValid(type: string, form: HTMLElement): boolean {
+    if (type === 'pie' || type === 'donut') {
+        const rows = form.querySelectorAll<HTMLElement>('.chart-series-row');
+        for (const row of rows) {
+            const name = (row.querySelector('.chart-series-name') as HTMLInputElement | null)?.value.trim() ?? '';
+            const val  = (row.querySelector('.chart-series-values') as HTMLInputElement | null)?.value.trim() ?? '';
+            if (!name && !val) continue;
+            if (!name) return false;
+            if (name && val) return true;
+        }
+        return false;
+    } else if (type === 'scatter') {
+        const rows = form.querySelectorAll<HTMLElement>('.chart-series-row');
+        for (const row of rows) {
+            const name = (row.querySelector('.chart-series-name') as HTMLInputElement | null)?.value.trim() ?? '';
+            const pts  = (row.querySelector('.chart-series-values') as HTMLInputElement | null)?.value.trim() ?? '';
+            if (!name && !pts) continue;
+            if (!name) return false;
+            if (name && pts) return true;
+        }
+        return false;
+    } else {
+        const labels = (form.querySelector('.chart-labels-input') as HTMLInputElement | null)?.value.trim();
+        if (!labels) return false;
+        const labelCount = csvCount(labels);
+        let hasValid = false;
+        for (const row of form.querySelectorAll<HTMLElement>('.chart-series-row')) {
+            const name = (row.querySelector('.chart-series-name') as HTMLInputElement | null)?.value.trim() ?? '';
+            const vals = (row.querySelector('.chart-series-values') as HTMLInputElement | null)?.value.trim() ?? '';
+            if (!name && !vals) continue;
+            if (!name) return false;
+            if (!vals || csvCount(vals) !== labelCount) return false;
+            hasValid = true;
+        }
+        return hasValid;
+    }
+}
+
+function serializeChartConfig(type: string, form: HTMLElement): string {
+    const title = (form.querySelector('.chart-title-input') as HTMLInputElement | null)?.value.trim() || '';
+    const lines: string[] = [`type: ${type}`];
+    if (title) lines.push(`title: ${title}`);
+
+    if (type === 'pie' || type === 'donut') {
+        const rows = form.querySelectorAll<HTMLElement>('.chart-series-row');
+        if (!rows.length) return '';
+        lines.push('data:');
+        rows.forEach(row => {
+            const name = (row.querySelector('.chart-series-name') as HTMLInputElement | null)?.value.trim();
+            const val  = (row.querySelector('.chart-series-values') as HTMLInputElement | null)?.value.trim();
+            if (name && val) lines.push(`  ${name}: ${val}`);
+        });
+    } else if (type === 'scatter') {
+        const activeRows = Array.from(form.querySelectorAll<HTMLElement>('.chart-series-row')).filter(row => {
+            const name = (row.querySelector('.chart-series-name') as HTMLInputElement | null)?.value.trim();
+            const pts  = (row.querySelector('.chart-series-values') as HTMLInputElement | null)?.value.trim();
+            return !!(name || pts);
+        });
+        if (!activeRows.length) return '';
+        lines.push('series:');
+        activeRows.forEach(row => {
+            const name = (row.querySelector('.chart-series-name') as HTMLInputElement | null)?.value.trim();
+            const pts  = (row.querySelector('.chart-series-values') as HTMLInputElement | null)?.value.trim() || '';
+            lines.push(`  - name: ${name || 'Series'}`);
+            const pairs = pts.split(/\s+/).map(p => {
+                const parts = p.split(',');
+                const x = parseFloat(parts[0] ?? '0');
+                const y = parseFloat(parts[1] ?? '0');
+                return isNaN(x) || isNaN(y) ? null : `[${x},${y}]`;
+            }).filter(Boolean);
+            lines.push(`    data: [${pairs.join(',')}]`);
+        });
+    } else {
+        const labels = (form.querySelector('.chart-labels-input') as HTMLInputElement | null)?.value.trim() || '';
+        if (labels) lines.push(`labels: [${labels}]`);
+        const activeRows = Array.from(form.querySelectorAll<HTMLElement>('.chart-series-row')).filter(row => {
+            const name = (row.querySelector('.chart-series-name') as HTMLInputElement | null)?.value.trim();
+            const vals = (row.querySelector('.chart-series-values') as HTMLInputElement | null)?.value.trim();
+            return !!(name || vals);
+        });
+        if (!activeRows.length) return '';
+        lines.push('series:');
+        activeRows.forEach(row => {
+            const name = (row.querySelector('.chart-series-name') as HTMLInputElement | null)?.value.trim();
+            const vals = (row.querySelector('.chart-series-values') as HTMLInputElement | null)?.value.trim();
+            lines.push(`  - name: ${name || 'Series'}`);
+            lines.push(`    data: [${vals || '0'}]`);
+        });
+    }
+
+    return lines.join('\n');
+}
+
+function placeCursorAfterBlock(editor: Editor): void {
     editor.action((ctx) => {
         const view = ctx.get(editorViewCtx);
-        const { $from } = view.state.selection;
+        const { state } = view;
+        const { $from } = state.selection;
 
-        // Walk up to find the list_item node
-        for (let d = $from.depth; d > 0; d--) {
-            const node = $from.node(d);
-            if (node.type.name === 'list_item') {
-                const pos = $from.before(d);
-                const tr = view.state.tr.setNodeMarkup(pos, undefined, {
-                    ...node.attrs,
-                    checked: false,
-                });
-                view.dispatch(tr);
+        let blockEnd: number | null = null;
+        for (let d = $from.depth; d >= 0; d--) {
+            const name = $from.node(d).type.name;
+            if (name === 'code_block' || name === 'table' || name === 'image') {
+                blockEnd = $from.after(d);
                 break;
             }
         }
+        if (blockEnd === null) return;
+
+        let tr = state.tr;
+        const nodeAfter = blockEnd <= state.doc.content.size ? state.doc.nodeAt(blockEnd) : null;
+        if (!nodeAfter || nodeAfter.type.name !== 'paragraph') {
+            tr = tr.insert(blockEnd, state.schema.nodes.paragraph!.create());
+        }
+        tr = tr.setSelection(TextSelection.create(tr.doc, blockEnd + 1));
+        view.dispatch(tr);
         view.focus();
     });
 }
 
-function setupTaskListClickHandler(editor: Editor, contentArea: HTMLElement): void {
-    contentArea.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        const taskItem = target.closest('li[data-item-type="task"]') as HTMLElement;
-        if (!taskItem) return;
-
-        // Only toggle if clicking near the checkbox area (left side of the li)
-        const itemRect = taskItem.getBoundingClientRect();
-        if (e.clientX > itemRect.left + 28) return;
-
-        e.preventDefault();
-
-        editor.action((ctx) => {
-            const view = ctx.get(editorViewCtx);
-            const pos = view.posAtDOM(taskItem, 0);
-            const $pos = view.state.doc.resolve(pos);
-
-            for (let d = $pos.depth; d >= 0; d--) {
-                const node = $pos.node(d);
-                if (node.type.name === 'list_item' && node.attrs.checked != null) {
-                    const nodePos = $pos.before(d);
-                    const tr = view.state.tr.setNodeMarkup(nodePos, undefined, {
-                        ...node.attrs,
-                        checked: !node.attrs.checked,
-                    });
-                    view.dispatch(tr);
-                    break;
-                }
+function insertChartBlock(editor: Editor, configStr: string): void {
+    editor.action(callCommand(createCodeBlockCommand.key));
+    editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const { state } = view;
+        const { $from } = state.selection;
+        for (let d = $from.depth; d >= 0; d--) {
+            if ($from.node(d).type.name === 'code_block') {
+                const nodePos = $from.before(d);
+                const node = $from.node(d);
+                let tr = state.tr.setNodeAttribute(nodePos, 'language', 'chart');
+                tr = tr.replaceWith(
+                    nodePos + 1,
+                    nodePos + 1 + node.content.size,
+                    state.schema.text(configStr),
+                );
+                view.dispatch(tr);
+                break;
             }
-        });
+        }
+    });
+    placeCursorAfterBlock(editor);
+}
+
+function insertCallout(editor: Editor, type: string): void {
+    editor.action(callCommand(createCodeBlockCommand.key));
+    editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const { state } = view;
+        const { $from } = state.selection;
+        for (let d = $from.depth; d >= 0; d--) {
+            if ($from.node(d).type.name === 'code_block') {
+                const pos = $from.before(d);
+                view.dispatch(state.tr.setNodeAttribute(pos, 'language', `callout-${type}`));
+                break;
+            }
+        }
     });
 }
+
+interface ChartModalOptions {
+    onConfirm: (config: string) => void;
+    initialConfig?: string;
+    isEdit?: boolean;
+}
+
+function showChartEditorModal(type: string, options: ChartModalOptions): void {
+    closeChartModal();
+    closeLinkDialog();
+    closeImageModal();
+    closeCodeModal();
+
+    const typeLabels: Record<string, string> = {
+        bar: 'Bar', line: 'Line', area: 'Area', stacked: 'Stacked Bar',
+        pie: 'Pie', donut: 'Donut', scatter: 'Scatter',
+    };
+
+    const initial = options.initialConfig ? parseChartFormData(options.initialConfig) : undefined;
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'chart-modal-backdrop';
+
+    const modal = document.createElement('div');
+    modal.className = 'chart-modal';
+    backdrop.appendChild(modal);
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'chart-modal-header';
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = `${options.isEdit ? 'Edit' : 'Insert'} ${typeLabels[type] ?? type} Chart`;
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'chart-modal-close';
+    closeBtn.textContent = '×';
+    const chartHeaderActions = document.createElement('div');
+    chartHeaderActions.className = 'chart-modal-header-actions';
+    chartHeaderActions.append(createModalExpandBtn(modal), closeBtn);
+    header.append(titleSpan, chartHeaderActions);
+    modal.appendChild(header);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'chart-modal-body';
+
+    const form = document.createElement('div');
+    form.className = 'chart-modal-form';
+    buildChartForm(type, form, initial);
+    body.appendChild(form);
+
+    const previewPane = document.createElement('div');
+    previewPane.className = 'chart-modal-preview';
+    const canvas = document.createElement('canvas');
+    previewPane.appendChild(canvas);
+    body.appendChild(previewPane);
+
+    modal.appendChild(body);
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'chart-modal-footer';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    const insertBtn = document.createElement('button');
+    insertBtn.type = 'button';
+    insertBtn.className = 'chart-modal-insert';
+    insertBtn.textContent = options.isEdit ? 'Update Chart' : 'Insert Chart';
+    footer.appendChild(cancelBtn);
+    footer.appendChild(insertBtn);
+    modal.appendChild(footer);
+
+    document.body.appendChild(backdrop);
+    activeChartModal = backdrop;
+    lockBodyScroll();
+
+    const close = () => {
+        (window as any).SnakkCharts?.destroyCanvas?.(canvas);
+        closeChartModal();
+        document.removeEventListener('keydown', onKey);
+    };
+    const confirmClose = () => {
+        if (userHasEdited && !window.confirm('Discard changes?')) return;
+        close();
+    };
+    closeBtn.addEventListener('click', confirmClose);
+    cancelBtn.addEventListener('click', confirmClose);
+    backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) confirmClose(); });
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') confirmClose(); };
+    document.addEventListener('keydown', onKey);
+
+    // Insert button validity
+    const updateInsertState = () => {
+        insertBtn.disabled = !isChartFormValid(type, form);
+    };
+    updateInsertState();
+    form.addEventListener('input', updateInsertState);
+    form.addEventListener('click', () => setTimeout(updateInsertState, 0));
+
+    // Live preview
+    const exampleConfigs: Record<string, string> = {
+        bar:     'type: bar\nlabels: [Jan, Feb, Mar, Apr]\nseries:\n  - name: Sales\n    data: [30, 50, 40, 60]',
+        line:    'type: line\nlabels: [Jan, Feb, Mar, Apr]\nseries:\n  - name: Revenue\n    data: [20, 35, 30, 50]',
+        area:    'type: area\nlabels: [Jan, Feb, Mar, Apr]\nseries:\n  - name: Traffic\n    data: [100, 150, 120, 180]',
+        stacked: 'type: stacked\nlabels: [Q1, Q2, Q3, Q4]\nseries:\n  - name: A\n    data: [20, 30, 25, 40]\n  - name: B\n    data: [15, 25, 20, 30]',
+        pie:     'type: pie\ndata:\n  Alpha: 40\n  Beta: 35\n  Gamma: 25',
+        donut:   'type: donut\ndata:\n  Alpha: 40\n  Beta: 35\n  Gamma: 25',
+        scatter: 'type: scatter\nseries:\n  - name: Group A\n    data: [[1,2],[3,4],[5,6],[7,3]]',
+    };
+    let userHasEdited = !!options.isEdit;
+    const renderPreview = () => {
+        const config = userHasEdited ? serializeChartConfig(type, form) : (exampleConfigs[type] ?? '');
+        (window as any).SnakkCharts?.destroyCanvas?.(canvas);
+        if (config) (window as any).SnakkCharts?.renderIntoCanvas?.(canvas, config);
+    };
+    let previewTimer: ReturnType<typeof setTimeout> | null = null;
+    const updatePreview = () => {
+        if (previewTimer) clearTimeout(previewTimer);
+        previewTimer = setTimeout(renderPreview, 400);
+    };
+    form.addEventListener('input', () => { userHasEdited = true; updatePreview(); });
+    setTimeout(renderPreview, 100);
+
+    // Confirm
+    insertBtn.addEventListener('click', () => {
+        const config = serializeChartConfig(type, form);
+        if (!config) return;
+        close();
+        options.onConfirm(config);
+    });
+
+    // Focus first input
+    setTimeout(() => (form.querySelector('input') as HTMLInputElement | null)?.focus(), 50);
+}
+
 
 // ============================================================================
 // Image File Picker
 // ============================================================================
 
-function insertImageFromFile(editor: Editor): void {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.style.display = 'none';
+// ============================================================================
+// Image Modal
+// ============================================================================
 
-    input.addEventListener('change', () => {
-        const file = input.files?.[0];
-        if (!file || !file.type.startsWith('image/')) return;
-        const sizeErr = validateImageFile(file);
-        if (sizeErr) { input.remove(); alert(sizeErr); return; }
+const MAX_POST_IMAGES = 12;
+const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB (matches BFF limit)
 
-        const blobUrl = URL.createObjectURL(file);
+interface ModalItem {
+    blobUrl: string;   // blob: URL for new files; CDN URL for existing images
+    file: File | null; // null = already uploaded
+    alt: string;
+    oversized?: boolean;
+}
 
-        // Insert the image immediately using the blob URL so the preview appears at once
-        editor.action((ctx) => {
-            const view = ctx.get(editorViewCtx);
-            const state = view.state;
-            const schema = state.schema;
+interface ImageModalOptions {
+    editor?: Editor;
+    view?: import('@milkdown/kit/prose/view').EditorView;
+    data?: ImageModalData;
+    onConfirm?: (data: ImageModalData) => void;
+}
 
-            const imageNode = schema.nodes.image?.create({ src: blobUrl, alt: 'user uploaded image' });
-            if (!imageNode) return;
+let activeImageModal: HTMLElement | null = null;
+let imageModalEscHandler: ((e: KeyboardEvent) => void) | null = null;
 
-            const { from } = state.selection;
-            const $from = state.doc.resolve(from);
-            const depth = $from.depth;
+function closeImageModal(): void {
+    if (activeImageModal) {
+        activeImageModal.remove();
+        activeImageModal = null;
+        unlockBodyScroll();
+    }
+    if (imageModalEscHandler) {
+        document.removeEventListener('keydown', imageModalEscHandler);
+        imageModalEscHandler = null;
+    }
+}
 
-            const emptyPara = schema.nodes.paragraph!.create();
-            const imagePara = schema.nodes.paragraph!.create({}, [imageNode]);
-            let tr = state.tr;
+// ============================================================================
+// Code Block Modal
+// ============================================================================
 
-            if (depth > 0 && $from.parent.content.size === 0) {
-                // Cursor in an empty paragraph — replace it with image para + empty para
-                const blockStart = $from.before(depth);
-                const blockEnd = $from.after(depth);
-                tr = tr.replaceWith(blockStart, blockEnd, Fragment.from([imagePara, emptyPara]));
-                tr = tr.setSelection(TextSelection.create(tr.doc, blockStart + imagePara.nodeSize + 1));
-            } else {
-                // Cursor in non-empty content — append image para + empty para after current block
-                const blockEnd = depth > 0 ? $from.after(depth) : from;
-                tr = tr.insert(blockEnd, Fragment.from([imagePara, emptyPara]));
-                tr = tr.setSelection(TextSelection.create(tr.doc, blockEnd + imagePara.nodeSize + 1));
-            }
+interface CodeModalOptions {
+    editor?: Editor;
+    data?: CodeModalData;
+    onConfirm?: (d: CodeModalData) => void;
+}
 
-            view.dispatch(tr);
-            view.focus();
+let activeCodeModal: HTMLElement | null = null;
+
+function closeCodeModal(): void {
+    if (activeCodeModal) {
+        activeCodeModal.remove();
+        activeCodeModal = null;
+        unlockBodyScroll();
+    }
+}
+
+function insertCodeBlock(editor: Editor, data: CodeModalData): void {
+    editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const schema = view.state.schema;
+        const codeBlock = schema.nodes.code_block!.create(
+            { language: data.language || null },
+            data.code ? [schema.text(data.code)] : undefined
+        );
+        const para = schema.nodes.paragraph!.create();
+        const { tr, selection } = view.state;
+        const $from = selection.$from;
+        const depth = $from.depth;
+        let insertTr = tr;
+        let paraPos: number;
+        if (depth > 0 && $from.parent.content.size === 0) {
+            const blockStart = $from.before(depth);
+            const blockEnd = $from.after(depth);
+            insertTr = insertTr.replaceWith(blockStart, blockEnd, Fragment.from([codeBlock, para]));
+            paraPos = blockStart + codeBlock.nodeSize + 1;
+        } else {
+            const blockEnd = depth > 0 ? $from.after(depth) : selection.from;
+            insertTr = insertTr.insert(blockEnd, Fragment.from([codeBlock, para]));
+            paraPos = blockEnd + codeBlock.nodeSize + 1;
+        }
+        insertTr = insertTr.setSelection(TextSelection.create(insertTr.doc, paraPos));
+        view.dispatch(insertTr);
+        view.focus();
+    });
+}
+
+function showCodeModal(options: CodeModalOptions): void {
+    closeCodeModal();
+    closeLinkDialog();
+    closeGroupDropdown();
+    closeChartModal();
+    closeImageModal();
+    closeTableModal();
+
+    const { editor, data, onConfirm } = options;
+    const isEdit = !!data;
+
+    let currentLang = data?.language ?? '';
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'chart-modal-backdrop';
+
+    const modal = document.createElement('div');
+    modal.className = 'chart-modal';
+    modal.style.maxWidth = '48rem';
+
+    const header = document.createElement('div');
+    header.className = 'chart-modal-header';
+    const title = document.createElement('span');
+    title.textContent = isEdit ? 'Edit Code' : 'Insert Code';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'chart-modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', closeCodeModal);
+    const codeHeaderActions = document.createElement('div');
+    codeHeaderActions.className = 'chart-modal-header-actions';
+    codeHeaderActions.append(createModalExpandBtn(modal), closeBtn);
+    header.append(title, codeHeaderActions);
+
+    const body = document.createElement('div');
+    body.className = 'chart-modal-body';
+    body.style.flexDirection = 'column';
+
+    const langRow = document.createElement('div');
+    langRow.className = 'code-modal-lang-row';
+
+    const textarea = document.createElement('textarea');
+    textarea.value = data?.code ?? '';
+    textarea.spellcheck = false;
+    (textarea as any).autocomplete = 'off';
+
+    const pre = document.createElement('pre');
+    const codeEl = document.createElement('code');
+    pre.appendChild(codeEl);
+
+    const langBtns: HTMLButtonElement[] = [];
+    CODE_LANGUAGES
+        .filter(l => l.value !== 'chart')
+        .forEach(l => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = l.label;
+            if (l.value === currentLang) btn.classList.add('active');
+            btn.addEventListener('click', () => {
+                currentLang = l.value;
+                langBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                rehighlight();
+                textarea.focus();
+            });
+            langRow.appendChild(btn);
+            langBtns.push(btn);
         });
 
-        const formData = new FormData();
-        formData.append('file', file, file.name);
+    const gutter = document.createElement('div');
+    gutter.className = 'code-modal-gutter';
+    gutter.setAttribute('aria-hidden', 'true');
 
-        window.SnakkUpload.uploadWithProgress<{ url: string }>({
-            url: '/bff/media/upload',
-            formData,
-            onProgress: (pct: number) => updateUploadProgress(blobUrl, pct),
-            onProcessing: () => updateUploadProgress(blobUrl, 'processing'),
-        })
-            .then((result: { ok: boolean; status: number; data?: { url: string }; error?: string }) => {
-                if (!result.ok || !result.data) {
-                    console.error('[Editor] Image upload failed:', result.status, result.error);
-                    editor.action((ctx) => removeImageFromEditor(ctx.get(editorViewCtx), blobUrl));
-                    return;
-                }
-                editor.action((ctx) => replaceImageSrc(ctx.get(editorViewCtx), blobUrl, result.data!.url));
-            })
-            .catch((err: unknown) => {
-                console.error('[Editor] Image upload error:', err);
-                editor.action((ctx) => removeImageFromEditor(ctx.get(editorViewCtx), blobUrl));
-            })
-            .finally(() => {
-                URL.revokeObjectURL(blobUrl);
-                input.remove();
-            });
+    const syncGutter = (code: string): void => {
+        const lineCount = code.split('\n').length;
+        while (gutter.childElementCount < lineCount) {
+            gutter.appendChild(document.createElement('span'));
+        }
+        while (gutter.childElementCount > lineCount) {
+            gutter.lastChild!.remove();
+        }
+        gutter.scrollTop = textarea.scrollTop;
+    };
+
+    const rehighlight = (): void => {
+        const code = textarea.value;
+        const grammar = (window as any).Prism?.languages?.[currentLang];
+        if (grammar && (window as any).Prism) {
+            codeEl.innerHTML = (window as any).Prism.highlight(code, grammar, currentLang);
+        } else {
+            codeEl.textContent = code;
+        }
+        codeEl.className = currentLang ? `language-${currentLang}` : '';
+        pre.scrollTop = textarea.scrollTop;
+        pre.scrollLeft = textarea.scrollLeft;
+        syncGutter(code);
+    };
+
+    textarea.addEventListener('input', rehighlight);
+    textarea.addEventListener('scroll', () => {
+        pre.scrollTop = textarea.scrollTop;
+        pre.scrollLeft = textarea.scrollLeft;
+        gutter.scrollTop = textarea.scrollTop;
+    });
+    textarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            textarea.value = textarea.value.slice(0, start) + '    ' + textarea.value.slice(end);
+            textarea.selectionStart = textarea.selectionEnd = start + 4;
+            rehighlight();
+        }
     });
 
-    document.body.appendChild(input);
-    input.click();
+    const innerArea = document.createElement('div');
+    innerArea.className = 'code-modal-inner';
+    innerArea.append(pre, textarea);
+
+    const editorContainer = document.createElement('div');
+    editorContainer.className = 'code-modal-editor';
+    editorContainer.append(gutter, innerArea);
+    body.append(langRow, editorContainer);
+
+    const footer = document.createElement('div');
+    footer.className = 'chart-modal-footer';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', closeCodeModal);
+    const insertBtn = document.createElement('button');
+    insertBtn.type = 'button';
+    insertBtn.className = 'chart-modal-insert';
+    insertBtn.textContent = isEdit ? 'Update' : 'Insert';
+    insertBtn.disabled = textarea.value.trim() === '';
+    textarea.addEventListener('input', () => {
+        insertBtn.disabled = textarea.value.trim() === '';
+    });
+    insertBtn.addEventListener('click', () => {
+        const finalData: CodeModalData = { language: currentLang, code: textarea.value };
+        if (onConfirm) {
+            onConfirm(finalData);
+        } else if (editor) {
+            insertCodeBlock(editor, finalData);
+        }
+        closeCodeModal();
+    });
+    footer.append(cancelBtn, insertBtn);
+
+    modal.append(header, body, footer);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    activeCodeModal = backdrop;
+    lockBodyScroll();
+
+    backdrop.addEventListener('mousedown', (e) => {
+        if (e.target === backdrop) closeCodeModal();
+    });
+
+    const onKey = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+            closeCodeModal();
+            document.removeEventListener('keydown', onKey);
+        }
+    };
+    document.addEventListener('keydown', onKey);
+
+    rehighlight();
+    // If Prism wasn't ready on first render, re-highlight once it loads
+    (window as any).SnakkSyntax?.loadPrism?.().then(() => rehighlight());
+    requestAnimationFrame(() => textarea.focus());
+}
+
+
+function uploadFile(file: File, onProgress: (pct: number) => void): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    return window.SnakkUpload.uploadWithProgress<{ url: string }>({
+        url: '/bff/media/upload',
+        formData,
+        onProgress,
+        onProcessing: () => onProgress(99),
+    }).then((result: { ok: boolean; status: number; data?: { url: string }; error?: string }) => {
+        if (!result.ok || !result.data?.url) {
+            throw new Error(result.error ?? `Upload failed (${result.status})`);
+        }
+        return { url: result.data.url };
+    });
+}
+
+// Maps each editor's Milkdown Editor instance to its pending-upload map (blobUrl → File).
+// Populated when images are inserted; drained by flushUploads() at submit time.
+const editorPendingUploads = new WeakMap<Editor, Map<string, File>>();
+
+function insertImageGroup(editor: Editor, data: ImageModalData): void {
+    editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const schema = view.state.schema;
+        const content = data.images.map(i => `${i.src}|${i.alt}`).join('\n');
+        const layout = data.images.length === 1 ? 'single' : (data.layout === 'single' ? 'grid' : data.layout);
+        const codeBlock = schema.nodes.code_block!.create(
+            { language: `image-group layout=${layout}` },
+            content ? [schema.text(content)] : undefined
+        );
+        const para = schema.nodes.paragraph!.create();
+        const { tr, selection } = view.state;
+        const $from = selection.$from;
+        const depth = $from.depth;
+        let insertTr = tr;
+        let paraPos: number;
+        if (depth > 0 && $from.parent.content.size === 0) {
+            const blockStart = $from.before(depth);
+            const blockEnd = $from.after(depth);
+            insertTr = insertTr.replaceWith(blockStart, blockEnd, Fragment.from([codeBlock, para]));
+            paraPos = blockStart + codeBlock.nodeSize + 1;
+        } else {
+            const blockEnd = depth > 0 ? $from.after(depth) : selection.from;
+            insertTr = insertTr.insert(blockEnd, Fragment.from([codeBlock, para]));
+            paraPos = blockEnd + codeBlock.nodeSize + 1;
+        }
+        insertTr = insertTr.setSelection(TextSelection.create(insertTr.doc, paraPos));
+        view.dispatch(insertTr);
+        view.focus();
+    });
+}
+
+function showImageModal(options: ImageModalOptions): void {
+    closeImageModal();
+    closeLinkDialog();
+    closeChartModal();
+    closeTableModal();
+    closeGroupDropdown();
+    closeEmojiPicker();
+    closeCodeModal();
+
+    const isEdit = !!options.onConfirm;
+
+    // Compute budget
+    let totalInDoc = 0;
+    if (options.editor) {
+        options.editor.action((ctx) => { totalInDoc = countImagesFromView(ctx.get(editorViewCtx)); });
+    } else if (options.view) {
+        totalInDoc = countImagesFromView(options.view);
+    }
+    const currentGroupSize = options.data?.images.length ?? 0;
+    const maxImages = MAX_POST_IMAGES - (totalInDoc - currentGroupSize);
+
+    // Modal items state
+    const modalItems: ModalItem[] = (options.data?.images ?? []).map(img => ({
+        blobUrl: img.src,
+        file: null,
+        alt: img.alt,
+    }));
+    let modalLayout: ImageModalData['layout'] = options.data?.layout ?? 'grid';
+    let carouselSlide = 0;
+    let dragSrcIdx: number | null = null;
+    let lastRejections: string[] = [];
+    const LAYOUTS_MODAL: Array<{ value: ImageModalData['layout']; label: string }> = [
+        { value: 'grid', label: 'Grid' },
+        { value: 'masonry', label: 'Masonry' },
+        { value: 'justified', label: 'Justified' },
+        { value: 'carousel', label: 'Carousel' },
+    ];
+
+    // ── DOM ─────────────────────────────────────────────────────────────────
+    const backdrop = document.createElement('div');
+    backdrop.className = 'chart-modal-backdrop';
+
+    const modal = document.createElement('div');
+    modal.className = 'chart-modal';
+    modal.style.maxWidth = '42rem';
+
+    const confirmClose = () => {
+        if (modalItems.length > 0 && !window.confirm('Discard changes?')) return;
+        closeImageModal();
+    };
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'chart-modal-header';
+    const title = document.createElement('span');
+    title.textContent = isEdit ? 'Edit Images' : 'Upload Images';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'chart-modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', confirmClose);
+    const imageHeaderActions = document.createElement('div');
+    imageHeaderActions.className = 'chart-modal-header-actions';
+    imageHeaderActions.append(createModalExpandBtn(modal), closeBtn);
+    header.append(title, imageHeaderActions);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'chart-modal-body';
+    body.style.flexDirection = 'column';
+
+    // Drop zone (shown when no items)
+    const dropZone = document.createElement('div');
+    dropZone.className = 'image-modal-drop-zone';
+    const dropHint = document.createElement('p');
+    const chooseBtn = document.createElement('button');
+    chooseBtn.type = 'button';
+    chooseBtn.className = 'image-modal-choose';
+    chooseBtn.textContent = 'Choose files';
+    dropZone.appendChild(dropHint);
+    dropZone.appendChild(chooseBtn);
+
+    // Layout row (shown when ≥ 2 items)
+    const layoutRow = document.createElement('div');
+    layoutRow.className = 'image-modal-layout-row';
+    const layoutLabel = document.createElement('label');
+    layoutLabel.textContent = 'Layout:';
+    const layoutBtns = document.createElement('div');
+    layoutBtns.className = 'image-modal-layout-btns';
+    LAYOUTS_MODAL.forEach(({ value, label }) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = label;
+        btn.dataset.layout = value;
+        if (value === modalLayout) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+            modalLayout = value;
+            carouselSlide = 0;
+            layoutBtns.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.layout === value));
+            renderGrid();
+        });
+        layoutBtns.appendChild(btn);
+    });
+    layoutRow.appendChild(layoutLabel);
+    layoutRow.appendChild(layoutBtns);
+
+    // Image grid / layout preview wrapper
+    const grid = document.createElement('div');
+    grid.className = 'image-modal-preview';
+
+    // Rejection chips container
+    const rejectionsEl = document.createElement('div');
+    rejectionsEl.className = 'image-modal-rejections';
+
+    body.appendChild(dropZone);
+    body.appendChild(rejectionsEl);
+    body.appendChild(layoutRow);
+    body.appendChild(grid);
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'chart-modal-footer';
+    const statusEl = document.createElement('span');
+    statusEl.className = 'image-modal-status';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', confirmClose);
+    const insertBtn = document.createElement('button');
+    insertBtn.type = 'button';
+    insertBtn.className = 'chart-modal-insert';
+    insertBtn.textContent = isEdit ? 'Update' : 'Insert';
+    footer.appendChild(statusEl);
+    footer.appendChild(cancelBtn);
+    footer.appendChild(insertBtn);
+
+    modal.appendChild(header);
+    modal.appendChild(body);
+    modal.appendChild(footer);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    activeImageModal = backdrop;
+    lockBodyScroll();
+
+    backdrop.addEventListener('mousedown', (e) => {
+        if (e.target === backdrop) confirmClose();
+    });
+
+    imageModalEscHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') confirmClose(); };
+    document.addEventListener('keydown', imageModalEscHandler);
+
+    // ── File input ───────────────────────────────────────────────────────────
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = true;
+    fileInput.style.display = 'none';
+    document.body.appendChild(fileInput);
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files) addFiles(Array.from(fileInput.files));
+        fileInput.value = '';
+    });
+
+    chooseBtn.addEventListener('click', () => fileInput.click());
+
+    // ── Drag-drop onto drop zone ──────────────────────────────────────────────
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer?.files) addFiles(Array.from(e.dataTransfer.files));
+    });
+
+    // ── addFiles ─────────────────────────────────────────────────────────────
+    function addFiles(files: File[]): void {
+        lastRejections = [];
+        let budget = maxImages - modalItems.filter(i => !i.oversized).length;
+
+        for (const file of files) {
+            if (!file.type.startsWith('image/')) {
+                lastRejections.push(`${file.name} — not an image`);
+                continue;
+            }
+            if (file.size > MAX_FILE_BYTES) {
+                modalItems.push({ blobUrl: URL.createObjectURL(file), file, alt: '', oversized: true });
+                continue;
+            }
+            if (budget <= 0) {
+                lastRejections.push(`${file.name} — post limit of ${MAX_POST_IMAGES} images reached`);
+                continue;
+            }
+            modalItems.push({ blobUrl: URL.createObjectURL(file), file, alt: '' });
+            budget--;
+        }
+
+        renderGrid();
+    }
+
+    // ── renderGrid ────────────────────────────────────────────────────────────
+    function renderGrid(): void {
+        const hasItems = modalItems.length > 0;
+        const validItems = modalItems.filter(i => !i.oversized);
+        const atLimit = validItems.length >= maxImages;
+        const hasOversized = modalItems.some(i => i.oversized);
+
+        dropZone.classList.toggle('image-modal-drop-expanded', !hasItems);
+
+        dropHint.textContent = atLimit
+            ? `Post limit of ${MAX_POST_IMAGES} images reached`
+            : 'Drop images here';
+        chooseBtn.style.display = atLimit ? 'none' : '';
+
+        layoutRow.style.display = validItems.length >= 2 ? '' : 'none';
+
+        insertBtn.disabled = !hasItems || hasOversized;
+
+        // Rebuild rejection chips
+        rejectionsEl.innerHTML = '';
+        lastRejections.forEach(msg => {
+            const chip = document.createElement('div');
+            chip.className = 'image-modal-rejection-chip';
+            chip.textContent = `⚠ ${msg}`;
+            rejectionsEl.appendChild(chip);
+        });
+        modalItems.forEach(item => {
+            if (!item.oversized || !item.file) return;
+            const mb = (item.file.size / (1024 * 1024)).toFixed(1);
+            const chip = document.createElement('div');
+            chip.className = 'image-modal-rejection-chip';
+            chip.textContent = `⚠ ${item.file.name} — ${mb} MB exceeds the 5 MB limit`;
+            rejectionsEl.appendChild(chip);
+        });
+
+        grid.innerHTML = '';
+        if (!hasItems) return;
+
+        function buildCell(item: ModalItem, idx: number): HTMLDivElement {
+            const cell = document.createElement('div');
+            cell.className = 'images-upload-item images-item-loaded image-modal-item';
+            cell.style.backgroundImage = `url("${item.blobUrl}")`;
+
+            const img = document.createElement('img');
+            img.src = item.blobUrl;
+            img.alt = item.alt;
+            cell.appendChild(img);
+
+            if (item.oversized && item.file) {
+                const mb = (item.file.size / (1024 * 1024)).toFixed(1);
+                const overlay = document.createElement('div');
+                overlay.className = 'image-modal-oversized-overlay';
+                const label = document.createElement('span');
+                label.className = 'image-modal-oversized-label';
+                label.textContent = `${mb} MB — exceeds 5 MB limit`;
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'image-modal-oversized-remove';
+                removeBtn.textContent = 'Remove';
+                removeBtn.addEventListener('click', () => {
+                    URL.revokeObjectURL(item.blobUrl);
+                    modalItems.splice(idx, 1);
+                    renderGrid();
+                });
+                overlay.appendChild(label);
+                overlay.appendChild(removeBtn);
+                cell.appendChild(overlay);
+            } else {
+                const altInput = document.createElement('input');
+                altInput.type = 'text';
+                altInput.placeholder = 'Alt text';
+                altInput.value = item.alt;
+                altInput.addEventListener('input', () => { item.alt = altInput.value; });
+                cell.appendChild(altInput);
+
+                const delBtn = document.createElement('button');
+                delBtn.type = 'button';
+                delBtn.className = 'image-modal-item-delete';
+                delBtn.textContent = '×';
+                delBtn.title = 'Remove';
+                delBtn.addEventListener('click', () => {
+                    if (item.file) URL.revokeObjectURL(item.blobUrl);
+                    modalItems.splice(idx, 1);
+                    renderGrid();
+                });
+                cell.appendChild(delBtn);
+
+                if (modalItems.filter(i => !i.oversized).length >= 2) {
+                    cell.draggable = true;
+                    cell.style.cursor = 'grab';
+                    cell.addEventListener('dragstart', (e) => {
+                        dragSrcIdx = idx;
+                        e.dataTransfer!.effectAllowed = 'move';
+                        e.dataTransfer!.setData('application/x-img-modal-reorder', String(idx));
+                    });
+                    cell.addEventListener('dragover', (e) => {
+                        if (!e.dataTransfer?.types.includes('application/x-img-modal-reorder')) return;
+                        e.preventDefault();
+                        cell.classList.add('drag-over');
+                    });
+                    cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+                    cell.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        cell.classList.remove('drag-over');
+                        if (dragSrcIdx === null || dragSrcIdx === idx) return;
+                        const [moved] = modalItems.splice(dragSrcIdx, 1);
+                        if (!moved) return;
+                        modalItems.splice(idx, 0, moved);
+                        dragSrcIdx = null;
+                        renderGrid();
+                    });
+                    cell.addEventListener('dragend', () => { dragSrcIdx = null; });
+                }
+            }
+
+            return cell;
+        }
+
+        const effectiveLayout = modalItems.length < 2 ? 'grid' : modalLayout;
+
+        if (effectiveLayout === 'carousel') {
+            const carousel = document.createElement('div');
+            carousel.className = 'gup-carousel image-modal-carousel';
+
+            const track = document.createElement('div');
+            track.className = 'gup-carousel-track';
+            modalItems.forEach((item, i) => track.appendChild(buildCell(item, i)));
+            carousel.appendChild(track);
+
+            const counter = document.createElement('div');
+            counter.className = 'gup-carousel-counter';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.type = 'button';
+            prevBtn.className = 'gup-carousel-arrow gup-carousel-prev';
+            prevBtn.innerHTML = '&#8249;';
+
+            const nextBtn = document.createElement('button');
+            nextBtn.type = 'button';
+            nextBtn.className = 'gup-carousel-arrow gup-carousel-next';
+            nextBtn.innerHTML = '&#8250;';
+
+            const updateSlide = () => {
+                carouselSlide = Math.max(0, Math.min(carouselSlide, modalItems.length - 1));
+                track.style.transform = `translateX(-${carouselSlide * 100}%)`;
+                counter.textContent = `${carouselSlide + 1} / ${modalItems.length}`;
+                prevBtn.disabled = carouselSlide === 0;
+                nextBtn.disabled = carouselSlide === modalItems.length - 1;
+            };
+
+            prevBtn.addEventListener('click', () => { carouselSlide--; updateSlide(); });
+            nextBtn.addEventListener('click', () => { carouselSlide++; updateSlide(); });
+
+            carousel.appendChild(prevBtn);
+            carousel.appendChild(nextBtn);
+            carousel.appendChild(counter);
+
+            updateSlide();
+            grid.appendChild(carousel);
+        } else {
+            const container = document.createElement('div');
+            container.className = `gup-${effectiveLayout}`;
+            modalItems.forEach((item, i) => container.appendChild(buildCell(item, i)));
+            grid.appendChild(container);
+        }
+    }
+
+    // ── Insert / Update ───────────────────────────────────────────────────────
+    insertBtn.addEventListener('click', () => {
+        if (modalItems.length === 0) return;
+
+        // Register new files for deferred upload on submit
+        if (options.editor) {
+            const pending = editorPendingUploads.get(options.editor);
+            if (pending) {
+                for (const item of modalItems) {
+                    if (item.file && !item.oversized) {
+                        pending.set(item.blobUrl, item.file);
+                    }
+                }
+            }
+        }
+
+        const data: ImageModalData = {
+            images: modalItems.map(m => ({ src: m.blobUrl, alt: m.alt })),
+            layout: modalLayout,
+        };
+
+        closeImageModal();
+        fileInput.remove();
+
+        if (options.onConfirm) {
+            options.onConfirm(data);
+        } else if (options.editor) {
+            insertImageGroup(options.editor, data);
+        }
+    });
+
+    // Initial render
+    renderGrid();
 }
 
 // ============================================================================
@@ -1018,21 +2283,439 @@ function cleanSingleTable(tableLines: string[]): string | null {
 }
 
 // ============================================================================
-// Table Picker (Word-style grid)
+// Table Modal
 // ============================================================================
 
-const TABLE_ROWS = 6;
-const TABLE_COLS = 6;
-let activeTablePicker: HTMLElement | null = null;
+interface TableModalOptions {
+    onConfirm: (data: TableModalData) => void;
+    data?: TableModalData;
+    isEdit?: boolean;
+}
 
-function showTablePicker(editor: Editor): void {
-    closeTablePicker();
+let activeTableModal: HTMLElement | null = null;
+
+function closeTableModal(): void {
+    if (activeTableModal) {
+        activeTableModal.remove();
+        activeTableModal = null;
+        unlockBodyScroll();
+    }
+}
+
+function showTableModal(options: TableModalOptions): void {
+    closeTableModal();
     closeLinkDialog();
     closeGroupDropdown();
+    closeChartModal();
+    closeListModal();
+    closeImageModal();
+    closeCodeModal();
 
+    const isEdit = options.isEdit ?? false;
+    const initial = options.data;
+    let hasEdited = isEdit;
 
-    const picker = document.createElement('div');
-    picker.className = 'milkdown-table-picker';
+    let currentRows = initial ? initial.rows.length : 2;
+    let currentCols = initial ? initial.headers.length : 3;
+    const alignments: Array<'left' | 'center' | 'right' | null> =
+        initial ? [...initial.alignments] : Array.from({ length: currentCols }, () => 'left' as const);
+    let headerValues: string[] = initial ? [...initial.headers] : [];
+    let cellValues: string[][] = initial ? initial.rows.map(r => [...r]) : [];
+    let updateInsertState: () => void = () => {};
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'chart-modal-backdrop';
+
+    const modal = document.createElement('div');
+    modal.className = 'chart-modal';
+    modal.style.maxWidth = '54rem';
+    backdrop.appendChild(modal);
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'chart-modal-header';
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = isEdit ? 'Edit Table' : 'Insert Table';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'chart-modal-close';
+    closeBtn.textContent = '×';
+    const tableHeaderActions = document.createElement('div');
+    tableHeaderActions.className = 'chart-modal-header-actions';
+    tableHeaderActions.append(createModalExpandBtn(modal), closeBtn);
+    header.append(titleSpan, tableHeaderActions);
+    modal.appendChild(header);
+
+    // Body (vertical, no preview panel)
+    const body = document.createElement('div');
+    body.className = 'chart-modal-body';
+    body.style.flexDirection = 'column';
+    modal.appendChild(body);
+
+    const form = document.createElement('div');
+    form.className = 'chart-modal-form';
+    body.appendChild(form);
+
+    // Cell grid container
+    const gridSection = document.createElement('div');
+    gridSection.className = 'tmc-grid-section';
+    form.appendChild(gridSection);
+
+    const TMC_MAX_ROWS = 100;
+    const TMC_MAX_COLS = 10;
+    const ALIGN_CYCLE: Array<'left' | 'center' | 'right' | null> = [null, 'left', 'center', 'right'];
+    const ALIGN_ICONS: { [k: string]: string } = { left: '←', center: '↔', right: '→', '': '—' };
+    const nextAlign = (cur: 'left' | 'center' | 'right' | null) =>
+        ALIGN_CYCLE[(ALIGN_CYCLE.indexOf(cur) + 1) % ALIGN_CYCLE.length]!;
+
+    const rebuildGrid = (rows: number, cols: number) => {
+        gridSection.innerHTML = '';
+        const table = document.createElement('table');
+        table.className = 'tmc-table';
+
+        // thead
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
+        for (let c = 0; c < cols; c++) {
+            const th = document.createElement('th');
+            th.className = 'tmc-th';
+            const inner = document.createElement('div');
+            inner.className = 'tmc-th-inner';
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.className = 'tmc-input tmc-input-header';
+            inp.placeholder = `Col ${c + 1}`;
+            inp.value = headerValues[c] ?? '';
+            inp.dataset.row = '-1';
+            inp.dataset.col = String(c);
+            const align = alignments[c] ?? 'left';
+            inp.style.textAlign = align;
+            const alignBtn = document.createElement('button');
+            alignBtn.type = 'button';
+            alignBtn.className = 'tmc-align-btn';
+            alignBtn.dataset.col = String(c);
+            alignBtn.textContent = ALIGN_ICONS[align] ?? '←';
+            alignBtn.title = `Alignment: ${align}`;
+            alignBtn.dataset.align = align;
+            const delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'tmc-del-col-btn';
+            delBtn.dataset.col = String(c);
+            delBtn.innerHTML = '&times;';
+            delBtn.title = 'Delete column';
+            inner.append(inp, alignBtn, delBtn);
+            th.appendChild(inner);
+            headRow.appendChild(th);
+        }
+        const addColTh = document.createElement('th');
+        addColTh.className = 'tmc-th tmc-add-col-th';
+        if (cols < TMC_MAX_COLS) {
+            const addColBtn = document.createElement('button');
+            addColBtn.type = 'button';
+            addColBtn.className = 'tmc-add-col-btn';
+            addColBtn.textContent = '+';
+            addColBtn.title = 'Add column';
+            addColTh.appendChild(addColBtn);
+        }
+        headRow.appendChild(addColTh);
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        // tbody
+        const tbody = document.createElement('tbody');
+        for (let r = 0; r < rows; r++) {
+            const tr = document.createElement('tr');
+            for (let c = 0; c < cols; c++) {
+                const td = document.createElement('td');
+                td.className = 'tmc-td';
+                const inp = document.createElement('input');
+                inp.type = 'text';
+                inp.className = 'tmc-input';
+                inp.value = cellValues[r]?.[c] ?? '';
+                inp.dataset.row = String(r);
+                inp.dataset.col = String(c);
+                inp.style.textAlign = alignments[c] ?? 'left';
+                td.appendChild(inp);
+                tr.appendChild(td);
+            }
+            const delTd = document.createElement('td');
+            delTd.className = 'tmc-td tmc-del-row-td';
+            const delRowBtn = document.createElement('button');
+            delRowBtn.type = 'button';
+            delRowBtn.className = 'tmc-del-row-btn';
+            delRowBtn.dataset.row = String(r);
+            delRowBtn.innerHTML = '&times;';
+            delRowBtn.title = 'Delete row';
+            delTd.appendChild(delRowBtn);
+            tr.appendChild(delTd);
+            tbody.appendChild(tr);
+        }
+        if (rows < TMC_MAX_ROWS) {
+            const addTr = document.createElement('tr');
+            const addTd = document.createElement('td');
+            addTd.className = 'tmc-td tmc-add-row-td';
+            addTd.colSpan = cols;
+            const addRowBtn = document.createElement('button');
+            addRowBtn.type = 'button';
+            addRowBtn.className = 'tmc-add-row-btn';
+            addRowBtn.textContent = '+ Add row';
+            addTd.appendChild(addRowBtn);
+            addTr.appendChild(addTd);
+            const addRowSpaceTd = document.createElement('td');
+            addRowSpaceTd.className = 'tmc-del-row-td';
+            addTr.appendChild(addRowSpaceTd);
+            tbody.appendChild(addTr);
+        }
+        table.appendChild(tbody);
+        gridSection.appendChild(table);
+    };
+
+    rebuildGrid(currentRows, currentCols);
+    gridSection.addEventListener('input', () => { hasEdited = true; updateInsertState(); });
+
+    const saveCells = () => {
+        gridSection.querySelectorAll<HTMLInputElement>('[data-row="-1"]').forEach(inp => {
+            headerValues[parseInt(inp.dataset.col!)] = inp.value;
+        });
+        gridSection.querySelectorAll<HTMLInputElement>('[data-row]:not([data-row="-1"])').forEach(inp => {
+            const r = parseInt(inp.dataset.row!);
+            const c = parseInt(inp.dataset.col!);
+            if (!cellValues[r]) cellValues[r] = [];
+            cellValues[r]![c] = inp.value;
+        });
+    };
+
+    gridSection.addEventListener('mousedown', (e) => {
+        const target = e.target as HTMLElement;
+        if (target.classList.contains('tmc-del-col-btn')) {
+            e.preventDefault();
+            saveCells();
+            const c = parseInt(target.dataset.col!);
+            headerValues.splice(c, 1);
+            cellValues.forEach(row => row.splice(c, 1));
+            alignments.splice(c, 1);
+            currentCols = Math.max(1, currentCols - 1);
+            rebuildGrid(currentRows, currentCols);
+            updateInsertState();
+            return;
+        }
+        if (target.classList.contains('tmc-del-row-btn')) {
+            e.preventDefault();
+            saveCells();
+            const r = parseInt(target.dataset.row!);
+            cellValues.splice(r, 1);
+            currentRows = Math.max(1, currentRows - 1);
+            rebuildGrid(currentRows, currentCols);
+            updateInsertState();
+            return;
+        }
+        if (target.classList.contains('tmc-add-col-btn')) {
+            e.preventDefault();
+            if (currentCols >= TMC_MAX_COLS) return;
+            saveCells();
+            alignments[currentCols] = alignments[currentCols] ?? 'left';
+            currentCols++;
+            rebuildGrid(currentRows, currentCols);
+            updateInsertState();
+            return;
+        }
+        if (target.classList.contains('tmc-add-row-btn')) {
+            e.preventDefault();
+            if (currentRows >= TMC_MAX_ROWS) return;
+            saveCells();
+            currentRows++;
+            rebuildGrid(currentRows, currentCols);
+            updateInsertState();
+            return;
+        }
+        if (target.classList.contains('tmc-align-btn')) {
+            e.preventDefault();
+            const c = parseInt(target.dataset.col!);
+            alignments[c] = nextAlign(alignments[c] ?? null);
+            const effectiveAlign = alignments[c] ?? 'left';
+            target.textContent = ALIGN_ICONS[effectiveAlign] ?? '←';
+            target.title = `Alignment: ${effectiveAlign}`;
+            target.dataset.align = effectiveAlign;
+            gridSection.querySelectorAll<HTMLInputElement>(`input[data-col="${c}"]`).forEach(inp => {
+                inp.style.textAlign = effectiveAlign;
+            });
+            return;
+        }
+    });
+
+    gridSection.addEventListener('paste', (e) => {
+        const focused = gridSection.querySelector<HTMLInputElement>('input:focus');
+        if (!focused) return;
+        e.preventDefault();
+        saveCells();
+        const startRow = parseInt(focused.dataset.row!);
+        const startCol = parseInt(focused.dataset.col!);
+
+        let pastedData: string[][] | null = null;
+        const html = e.clipboardData?.getData('text/html') ?? '';
+        if (html) {
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const trs = Array.from(doc.querySelectorAll('tr'));
+            if (trs.length > 0) {
+                pastedData = trs.map(tr =>
+                    Array.from(tr.querySelectorAll('td, th')).map(cell => cell.textContent?.trim() ?? '')
+                );
+            }
+        }
+        if (!pastedData) {
+            const text = e.clipboardData?.getData('text/plain') ?? '';
+            if (text) pastedData = text.split('\n').filter(r => r.length > 0).map(r => r.split('\t'));
+        }
+        if (!pastedData || pastedData.length === 0) return;
+
+        const neededRows = Math.max(0, startRow + pastedData.length);
+        const neededCols = startCol + Math.max(...pastedData.map(r => r.length));
+        const newRows = Math.min(TMC_MAX_ROWS, Math.max(currentRows, neededRows));
+        const newCols = Math.min(TMC_MAX_COLS, Math.max(currentCols, neededCols));
+
+        for (let pi = 0; pi < pastedData.length; pi++) {
+            const targetRow = startRow + pi;
+            for (let pj = 0; pj < pastedData[pi]!.length; pj++) {
+                const targetCol = startCol + pj;
+                if (targetCol >= newCols) break;
+                const val = pastedData[pi]![pj] ?? '';
+                if (targetRow === -1) {
+                    headerValues[targetCol] = val;
+                } else {
+                    if (targetRow >= newRows) break;
+                    if (!cellValues[targetRow]) cellValues[targetRow] = [];
+                    cellValues[targetRow]![targetCol] = val;
+                }
+            }
+        }
+        currentRows = newRows;
+        currentCols = newCols;
+        rebuildGrid(currentRows, currentCols);
+        updateInsertState();
+    });
+
+    gridSection.addEventListener('keydown', (e) => {
+        const focused = gridSection.querySelector<HTMLInputElement>('input:focus');
+        if (!focused) return;
+
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const inputs = Array.from(gridSection.querySelectorAll<HTMLInputElement>('input[data-row]'))
+                .sort((a, b) => {
+                    const rowDiff = parseInt(a.dataset.row!) - parseInt(b.dataset.row!);
+                    return rowDiff !== 0 ? rowDiff : parseInt(a.dataset.col!) - parseInt(b.dataset.col!);
+                });
+            const idx = inputs.indexOf(focused);
+            if (idx === -1) return;
+            const next = inputs[(idx + (e.shiftKey ? -1 + inputs.length : 1)) % inputs.length]!;
+            next.focus();
+            next.select();
+            return;
+        }
+
+        if (e.key === 'Enter') {
+            const row = parseInt(focused.dataset.row!);
+            if (row !== currentRows - 1 || currentRows >= TMC_MAX_ROWS) return;
+            e.preventDefault();
+            saveCells();
+            currentRows++;
+            rebuildGrid(currentRows, currentCols);
+            updateInsertState();
+            gridSection.querySelector<HTMLInputElement>(
+                `input[data-row="${currentRows - 1}"][data-col="0"]`
+            )?.focus();
+        }
+    });
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'chart-modal-footer';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    const insertBtn = document.createElement('button');
+    insertBtn.type = 'button';
+    insertBtn.className = 'chart-modal-insert';
+    insertBtn.textContent = isEdit ? 'Update Table' : 'Insert Table';
+    footer.appendChild(cancelBtn);
+    footer.appendChild(insertBtn);
+    modal.appendChild(footer);
+
+    // Wire updateInsertState now that insertBtn exists
+    updateInsertState = () => {
+        const hasData = Array.from(
+            gridSection.querySelectorAll<HTMLInputElement>('[data-row]:not([data-row="-1"])')
+        ).some(inp => inp.value.trim() !== '');
+        insertBtn.disabled = !hasData;
+    };
+    updateInsertState();
+
+    const close = () => {
+        backdrop.remove();
+        activeTableModal = null;
+        unlockBodyScroll();
+        document.removeEventListener('keydown', onKey);
+    };
+    const confirmClose = () => {
+        if (hasEdited && !window.confirm('Discard changes?')) return;
+        close();
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); confirmClose(); } };
+    closeBtn.addEventListener('mousedown', (e) => { e.preventDefault(); confirmClose(); });
+    cancelBtn.addEventListener('mousedown', (e) => { e.preventDefault(); confirmClose(); });
+    backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) confirmClose(); });
+    document.addEventListener('keydown', onKey);
+
+    insertBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        saveCells();
+        const headers: string[] = [];
+        gridSection.querySelectorAll<HTMLInputElement>('[data-row="-1"]').forEach(inp => headers.push(inp.value));
+        const rows: string[][] = Array.from({ length: currentRows }, (_, r) =>
+            Array.from({ length: currentCols }, (__, c) => {
+                const inp = gridSection.querySelector<HTMLInputElement>(`[data-row="${r}"][data-col="${c}"]`);
+                return inp?.value ?? '';
+            })).filter(row => row.some(cell => cell.trim() !== ''));
+        const finalAlignments = Array.from({ length: currentCols }, (_, i) => alignments[i] ?? null);
+        close();
+        options.onConfirm({ headers, rows, alignments: finalAlignments });
+    });
+
+    document.body.appendChild(backdrop);
+    activeTableModal = backdrop;
+    lockBodyScroll();
+}
+
+function insertTable(editor: Editor, data: TableModalData): void {
+    editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const { state } = view;
+        const schema = state.schema;
+        const makeCell = (type: string, text: string, align: string | null) => {
+            const content = text.trim() ? [schema.text(text)] : [];
+            return schema.nodes[type]!.create({ alignment: align }, content.length ? content : undefined);
+        };
+        try {
+            const headerCells = data.headers.map((h, i) =>
+                makeCell('table_header', h, data.alignments[i] ?? null));
+            const headerRow = schema.nodes.table_header_row!.create(null, headerCells);
+            const bodyRows = data.rows.map(row =>
+                schema.nodes.table_row!.create(null,
+                    row.map((cell, i) => makeCell('table_cell', cell, data.alignments[i] ?? null))));
+            const table = schema.nodes.table!.create(null, [headerRow, ...bodyRows]);
+            view.dispatch(state.tr.replaceSelectionWith(table));
+        } catch (err) {
+            console.warn('Table insert failed', err);
+        }
+    });
+    placeCursorAfterBlock(editor);
+}
+
+// ============================================================================
+// Old table picker removed — replaced by showTableModal above
+// ============================================================================
+function _oldTablePickerRemoved() { const picker = document.createElement('div');
 
     const label = document.createElement('div');
     label.className = 'table-picker-label';
@@ -1183,11 +2866,287 @@ function showTablePicker(editor: Editor): void {
     }, 0);
 }
 
-function closeTablePicker(): void {
-    if (activeTablePicker) {
-        activeTablePicker.remove();
-        activeTablePicker = null;
+// ============================================================================
+// List Modal
+// ============================================================================
+
+interface ListModalOptions {
+    onConfirm: (data: ListModalData) => void;
+    data?: ListModalData;
+    isEdit?: boolean;
+}
+
+let activeListModal: HTMLElement | null = null;
+
+function closeListModal(): void {
+    if (activeListModal) {
+        activeListModal.remove();
+        activeListModal = null;
+        unlockBodyScroll();
     }
+}
+
+const LIST_TYPE_META: Record<ListModalData['type'], { icon: string; label: string }> = {
+    bullet:  { icon: '•',  label: 'Bullet List'  },
+    ordered: { icon: '1.', label: 'Ordered List' },
+    task:    { icon: '☑',  label: 'Checklist'    },
+};
+
+function showListPickerModal(editor: Editor): void {
+    closeListModal();
+    closeChartModal();
+    closeTableModal();
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'chart-modal-backdrop';
+    activeListModal = backdrop;
+
+    const modal = document.createElement('div');
+    modal.className = 'chart-modal chart-picker-modal';
+
+    const header = document.createElement('div');
+    header.className = 'chart-modal-header';
+    const title = document.createElement('span');
+    title.textContent = 'Insert List';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'chart-modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = closeListModal;
+    header.append(title, closeBtn);
+
+    const body = document.createElement('div');
+    body.className = 'chart-modal-body chart-picker-body';
+    const grid = document.createElement('div');
+    grid.className = 'chart-picker-grid';
+
+    for (const [type, meta] of Object.entries(LIST_TYPE_META) as [ListModalData['type'], { icon: string; label: string }][]) {
+        const card = document.createElement('button');
+        card.className = 'chart-picker-card';
+        card.type = 'button';
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'chart-picker-card-icon';
+        iconSpan.textContent = meta.icon;
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'chart-picker-card-label';
+        labelSpan.textContent = meta.label;
+        card.append(iconSpan, labelSpan);
+        card.onclick = () => {
+            closeListModal();
+            showListEditorModal(type, { onConfirm: (data) => insertListBlock(editor, data) });
+        };
+        grid.appendChild(card);
+    }
+
+    body.appendChild(grid);
+    modal.append(header, body);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    lockBodyScroll();
+
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeListModal(); });
+}
+
+function showListEditorModal(type: ListModalData['type'], options: ListModalOptions): void {
+    closeListModal();
+
+    const isEdit = options.isEdit ?? false;
+    const initial = options.data;
+    const meta = LIST_TYPE_META[type];
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'chart-modal-backdrop';
+    activeListModal = backdrop;
+
+    const modal = document.createElement('div');
+    modal.className = 'chart-modal';
+    modal.style.maxWidth = '32rem';
+    backdrop.appendChild(modal);
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'chart-modal-header';
+    const titleSpan = document.createElement('span');
+    titleSpan.textContent = isEdit ? `Edit ${meta.label}` : `Insert ${meta.label}`;
+    function isDirty(): boolean {
+        return Array.from(itemsContainer.querySelectorAll<HTMLInputElement>('.lmc-item-input'))
+            .some(inp => inp.value.trim() !== '');
+    }
+
+    function confirmClose(): void {
+        if (isDirty() && !window.confirm('Discard changes?')) return;
+        closeListModal();
+    }
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'chart-modal-close';
+    closeBtn.textContent = '×';
+    closeBtn.onclick = confirmClose;
+    const headerActions = document.createElement('div');
+    headerActions.className = 'chart-modal-header-actions';
+    headerActions.append(createModalExpandBtn(modal), closeBtn);
+    header.append(titleSpan, headerActions);
+    modal.appendChild(header);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'chart-modal-body';
+    body.style.flexDirection = 'column';
+    modal.appendChild(body);
+
+    const itemsContainer = document.createElement('div');
+    itemsContainer.className = 'lmc-items';
+    body.appendChild(itemsContainer);
+
+    function addItemRow(text = '', checked = false, insertAfter?: HTMLElement): HTMLElement {
+        const row = document.createElement('div');
+        row.className = 'lmc-item-row';
+
+        if (type === 'task') {
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'lmc-item-checkbox';
+            cb.checked = checked;
+            row.appendChild(cb);
+        }
+
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'chart-modal-input lmc-item-input';
+        inp.placeholder = 'List item…';
+        inp.value = text;
+        inp.addEventListener('keydown', (e) => {
+            if ((e.key === 'Enter' || e.key === 'Tab') && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                const newRow = addItemRow('', false, row);
+                newRow.querySelector<HTMLInputElement>('.lmc-item-input')?.focus();
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                insertBtn.click();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                confirmClose();
+            } else if (e.key === 'Backspace' && inp.value === '') {
+                e.preventDefault();
+                const rows = Array.from(itemsContainer.children) as HTMLElement[];
+                if (rows.length <= 1) return;
+                const idx = rows.indexOf(row);
+                const prev = rows[idx - 1];
+                row.remove();
+                prev?.querySelector<HTMLInputElement>('.lmc-item-input')?.focus();
+            }
+        });
+        row.appendChild(inp);
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'lmc-item-delete';
+        delBtn.innerHTML = '&times;';
+        delBtn.title = 'Remove item';
+        delBtn.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            if (itemsContainer.children.length > 1) row.remove();
+        });
+        row.appendChild(delBtn);
+
+        if (insertAfter) {
+            insertAfter.insertAdjacentElement('afterend', row);
+        } else {
+            itemsContainer.appendChild(row);
+        }
+
+        return row;
+    }
+
+    const startItems = initial?.items?.length ? initial.items : [{ text: '' }];
+    for (const item of startItems) {
+        addItemRow(item.text, item.checked ?? false);
+    }
+
+    const addItemBtn = document.createElement('button');
+    addItemBtn.type = 'button';
+    addItemBtn.className = 'lmc-add-btn';
+    addItemBtn.textContent = '+ Add item';
+    addItemBtn.addEventListener('click', () => {
+        const newRow = addItemRow();
+        newRow.querySelector<HTMLInputElement>('.lmc-item-input')?.focus();
+    });
+    body.appendChild(addItemBtn);
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'chart-modal-footer';
+    modal.appendChild(footer);
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = confirmClose;
+
+    const insertBtn = document.createElement('button');
+    insertBtn.type = 'button';
+    insertBtn.className = 'chart-modal-insert';
+    insertBtn.textContent = isEdit ? 'Update' : 'Insert';
+    insertBtn.addEventListener('click', () => {
+        const items: ListItem[] = [];
+        for (const row of Array.from(itemsContainer.children) as HTMLElement[]) {
+            const text = row.querySelector<HTMLInputElement>('.lmc-item-input')?.value ?? '';
+            const cb = row.querySelector<HTMLInputElement>('.lmc-item-checkbox');
+            if (type === 'task') {
+                items.push({ text, checked: cb?.checked ?? false });
+            } else {
+                items.push({ text });
+            }
+        }
+        const filtered = items.filter(i => i.text.trim() !== '');
+        if (filtered.length === 0) { closeListModal(); return; }
+        closeListModal();
+        options.onConfirm({ type, items: filtered });
+    });
+
+    footer.append(cancelBtn, insertBtn);
+
+    document.body.appendChild(backdrop);
+    lockBodyScroll();
+
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) confirmClose(); });
+
+    setTimeout(() => {
+        (itemsContainer.querySelector('.lmc-item-input') as HTMLInputElement | null)?.focus();
+    }, 50);
+}
+
+function insertListBlock(editor: Editor, data: ListModalData): void {
+    editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const schema = view.state.schema;
+        const listNode = buildListNode(schema, data);
+        if (!listNode) return;
+
+        const para = schema.nodes.paragraph!.create();
+        const { tr, selection } = view.state;
+        const $from = selection.$from;
+        const depth = $from.depth;
+        let insertTr = tr;
+        let paraPos: number;
+
+        if (depth > 0 && $from.parent.content.size === 0) {
+            const blockStart = $from.before(depth);
+            const blockEnd = $from.after(depth);
+            insertTr = insertTr.replaceWith(blockStart, blockEnd, Fragment.from([listNode, para]));
+            paraPos = blockStart + listNode.nodeSize + 1;
+        } else {
+            const blockEnd = depth > 0 ? $from.after(depth) : selection.from;
+            insertTr = insertTr.insert(blockEnd, Fragment.from([listNode, para]));
+            paraPos = blockEnd + listNode.nodeSize + 1;
+        }
+
+        insertTr = insertTr.setSelection(TextSelection.create(insertTr.doc, paraPos));
+        view.dispatch(insertTr);
+        view.focus();
+    });
 }
 
 // ============================================================================
@@ -1280,9 +3239,11 @@ let activeEmojiPicker: HTMLElement | null = null;
 
 function showEmojiPicker(editor: Editor): void {
     closeEmojiPicker();
-    closeTablePicker();
+    closeTableModal();
     closeLinkDialog();
     closeGroupDropdown();
+    closeImageModal();
+    closeCodeModal();
 
 
     // Save cursor position before the picker steals focus
@@ -1444,289 +3405,17 @@ function closeEmojiPicker(): void {
 }
 
 // ============================================================================
-// Table Overlay Controls (floating buttons on active table)
+// Element Overlay Controls (delete button on images, hr)
 // ============================================================================
 
-let tableOverlays: HTMLElement[] = [];
 let imageOverlays: HTMLElement[] = [];
-let languagePickerOpen = false;
-
-function deleteTableAtDOM(editor: Editor, tableEl: HTMLElement): void {
-    editor.action((ctx) => {
-        const view = ctx.get(editorViewCtx);
-        const pos = view.posAtDOM(tableEl, 0);
-        const $pos = view.state.doc.resolve(pos);
-        for (let d = $pos.depth; d > 0; d--) {
-            if ($pos.node(d).type.name === 'table') {
-                const start = $pos.before(d);
-                const node = $pos.node(d);
-                view.dispatch(view.state.tr.delete(start, start + node.nodeSize));
-                break;
-            }
-        }
-        view.focus();
-    });
-}
-
-function cycleAlignment(current: string): string {
-    if (current === 'left') return 'center';
-    if (current === 'center') return 'right';
-    return 'left';
-}
-
-function getAlignIcon(align: string): string {
-    if (align === 'center') return '<svg width="12" height="10" viewBox="0 0 12 10"><line x1="2" y1="1" x2="10" y2="1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="3.5" y1="5" x2="8.5" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="9" x2="10" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
-    if (align === 'right') return '<svg width="12" height="10" viewBox="0 0 12 10"><line x1="2" y1="1" x2="10" y2="1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="5" x2="10" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="9" x2="10" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
-    // left (default)
-    return '<svg width="12" height="10" viewBox="0 0 12 10"><line x1="2" y1="1" x2="10" y2="1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="5" x2="7" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="2" y1="9" x2="10" y2="9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
-}
 
 function updateOverlays(editor: Editor, contentArea: HTMLElement): void {
-    // Don't rebuild overlays while a language picker is open
-    if (languagePickerOpen) return;
-
     removeAllOverlays();
 
     const contentRect = contentArea.getBoundingClientRect();
 
-    // --- Table overlays (on ALL tables) ---
-    const tables = contentArea.querySelectorAll('.ProseMirror table');
-    tables.forEach((table) => {
-        const tableEl = table as HTMLElement;
-        const tableRect = tableEl.getBoundingClientRect();
-
-        const overlay = document.createElement('div');
-        overlay.className = 'milkdown-table-overlay';
-        overlay.contentEditable = 'false';
-        overlay.style.top = `${tableRect.top - contentRect.top + contentArea.scrollTop}px`;
-        overlay.style.left = `${tableRect.left - contentRect.left + contentArea.scrollLeft}px`;
-        overlay.style.width = `${tableRect.width}px`;
-        overlay.style.height = `${tableRect.height}px`;
-
-        // × Delete table (top-right corner)
-        const deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'table-ctl table-ctl-delete';
-        deleteBtn.title = 'Delete table';
-        deleteBtn.textContent = '\u00d7';
-        deleteBtn.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            deleteTableAtDOM(editor, tableEl);
-        });
-        overlay.appendChild(deleteBtn);
-
-        // − Delete row buttons (left border of first td, skip header and first data row)
-        const rows = tableEl.querySelectorAll('tr');
-        rows.forEach((row, index) => {
-            if (index <= 1) return;
-
-            const firstCell = row.querySelector('td:first-child, th:first-child') as HTMLElement;
-            if (!firstCell) return;
-            const cellRect = firstCell.getBoundingClientRect();
-            const btnTop = cellRect.top + cellRect.height / 2 - tableRect.top;
-            const btnLeft = cellRect.left - tableRect.left;
-
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'table-ctl table-ctl-delete-row';
-            btn.title = 'Delete row';
-            btn.textContent = '\u2212';
-            btn.style.top = `${btnTop}px`;
-            btn.style.left = `${btnLeft}px`;
-            btn.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                editor.action((ctx) => {
-                    const view = ctx.get(editorViewCtx);
-                    const pos = view.posAtDOM(row, 0);
-                    const tr = view.state.tr.setSelection(
-                        view.state.selection.constructor.create(view.state.doc, pos) as any
-                    );
-                    view.dispatch(tr);
-                });
-                editor.action(callCommand(selectRowCommand.key, { index }));
-                editor.action(callCommand(deleteSelectedCellsCommand.key));
-                editor.action((ctx) => {
-                    const view = ctx.get(editorViewCtx);
-                    const { to } = view.state.selection;
-                    const tr = view.state.tr.setSelection(
-                        view.state.selection.constructor.near(view.state.doc.resolve(to)) as any
-                    );
-                    view.dispatch(tr);
-                    view.focus();
-                });
-            });
-            overlay.appendChild(btn);
-        });
-
-        // + Add row (centered on bottom border of table)
-        {
-            const addRowBtn = document.createElement('button');
-            addRowBtn.type = 'button';
-            addRowBtn.className = 'table-ctl table-ctl-add-row';
-            addRowBtn.title = 'Add row';
-            addRowBtn.textContent = '+';
-            addRowBtn.style.top = `${tableRect.height}px`;
-            addRowBtn.style.left = `${tableRect.width / 2}px`;
-            addRowBtn.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                const lastRow = tableEl.querySelector('tr:last-child');
-                const rowCount = tableEl.querySelectorAll('tr').length;
-                if (lastRow) {
-                    editor.action((ctx) => {
-                        const view = ctx.get(editorViewCtx);
-                        const pos = view.posAtDOM(lastRow, 0);
-                        const tr = view.state.tr.setSelection(
-                            view.state.selection.constructor.create(view.state.doc, pos) as any
-                        );
-                        view.dispatch(tr);
-                    });
-                }
-                editor.action(callCommand(selectRowCommand.key, { index: rowCount - 1 }));
-                editor.action(callCommand(addRowAfterCommand.key));
-                // Collapse selection to cursor
-                editor.action((ctx) => {
-                    const view = ctx.get(editorViewCtx);
-                    const { to } = view.state.selection;
-                    const tr = view.state.tr.setSelection(
-                        view.state.selection.constructor.near(view.state.doc.resolve(to)) as any
-                    );
-                    view.dispatch(tr);
-                    view.focus();
-                });
-            });
-            overlay.appendChild(addRowBtn);
-        }
-
-        // + Add column (centered on right border of table)
-        {
-            const addColBtn = document.createElement('button');
-            addColBtn.type = 'button';
-            addColBtn.className = 'table-ctl table-ctl-add-col';
-            addColBtn.title = 'Add column';
-            addColBtn.textContent = '+';
-            addColBtn.style.top = `${tableRect.height / 2}px`;
-            addColBtn.style.left = `${tableRect.width}px`;
-            addColBtn.addEventListener('mousedown', (e) => {
-                e.preventDefault();
-                // Move cursor into last column's last cell
-                const lastHeaderCell = tableEl.querySelector('tr:first-child th:last-child, tr:first-child td:last-child');
-                if (lastHeaderCell) {
-                    editor.action((ctx) => {
-                        const view = ctx.get(editorViewCtx);
-                        const pos = view.posAtDOM(lastHeaderCell, 0);
-                        const tr = view.state.tr.setSelection(
-                            view.state.selection.constructor.create(view.state.doc, pos) as any
-                        );
-                        view.dispatch(tr);
-                    });
-                }
-                editor.action(callCommand(addColAfterCommand.key));
-                // Collapse selection to cursor
-                editor.action((ctx) => {
-                    const view = ctx.get(editorViewCtx);
-                    const { to } = view.state.selection;
-                    const tr = view.state.tr.setSelection(
-                        view.state.selection.constructor.near(view.state.doc.resolve(to)) as any
-                    );
-                    view.dispatch(tr);
-                    view.focus();
-                });
-            });
-            overlay.appendChild(addColBtn);
-        }
-
-        // Column alignment toggle + delete column buttons
-        const headerRow = tableEl.querySelector('tr:first-child');
-        const dataRow = tableEl.querySelector('tr:nth-child(2)');
-        if (headerRow && dataRow) {
-            const borderY = headerRow.getBoundingClientRect().bottom - tableRect.top;
-            const headerCells = headerRow.querySelectorAll('th, td');
-
-            headerCells.forEach((cell, colIndex) => {
-                const cellRect = cell.getBoundingClientRect();
-                const cellCenterX = cellRect.left + cellRect.width / 2 - tableRect.left;
-
-                // Read current alignment from the DOM style
-                const currentAlign = (cell as HTMLElement).style.textAlign || 'left';
-
-                const alignBtn = document.createElement('button');
-                alignBtn.type = 'button';
-                alignBtn.className = 'table-ctl table-ctl-align';
-                alignBtn.title = `Alignment: ${currentAlign}`;
-                alignBtn.innerHTML = getAlignIcon(currentAlign);
-                alignBtn.style.top = `${borderY}px`;
-                alignBtn.style.left = `${cellCenterX}px`;
-
-                alignBtn.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    const nextAlign = cycleAlignment(currentAlign);
-
-                    editor.action((ctx) => {
-                        const view = ctx.get(editorViewCtx);
-                        const pos = view.posAtDOM(cell, 0);
-                        const tr = view.state.tr.setSelection(
-                            view.state.selection.constructor.create(view.state.doc, pos) as any
-                        );
-                        view.dispatch(tr);
-                    });
-                    editor.action(callCommand(selectColCommand.key, { index: colIndex }));
-                    editor.action(callCommand(setAlignCommand.key, nextAlign));
-                    // Collapse selection to cursor
-                    editor.action((ctx) => {
-                        const view = ctx.get(editorViewCtx);
-                        const { to } = view.state.selection;
-                        const tr = view.state.tr.setSelection(
-                            view.state.selection.constructor.near(view.state.doc.resolve(to)) as any
-                        );
-                        view.dispatch(tr);
-                        view.focus();
-                    });
-                });
-
-                overlay.appendChild(alignBtn);
-
-                // − Delete column button (top border of header cell, skip first column)
-                if (colIndex > 0) {
-                    const colTopY = cellRect.top - tableRect.top;
-                    const delColBtn = document.createElement('button');
-                    delColBtn.type = 'button';
-                    delColBtn.className = 'table-ctl table-ctl-delete-col';
-                    delColBtn.title = 'Delete column';
-                    delColBtn.textContent = '\u2212';
-                    delColBtn.style.top = `${colTopY}px`;
-                    delColBtn.style.left = `${cellCenterX}px`;
-                    delColBtn.addEventListener('mousedown', (e) => {
-                        e.preventDefault();
-                        editor.action((ctx) => {
-                            const view = ctx.get(editorViewCtx);
-                            const pos = view.posAtDOM(cell, 0);
-                            const tr = view.state.tr.setSelection(
-                                view.state.selection.constructor.create(view.state.doc, pos) as any
-                            );
-                            view.dispatch(tr);
-                        });
-                        editor.action(callCommand(selectColCommand.key, { index: colIndex }));
-                        editor.action(callCommand(deleteSelectedCellsCommand.key));
-                        editor.action((ctx) => {
-                            const view = ctx.get(editorViewCtx);
-                            const { to } = view.state.selection;
-                            const tr = view.state.tr.setSelection(
-                                view.state.selection.constructor.near(view.state.doc.resolve(to)) as any
-                            );
-                            view.dispatch(tr);
-                            view.focus();
-                        });
-                    });
-                    overlay.appendChild(delColBtn);
-                }
-            });
-        }
-
-        contentArea.appendChild(overlay);
-        tableOverlays.push(overlay);
-    });
-
-    // --- Element overlays (× delete on images, hr, code blocks) ---
+    // --- Element overlays (× delete on images, hr) ---
     const elements: { el: HTMLElement; type: string }[] = [];
 
     contentArea.querySelectorAll('.ProseMirror img').forEach((el) => {
@@ -1738,9 +3427,6 @@ function updateOverlays(editor: Editor, contentArea: HTMLElement): void {
     });
     contentArea.querySelectorAll('.ProseMirror hr').forEach((el) => {
         elements.push({ el: el as HTMLElement, type: 'hr' });
-    });
-    contentArea.querySelectorAll('.ProseMirror pre').forEach((el) => {
-        elements.push({ el: el as HTMLElement, type: 'code_block' });
     });
 
     elements.forEach(({ el, type }) => {
@@ -1754,49 +3440,10 @@ function updateOverlays(editor: Editor, contentArea: HTMLElement): void {
         overlay.style.width = `${elRect.width}px`;
         overlay.style.height = `${elRect.height}px`;
 
-        // Language picker for code blocks
-        if (type === 'code_block') {
-            const select = document.createElement('select');
-            select.className = 'element-ctl-language';
-            select.title = 'Code language';
-            CODE_LANGUAGES.forEach(lang => {
-                const option = document.createElement('option');
-                option.value = lang.value;
-                option.textContent = lang.label;
-                select.appendChild(option);
-            });
-
-            // Read current language from the ProseMirror node
-            const currentLang = el.getAttribute('data-language') || '';
-            select.value = currentLang;
-
-            select.addEventListener('mousedown', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); });
-            select.addEventListener('mouseup', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); });
-            select.addEventListener('click', (e) => { e.stopPropagation(); e.stopImmediatePropagation(); });
-            select.addEventListener('focus', () => { languagePickerOpen = true; });
-            select.addEventListener('blur', () => { languagePickerOpen = false; });
-            select.addEventListener('change', () => {
-                const newLang = select.value;
-                editor.action((ctx) => {
-                    const view = ctx.get(editorViewCtx);
-                    const pos = view.posAtDOM(el, 0);
-                    const $pos = view.state.doc.resolve(pos);
-                    for (let d = $pos.depth; d >= 0; d--) {
-                        if ($pos.node(d).type.name === 'code_block') {
-                            const nodePos = $pos.before(d);
-                            view.dispatch(view.state.tr.setNodeAttribute(nodePos, 'language', newLang));
-                            break;
-                        }
-                    }
-                });
-            });
-            overlay.appendChild(select);
-        }
-
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
         deleteBtn.className = type === 'hr' ? 'element-ctl-delete-hr' : 'element-ctl-delete';
-        deleteBtn.title = `Remove ${type === 'code_block' ? 'code block' : type}`;
+        deleteBtn.title = `Remove ${type}`;
         deleteBtn.textContent = '\u00d7';
         deleteBtn.addEventListener('mousedown', (e) => {
             e.preventDefault();
@@ -1812,7 +3459,6 @@ function updateOverlays(editor: Editor, contentArea: HTMLElement): void {
                     if (
                         (type === 'image' && node.type.name === 'image')
                         || (type === 'hr' && node.type.name === 'hr')
-                        || (type === 'code_block' && node.type.name === 'code_block')
                     ) {
                         const start = $pos.before(d);
                         view.dispatch(view.state.tr.delete(start, start + node.nodeSize));
@@ -1837,8 +3483,6 @@ function updateOverlays(editor: Editor, contentArea: HTMLElement): void {
 }
 
 function removeAllOverlays(): void {
-    tableOverlays.forEach(o => o.remove());
-    tableOverlays = [];
     imageOverlays.forEach(o => o.remove());
     imageOverlays = [];
 }
@@ -1929,10 +3573,10 @@ function showMarkdownHelp(): void {
     };
     document.addEventListener('keydown', onEsc);
 
-    document.body.style.overflow = 'hidden';
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
     activeHelpModal = modal;
+    lockBodyScroll();
     (activeHelpModal as any).__backdrop = backdrop;
     (activeHelpModal as any).__escHandler = onEsc;
 }
@@ -1945,7 +3589,7 @@ function closeMarkdownHelp(): void {
     if (onEsc) document.removeEventListener('keydown', onEsc);
     activeHelpModal.remove();
     activeHelpModal = null;
-    document.body.style.overflow = '';
+    unlockBodyScroll();
 }
 
 // ============================================================================
@@ -1954,6 +3598,36 @@ function closeMarkdownHelp(): void {
 
 const EXPAND_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4V1h3M8 1h3v3M11 8v3H8M4 11H1V8"/></svg>';
 const COLLAPSE_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1v3H1M11 4H8V1M8 11V8h3M1 8h3v3"/></svg>';
+
+// Shared expand/collapse button for all modals (code, image, table, chart editor).
+// Returns a button sized like .chart-modal-close that toggles .chart-modal-expanded
+// on the given modal element and saves/restores any inline maxWidth.
+function createModalExpandBtn(modal: HTMLElement): HTMLButtonElement {
+    let savedMaxWidth = '';
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'chart-modal-close';
+    btn.title = 'Expand';
+    btn.innerHTML = EXPAND_SVG;
+
+    btn.addEventListener('click', () => {
+        if (modal.classList.contains('chart-modal-expanded')) {
+            modal.classList.remove('chart-modal-expanded');
+            modal.style.maxWidth = savedMaxWidth;
+            btn.innerHTML = EXPAND_SVG;
+            btn.title = 'Expand';
+        } else {
+            savedMaxWidth = modal.style.maxWidth;
+            modal.style.maxWidth = '';
+            modal.classList.add('chart-modal-expanded');
+            btn.innerHTML = COLLAPSE_SVG;
+            btn.title = 'Collapse';
+        }
+    });
+
+    return btn;
+}
 
 let expandBackdrop: HTMLElement | null = null;
 let expandPlaceholder: HTMLElement | null = null;
@@ -1974,7 +3648,7 @@ function toggleEditorExpand(btn: HTMLElement): void {
         expandPlaceholder = placeholder;
 
         wrapper.classList.add('milkdown-expanded');
-        document.documentElement.style.overflowY = 'hidden';
+        lockBodyScroll();
         btn.innerHTML = COLLAPSE_SVG;
         btn.title = 'Collapse editor';
 
@@ -1991,14 +3665,16 @@ function toggleEditorExpand(btn: HTMLElement): void {
             pm?.dispatchEvent(new Event('mouseup', { bubbles: true }));
         });
 
-        // Escape to collapse
+        // Escape to collapse — but not when a modal is open (each modal handles its own ESC)
         expandEscapeHandler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') toggleEditorExpand(btn);
+            if (e.key !== 'Escape') return;
+            if (activeChartModal || activeImageModal || activeCodeModal || activeTableModal || activeListModal) return;
+            toggleEditorExpand(btn);
         };
         document.addEventListener('keydown', expandEscapeHandler);
     } else {
         wrapper.classList.remove('milkdown-expanded');
-        document.documentElement.style.overflowY = '';
+        unlockBodyScroll();
         btn.innerHTML = EXPAND_SVG;
         btn.title = 'Expand editor';
 
@@ -2022,7 +3698,7 @@ function toggleEditorExpand(btn: HTMLElement): void {
 
 interface ToolbarButtonRef {
     btn: HTMLButtonElement;
-    allowInTable: boolean;
+    allowInBlock: boolean;
 }
 
 function createToolbarDOM(editor: Editor, options?: { hideImageButton?: boolean }): { toolbar: HTMLElement; buttons: ToolbarButtonRef[] } {
@@ -2063,8 +3739,8 @@ function createToolbarDOM(editor: Editor, options?: { hideImageButton?: boolean 
             });
             toolbar.appendChild(btn);
 
-            const allAllowInTable = item.children.every((c) => c.allowInTable === true);
-            buttons.push({ btn, allowInTable: allAllowInTable });
+            const allAllowInTable = item.children.every((c) => c.allowInBlock === true);
+            buttons.push({ btn, allowInBlock: allAllowInTable });
             continue;
         }
 
@@ -2093,7 +3769,7 @@ function createToolbarDOM(editor: Editor, options?: { hideImageButton?: boolean 
             }
         });
         toolbar.appendChild(btn);
-        buttons.push({ btn, allowInTable: item.allowInTable === true });
+        buttons.push({ btn, allowInBlock: item.allowInBlock === true });
     }
 
     // Spacer + expand button (right-aligned)
@@ -2115,28 +3791,380 @@ function createToolbarDOM(editor: Editor, options?: { hideImageButton?: boolean 
     return { toolbar, buttons };
 }
 
-function isCursorInTable(editor: Editor): boolean {
-    let inTable = false;
+function isCursorInRestrictedContext(editor: Editor): boolean {
+    let restricted = false;
     editor.action((ctx) => {
         const view = ctx.get(editorViewCtx);
-        const { $from } = view.state.selection;
+        const { state } = view;
+        const { $from } = state.selection;
+        const blockTypes = new Set([
+            'bullet_list', 'ordered_list', 'task_list_item',
+            'blockquote', 'code_block', 'table',
+        ]);
         for (let d = $from.depth; d > 0; d--) {
-            if ($from.node(d).type.name === 'table') {
-                inTable = true;
-                break;
+            if (blockTypes.has($from.node(d).type.name)) {
+                restricted = true;
+                return;
             }
         }
+        const codeMarkType = state.schema.marks['code'];
+        if (codeMarkType && $from.marks().some(m => m.type === codeMarkType)) {
+            restricted = true;
+        }
     });
-    return inTable;
+    return restricted;
 }
 
 function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], contentArea: HTMLElement): void {
-    const inTable = isCursorInTable(editor);
-    for (const { btn, allowInTable } of buttons) {
-        btn.classList.toggle('toolbar-disabled', inTable && !allowInTable);
+    const restricted = isCursorInRestrictedContext(editor);
+    for (const { btn, allowInBlock } of buttons) {
+        btn.classList.toggle('toolbar-disabled', restricted && !allowInBlock);
     }
 
     updateOverlays(editor, contentArea);
+}
+
+// ============================================================================
+// Block Adder — Notion-style "+" button in the left gutter
+// ============================================================================
+
+function insertAtEmptyPara(editor: Editor, paraPos: number, insertFn: () => void): void {
+    editor.action((ctx) => {
+        const view = ctx.get(editorViewCtx);
+        const tr = view.state.tr.setSelection(
+            TextSelection.create(view.state.doc, paraPos + 1)
+        );
+        view.dispatch(tr);
+    });
+    insertFn();
+}
+
+function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
+    let hoveredBlockEl: Element | null = null;
+    let hoveredBlockPos: number | null = null;
+    let cursorParaPos: number | null = null;
+    let pickerOpen = false;
+
+    const btn = document.createElement('div');
+    btn.className = 'sn-block-adder';
+    btn.textContent = '+';
+    editorRoot.appendChild(btn);
+
+    function updateButtonPosition(blockEl: Element): void {
+        const contentRect = editorRoot.getBoundingClientRect();
+        const blockRect = blockEl.getBoundingClientRect();
+        btn.style.top = (blockRect.top - contentRect.top + editorRoot.scrollTop) + 'px';
+        btn.style.display = 'flex';
+    }
+
+    function getElForCursorPos(pos: number): Element | null {
+        try {
+            return editor.action((ctx) => {
+                const view = ctx.get(editorViewCtx);
+                const domInfo = view.domAtPos(pos + 1);
+                const node = domInfo.node;
+                if (node instanceof Element) return node;
+                return node instanceof Node ? (node.parentElement ?? null) : null;
+            }) ?? null;
+        } catch {
+            return null;
+        }
+    }
+
+    function getActiveSource(): { el: Element; pos: number } | null {
+        if (hoveredBlockEl && hoveredBlockPos !== null) return { el: hoveredBlockEl, pos: hoveredBlockPos };
+        if (cursorParaPos !== null) {
+            const el = getElForCursorPos(cursorParaPos);
+            if (el) return { el, pos: cursorParaPos };
+        }
+        return null;
+    }
+
+    function syncButton(): void {
+        if (pickerOpen) return;
+        const src = getActiveSource();
+        if (src) updateButtonPosition(src.el);
+        else btn.style.display = 'none';
+    }
+
+    function getBlockAndPosAtY(clientY: number): { el: Element; pos: number } | null {
+        const pm = editorRoot.querySelector('.ProseMirror');
+        if (!pm) return null;
+        for (const child of Array.from(pm.children)) {
+            const rect = child.getBoundingClientRect();
+            if (clientY >= rect.top && clientY <= rect.bottom) {
+                try {
+                    const pos = editor.action((ctx) => {
+                        const view = ctx.get(editorViewCtx);
+                        const rawPos = view.posAtDOM(child, 0);
+                        const $pos = view.state.doc.resolve(rawPos);
+                        if ($pos.parent.type.name !== 'paragraph' || $pos.parent.content.size !== 0) {
+                            return null;
+                        }
+                        return $pos.depth > 0 ? $pos.before($pos.depth) : 0;
+                    });
+                    if (pos === null) return null;
+                    return { el: child, pos };
+                } catch {
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    editorRoot.addEventListener('mousemove', (e) => {
+        if (pickerOpen) return;
+        const hit = getBlockAndPosAtY(e.clientY);
+        hoveredBlockEl = hit?.el ?? null;
+        hoveredBlockPos = hit?.pos ?? null;
+        syncButton();
+    });
+
+    editorRoot.addEventListener('mouseleave', () => {
+        hoveredBlockEl = null;
+        hoveredBlockPos = null;
+        syncButton();
+    });
+
+    editorRoot.addEventListener('scroll', () => {
+        if (pickerOpen) return;
+        const src = getActiveSource();
+        if (src) updateButtonPosition(src.el);
+    });
+
+    type PickerLeafItem  = { icon: string; label: string; action: (pos: number) => void; disabled?: boolean };
+    type PickerGroupItem = { icon: string; label: string; children: PickerLeafItem[]; disabled?: boolean };
+    type PickerSeparator = { separator: true };
+    type PickerItem = PickerLeafItem | PickerGroupItem | PickerSeparator;
+
+    const chartChildren: PickerLeafItem[] = [
+        { icon: '≡',  label: 'Bar',         action: (pos) => insertAtEmptyPara(editor, pos, () => showChartEditorModal('bar',     { onConfirm: (c) => insertChartBlock(editor, c) })) },
+        { icon: '∿',  label: 'Line',        action: (pos) => insertAtEmptyPara(editor, pos, () => showChartEditorModal('line',    { onConfirm: (c) => insertChartBlock(editor, c) })) },
+        { icon: '◿',  label: 'Area',        action: (pos) => insertAtEmptyPara(editor, pos, () => showChartEditorModal('area',    { onConfirm: (c) => insertChartBlock(editor, c) })) },
+        { icon: '▤',  label: 'Stacked Bar', action: (pos) => insertAtEmptyPara(editor, pos, () => showChartEditorModal('stacked', { onConfirm: (c) => insertChartBlock(editor, c) })) },
+        { icon: '◔',  label: 'Pie',         action: (pos) => insertAtEmptyPara(editor, pos, () => showChartEditorModal('pie',     { onConfirm: (c) => insertChartBlock(editor, c) })) },
+        { icon: '◎',  label: 'Donut',       action: (pos) => insertAtEmptyPara(editor, pos, () => showChartEditorModal('donut',   { onConfirm: (c) => insertChartBlock(editor, c) })) },
+        { icon: '∷',  label: 'Scatter',     action: (pos) => insertAtEmptyPara(editor, pos, () => showChartEditorModal('scatter', { onConfirm: (c) => insertChartBlock(editor, c) })) },
+    ];
+
+    const listChildren: PickerLeafItem[] = [
+        { icon: '•',  label: 'Bullet List',  action: (pos) => insertAtEmptyPara(editor, pos, () => showListEditorModal('bullet',  { onConfirm: (data) => insertListBlock(editor, data) })) },
+        { icon: '1.', label: 'Ordered List', action: (pos) => insertAtEmptyPara(editor, pos, () => showListEditorModal('ordered', { onConfirm: (data) => insertListBlock(editor, data) })) },
+        { icon: '☑',  label: 'Checklist',   action: (pos) => insertAtEmptyPara(editor, pos, () => showListEditorModal('task',    { onConfirm: (data) => insertListBlock(editor, data) })) },
+    ];
+
+    const calloutChildren: PickerLeafItem[] = [
+        { icon: 'ℹ',  label: 'Info',    action: (pos) => insertAtEmptyPara(editor, pos, () => insertCallout(editor, 'info')) },
+        { icon: '⚠',  label: 'Warning', action: (pos) => insertAtEmptyPara(editor, pos, () => insertCallout(editor, 'warning')) },
+        { icon: '💡', label: 'Tip',     action: (pos) => insertAtEmptyPara(editor, pos, () => insertCallout(editor, 'tip')) },
+        { icon: '📝', label: 'Note',    action: (pos) => insertAtEmptyPara(editor, pos, () => insertCallout(editor, 'note')) },
+    ];
+
+    const pickerItems: PickerItem[] = [
+        { icon: '❝',  label: 'Blockquote',    action: (pos) => insertAtEmptyPara(editor, pos, () => editor.action(callCommand(wrapInBlockquoteCommand.key))) },
+        { icon: '🖼',  label: 'Image',         action: (pos) => insertAtEmptyPara(editor, pos, () => showImageModal({ editor })) },
+        { icon: '{ }', label: 'Code snippet',  action: (pos) => insertAtEmptyPara(editor, pos, () => showCodeModal({ editor })) },
+        { icon: '⊞',  label: 'Table',         action: (pos) => insertAtEmptyPara(editor, pos, () => showTableModal({ onConfirm: (d) => insertTable(editor, d) })) },
+        { separator: true },
+        { icon: '☰',  label: 'List',          children: listChildren },
+        { icon: '📊',  label: 'Chart',         children: chartChildren },
+        { icon: '💬',  label: 'Callout',       children: calloutChildren },
+        { separator: true },
+        { icon: '—',  label: 'Horizontal Rule', action: (pos) => insertAtEmptyPara(editor, pos, () => editor.action(callCommand(insertHrCommand.key))) },
+    ];
+
+    function populatePicker(picker: HTMLElement, capturedPos: number, items: PickerItem[], onBack?: () => void): void {
+        while (picker.firstChild) picker.removeChild(picker.firstChild);
+
+        if (onBack) {
+            const backRow = document.createElement('div');
+            backRow.className = 'sn-block-picker-item sn-block-picker-back';
+            backRow.addEventListener('mousedown', (ev) => { ev.preventDefault(); ev.stopPropagation(); onBack(); });
+            const backIcon = document.createElement('span');
+            backIcon.className = 'sn-picker-icon';
+            backIcon.textContent = '←';
+            const backLabel = document.createElement('span');
+            backLabel.textContent = 'Back';
+            backRow.appendChild(backIcon);
+            backRow.appendChild(backLabel);
+            picker.appendChild(backRow);
+            const backSep = document.createElement('div');
+            backSep.className = 'sn-block-picker-separator';
+            picker.appendChild(backSep);
+        }
+
+        items.forEach(item => {
+            if ('separator' in item) {
+                const sep = document.createElement('div');
+                sep.className = 'sn-block-picker-separator';
+                picker.appendChild(sep);
+                return;
+            }
+            const row = document.createElement('div');
+            row.className = 'sn-block-picker-item';
+            if (item.disabled) row.classList.add('sn-block-picker-item--disabled');
+            const icon = document.createElement('span');
+            icon.className = 'sn-picker-icon';
+            icon.textContent = item.icon;
+            const label = document.createElement('span');
+            label.textContent = item.label;
+            row.appendChild(icon);
+            row.appendChild(label);
+            if (!item.disabled) {
+                if ('children' in item) {
+                    const chevron = document.createElement('span');
+                    chevron.className = 'sn-picker-chevron';
+                    chevron.textContent = '›';
+                    row.appendChild(chevron);
+                    row.addEventListener('mousedown', (ev) => {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        populatePicker(picker, capturedPos, item.children, () => populatePicker(picker, capturedPos, items, onBack));
+                    });
+                } else {
+                    row.addEventListener('mousedown', (ev) => {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        closeBlockPicker();
+                        item.action(capturedPos);
+                    });
+                }
+            }
+            picker.appendChild(row);
+        });
+    }
+
+    function openPickerAt(anchorEl: HTMLElement, capturedPos: number): void {
+        closeBlockPicker();
+        pickerOpen = true;
+        const picker = document.createElement('div');
+        picker.className = 'sn-block-picker';
+        activeBlockPicker = picker;
+        const MAX_BLOCKS = 3;
+        let blockCounts: BlockCounts = { charts: 0, codeBlocks: 0, lists: 0, callouts: 0, hrs: 0, tables: 0, blockquotes: 0, imageBlocks: 0 };
+        editor.action((ctx) => { blockCounts = countBlocksInEditor(ctx.get(editorViewCtx)); });
+
+        const constrainedItems: PickerItem[] = pickerItems.map(item => {
+            if ('separator' in item) return item;
+            const disabled =
+                (item.label === 'Code snippet'     && blockCounts.codeBlocks  >= MAX_BLOCKS) ||
+                (item.label === 'Chart'            && blockCounts.charts      >= MAX_BLOCKS) ||
+                (item.label === 'Callout'          && blockCounts.callouts    >= MAX_BLOCKS) ||
+                (item.label === 'List'             && blockCounts.lists       >= MAX_BLOCKS) ||
+                (item.label === 'Blockquote'       && blockCounts.blockquotes >= MAX_BLOCKS) ||
+                (item.label === 'Horizontal Rule'  && blockCounts.hrs         >= MAX_BLOCKS) ||
+                (item.label === 'Table'            && blockCounts.tables      >= MAX_BLOCKS) ||
+                (item.label === 'Image'            && blockCounts.imageBlocks >= MAX_BLOCKS);
+            return disabled ? { ...item, disabled: true } : item;
+        });
+
+        populatePicker(picker, capturedPos, constrainedItems);
+        document.body.appendChild(picker);
+
+        const anchorRect = anchorEl.getBoundingClientRect();
+        let top = anchorRect.bottom + 4;
+        let left = anchorRect.left;
+        picker.style.top = `${top}px`;
+        picker.style.left = `${left}px`;
+        const pickerRect = picker.getBoundingClientRect();
+        if (pickerRect.right > window.innerWidth - 8) {
+            left = window.innerWidth - pickerRect.width - 8;
+            picker.style.left = `${left}px`;
+        }
+        if (pickerRect.bottom > window.innerHeight - 8) {
+            picker.style.top = '';
+            picker.style.bottom = `${window.innerHeight - anchorRect.top + 4}px`;
+        }
+
+        const onOutside = (ev: MouseEvent) => {
+            if (!picker.contains(ev.target as Node) && ev.target !== anchorEl) closeBlockPicker();
+        };
+        const onEsc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') closeBlockPicker(); };
+        const onScroll = (ev: Event) => {
+            if (ev.target instanceof Node && picker.contains(ev.target)) return;
+            closeBlockPicker();
+        };
+        blockPickerCleanup = () => {
+            document.removeEventListener('mousedown', onOutside);
+            document.removeEventListener('keydown', onEsc);
+            window.removeEventListener('scroll', onScroll, true);
+            pickerOpen = false;
+        };
+        setTimeout(() => {
+            document.addEventListener('mousedown', onOutside);
+            document.addEventListener('keydown', onEsc);
+            window.addEventListener('scroll', onScroll, true);
+        }, 0);
+    }
+
+    btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const capturedPos = hoveredBlockPos ?? cursorParaPos;
+        if (capturedPos === null) return;
+        openPickerAt(btn, capturedPos);
+    });
+
+    // Always-visible end-of-content "add block" button
+    const endBtn = document.createElement('div');
+    endBtn.className = 'sn-block-adder sn-block-adder-end';
+    endBtn.textContent = '+';
+    editorRoot.appendChild(endBtn);
+
+    function updateEndButton(): void {
+        if (pickerOpen) return;
+        const pm = editorRoot.querySelector('.ProseMirror');
+        if (!pm || !pm.lastElementChild) { endBtn.style.display = 'none'; return; }
+        const lastIsEmptyPara = editor.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            const last = view.state.doc.lastChild;
+            return last?.type.name === 'paragraph' && last.content.size === 0;
+        }) ?? false;
+        // Hide when last line is already an empty paragraph — the hover "+" covers that case
+        if (lastIsEmptyPara) { endBtn.style.display = 'none'; return; }
+        const contentRect = editorRoot.getBoundingClientRect();
+        const lastRect = pm.lastElementChild.getBoundingClientRect();
+        endBtn.style.top = `${lastRect.bottom - contentRect.top + editorRoot.scrollTop}px`;
+        endBtn.style.display = 'flex';
+    }
+
+    let endBtnRafId: number | null = null;
+    const scheduleEndBtnUpdate = () => {
+        if (endBtnRafId !== null) return;
+        endBtnRafId = requestAnimationFrame(() => { endBtnRafId = null; updateEndButton(); });
+    };
+    const pmObs = editorRoot.querySelector('.ProseMirror');
+    if (pmObs) {
+        const mo = new MutationObserver(scheduleEndBtnUpdate);
+        mo.observe(pmObs, { childList: true, subtree: true, characterData: true });
+    }
+    editorRoot.addEventListener('scroll', scheduleEndBtnUpdate);
+    updateEndButton();
+
+    endBtn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const capturedPos = editor.action((ctx) => {
+            const view = ctx.get(editorViewCtx);
+            const { state } = view;
+            const { doc, schema } = state;
+            const last = doc.lastChild;
+            if (last?.type.name === 'paragraph' && last.content.size === 0) {
+                return doc.content.size - last.nodeSize;
+            }
+            const para = schema.nodes.paragraph!.create();
+            const endPos = doc.content.size;
+            view.dispatch(state.tr.insert(endPos, para));
+            return endPos;
+        });
+        openPickerAt(endBtn, capturedPos);
+    });
+
+    setEmptyParaCursorCallback((pos) => {
+        cursorParaPos = pos;
+        syncButton();
+    });
 }
 
 // ============================================================================
@@ -2176,6 +4204,8 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
 
             const initialContent = initialValue || textarea.value || '';
 
+            const pendingUploads = new Map<string, File>();
+
             const editor = await Editor.make()
                 .config((ctx) => {
                     ctx.set(rootCtx, editorRoot);
@@ -2201,58 +4231,27 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                             onChange?.(cleaned);
                         });
 
-                    // Upload plugin: immediately upload pasted/dropped images to server.
-                    // Live progress updates target any visible .milkdown-upload-placeholder
-                    // spans — the widget factory below creates them at the insertion point.
+                    // Defer paste/drop images: insert blob URL immediately, upload on submit.
                     ctx.update(uploadConfig.key, (prev) => ({
                         ...prev,
-                        uploader: async (files, schema, _ctx, _insertPos) => {
+                        uploader: async (files, schema) => {
                             const nodes: Node[] = [];
-                            const updatePlaceholders = (text: string): void => {
-                                editorRoot.querySelectorAll<HTMLSpanElement>('.milkdown-upload-placeholder')
-                                    .forEach((el) => { el.textContent = text; });
-                            };
-
                             for (let i = 0; i < files.length; i++) {
                                 const file = files.item(i);
                                 if (!file || !file.type.startsWith('image/')) continue;
-                                if (file.size > MAX_IMAGE_BYTES) {
-                                    alert(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 10 MB.`);
+                                if (file.size > MAX_FILE_BYTES) {
+                                    alert(`"${file.name}" is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 5 MB.`);
                                     continue;
                                 }
-
-                                try {
-                                    const formData = new FormData();
-                                    formData.append('file', file, file.name);
-
-                                    const result = await window.SnakkUpload.uploadWithProgress<{ url: string }>({
-                                        url: '/bff/media/upload',
-                                        formData,
-                                        onProgress: (percent: number) => updatePlaceholders(`Uploading ${percent}%`),
-                                        onProcessing: () => updatePlaceholders('Processing…'),
-                                    });
-
-                                    if (!result.ok || !result.data) {
-                                        console.error('[Editor] Image upload failed:', result.status, result.error);
-                                        continue;
-                                    }
-
-                                    const node = schema.nodes.image?.createAndFill({
-                                        src: result.data.url,
-                                        alt: 'user uploaded image',
-                                    });
-                                    if (node) nodes.push(node);
-                                } catch (err) {
-                                    console.error('[Editor] Image upload error:', err);
-                                }
+                                const blobUrl = URL.createObjectURL(file);
+                                pendingUploads.set(blobUrl, file);
+                                const node = schema.nodes.image?.createAndFill({
+                                    src: blobUrl,
+                                    alt: 'user uploaded image',
+                                });
+                                if (node) nodes.push(node);
                             }
                             return nodes;
-                        },
-                        uploadWidgetFactory: (pos: number, spec: Parameters<typeof Decoration.widget>[2]) => {
-                            const span = document.createElement('span');
-                            span.className = 'milkdown-upload-placeholder';
-                            span.textContent = 'Uploading…';
-                            return Decoration.widget(pos, span, spec);
                         },
                     }));
                 })
@@ -2274,9 +4273,34 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                 .use(history)
                 .use(listener)
                 .use(upload)
+                .use(createGapCursorPlugin())
+                .use(createGapParaPlugin())
+                .use(createEmptyParaCursorPlugin())
                 .use(createImageGroupPlugin())
                 .use(pasteSanitize)
                 .create();
+
+            editorPendingUploads.set(editor, pendingUploads);
+
+            setChartEditCallback((type, initialConfig, onConfirm) => {
+                showChartEditorModal(type, { initialConfig, onConfirm, isEdit: true });
+            });
+
+            setTableEditCallback((data, onConfirm) => {
+                showTableModal({ data, onConfirm, isEdit: true });
+            });
+
+            setImageEditCallback((data, view, onConfirm) => {
+                showImageModal({ data, view, onConfirm });
+            });
+
+            setCodeEditCallback((data, onConfirm) => {
+                showCodeModal({ data, onConfirm });
+            });
+
+            setListEditCallback((data, onConfirm) => {
+                showListEditorModal(data.type, { data, onConfirm, isEdit: true });
+            });
 
             // Build toolbar, footer and assemble the editor
             const { toolbar, buttons: toolbarButtons } = createToolbarDOM(editor, { hideImageButton });
@@ -2357,7 +4381,7 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                 'Strikethrough (Ctrl+Shift+X)': () => sourceInsert('~~', '~~'),
                 'Subscript':                    () => sourceInsert('~', '~'),
                 'Superscript':                  () => sourceInsert('^', '^'),
-                'Inserted':                     () => sourceInsert('++', '++'),
+                'Underline (Ctrl+U)':           () => sourceInsert('++', '++'),
                 'Highlight':                    () => sourceInsert('==', '=='),
                 'Spoiler':                      () => sourceInsert('||', '||'),
                 'Heading 1':                    () => sourceInsert('# ', '', true),
@@ -2372,6 +4396,10 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                 'Horizontal Rule':              () => sourceInsert('\n---\n'),
                 'Link':                         () => sourceInsert('[', '](url)'),
                 'Table':                        () => sourceInsert('\n| Column 1 | Column 2 |\n| --- | --- |\n| Cell | Cell |\n'),
+                'Info':                         () => sourceInsert('```callout-info\n', '\n```'),
+                'Warning':                      () => sourceInsert('```callout-warning\n', '\n```'),
+                'Tip':                          () => sourceInsert('```callout-tip\n', '\n```'),
+                'Note':                         () => sourceInsert('```callout-note\n', '\n```'),
             };
 
             // Expose source mode state on the wrapper element for dropdown access
@@ -2426,6 +4454,7 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
             const imageBtn = toolbar.querySelector('button[title="Image"]') as HTMLElement | null;
 
             function applyMode(): void {
+                editorWrapper.classList.toggle('milkdown-source-mode', isSourceMode);
                 if (isSourceMode) {
                     sourceTextarea.value = textarea.value;
                     editorBody.style.display = 'none';
@@ -2489,6 +4518,8 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
             editorWrapper.appendChild(sourceTextarea);
             editorWrapper.appendChild(footer);
 
+            createBlockAdder(editor, editorRoot);
+
             // Update toolbar button states on selection changes (e.g. disable block items in tables)
             const pm = editorRoot.querySelector('.ProseMirror');
             if (pm) {
@@ -2515,9 +4546,6 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                 uploadObserver.observe(container, { childList: true, subtree: true });
             }
 
-            // Enable checkbox toggling for task lists
-            setupTaskListClickHandler(editor, editorRoot);
-
             // Build the wrapper that matches the SnakkEditor API
             const wrapper: EditorInstance = {
                 getMarkdown: () => cleanTableMarkdown(
@@ -2538,6 +4566,23 @@ function updateToolbarState(editor: Editor, buttons: ToolbarButtonRef[], content
                 },
                 destroy: () => {
                     destroyEditor(container);
+                },
+                hasPendingUploads: () => pendingUploads.size > 0,
+                flushUploads: async (onProgress?: (done: number, total: number) => void): Promise<void> => {
+                    const entries = [...pendingUploads.entries()];
+                    onProgress?.(0, entries.length);
+                    let done = 0;
+                    for (const [blobUrl, file] of entries) {
+                        const result = await uploadFile(file, () => {});
+                        URL.revokeObjectURL(blobUrl);
+                        pendingUploads.delete(blobUrl);
+                        editor.action((ctx) => {
+                            const view = ctx.get(editorViewCtx);
+                            replaceImageSrc(view, blobUrl, result.url);
+                        });
+                        done++;
+                        onProgress?.(done, entries.length);
+                    }
                 },
             };
 

@@ -2,7 +2,6 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
-@using Snakk.Shared.Avatars
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Hubs.DetailModel
 @{
@@ -60,24 +59,22 @@ else
 <div class="sn-center">
     @* Hero card lives outside .sn-center-inner so it sits flush against the
        sides of the center column (no padding around it). *@
+    <div class="sn-breadcrumb-bar sn-breadcrumb-bar--colored" style="background-image: @HubGradient(Model.Hub.PublicId, 45)">
+        @if (Model.ShowCommunityInBreadcrumb)
+        {
+            <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
+               data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
+               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+        }
+        else if (!Model.Community.IsMultiCommunityEnabled)
+        {
+            <a href="/c" class="badge badge-ghost badge-sm"
+               data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
+               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+        }
+    </div>
     <div class="sn-hub-card">
-        <div class="sn-hub-card-banner" style="background-image: @AvatarGenerator.GenerateGradientCss($"hub:{Model.Hub.PublicId}")">
-            @if (Model.ShowCommunityInBreadcrumb)
-            {
-                <div class="sn-hub-card-breadcrumbs">
-                    <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
-                       data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
-                       data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-                </div>
-            }
-            else if (!Model.Community.IsMultiCommunityEnabled)
-            {
-                <div class="sn-hub-card-breadcrumbs">
-                    <a href="/c" class="badge badge-ghost badge-sm"
-                       data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
-                       data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-                </div>
-            }
+        <div class="sn-hub-card-banner" style="background-image: @HubGradient(Model.Hub.PublicId)">
             <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId, avatarFileName: Model.Hub.HasAvatarFileName ? Model.Hub.AvatarFileName : null)"
                  alt="" width="56" height="56"
                  class="sn-hub-avatar" decoding="async" />
@@ -102,7 +99,7 @@ else
                        class="sn-space-list-card"
                        data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">
                         <div class="sn-space-list-banner"
-                             style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{space.PublicId}")">
+                             style="background-image: @SpaceGradient(space.PublicId)">
                             <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId, avatarFileName: space.HasAvatarFileName ? space.AvatarFileName : null)"
                                  alt="" width="34" height="34"
                                  class="sn-space-list-avatar"

@@ -2,7 +2,6 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
-@using Snakk.Shared.Avatars
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Communities.DetailModel
 @{
@@ -40,8 +39,13 @@
        sides of the center column (no padding around it). *@
     @if (Model.CommunityDetail != null && Model.Community.IsMultiCommunityEnabled)
     {
+        <div class="sn-breadcrumb-bar">
+            <a href="/c/@Model.CommunityDetail.Slug" class="badge badge-ghost badge-sm">
+                @Model.CommunityDetail.Name
+            </a>
+        </div>
         <div class="sn-community-card">
-            <div class="sn-community-card-banner" style="background-image: @AvatarGenerator.GenerateGradientCss($"community:{Model.CommunityDetail.PublicId}")">
+            <div class="sn-community-card-banner" style="background-image: @CommunityGradient(Model.CommunityDetail.PublicId)">
                 <img src="@SnakkUrlHelper.CommunityAvatar(Model.CommunityDetail.PublicId, avatarFileName: Model.CommunityDetail.HasAvatarFileName ? Model.CommunityDetail.AvatarFileName : null)"
                      alt="" width="56" height="56"
                      class="sn-community-avatar" decoding="async" />
@@ -304,7 +308,8 @@
                         @foreach (var space in Model.InlineTrendingSpaces!.Spaces!.Items)
                         {
                             <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                               class="sn-card-tag"
+                               class="sn-card-tag sn-card-tag--space"
+                               style="--space-grad: @SpaceGradient(space.PublicId)"
                                data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
                         }
                     </div>

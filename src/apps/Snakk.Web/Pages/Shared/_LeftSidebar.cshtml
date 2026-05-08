@@ -13,9 +13,17 @@
     var isSingleCommunity = !CommunityContext.IsMultiCommunityEnabled;
     var communityHref = isSingleCommunity ? "/c" : "/communities";
     var communityLabel = isSingleCommunity ? T.Nav.Community : T.Nav.Communities;
+    var siteName = CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null
+        ? CommunityContext.CommunityName
+        : "Snakk";
 }
 <aside id="sn-left-drawer" class="sn-left">
 <div class="sn-left-sticky">
+    <div class="sn-left-header">
+        <a href="/" class="sn-left-logo-link">
+            <img src="/img/logo-wide.webp" alt="@siteName" class="sn-left-logo" width="159" height="40" fetchpriority="high" />
+        </a>
+    </div>
     <div class="sn-left-inner">
         <nav class="sn-nav">
             <a href="@communityHref" class="sn-nav-item@(A(communityHref))">
@@ -90,10 +98,9 @@
             </div>
         </nav>
         <div class="sn-left-footer">
-            <a href="/settings" class="sn-nav-item">
+            <a href="@(isGuest ? "/settings/browser" : "/settings")" class="sn-nav-item">
                 <span class="icon icon-cog" aria-hidden="true"></span>
                 @T.Nav.Settings
-                @if (isGuest) { <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span> }
             </a>
             <a href="/help" class="sn-nav-item"><span class="icon icon-question-circle" aria-hidden="true"></span> @T.Nav.Help</a>
             <a href="/privacy" class="sn-nav-item"><span class="icon icon-lock-closed" aria-hidden="true"></span> @T.Nav.PrivacyPolicy</a>

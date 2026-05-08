@@ -8,8 +8,15 @@ using Snakk.Shared.Enums;
 namespace Snakk.Infrastructure.Services;
 
 public class CommunityManagementService(
-    SnakkDbContext context) : ICommunityManagementService
+    SnakkDbContext context,
+    IDbContextFactory<SnakkDbContext> dbFactory) : ICommunityManagementService
 {
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
+
     public async Task<CommunityOverviewDto?> GetOverviewAsync(
         string communityId,
         CancellationToken cancellationToken = default)
@@ -34,40 +41,25 @@ public class CommunityManagementService(
         var now = DateTime.UtcNow;
         var today = now.Date;
         var weekAgo = today.AddDays(-7);
+        var communityDbId = community.Id;
+        var communitySlug = community.Slug;
 
-        // Get activity stats - posts
-        var postsToday = await context.Posts
-            .Where(p =>
-                p.Discussion.Space.Hub.CommunityId == community.Id
-                && p.CreatedAt >= today)
-            .CountAsync(cancellationToken);
+        var postCountsTask = ReadAsync(db => db.Posts
+            .Where(p => p.Discussion.Space.Hub.CommunityId == communityDbId && p.CreatedAt >= weekAgo)
+            .GroupBy(_ => true)
+            .Select(g => new { Today = g.Count(p => p.CreatedAt >= today), Week = g.Count() })
+            .FirstOrDefaultAsync(cancellationToken));
 
-        var postsThisWeek = await context.Posts
-            .Where(p =>
-                p.Discussion.Space.Hub.CommunityId == community.Id
-                && p.CreatedAt >= weekAgo)
-            .CountAsync(cancellationToken);
+        var pendingReportsTask = ReadAsync(db => db.Reports
+            .Where(r => r.CommunityId == communityDbId && r.StatusId == (int)ReportStatusEnum.Pending)
+            .CountAsync(cancellationToken));
 
-        // Get moderation stats
-        var pendingReports = await context.Reports
-            .Where(r =>
-                r.CommunityId == community.Id
-                && r.StatusId == (int)ReportStatusEnum.Pending)
-            .CountAsync(cancellationToken);
+        var activeBansTask = ReadAsync(db => db.UserBans
+            .Where(ub => ub.CommunityId == communityDbId && ub.UnbannedAt == null && (ub.ExpiresAt == null || ub.ExpiresAt > now))
+            .CountAsync(cancellationToken));
 
-        var activeBans = await context.UserBans
-            .Where(ub =>
-                ub.CommunityId == community.Id
-                && ub.UnbannedAt == null
-                && (ub.ExpiresAt == null || ub.ExpiresAt > now))
-            .CountAsync(cancellationToken);
-
-        // Get team members
-        var admins = await context.UserRoles
-            .Where(ur =>
-                (ur.RoleId == (int)UserRoleTypeEnum.CommunityAdmin || ur.RoleId == (int)UserRoleTypeEnum.CommunityMod)
-                && ur.CommunityId == community.Id
-                && ur.RevokedAt == null)
+        var adminsTask = ReadAsync(db => db.UserRoles
+            .Where(ur => (ur.RoleId == (int)UserRoleTypeEnum.CommunityAdmin || ur.RoleId == (int)UserRoleTypeEnum.CommunityMod) && ur.CommunityId == communityDbId && ur.RevokedAt == null)
             .Select(ur => new CommunityMemberDto
             {
                 UserId = ur.User.PublicId,
@@ -75,11 +67,10 @@ public class CommunityManagementService(
                 JoinedAt = ur.AssignedAt,
                 Roles = new List<string> { ((UserRoleTypeEnum)ur.RoleId).ToString() }
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
 
-        // Get recent activity
-        var recentActivity = await context.Posts
-            .Where(p => p.Discussion.Space.Hub.CommunityId == community.Id)
+        var recentActivityTask = ReadAsync(db => db.Posts
+            .Where(p => p.Discussion.Space.Hub.CommunityId == communityDbId)
             .OrderByDescending(p => p.CreatedAt)
             .Take(10)
             .Select(p => new RecentActivityItemDto
@@ -88,9 +79,20 @@ public class CommunityManagementService(
                 Description = p.Discussion.Title,
                 UserDisplayName = p.CreatedByUser.DisplayName ?? "",
                 Timestamp = p.CreatedAt,
-                LinkUrl = $"/c/{community.Slug}/s/{p.Discussion.Space.Slug}/d/{p.Discussion.Id}"
+                LinkUrl = "/c/" + communitySlug + "/s/" + p.Discussion.Space.Slug + "/d/" + p.Discussion.Id
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
+
+        await Task.WhenAll(postCountsTask, pendingReportsTask, activeBansTask, adminsTask, recentActivityTask);
+
+        var postCounts     = postCountsTask.Result;
+        var pendingReports = pendingReportsTask.Result;
+        var activeBans     = activeBansTask.Result;
+        var admins         = adminsTask.Result;
+        var recentActivity = recentActivityTask.Result;
+
+        var postsToday    = postCounts?.Today ?? 0;
+        var postsThisWeek = postCounts?.Week ?? 0;
 
         var adminList = admins
             .Where(a => a.Roles.Contains("CommunityAdmin"))
@@ -134,26 +136,27 @@ public class CommunityManagementService(
         if (community is null)
             return null;
 
-        var adminUserIds = await context.UserRoles
-            .Where(ur =>
-                ur.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
-                && ur.CommunityId == community.Id
-                && ur.RevokedAt == null)
-            .Select(ur => ur.User.PublicId)
-            .ToListAsync(cancellationToken);
+        var cid = community.Id;
 
-        var modUserIds = await context.UserRoles
-            .Where(ur =>
-                ur.RoleId == (int)UserRoleTypeEnum.CommunityMod
-                && ur.CommunityId == community.Id
-                && ur.RevokedAt == null)
+        var adminUserIdsTask = ReadAsync(db => db.UserRoles
+            .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && ur.CommunityId == cid && ur.RevokedAt == null)
             .Select(ur => ur.User.PublicId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
 
-        var allowedTypes = await context.CommunityAllowedDiscussionTypes
-            .Where(x => x.CommunityId == community.Id)
+        var modUserIdsTask = ReadAsync(db => db.UserRoles
+            .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.CommunityMod && ur.CommunityId == cid && ur.RevokedAt == null)
+            .Select(ur => ur.User.PublicId)
+            .ToListAsync(cancellationToken));
+
+        var allowedTypesTask = ReadAsync(db => db.CommunityAllowedDiscussionTypes
+            .Where(x => x.CommunityId == cid)
             .Select(x => (DiscussionTypeEnum)x.DiscussionType)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
+
+        await Task.WhenAll(adminUserIdsTask, modUserIdsTask, allowedTypesTask);
+        var adminUserIds = adminUserIdsTask.Result;
+        var modUserIds   = modUserIdsTask.Result;
+        var allowedTypes = allowedTypesTask.Result;
 
         return new CommunitySettingsDto
         {
@@ -245,11 +248,8 @@ public class CommunityManagementService(
         var now = DateTime.UtcNow;
         var weekAgo = now.AddDays(-7);
 
-        // Get pending reports
-        var pendingReports = await context.Reports
-            .Where(r =>
-                r.CommunityId == communityDbId
-                && r.StatusId == (int)ReportStatusEnum.Pending)
+        var pendingReportsTask = ReadAsync(db => db.Reports
+            .Where(r => r.CommunityId == communityDbId && r.StatusId == (int)ReportStatusEnum.Pending)
             .OrderByDescending(r => r.CreatedAt)
             .Take(50)
             .Select(r => new ModerationReportDto
@@ -259,26 +259,18 @@ public class CommunityManagementService(
                 ReportedByUserId = r.ReporterUser.PublicId,
                 ReportedByDisplayName = r.ReporterUser.DisplayName ?? "",
                 CreatedAt = r.CreatedAt,
-
                 Status = ((ReportStatusEnum)r.StatusId).ToString(),
-
-                Type =
-                    r.ReportedPost != null
-                    ? "Post" : r.ReportedDiscussion != null
-                        ? "Discussion" : "User",
+                Type = r.ReportedPost != null ? "Post" : r.ReportedDiscussion != null ? "Discussion" : "User",
                 Reason = r.Reason != null ? r.Reason.Name : "Other",
                 TargetUserId = r.ReportedUser != null ? r.ReportedUser.PublicId : null,
                 TargetUserDisplayName = r.ReportedUser != null ? r.ReportedUser.DisplayName : null,
                 TargetPostPublicId = r.ReportedPost != null ? r.ReportedPost.PublicId : null,
                 TargetDiscussionPublicId = r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
 
-        // Get recent moderation actions (from audit log)
-        var recentActions = await context.AuditLogs
-            .Where(a =>
-                a.Category == "Moderation"
-                && (a.Action.Contains("Ban") || a.Action.Contains("Delete") || a.Action.Contains("Moderate")))
+        var recentActionsTask = ReadAsync(db => db.AuditLogs
+            .Where(a => a.Category == "Moderation" && (a.Action.Contains("Ban") || a.Action.Contains("Delete") || a.Action.Contains("Moderate")))
             .OrderByDescending(a => a.CreatedAt)
             .Take(20)
             .Select(a => new ModerationActionDto
@@ -287,17 +279,12 @@ public class CommunityManagementService(
                 ActionType = a.Action,
                 Reason = a.Reason ?? "",
                 Timestamp = a.CreatedAt,
-
                 ModeratorDisplayName = a.ActorUser != null ? a.ActorUser.DisplayName ?? "" : "System",
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
 
-        // Get banned users
-        var bannedUsers = await context.UserBans
-            .Where(ub =>
-                ub.CommunityId == communityDbId
-                && ub.UnbannedAt == null
-                && (ub.ExpiresAt == null || ub.ExpiresAt > now))
+        var bannedUsersTask = ReadAsync(db => db.UserBans
+            .Where(ub => ub.CommunityId == communityDbId && ub.UnbannedAt == null && (ub.ExpiresAt == null || ub.ExpiresAt > now))
             .Select(ub => new BannedUserDto
             {
                 UserId = ub.User.PublicId,
@@ -305,26 +292,24 @@ public class CommunityManagementService(
                 BannedAt = ub.BannedAt,
                 IsPermanent = ub.ExpiresAt == null
             })
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken));
 
-        // Get stats
-        var totalReports = await context.Reports
+        var reportCountsTask = ReadAsync(db => db.Reports
             .Where(r => r.CommunityId == communityDbId)
-            .CountAsync(cancellationToken);
+            .GroupBy(r => r.StatusId)
+            .Select(g => new { StatusId = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken));
 
-        var pendingCount = pendingReports.Count;
+        await Task.WhenAll(pendingReportsTask, recentActionsTask, bannedUsersTask, reportCountsTask);
+        var pendingReports = pendingReportsTask.Result;
+        var recentActions  = recentActionsTask.Result;
+        var bannedUsers    = bannedUsersTask.Result;
+        var reportCounts   = reportCountsTask.Result;
 
-        var resolvedCount = await context.Reports
-            .Where(r =>
-                r.CommunityId == communityDbId
-                && r.StatusId == (int)ReportStatusEnum.Resolved)
-            .CountAsync(cancellationToken);
-
-        var dismissedCount = await context.Reports
-            .Where(r =>
-                r.CommunityId == communityDbId
-                && r.StatusId == (int)ReportStatusEnum.Dismissed)
-            .CountAsync(cancellationToken);
+        var totalReports = reportCounts.Sum(c => c.Count);
+        var pendingCount = reportCounts.FirstOrDefault(c => c.StatusId == (int)ReportStatusEnum.Pending)?.Count ?? pendingReports.Count;
+        var resolvedCount = reportCounts.FirstOrDefault(c => c.StatusId == (int)ReportStatusEnum.Resolved)?.Count ?? 0;
+        var dismissedCount = reportCounts.FirstOrDefault(c => c.StatusId == (int)ReportStatusEnum.Dismissed)?.Count ?? 0;
 
         var actionsThisWeek = recentActions.Count(a => a.Timestamp >= weekAgo);
 

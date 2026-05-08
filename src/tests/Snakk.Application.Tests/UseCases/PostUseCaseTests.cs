@@ -44,7 +44,7 @@ public class PostUseCaseTests
         _useCase = new PostUseCase(
             _postRepository, _discussionRepository, _spaceRepository, _userRepository, _followRepository,
             _eventDispatcher, _realtimeNotifier, _counterService, _mediaService,
-            _markupParser, _moderationRepository, _reactionUseCase);
+            _markupParser, new ContentNormalizer(), _moderationRepository, _reactionUseCase);
     }
 
     #region CreatePostAsync Tests

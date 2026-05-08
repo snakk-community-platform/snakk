@@ -212,6 +212,7 @@ interface NotificationsResponse {
                 break;
             case 'toggle-theme':
                 (window as any).snakkTheme?.toggleTheme();
+                (document.activeElement as HTMLElement)?.blur();
                 break;
             case 'mark-all-notifications-read':
                 await markAllNotificationsAsRead();

@@ -421,14 +421,16 @@
     display: flex;
     gap: 0.625rem;
     padding: 0.5rem;
-    border: 1px solid var(--border-secondary);
-    border-radius: 0.375rem;
+    background: var(--bg-secondary);
     text-decoration: none;
-    transition: border-color 0.15s;
+
+    .sn-card:hover & {
+        background: var(--bg-hover, color-mix(in srgb, currentColor 6%, transparent));
+    }
 
     &:hover {
-        border-color: var(--border-subtle);
         .sn-link-card-title { color: var(--link-primary); }
+        .sn-link-card-domain { color: var(--link-primary); }
     }
 }
 
@@ -467,6 +469,41 @@
         transition: opacity 0.15s ease;
 
         &.images-loaded { opacity: 1; }
+    }
+}
+
+.sn-link-card-chain-badge {
+    position: absolute;
+    bottom: 0.25rem;
+    right: 0.25rem;
+    z-index: 2;
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .icon {
+        width: 0.625rem;
+        height: 0.625rem;
+        color: #fff;
+        flex-shrink: 0;
+    }
+}
+
+.sn-link-card-thumb--empty {
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        color: var(--text-tertiary);
+        flex-shrink: 0;
     }
 }
 

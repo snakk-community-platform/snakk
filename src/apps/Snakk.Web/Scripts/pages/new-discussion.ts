@@ -42,6 +42,12 @@
         return currentBlockers(btn).size > 0;
     }
 
+    // Returns true only when the markdown contains meaningful text beyond
+    // block-level fences (charts, code blocks, image groups, callouts).
+    function hasTextContent(md: string): boolean {
+        return md.replace(/```[\s\S]*?```/g, '').trim().length > 0;
+    }
+
     window.SnakkNewDiscussion = { setBlocker, hasBlockers };
 
     // ─── beforeunload dirty guard ───────────────────────────────
@@ -170,7 +176,7 @@
         // when this page actually has an editor.
         setBlocker('title', !(titleInput?.value.trim()));
         if (container && textarea) {
-            setBlocker('body', !(textarea.value.trim()));
+            setBlocker('body', !hasTextContent(textarea.value));
         }
 
         titleInput?.addEventListener('input', () => {
@@ -188,7 +194,7 @@
                 initialValue: textarea.value || '',
                 hideImageButton,
                 onChange: (markdown: string) => {
-                    setBlocker('body', !markdown.trim());
+                    setBlocker('body', !hasTextContent(markdown));
                 },
                 onUploadStateChange: (uploading: boolean) => {
                     setBlocker('uploading-inline', uploading);

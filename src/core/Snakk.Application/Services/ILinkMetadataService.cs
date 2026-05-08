@@ -9,7 +9,9 @@ public record LinkMetadata(
     string? ImagePath,
     string? ImageThumbnailPath,
     string? ImageBlurDataUri,
-    bool IsInternal = false);
+    bool IsInternal = false,
+    int? ImageWidth = null,
+    int? ImageHeight = null);
 
 public interface ILinkMetadataService
 {

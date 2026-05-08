@@ -143,7 +143,7 @@ app.UseCors();
 app.UseAuthentication();
 app.UseMiddleware<Snakk.Api.Middleware.TokenRefreshMiddleware>();
 app.UseAuthorization();
-app.UseRateLimiter();
+if (!app.Environment.IsDevelopment()) app.UseRateLimiter();
 
 // Health check endpoint (checks DB connectivity)
 app.MapHealthChecks("/health");

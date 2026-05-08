@@ -50,6 +50,16 @@ public static class ServiceCollectionExtensions
                 .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>()),
             poolSize: 128);
 
+        // Factory for services that need per-operation contexts (e.g. CounterService parallel updates)
+        services.AddPooledDbContextFactory<SnakkDbContext>((sp, options) =>
+            options
+                .UseNpgsql(
+                    connectionString,
+                    o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                          .CommandTimeout(60))
+                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
+                .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>()));
+
         // Data Protection for encrypting sensitive settings
         services.AddDataProtection();
 
@@ -282,6 +292,7 @@ public static class ServiceCollectionExtensions
 
         // Rendering
         services.AddSingleton<IMarkupParser, MarkupParser>();
+        services.AddSingleton<IContentNormalizer, ContentNormalizer>();
 
         // Realtime Services
         services.AddScoped<Infrastructure.Services.IPostHtmlRenderer, Infrastructure.Services.PostHtmlRenderer>();

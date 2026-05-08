@@ -125,7 +125,8 @@
                 @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
                 {
                     <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                       class="sn-card-tag">@space.Name</a>
+                       class="sn-card-tag sn-card-tag--space"
+                       style="--space-grad: @SpaceGradient(space.PublicId)">@space.Name</a>
                 }
             </div>
         }

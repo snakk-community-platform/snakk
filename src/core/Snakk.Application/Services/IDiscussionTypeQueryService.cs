@@ -8,7 +8,7 @@ public record DebateInfo(List<DebatePositionData> Positions, bool AllowNeutral, 
 public record DebatePositionData(int Id, string Label, int Index, int PostCount);
 
 // Link
-public record LinkInfo(string Url, string? Title, string? Description, string? ImageUrl, string? Domain, string? OEmbedHtml, string? ImagePath, string? BlurDataUri, bool IsInternal);
+public record LinkInfo(string Url, string? Title, string? Description, string? ImageUrl, string? Domain, string? OEmbedHtml, string? ImagePath, string? BlurDataUri, bool IsInternal, int? ImageWidth = null, int? ImageHeight = null);
 
 // Images
 public record ImagesImageInfo(

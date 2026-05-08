@@ -58,6 +58,123 @@
     }
 }
 
+.discussion-header-sep,
+.discussion-header-time {
+    color: var(--text-tertiary);
+}
+
+// White text overrides when the discussion header sits on the hero gradient.
+.sn-discussion-header {
+    h1 { color: #fff; }
+
+    .discussion-header-sep,
+    .discussion-header-time {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    // OP reaction counts — parent has text-muted which is grey.
+    [id^="reactions-"] { color: rgba(255, 255, 255, 0.85); }
+
+    // Debate legend text.
+    .debate-legend { color: rgba(255, 255, 255, 0.85); }
+
+    // Poll — muted text → semi-white for legibility on the gradient.
+    .poll-option-stats,
+    .poll-option-pct,
+    .poll-closes-in,
+    .poll-total,
+    .poll-closed-label {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    // Poll and debate containers — glassy background matching link-preview-card.
+    #poll-container,
+    .type-widget-container:has(.debate-distribution) {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 0.5rem;
+        padding: 1rem;
+    }
+
+    .poll-option-track {
+        background: var(--bg-primary);
+        padding: 1px;
+    }
+
+    // Poll option — glassy hover instead of opaque white.
+    .poll-option {
+        &:hover:not(.poll-option-closed) {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-color: rgba(255, 255, 255, 0.25);
+
+            .poll-option-fill { filter: none; }
+        }
+    }
+
+    .poll-option-check { color: #fff; }
+
+    // Reaction pills on the gradient.
+    .reaction-pill {
+        border-color: rgba(255, 255, 255, 0.25);
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+
+        .count { color: rgba(255, 255, 255, 0.9); }
+    }
+
+    // Link preview — glassy card instead of opaque bg.
+    .link-preview-card {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: none;
+    }
+
+    .link-preview-title {
+        color: #fff;
+        &:hover { color: rgba(255, 255, 255, 0.8); }
+    }
+
+    .link-preview-description { color: rgba(255, 255, 255, 0.8); }
+    .link-preview-domain      { color: rgba(255, 255, 255, 0.6); }
+
+    .link-embed-denied-msg {
+        color: rgba(255, 255, 255, 0.85);
+        a { color: #fff; }
+    }
+
+    // Embed consent prompt — glassy card, white text.
+    .link-embed-prompt {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: none;
+
+        .link-embed-prompt-body,
+        .link-embed-prompt-remember { color: rgba(255, 255, 255, 0.85); }
+
+        // "No" outline button — white border/text on gradient.
+        .btn.btn-outline {
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.6);
+            &:hover {
+                background: rgba(255, 255, 255, 0.15);
+                color: #fff;
+                border-color: #fff;
+            }
+        }
+
+        // Toggle — semi-transparent white track so it reads against the gradient.
+        .toggle {
+            --tglbg: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+    }
+}
+
 // ============================================
 // Topic/Discussion List
 // ============================================
@@ -189,111 +306,6 @@
     display: flex;
     align-items: center;
     color: var(--text-secondary);
-}
-
-// ============================================
-// Discussion Type Badges
-// ============================================
-
-.discussion-type-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
-    font-size: 0.6875rem;
-    font-weight: 500;
-    padding: 0.0625rem 0.375rem;
-    border-radius: 4px;
-    margin-left: 0.5rem;
-    vertical-align: middle;
-    white-space: nowrap;
-
-    &.badge-sm {
-        font-size: 0.75rem;
-        padding: 0.125rem 0.5rem;
-    }
-
-    &.type-question {
-        background-color: oklch(0.9 0.05 270);
-        color: oklch(0.4 0.15 270);
-    }
-
-    &.type-poll {
-        background-color: oklch(0.9 0.05 150);
-        color: oklch(0.4 0.15 150);
-    }
-
-    &.type-announcement {
-        background-color: oklch(0.92 0.05 80);
-        color: oklch(0.45 0.15 80);
-    }
-
-    &.type-link {
-        background-color: oklch(0.9 0.05 220);
-        color: oklch(0.4 0.15 220);
-    }
-
-    &.type-images {
-        background-color: oklch(0.9 0.05 330);
-        color: oklch(0.4 0.15 330);
-    }
-
-    &.type-guide {
-        background-color: oklch(0.9 0.05 170);
-        color: oklch(0.4 0.15 170);
-    }
-
-    &.type-debate {
-        background-color: oklch(0.92 0.05 50);
-        color: oklch(0.45 0.15 50);
-    }
-
-    &.type-journal {
-        background-color: oklch(0.9 0.05 30);
-        color: oklch(0.4 0.15 30);
-    }
-}
-
-// Dark theme overrides
-[data-theme="dark"] .discussion-type-badge {
-    &.type-question {
-        background-color: oklch(0.3 0.05 270);
-        color: oklch(0.8 0.1 270);
-    }
-
-    &.type-poll {
-        background-color: oklch(0.3 0.05 150);
-        color: oklch(0.8 0.1 150);
-    }
-
-    &.type-announcement {
-        background-color: oklch(0.3 0.05 80);
-        color: oklch(0.8 0.1 80);
-    }
-
-    &.type-link {
-        background-color: oklch(0.3 0.05 220);
-        color: oklch(0.8 0.1 220);
-    }
-
-    &.type-images {
-        background-color: oklch(0.3 0.05 330);
-        color: oklch(0.8 0.1 330);
-    }
-
-    &.type-guide {
-        background-color: oklch(0.3 0.05 170);
-        color: oklch(0.8 0.1 170);
-    }
-
-    &.type-debate {
-        background-color: oklch(0.3 0.05 50);
-        color: oklch(0.8 0.1 50);
-    }
-
-    &.type-journal {
-        background-color: oklch(0.3 0.05 30);
-        color: oklch(0.8 0.1 30);
-    }
 }
 
 // New discussion — scope label inside space search input
@@ -543,4 +555,74 @@
     color: var(--text-tertiary);
     font-weight: 400;
     min-width: 2rem;
+}
+
+// ── Deferred-upload progress row (shown while images upload on submit) ──────
+
+.upload-progress-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.upload-image-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.upload-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.125rem;
+    height: 1.125rem;
+    border-radius: 0.25rem;
+    font-size: 0.625rem;
+    flex-shrink: 0;
+
+    &.upload-chip-waiting {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-primary);
+    }
+
+    &.upload-chip-uploading {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border-primary);
+        // Use a tiny CSS spinner instead of a DOM element
+        position: relative;
+        &::after {
+            content: '';
+            display: block;
+            width: 0.55rem;
+            height: 0.55rem;
+            border: 1.5px solid var(--link-primary);
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: upload-chip-spin 0.65s linear infinite;
+        }
+    }
+
+    &.upload-chip-done {
+        background: color-mix(in srgb, #10b981 15%, transparent);
+        border: 1px solid #10b981;
+        color: #10b981;
+        font-weight: 700;
+        // checkmark via content on ::after
+        &::after {
+            content: '✓';
+            font-size: 0.625rem;
+            line-height: 1;
+        }
+    }
+}
+
+@keyframes upload-chip-spin {
+    to { transform: rotate(360deg); }
+}
+
+.upload-status-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
 }

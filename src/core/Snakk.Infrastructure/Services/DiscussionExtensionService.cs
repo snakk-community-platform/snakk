@@ -151,7 +151,7 @@ public class DiscussionExtensionService(
         var existing = await context.DiscussionLinks
             .AsNoTracking()
             .Where(l => l.Url == url && l.Title != null)
-            .Select(l => new { l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.ImagePath, l.ImageThumbnailPath, l.ImageBlurDataUri })
+            .Select(l => new { l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.ImagePath, l.ImageThumbnailPath, l.ImageBlurDataUri, l.ImageWidth, l.ImageHeight })
             .FirstOrDefaultAsync();
 
         LinkMetadata? metadata = null;
@@ -162,7 +162,8 @@ public class DiscussionExtensionService(
             metadata = new LinkMetadata(
                 existing.Title, existing.Description, existing.ImageUrl,
                 existing.Domain, existing.OEmbedHtml,
-                existing.ImagePath, existing.ImageThumbnailPath, existing.ImageBlurDataUri);
+                existing.ImagePath, existing.ImageThumbnailPath, existing.ImageBlurDataUri,
+                ImageWidth: existing.ImageWidth, ImageHeight: existing.ImageHeight);
         }
         else
         {
@@ -199,6 +200,8 @@ public class DiscussionExtensionService(
             ImagePath = metadata?.ImagePath,
             ImageThumbnailPath = metadata?.ImageThumbnailPath,
             ImageBlurDataUri = metadata?.ImageBlurDataUri,
+            ImageWidth = metadata?.ImageWidth,
+            ImageHeight = metadata?.ImageHeight,
             IsInternal = metadata?.IsInternal ?? false
         });
 

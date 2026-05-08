@@ -6,7 +6,8 @@ namespace Snakk.Web.Pages.Spaces;
 public class NewIamaModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
-    ICommunityContext communityContext) : NewDiscussionBaseModel(apiClient, configuration, communityContext)
+    ICommunityContext communityContext,
+    DiscussionCreateRateLimiter rateLimiter) : NewDiscussionBaseModel(apiClient, configuration, communityContext, rateLimiter)
 {
     protected override int DiscussionType => 9;
     protected override string TypeSlug => "iama";

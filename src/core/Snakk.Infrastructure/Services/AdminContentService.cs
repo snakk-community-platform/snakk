@@ -9,11 +9,18 @@ namespace Snakk.Infrastructure.Services;
 
 public class AdminContentService(
     SnakkDbContext context,
+    IDbContextFactory<SnakkDbContext> dbFactory,
     HybridCache cache,
     ISecurityService securityService,
     ILogger<AdminContentService> logger) : IAdminContentService
 {
     private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
 
     public async Task<ContentOverviewDto> GetContentOverviewAsync()
     {
@@ -21,13 +28,22 @@ public class AdminContentService(
 
         return await cache.GetOrCreateAsync(
             cacheKey,
-            async cancel => new ContentOverviewDto
+            async cancel =>
             {
-                TotalCommunities = await context.Communities.CountAsync(cancel),
-                TotalHubs = await context.Hubs.CountAsync(cancel),
-                TotalSpaces = await context.Spaces.CountAsync(cancel),
-                TotalDiscussions = await context.Discussions.CountAsync(cancel),
-                TotalPosts = await context.Posts.CountAsync(cancel)
+                var commTask  = ReadAsync(db => db.Communities.CountAsync(cancel));
+                var hubTask   = ReadAsync(db => db.Hubs.CountAsync(cancel));
+                var spaceTask = ReadAsync(db => db.Spaces.CountAsync(cancel));
+                var discTask  = ReadAsync(db => db.Discussions.CountAsync(cancel));
+                var postTask  = ReadAsync(db => db.Posts.CountAsync(cancel));
+                await Task.WhenAll(commTask, hubTask, spaceTask, discTask, postTask);
+                return new ContentOverviewDto
+                {
+                    TotalCommunities = commTask.Result,
+                    TotalHubs = hubTask.Result,
+                    TotalSpaces = spaceTask.Result,
+                    TotalDiscussions = discTask.Result,
+                    TotalPosts = postTask.Result
+                };
             },
             CacheOptions);
     }
@@ -38,36 +54,40 @@ public class AdminContentService(
         string? search)
     {
         var offset = (page - 1) * pageSize;
-        var query = context.Communities.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(search))
+        var countTask = ReadAsync(db =>
         {
-            query = query.Where(c =>
-                c.Name.Contains(search)
-                || c.Slug.Contains(search));
-        }
+            var q = db.Communities.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+                q = q.Where(c => c.Name.Contains(search) || c.Slug.Contains(search));
+            return q.CountAsync();
+        });
 
-        var total = await query.CountAsync();
+        var listTask = ReadAsync(db =>
+        {
+            var q = db.Communities.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(search))
+                q = q.Where(c => c.Name.Contains(search) || c.Slug.Contains(search));
+            return q.OrderByDescending(c => c.CreatedAt)
+                .Skip(offset).Take(pageSize)
+                .Select(c => new AdminCommunityDto
+                {
+                    Slug = c.Slug,
+                    Name = c.Name,
+                    Description = c.Description,
+                    MemberCount = 0, // TODO: Add member tracking
+                    HubCount = c.Hubs.Count,
+                    CreatedAt = c.CreatedAt
+                })
+                .ToListAsync();
+        });
 
-        var communities = await query
-            .OrderByDescending(c => c.CreatedAt)
-            .Skip(offset)
-            .Take(pageSize)
-            .Select(c => new AdminCommunityDto
-            {
-                Slug = c.Slug,
-                Name = c.Name,
-                Description = c.Description,
-                MemberCount = 0, // TODO: Add member tracking
-                HubCount = c.Hubs.Count,
-                CreatedAt = c.CreatedAt
-            })
-            .ToListAsync();
+        await Task.WhenAll(countTask, listTask);
 
         return new PaginatedResponse<AdminCommunityDto>
         {
-            Items = communities,
-            Total = total,
+            Items = listTask.Result,
+            Total = countTask.Result,
             Page = page,
             PageSize = pageSize
         };
@@ -80,42 +100,45 @@ public class AdminContentService(
         string? communityId)
     {
         var offset = (page - 1) * pageSize;
-        var query = context.Hubs.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(communityId))
+        var countTask = ReadAsync(db =>
         {
-            query = query.Where(h => h.Community.Slug == communityId);
-        }
+            var q = db.Hubs.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(communityId))
+                q = q.Where(h => h.Community.Slug == communityId);
+            if (!string.IsNullOrWhiteSpace(search))
+                q = q.Where(h => h.Name.Contains(search) || h.Slug.Contains(search));
+            return q.CountAsync();
+        });
 
-        if (!string.IsNullOrWhiteSpace(search))
+        var listTask = ReadAsync(db =>
         {
-            query = query.Where(h =>
-                h.Name.Contains(search)
-                || h.Slug.Contains(search));
-        }
+            var q = db.Hubs.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(communityId))
+                q = q.Where(h => h.Community.Slug == communityId);
+            if (!string.IsNullOrWhiteSpace(search))
+                q = q.Where(h => h.Name.Contains(search) || h.Slug.Contains(search));
+            return q.OrderByDescending(h => h.CreatedAt)
+                .Skip(offset).Take(pageSize)
+                .Select(h => new AdminHubDto
+                {
+                    Slug = h.Slug,
+                    Name = h.Name,
+                    Description = h.Description,
+                    CommunitySlug = h.Community.Slug,
+                    CommunityName = h.Community.Name,
+                    SpaceCount = h.Spaces.Count,
+                    CreatedAt = h.CreatedAt
+                })
+                .ToListAsync();
+        });
 
-        var total = await query.CountAsync();
-
-        var hubs = await query
-            .OrderByDescending(h => h.CreatedAt)
-            .Skip(offset)
-            .Take(pageSize)
-            .Select(h => new AdminHubDto
-            {
-                Slug = h.Slug,
-                Name = h.Name,
-                Description = h.Description,
-                CommunitySlug = h.Community.Slug,
-                CommunityName = h.Community.Name,
-                SpaceCount = h.Spaces.Count,
-                CreatedAt = h.CreatedAt
-            })
-            .ToListAsync();
+        await Task.WhenAll(countTask, listTask);
 
         return new PaginatedResponse<AdminHubDto>
         {
-            Items = hubs,
-            Total = total,
+            Items = listTask.Result,
+            Total = countTask.Result,
             Page = page,
             PageSize = pageSize
         };
@@ -128,43 +151,46 @@ public class AdminContentService(
         string? hubId)
     {
         var offset = (page - 1) * pageSize;
-        var query = context.Spaces.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(hubId))
+        var countTask = ReadAsync(db =>
         {
-            query = query.Where(s => s.Hub.Slug == hubId);
-        }
+            var q = db.Spaces.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(hubId))
+                q = q.Where(s => s.Hub.Slug == hubId);
+            if (!string.IsNullOrWhiteSpace(search))
+                q = q.Where(s => s.Name.Contains(search) || s.Slug.Contains(search));
+            return q.CountAsync();
+        });
 
-        if (!string.IsNullOrWhiteSpace(search))
+        var listTask = ReadAsync(db =>
         {
-            query = query.Where(s =>
-                s.Name.Contains(search)
-                || s.Slug.Contains(search));
-        }
+            var q = db.Spaces.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(hubId))
+                q = q.Where(s => s.Hub.Slug == hubId);
+            if (!string.IsNullOrWhiteSpace(search))
+                q = q.Where(s => s.Name.Contains(search) || s.Slug.Contains(search));
+            return q.OrderByDescending(s => s.CreatedAt)
+                .Skip(offset).Take(pageSize)
+                .Select(s => new AdminSpaceDto
+                {
+                    Slug = s.Slug,
+                    Name = s.Name,
+                    Description = s.Description,
+                    HubSlug = s.Hub.Slug,
+                    HubName = s.Hub.Name,
+                    CommunitySlug = s.Hub.Community.Slug,
+                    DiscussionCount = s.Discussions.Count,
+                    CreatedAt = s.CreatedAt
+                })
+                .ToListAsync();
+        });
 
-        var total = await query.CountAsync();
-
-        var spaces = await query
-            .OrderByDescending(s => s.CreatedAt)
-            .Skip(offset)
-            .Take(pageSize)
-            .Select(s => new AdminSpaceDto
-            {
-                Slug = s.Slug,
-                Name = s.Name,
-                Description = s.Description,
-                HubSlug = s.Hub.Slug,
-                HubName = s.Hub.Name,
-                CommunitySlug = s.Hub.Community.Slug,
-                DiscussionCount = s.Discussions.Count,
-                CreatedAt = s.CreatedAt
-            })
-            .ToListAsync();
+        await Task.WhenAll(countTask, listTask);
 
         return new PaginatedResponse<AdminSpaceDto>
         {
-            Items = spaces,
-            Total = total,
+            Items = listTask.Result,
+            Total = countTask.Result,
             Page = page,
             PageSize = pageSize
         };
@@ -179,52 +205,55 @@ public class AdminContentService(
         bool? isLocked)
     {
         var offset = (page - 1) * pageSize;
-        var query = context.Discussions.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(spaceId))
+        var countTask = ReadAsync(db =>
         {
-            query = query.Where(d => d.Space.Slug == spaceId);
-        }
+            var q = db.Discussions.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(spaceId))
+                q = q.Where(d => d.Space.Slug == spaceId);
+            if (!string.IsNullOrWhiteSpace(search))
+                q = q.Where(d => d.Title.Contains(search));
+            if (isPinned.HasValue)
+                q = q.Where(d => d.IsPinned == isPinned.Value);
+            if (isLocked.HasValue)
+                q = q.Where(d => d.IsLocked == isLocked.Value);
+            return q.CountAsync();
+        });
 
-        if (!string.IsNullOrWhiteSpace(search))
+        var listTask = ReadAsync(db =>
         {
-            query = query.Where(d => d.Title.Contains(search));
-        }
+            var q = db.Discussions.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(spaceId))
+                q = q.Where(d => d.Space.Slug == spaceId);
+            if (!string.IsNullOrWhiteSpace(search))
+                q = q.Where(d => d.Title.Contains(search));
+            if (isPinned.HasValue)
+                q = q.Where(d => d.IsPinned == isPinned.Value);
+            if (isLocked.HasValue)
+                q = q.Where(d => d.IsLocked == isLocked.Value);
+            return q.OrderByDescending(d => d.CreatedAt)
+                .Skip(offset).Take(pageSize)
+                .Select(d => new AdminDiscussionDto
+                {
+                    Slug = d.Slug,
+                    Title = d.Title,
+                    AuthorDisplayName = d.CreatedByUser.DisplayName ?? "",
+                    SpaceSlug = d.Space.Slug,
+                    SpaceName = d.Space.Name,
+                    IsPinned = d.IsPinned,
+                    IsLocked = d.IsLocked,
+                    PostCount = d.PostCount,
+                    CreatedAt = d.CreatedAt
+                })
+                .ToListAsync();
+        });
 
-        if (isPinned.HasValue)
-        {
-            query = query.Where(d => d.IsPinned == isPinned.Value);
-        }
-
-        if (isLocked.HasValue)
-        {
-            query = query.Where(d => d.IsLocked == isLocked.Value);
-        }
-
-        var total = await query.CountAsync();
-
-        var discussions = await query
-            .OrderByDescending(d => d.CreatedAt)
-            .Skip(offset)
-            .Take(pageSize)
-            .Select(d => new AdminDiscussionDto
-            {
-                Slug = d.Slug,
-                Title = d.Title,
-                AuthorDisplayName = d.CreatedByUser.DisplayName ?? "",
-                SpaceSlug = d.Space.Slug,
-                SpaceName = d.Space.Name,
-                IsPinned = d.IsPinned,
-                IsLocked = d.IsLocked,
-                PostCount = d.PostCount,
-                CreatedAt = d.CreatedAt
-            })
-            .ToListAsync();
+        await Task.WhenAll(countTask, listTask);
 
         return new PaginatedResponse<AdminDiscussionDto>
         {
-            Items = discussions,
-            Total = total,
+            Items = listTask.Result,
+            Total = countTask.Result,
             Page = page,
             PageSize = pageSize
         };

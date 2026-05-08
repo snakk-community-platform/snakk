@@ -55,6 +55,7 @@ public class PostLifecycleWorkflowTests
             _counterService,
             _mediaService,
             _markupParser,
+            new ContentNormalizer(),
             _moderationRepository,
             _reactionUseCase);
     }

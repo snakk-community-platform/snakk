@@ -9,21 +9,6 @@
     var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17101";
 }
 
-<div class="breadcrumb-bar">
-    <nav class="breadcrumb">
-        <a href="/">@T.Pages.HubsIndexHome</a>
-        @if (Model.ShowCommunityInBreadcrumb)
-        {
-            <span class="breadcrumb-separator">/</span>
-            <a href="/communities">@T.Pages.HubsIndexCommunities</a>
-            <span class="breadcrumb-separator">/</span>
-            <a href="/c/@Model.Community.CommunitySlug"
-               data-popup-type="community"
-               data-popup-id="@Model.CommunityDetail?.PublicId"
-               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-        }
-    </nav>
-</div>
 <div class="max-w-[90rem] mx-auto px-4 py-8">
     <!-- Page Header with Stats -->
     <div class="page-header">

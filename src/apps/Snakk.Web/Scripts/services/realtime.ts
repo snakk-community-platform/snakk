@@ -158,11 +158,35 @@ interface Subscriptions {
             if (count > 0) html += `<span data-type="${type}">${emoji} ${count}</span>`;
         }
 
-        if (!html) {
-            html = '<span class="hidden group-hover:inline" data-reaction-placeholder><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>';
+        const badge = reactionsBar.closest<HTMLElement>('.sn-reaction-badge');
+        if (badge && badge.hasAttribute('data-action')) {
+            reactionsBar.innerHTML = html;
+            const hasAny = !!html;
+            const myReactions: string[] = JSON.parse(reactionsBar.dataset.myReactions || '[]');
+            badge.querySelectorAll<HTMLElement>(':scope > .icon').forEach(el => el.remove());
+            const countsDiv = badge.querySelector<HTMLElement>('[id^="reactions-"]');
+            if (countsDiv) {
+                const makeIcon = (name: string): HTMLSpanElement => {
+                    const span = document.createElement('span');
+                    span.className = `icon ${name} h-4 w-4`;
+                    span.setAttribute('aria-hidden', 'true');
+                    return span;
+                };
+                if (!hasAny) {
+                    badge.insertBefore(makeIcon('icon-plus-circle'), countsDiv);
+                    badge.insertBefore(makeIcon('icon-badge-check'), countsDiv);
+                } else if (myReactions.length > 0) {
+                    badge.insertBefore(makeIcon('icon-refresh'), countsDiv);
+                } else {
+                    badge.insertBefore(makeIcon('icon-plus-circle'), countsDiv);
+                }
+            }
+        } else {
+            if (!html) {
+                html = '<span class="hidden group-hover:inline" data-reaction-placeholder><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></span>';
+            }
+            reactionsBar.innerHTML = html;
         }
-
-        reactionsBar.innerHTML = html;
     }
 
     function handleDiscussionLockChange(isLocked: boolean): void {

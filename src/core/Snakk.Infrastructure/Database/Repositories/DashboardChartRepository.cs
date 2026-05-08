@@ -4,48 +4,54 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Repositories;
 using Snakk.Shared.Enums;
 
-public class DashboardChartRepository(SnakkDbContext context) : IDashboardChartRepository
+public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<SnakkDbContext> dbFactory) : IDashboardChartRepository
 {
     private readonly SnakkDbContext _context = context;
+
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
 
     public async Task<List<DailyActivityData>> GetDailyActivityAsync(
         string scopeType, string scopePublicId, int days)
     {
         var since = DateTime.UtcNow.Date.AddDays(-days);
 
-        var discussionQuery = scopeType switch
+        var discussTask = ReadAsync(db =>
         {
-            "Community" => _context.Discussions
-                .Where(d => d.Space.Hub.Community.PublicId == scopePublicId),
-            "Hub" => _context.Discussions
-                .Where(d => d.Space.Hub.PublicId == scopePublicId),
-            "Space" => _context.Discussions
-                .Where(d => d.Space.PublicId == scopePublicId),
-            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
-        };
+            var q = scopeType switch
+            {
+                "Community" => db.Discussions.Where(d => d.Space.Hub.Community.PublicId == scopePublicId),
+                "Hub"       => db.Discussions.Where(d => d.Space.Hub.PublicId == scopePublicId),
+                "Space"     => db.Discussions.Where(d => d.Space.PublicId == scopePublicId),
+                _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+            };
+            return q.Where(d => !d.IsDeleted && d.CreatedAt >= since)
+                .GroupBy(d => d.CreatedAt.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.Date, x => x.Count);
+        });
 
-        var postQuery = scopeType switch
+        var postTask = ReadAsync(db =>
         {
-            "Community" => _context.Posts
-                .Where(p => p.Discussion.Space.Hub.Community.PublicId == scopePublicId),
-            "Hub" => _context.Posts
-                .Where(p => p.Discussion.Space.Hub.PublicId == scopePublicId),
-            "Space" => _context.Posts
-                .Where(p => p.Discussion.Space.PublicId == scopePublicId),
-            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
-        };
+            var q = scopeType switch
+            {
+                "Community" => db.Posts.Where(p => p.Discussion.Space.Hub.Community.PublicId == scopePublicId),
+                "Hub"       => db.Posts.Where(p => p.Discussion.Space.Hub.PublicId == scopePublicId),
+                "Space"     => db.Posts.Where(p => p.Discussion.Space.PublicId == scopePublicId),
+                _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+            };
+            return q.Where(p => !p.IsDeleted && p.CreatedAt >= since)
+                .GroupBy(p => p.CreatedAt.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.Date, x => x.Count);
+        });
 
-        var discussionsByDay = await discussionQuery
-            .Where(d => !d.IsDeleted && d.CreatedAt >= since)
-            .GroupBy(d => d.CreatedAt.Date)
-            .Select(g => new { Date = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Date, x => x.Count);
-
-        var postsByDay = await postQuery
-            .Where(p => !p.IsDeleted && p.CreatedAt >= since)
-            .GroupBy(p => p.CreatedAt.Date)
-            .Select(g => new { Date = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Date, x => x.Count);
+        await Task.WhenAll(discussTask, postTask);
+        var discussionsByDay = discussTask.Result;
+        var postsByDay       = postTask.Result;
 
         var result = new List<DailyActivityData>();
 
@@ -64,30 +70,39 @@ public class DashboardChartRepository(SnakkDbContext context) : IDashboardChartR
     {
         var since = StartOfWeek(DateTime.UtcNow).AddDays(-7d * weeks);
 
-        var reportQuery = scopeType switch
+        var openedTask = ReadAsync(db =>
         {
-            "Community" => _context.Reports
-                .Where(r => r.Community != null && r.Community.PublicId == scopePublicId),
-            "Hub" => _context.Reports
-                .Where(r =>
-                    (r.Hub != null && r.Hub.PublicId == scopePublicId)
-                    || (r.Space != null && r.Space.Hub.PublicId == scopePublicId)),
-            "Space" => _context.Reports
-                .Where(r => r.Space != null && r.Space.PublicId == scopePublicId),
-            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
-        };
+            var q = scopeType switch
+            {
+                "Community" => db.Reports.Where(r => r.Community != null && r.Community.PublicId == scopePublicId),
+                "Hub"       => db.Reports.Where(r => (r.Hub != null && r.Hub.PublicId == scopePublicId) || (r.Space != null && r.Space.Hub.PublicId == scopePublicId)),
+                "Space"     => db.Reports.Where(r => r.Space != null && r.Space.PublicId == scopePublicId),
+                _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+            };
+            return q.Where(r => r.CreatedAt >= since)
+                .GroupBy(r => r.CreatedAt.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToListAsync();
+        });
 
-        var openedByWeek = await reportQuery
-            .Where(r => r.CreatedAt >= since)
-            .GroupBy(r => r.CreatedAt.Date)
-            .Select(g => new { Date = g.Key, Count = g.Count() })
-            .ToListAsync();
+        var resolvedTask = ReadAsync(db =>
+        {
+            var q = scopeType switch
+            {
+                "Community" => db.Reports.Where(r => r.Community != null && r.Community.PublicId == scopePublicId),
+                "Hub"       => db.Reports.Where(r => (r.Hub != null && r.Hub.PublicId == scopePublicId) || (r.Space != null && r.Space.Hub.PublicId == scopePublicId)),
+                "Space"     => db.Reports.Where(r => r.Space != null && r.Space.PublicId == scopePublicId),
+                _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+            };
+            return q.Where(r => r.ResolvedAt != null && r.ResolvedAt >= since)
+                .GroupBy(r => r.ResolvedAt!.Value.Date)
+                .Select(g => new { Date = g.Key, Count = g.Count() })
+                .ToListAsync();
+        });
 
-        var resolvedByWeek = await reportQuery
-            .Where(r => r.ResolvedAt != null && r.ResolvedAt >= since)
-            .GroupBy(r => r.ResolvedAt!.Value.Date)
-            .Select(g => new { Date = g.Key, Count = g.Count() })
-            .ToListAsync();
+        await Task.WhenAll(openedTask, resolvedTask);
+        var openedByWeek   = openedTask.Result;
+        var resolvedByWeek = resolvedTask.Result;
 
         var openedLookup = openedByWeek
             .GroupBy(x => StartOfWeek(x.Date))

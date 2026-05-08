@@ -27,7 +27,8 @@ public class ManagePermissionServiceTests : IDisposable
         services.AddHybridCache();
         _cacheServiceProvider = services.BuildServiceProvider();
         var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
-        _service = new ManagePermissionService(_context, cache, Substitute.For<ILogger<ManagePermissionService>>());
+        var factory = new InMemoryDbContextFactory(options);
+        _service = new ManagePermissionService(_context, factory, cache, Substitute.For<ILogger<ManagePermissionService>>());
     }
 
     public void Dispose()
@@ -380,4 +381,9 @@ public class ManagePermissionServiceTests : IDisposable
     }
 
     #endregion
+
+    private sealed class InMemoryDbContextFactory(DbContextOptions<SnakkDbContext> options) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => new(options);
+    }
 }

@@ -21,11 +21,12 @@ public class AdminUserServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"AdminUserServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
+        var factory = new InMemoryDbContextFactory(options);
         var services = new ServiceCollection();
         services.AddHybridCache();
         _cacheServiceProvider = services.BuildServiceProvider();
         var cache = _cacheServiceProvider.GetRequiredService<HybridCache>();
-        _service = new AdminUserService(_context, cache, Substitute.For<ILogger<AdminUserService>>());
+        _service = new AdminUserService(_context, factory, cache, Substitute.For<ILogger<AdminUserService>>());
     }
 
     public void Dispose()
@@ -200,4 +201,9 @@ public class AdminUserServiceTests : IDisposable
     }
 
     #endregion
+
+    private sealed class InMemoryDbContextFactory(DbContextOptions<SnakkDbContext> options) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => new(options);
+    }
 }

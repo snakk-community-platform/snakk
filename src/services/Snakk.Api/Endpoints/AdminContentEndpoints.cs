@@ -64,27 +64,24 @@ public static class AdminContentEndpoints
 
     private static async Task<IResult> GetContentOverviewAsync(SnakkDbContext context)
     {
-        var totalCommunities = await context.Communities.CountAsync(c => !c.IsDeleted);
-        var totalHubs = await context.Hubs.CountAsync(h => !h.IsDeleted);
-        var totalSpaces = await context.Spaces.CountAsync(s => !s.IsDeleted);
-        var totalDiscussions = await context.Discussions.CountAsync(d => !d.IsDeleted);
-        var totalPosts = await context.Posts.CountAsync(p => !p.IsDeleted);
-
-        var pinnedDiscussions = await context.Discussions.CountAsync(d =>
-            !d.IsDeleted
-            && d.IsPinned);
-        var lockedDiscussions = await context.Discussions.CountAsync(d =>
-            !d.IsDeleted
-            && d.IsLocked);
+        var counts = new ContentOverviewCounts(
+            TotalCommunities:  await context.Communities.CountAsync(x => !x.IsDeleted),
+            TotalHubs:         await context.Hubs.CountAsync(x => !x.IsDeleted),
+            TotalSpaces:       await context.Spaces.CountAsync(x => !x.IsDeleted),
+            TotalDiscussions:  await context.Discussions.CountAsync(x => !x.IsDeleted),
+            TotalPosts:        await context.Posts.CountAsync(x => !x.IsDeleted),
+            PinnedDiscussions: await context.Discussions.CountAsync(x => !x.IsDeleted && x.IsPinned),
+            LockedDiscussions: await context.Discussions.CountAsync(x => !x.IsDeleted && x.IsLocked)
+        );
 
         return TypedResults.Ok(new ContentOverviewResponse(
-            totalCommunities,
-            totalHubs,
-            totalSpaces,
-            totalDiscussions,
-            totalPosts,
-            pinnedDiscussions,
-            lockedDiscussions));
+            counts.TotalCommunities,
+            counts.TotalHubs,
+            counts.TotalSpaces,
+            counts.TotalDiscussions,
+            counts.TotalPosts,
+            counts.PinnedDiscussions,
+            counts.LockedDiscussions));
     }
 
     private static async Task<IResult> GetCommunitiesAsync(
@@ -468,3 +465,8 @@ public static class AdminContentEndpoints
         return Results.NoContent();
     }
 }
+
+file record ContentOverviewCounts(
+    int TotalCommunities, int TotalHubs, int TotalSpaces,
+    int TotalDiscussions, int TotalPosts,
+    int PinnedDiscussions, int LockedDiscussions);

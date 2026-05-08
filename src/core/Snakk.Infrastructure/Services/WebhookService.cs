@@ -22,29 +22,92 @@ public class WebhookService(
 {
     public async Task<List<WebhookResponse>> GetAllWebhooksAsync(CancellationToken cancellationToken = default)
     {
-        var webhooks = await dbContext.Webhooks
+        var raw = await dbContext.Webhooks
             .AsNoTracking()
-            .Include(w => w.CreatedByUser)
-            .Include(w => w.DeliveryLogs)
             .OrderByDescending(w => w.CreatedAt)
+            .Select(w => new {
+                w.Id, w.Name, w.Url, w.Description, w.EventTypes,
+                w.IsActive, w.MaxRetries, w.TimeoutSeconds,
+                w.CreatedAt, w.UpdatedAt, w.CreatedBy,
+                CreatedByDisplayName = w.CreatedByUser != null ? w.CreatedByUser.DisplayName : null,
+                TotalDeliveries = w.DeliveryLogs.Count(),
+                SuccessfulDeliveries = w.DeliveryLogs.Count(l => l.IsSuccess),
+                FailedDeliveries = w.DeliveryLogs.Count(l => !l.IsSuccess),
+                LastDeliveryAt = (DateTime?)w.DeliveryLogs.Max(l => (DateTime?)l.CreatedAt),
+                LastDeliverySuccess = (bool?)w.DeliveryLogs
+                    .OrderByDescending(l => l.CreatedAt)
+                    .Select(l => (bool?)l.IsSuccess)
+                    .FirstOrDefault()
+            })
             .ToListAsync(cancellationToken);
 
-        return webhooks
-            .Select(MapToResponse)
-            .ToList();
+        return raw.Select(w => new WebhookResponse
+        {
+            Id = w.Id,
+            Name = w.Name,
+            Url = w.Url,
+            Description = w.Description,
+            EventTypes = JsonSerializer.Deserialize<string[]>(w.EventTypes) ?? [],
+            IsActive = w.IsActive,
+            MaxRetries = w.MaxRetries,
+            TimeoutSeconds = w.TimeoutSeconds,
+            CreatedAt = w.CreatedAt,
+            UpdatedAt = w.UpdatedAt,
+            CreatedBy = w.CreatedBy,
+            CreatedByDisplayName = w.CreatedByDisplayName,
+            TotalDeliveries = w.TotalDeliveries,
+            SuccessfulDeliveries = w.SuccessfulDeliveries,
+            FailedDeliveries = w.FailedDeliveries,
+            LastDeliveryAt = w.LastDeliveryAt,
+            LastDeliverySuccess = w.LastDeliverySuccess
+        }).ToList();
     }
 
     public async Task<WebhookResponse?> GetWebhookByIdAsync(
         Guid webhookId,
         CancellationToken cancellationToken = default)
     {
-        var webhook = await dbContext.Webhooks
+        var w = await dbContext.Webhooks
             .AsNoTracking()
-            .Include(w => w.CreatedByUser)
-            .Include(w => w.DeliveryLogs)
-            .FirstOrDefaultAsync(w => w.Id == webhookId, cancellationToken);
+            .Where(wh => wh.Id == webhookId)
+            .Select(wh => new {
+                wh.Id, wh.Name, wh.Url, wh.Description, wh.EventTypes,
+                wh.IsActive, wh.MaxRetries, wh.TimeoutSeconds,
+                wh.CreatedAt, wh.UpdatedAt, wh.CreatedBy,
+                CreatedByDisplayName = wh.CreatedByUser != null ? wh.CreatedByUser.DisplayName : null,
+                TotalDeliveries = wh.DeliveryLogs.Count(),
+                SuccessfulDeliveries = wh.DeliveryLogs.Count(l => l.IsSuccess),
+                FailedDeliveries = wh.DeliveryLogs.Count(l => !l.IsSuccess),
+                LastDeliveryAt = (DateTime?)wh.DeliveryLogs.Max(l => (DateTime?)l.CreatedAt),
+                LastDeliverySuccess = (bool?)wh.DeliveryLogs
+                    .OrderByDescending(l => l.CreatedAt)
+                    .Select(l => (bool?)l.IsSuccess)
+                    .FirstOrDefault()
+            })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        return webhook is null ? null : MapToResponse(webhook);
+        if (w is null) return null;
+
+        return new WebhookResponse
+        {
+            Id = w.Id,
+            Name = w.Name,
+            Url = w.Url,
+            Description = w.Description,
+            EventTypes = JsonSerializer.Deserialize<string[]>(w.EventTypes) ?? [],
+            IsActive = w.IsActive,
+            MaxRetries = w.MaxRetries,
+            TimeoutSeconds = w.TimeoutSeconds,
+            CreatedAt = w.CreatedAt,
+            UpdatedAt = w.UpdatedAt,
+            CreatedBy = w.CreatedBy,
+            CreatedByDisplayName = w.CreatedByDisplayName,
+            TotalDeliveries = w.TotalDeliveries,
+            SuccessfulDeliveries = w.SuccessfulDeliveries,
+            FailedDeliveries = w.FailedDeliveries,
+            LastDeliveryAt = w.LastDeliveryAt,
+            LastDeliverySuccess = w.LastDeliverySuccess
+        };
     }
 
     public async Task<WebhookResponse> CreateWebhookAsync(
@@ -671,34 +734,6 @@ public class WebhookService(
         return IPAddress.IsLoopback(ip)
             || ip.IsIPv6LinkLocal
             || ip.IsIPv6SiteLocal;
-    }
-
-    private static WebhookResponse MapToResponse(WebhookDatabaseEntity webhook)
-    {
-        var eventTypes = JsonSerializer.Deserialize<string[]>(webhook.EventTypes) ?? [];
-        var deliveryLogs = webhook.DeliveryLogs?.ToList() ?? [];
-        var lastDelivery = deliveryLogs.MaxBy(dl => dl.CreatedAt);
-
-        return new WebhookResponse
-        {
-            Id = webhook.Id,
-            Name = webhook.Name,
-            Url = webhook.Url,
-            Description = webhook.Description,
-            EventTypes = eventTypes,
-            IsActive = webhook.IsActive,
-            MaxRetries = webhook.MaxRetries,
-            TimeoutSeconds = webhook.TimeoutSeconds,
-            CreatedAt = webhook.CreatedAt,
-            UpdatedAt = webhook.UpdatedAt,
-            CreatedBy = webhook.CreatedBy,
-            CreatedByDisplayName = webhook.CreatedByUser?.DisplayName,
-            TotalDeliveries = deliveryLogs.Count,
-            SuccessfulDeliveries = deliveryLogs.Count(dl => dl.IsSuccess),
-            FailedDeliveries = deliveryLogs.Count(dl => !dl.IsSuccess),
-            LastDeliveryAt = lastDelivery?.CreatedAt,
-            LastDeliverySuccess = lastDelivery?.IsSuccess
-        };
     }
 
     private static WebhookDeliveryLogResponse MapToDeliveryLogResponse(

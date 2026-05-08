@@ -4,6 +4,7 @@ using Snakk.Web.Services;
 using Snakk.Protos.Hub;
 using Snakk.Protos.Space;
 using Snakk.Protos.Community;
+using System.Threading.RateLimiting;
 
 namespace Snakk.Web.Pages.Spaces;
 
@@ -15,9 +16,11 @@ namespace Snakk.Web.Pages.Spaces;
 public abstract class NewDiscussionBaseModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
-    ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
+    ICommunityContext communityContext,
+    DiscussionCreateRateLimiter rateLimiter) : BasePageModel(configuration, communityContext)
 {
     protected readonly SnakkApiClient ApiClient = apiClient;
+    private readonly DiscussionCreateRateLimiter _createRateLimiter = rateLimiter;
 
     public SpaceInfo? Space { get; set; }
     public SpaceStats? SpaceStats { get; set; }
@@ -69,6 +72,9 @@ public abstract class NewDiscussionBaseModel(
             return Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}");
         }
 
+        if (await IsRateLimitedAsync())
+            return await LoadPageData();
+
         if (string.IsNullOrWhiteSpace(NewTitle) || string.IsNullOrWhiteSpace(NewContent))
         {
             CreateError = "Title and content are required.";
@@ -108,6 +114,17 @@ public abstract class NewDiscussionBaseModel(
             NewContent!,
             DiscussionType,
             isAdult: Space.AllowsAdultContent && IsAdult);
+
+    private async Task<bool> IsRateLimitedAsync()
+    {
+        if (Configuration.GetValue<bool>("DisableRateLimiting")) return false;
+        var lease = await _createRateLimiter.AcquireAsync(HttpContext);
+        if (lease.IsAcquired) { lease.Dispose(); return false; }
+        var retryAfter = lease.TryGetMetadata(MetadataName.RetryAfter, out var r) ? (int)r.TotalSeconds : 360;
+        lease.Dispose();
+        CreateError = $"You're posting too fast. Try again in {retryAfter}s.";
+        return true;
+    }
 
     private string BuildReturnUrl()
         => $"/new/{TypeSlug}?spaceId={Uri.EscapeDataString(SpaceId ?? "")}";

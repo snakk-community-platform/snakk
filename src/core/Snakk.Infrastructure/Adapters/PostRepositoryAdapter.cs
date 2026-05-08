@@ -24,7 +24,7 @@ public class PostRepositoryAdapter(
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted, p.HasCodeBlock,
                 p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
-                p.RevisionCount))
+                p.RevisionCount, p.WasNormalized))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -39,7 +39,7 @@ public class PostRepositoryAdapter(
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted, p.HasCodeBlock,
                 p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
-                p.RevisionCount))
+                p.RevisionCount, p.WasNormalized))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -73,7 +73,8 @@ public class PostRepositoryAdapter(
                 p.IsOp,
                 p.IsNecro,
                 p.IsMilestone,
-                p.RevisionCount))
+                p.RevisionCount,
+                p.WasNormalized))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -90,7 +91,7 @@ public class PostRepositoryAdapter(
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted, p.HasCodeBlock,
                 p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
-                p.RevisionCount))
+                p.RevisionCount, p.WasNormalized))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -135,7 +136,8 @@ public class PostRepositoryAdapter(
                 p.IsOp,
                 p.IsNecro,
                 p.IsMilestone,
-                p.RevisionCount))
+                p.RevisionCount,
+                p.WasNormalized))
             .ToListAsync();
 
         var hasMoreItems = projections.Count > pageSize;
@@ -224,6 +226,7 @@ public class PostRepositoryAdapter(
         entity.EditedAt = post.EditedAt;
         entity.IsDeleted = post.IsDeleted;
         entity.RevisionCount = post.RevisionCount;
+        entity.WasNormalized = post.WasNormalized;
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -330,7 +333,8 @@ public class PostRepositoryAdapter(
                 p.IsOp,
                 p.IsNecro,
                 p.IsMilestone,
-                p.RevisionCount))
+                p.RevisionCount,
+                p.WasNormalized))
             .FirstOrDefaultAsync();
 
         return projection?.ToDomain();
@@ -544,7 +548,8 @@ public class PostRepositoryAdapter(
         bool IsOp,
         bool IsNecro,
         bool IsMilestone,
-        int RevisionCount)
+        int RevisionCount,
+        bool WasNormalized)
     {
         public Post ToDomain() => Post.Rehydrate(
             PostId.From(PublicId),
@@ -564,6 +569,7 @@ public class PostRepositoryAdapter(
             IsOp,
             IsNecro,
             IsMilestone,
-            RevisionCount);
+            RevisionCount,
+            wasNormalized: WasNormalized);
     }
 }

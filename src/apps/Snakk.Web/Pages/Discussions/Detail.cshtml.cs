@@ -9,6 +9,7 @@ using Snakk.Protos.Hub;
 using Snakk.Protos.Space;
 using Snakk.Protos.Discussion;
 using Snakk.Protos.Post;
+using System.Threading.RateLimiting;
 
 namespace Snakk.Web.Pages.Discussions;
 
@@ -17,9 +18,11 @@ public class DetailModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
+    IPrefetchCacheService prefetchCache,
+    DiscussionCreateRateLimiter rateLimiter) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
+    private readonly DiscussionCreateRateLimiter _createRateLimiter = rateLimiter;
 
     public DiscussionInfo? Discussion { get; set; }
     public PagedEnrichedPostList? Posts { get; set; }
@@ -273,6 +276,18 @@ public class DetailModel(
         {
             return RedirectToPage("/Auth/Login", new { returnUrl = $"/h/{hubSlug}/{spaceSlug}/{slugWithId}" });
         }
+
+        var lease = await _createRateLimiter.AcquireAsync(HttpContext);
+        if (!lease.IsAcquired)
+        {
+            var retryAfter = lease.TryGetMetadata(MetadataName.RetryAfter, out var r) ? (int)r.TotalSeconds : 360;
+            lease.Dispose();
+            ModelState.AddModelError(string.Empty, $"You're posting too fast. Try again in {retryAfter}s.");
+            Discussion = await _apiClient.GetDiscussionAsync(PublicId);
+            Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, 0, 20);
+            return Page();
+        }
+        lease.Dispose();
 
         if (!ModelState.IsValid || string.IsNullOrWhiteSpace(PostContent))
         {

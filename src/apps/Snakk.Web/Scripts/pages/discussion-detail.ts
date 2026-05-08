@@ -155,9 +155,13 @@ function initReplyEditor(): Promise<void> {
         let replyUploading = false;
         let replyMd = '';
 
+        function hasTextContent(md: string): boolean {
+            return md.replace(/```[\s\S]*?```/g, '').trim().length > 0;
+        }
+
         function updateReplyBtn(): void {
             const btn = document.getElementById('reply-submit-btn') as HTMLButtonElement | null;
-            if (btn) btn.disabled = !replyMd.trim() || replyUploading;
+            if (btn) btn.disabled = !hasTextContent(replyMd) || replyUploading;
         }
 
         const editor = await (window as any).SnakkEditor.init({
@@ -187,6 +191,8 @@ function initReplyEditor(): Promise<void> {
             const footer = container.querySelector('.milkdown-footer');
             if (submitBtn && footer) {
                 submitBtn.disabled = true;
+                const progressRow = document.getElementById('upload-progress-row');
+                if (progressRow) footer.appendChild(progressRow);
                 footer.appendChild(submitBtn);
                 submitBtn.classList.remove('hidden');
             }
@@ -200,14 +206,22 @@ function initReplyEditor(): Promise<void> {
             });
         }
 
-        // Intercept form submit to upload deferred images and sync textarea
+        // Intercept form submit: upload any deferred blob-URL images, then re-submit
         const form = textarea.closest('form') as HTMLFormElement | null;
         if (form && editor) {
             console.log('[Editor] form submit handler attached, hx-boost=', form.getAttribute('hx-boost'));
 
-            form.addEventListener('submit', (e) => {
-                const md = editor.getMarkdown();
+            let deferredSubmitReady = false;
 
+            form.addEventListener('submit', async (e) => {
+                // Second pass: uploads done — let the event proceed
+                if (deferredSubmitReady) {
+                    deferredSubmitReady = false;
+                    textarea.value = editor.getMarkdown();
+                    return;
+                }
+
+                const md = editor.getMarkdown();
                 if (!md.trim()) {
                     e.preventDefault();
                     return;
@@ -219,8 +233,68 @@ function initReplyEditor(): Promise<void> {
                     (window as any).SnakkDraftManager.clearDraftOnSuccess(activeDiscussionId, replyToPostId);
                 }
 
-                // Images are already uploaded with real URLs — just sync textarea
-                textarea.value = md;
+                if (!editor.hasPendingUploads()) {
+                    textarea.value = md;
+                    return;
+                }
+
+                // Deferred path: upload images before submitting
+                e.preventDefault();
+
+                const btn = document.getElementById('reply-submit-btn') as HTMLButtonElement | null;
+                const btnSpinner = document.getElementById('reply-submit-spinner');
+                const progressRow = document.getElementById('upload-progress-row');
+                const chipsEl = document.getElementById('upload-image-chips');
+                const statusEl = document.getElementById('upload-status-text');
+
+                if (btn) btn.disabled = true;
+                btnSpinner?.classList.remove('hidden');
+
+                const showProgress = (done: number, total: number): void => {
+                    if (done === 0) {
+                        // Build chips — all start as "waiting"
+                        if (chipsEl) {
+                            chipsEl.innerHTML = '';
+                            for (let i = 0; i < total; i++) {
+                                const chip = document.createElement('span');
+                                chip.className = 'upload-chip upload-chip-waiting';
+                                chip.id = `upload-chip-${i}`;
+                                chipsEl.appendChild(chip);
+                            }
+                            // Mark first chip as uploading
+                            const first = document.getElementById('upload-chip-0');
+                            if (first) first.className = 'upload-chip upload-chip-uploading';
+                        }
+                        if (statusEl) statusEl.textContent = `Uploading 1 of ${total}…`;
+                        progressRow?.classList.remove('hidden');
+                    } else {
+                        // Mark completed chip as done
+                        const doneChip = document.getElementById(`upload-chip-${done - 1}`);
+                        if (doneChip) doneChip.className = 'upload-chip upload-chip-done';
+                        // Mark next chip as uploading
+                        const nextChip = document.getElementById(`upload-chip-${done}`);
+                        if (nextChip) nextChip.className = 'upload-chip upload-chip-uploading';
+                        if (statusEl) statusEl.textContent = done < total ? `Uploading ${done + 1} of ${total}…` : `Uploading ${total} of ${total}…`;
+                    }
+                };
+
+                try {
+                    await editor.flushUploads(showProgress);
+                } catch (err) {
+                    console.error('[Editor] Deferred upload failed:', err);
+                    if (btn) btn.disabled = false;
+                    btnSpinner?.classList.add('hidden');
+                    progressRow?.classList.add('hidden');
+                    return;
+                }
+
+                btnSpinner?.classList.add('hidden');
+
+                deferredSubmitReady = true;
+                // Bypass the global actions.ts submit handler (which would set "Submitting...")
+                // for this programmatic re-submit. Progress row stays visible until page navigates.
+                form.dataset.allowResubmit = 'true';
+                form.requestSubmit();
             });
         }
 
@@ -548,6 +622,32 @@ function setReactionData(el: HTMLElement, counts: Record<string, number>, myReac
     el.dataset.myReactions = JSON.stringify(myReactions);
 }
 
+// Update the icon(s) in a .sn-reaction-badge wrapper based on current reaction state
+function updateReactionBadgeIcon(badge: HTMLElement, hasAny: boolean, myReactions: string[]): void {
+    if (!badge.hasAttribute('data-action')) return;
+
+    badge.querySelectorAll<HTMLElement>(':scope > .icon').forEach(el => el.remove());
+
+    const countsDiv = badge.querySelector<HTMLElement>('[id^="reactions-"]');
+    if (!countsDiv) return;
+
+    const makeIcon = (name: string): HTMLSpanElement => {
+        const span = document.createElement('span');
+        span.className = `icon ${name} h-4 w-4`;
+        span.setAttribute('aria-hidden', 'true');
+        return span;
+    };
+
+    if (!hasAny) {
+        badge.insertBefore(makeIcon('icon-plus-circle'), countsDiv);
+        badge.insertBefore(makeIcon('icon-badge-check'), countsDiv);
+    } else if (myReactions.length > 0) {
+        badge.insertBefore(makeIcon('icon-refresh'), countsDiv);
+    } else {
+        badge.insertBefore(makeIcon('icon-plus-circle'), countsDiv);
+    }
+}
+
 // Render reaction spans from data-attributes
 function renderReactionCounts(reactionsBar: HTMLElement): void {
     const counts = getReactionCounts(reactionsBar);
@@ -559,16 +659,21 @@ function renderReactionCounts(reactionsBar: HTMLElement): void {
         const count = counts[type] || 0;
         if (count > 0) {
             const isActive = myReactions.includes(type);
-            html += `<span data-type="${type}" class="${isActive ? 'active' : ''}">${emoji} ${count}</span>`;
+            html += `<span data-type="${type}" class="${isActive ? 'active' : ''}"><span class="sn-reaction-icon">${emoji}</span> ${count}</span>`;
             hasAny = true;
         }
     }
 
-    if (!hasAny) {
-        html = `<span class="hidden group-hover:inline" data-reaction-placeholder>${smileyPlaceholderSvg}</span>`;
+    const badge = reactionsBar.closest<HTMLElement>('.sn-reaction-badge');
+    if (badge) {
+        reactionsBar.innerHTML = html;
+        updateReactionBadgeIcon(badge, hasAny, myReactions);
+    } else {
+        if (!hasAny) {
+            html = `<span class="hidden group-hover:inline" data-reaction-placeholder>${smileyPlaceholderSvg}</span>`;
+        }
+        reactionsBar.innerHTML = html;
     }
-
-    reactionsBar.innerHTML = html;
 }
 
 function hideReactionPicker(): void {
@@ -592,6 +697,7 @@ function hideReactionPicker(): void {
 
     const picker = document.getElementById('reaction-picker');
     if (picker) {
+        picker.querySelectorAll<HTMLElement>('.is-selected').forEach(btn => btn.classList.remove('is-selected'));
         picker.classList.add('hidden');
         picker.dataset.postId = '';
     }
@@ -681,6 +787,12 @@ function toggleReactionPicker(postId: string, sourceEl?: HTMLElement): void {
             reactionPickerHideTimer = setTimeout(hideReactionPicker, 300);
         };
     }
+
+    // Stamp the currently-selected reaction button
+    const myReactions = getMyReactions(reactionsBar);
+    picker.querySelectorAll<HTMLElement>('.reaction-picker-btn').forEach(btn => {
+        btn.classList.toggle('is-selected', myReactions.includes(btn.dataset.reactionType || ''));
+    });
 
     picker.classList.remove('hidden');
     setupReactionPickerHover();
@@ -942,6 +1054,61 @@ function loadMuteStatus(discussionId: string): void {
     updateMuteButton(isMuted);
 }
 
+// ===== Expand Post Modal =====
+function expandPost(postId: string): void {
+    document.querySelector('.post-expand-modal')?.remove();
+    document.querySelector('.post-expand-backdrop')?.remove();
+    document.body.style.overflow = '';
+
+    const contentEl = document.getElementById(`post-content-${postId}`);
+    if (!contentEl) return;
+
+    const article = contentEl.closest('article') as HTMLElement | null;
+    const authorName = contentEl.dataset.authorName || '';
+    const timeEl = article?.querySelector<HTMLTimeElement>('time');
+    const timeText = timeEl?.textContent?.trim() || '';
+    const header = authorName
+        ? escapeHtml(authorName) + (timeText ? ` · ${escapeHtml(timeText)}` : '')
+        : escapeHtml(timeText);
+
+    const contentClone = contentEl.cloneNode(true) as HTMLElement;
+    contentClone.removeAttribute('id');
+
+    const backdrop = document.createElement('div');
+    backdrop.className = 'post-expand-backdrop';
+
+    const modal = document.createElement('div');
+    modal.className = 'post-expand-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.innerHTML = `
+        <div class="post-expand-header">
+            <span class="post-expand-author">${header}</span>
+            <button type="button" class="subtle-btn" aria-label="Close">
+                <span class="icon icon-x h-4 w-4" aria-hidden="true"></span>
+            </button>
+        </div>
+        <div class="post-expand-body"></div>
+    `;
+    modal.querySelector('.post-expand-body')!.appendChild(contentClone);
+
+    function close(): void {
+        modal.remove();
+        backdrop.remove();
+        document.body.style.overflow = '';
+        document.removeEventListener('keydown', escHandler);
+    }
+
+    const escHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
+    backdrop.addEventListener('click', close);
+    modal.querySelector('button[aria-label="Close"]')!.addEventListener('click', close);
+    document.addEventListener('keydown', escHandler);
+
+    document.body.style.overflow = 'hidden';
+    document.body.appendChild(backdrop);
+    document.body.appendChild(modal);
+}
+
 // ===== Hide Posts From User =====
 function hidePostsFromUser(userId: string, userName: string): void {
     const hiddenUsers = JSON.parse(localStorage.getItem('hiddenUsers') || '[]') as string[];
@@ -1110,10 +1277,10 @@ function showToast(message: string, type: 'error' | 'success' | 'info' = 'error'
     toast.style.transform = 'translateX(400px)';
 
     const icon = type === 'error'
-        ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+        ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
         : type === 'success'
-        ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'
-        : '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+        ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'
+        : '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
 
     toast.innerHTML = `
         ${icon}
@@ -1229,8 +1396,9 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
             postsCurrentOffset += data.items.length;
 
             // Highlight code blocks in new posts if present
+            console.log('[DiscussionDetail] loadMorePosts (down) — hasCodeBlocks:', data.hasCodeBlocks);
             if (data.hasCodeBlocks && (window as any).SnakkSyntax) {
-                (window as any).SnakkSyntax.highlightAll(container);
+                (window as any).SnakkSyntax.highlightAll(container, 'loadMorePosts:down');
             }
 
             // Observe new posts for read tracking
@@ -1792,8 +1960,9 @@ async function handleFragmentEntry(
             });
             postsCurrentOffset = targetOffset + data.items.length;
 
+            console.log('[DiscussionDetail] loadMorePosts (up) — hasCodeBlocks:', data.hasCodeBlocks);
             if (data.hasCodeBlocks && (window as any).SnakkSyntax) {
-                (window as any).SnakkSyntax.highlightAll(container);
+                (window as any).SnakkSyntax.highlightAll(container, 'loadMorePosts:up');
             }
             observeNewPosts();
             data.items.forEach(post => loadReactionsForPost(post.publicId));
@@ -1904,8 +2073,9 @@ async function loadEarlierPosts(
 
             postsStartOffset = loadOffset;
 
+            console.log('[DiscussionDetail] loadMorePosts (fragment) — hasCodeBlocks:', data.hasCodeBlocks);
             if (data.hasCodeBlocks && (window as any).SnakkSyntax) {
-                (window as any).SnakkSyntax.highlightAll(container);
+                (window as any).SnakkSyntax.highlightAll(container, 'loadMorePosts:fragment');
             }
             observeNewPosts();
             data.items.forEach(post => loadReactionsForPost(post.publicId));
@@ -2148,8 +2318,9 @@ function initDiscussionPage(config: DiscussionConfig): void {
     }
 
     // Highlight code blocks in initial page load
-    if (config.hasCodeBlocks && (window as any).SnakkSyntax) {
-        (window as any).SnakkSyntax.highlightAll();
+    console.log('[DiscussionDetail] initDiscussionPage — hasCodeBlocks:', (config as any).hasCodeBlocks, 'SnakkSyntax present:', !!(window as any).SnakkSyntax);
+    if ((window as any).SnakkSyntax) {
+        (window as any).SnakkSyntax.highlightAll(undefined, 'discussion-detail:init');
     }
 
     // Load follow/mute status (authenticated users only)
@@ -2292,6 +2463,9 @@ document.addEventListener('click', async (e) => {
             break;
 
         // Post actions
+        case 'expand-post':
+            expandPost(action.dataset.postId || '');
+            break;
         case 'edit-post':
             editPost(action.dataset.postId || '', action.dataset.userId || '');
             break;
@@ -2398,6 +2572,7 @@ if (window.SnakkActions) {
 // ===== Self-initializing bootstrap (reads JSON config from Razor) =====
 function bootstrapFromPageConfig(): void {
     const configEl = document.getElementById('discussion-page-config');
+    console.log('[DiscussionDetail] bootstrapFromPageConfig — configEl found:', !!configEl, 'readyState:', document.readyState);
     if (!configEl) return;
 
     let config: DiscussionConfig;

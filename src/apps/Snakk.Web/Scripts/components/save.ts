@@ -103,12 +103,20 @@
         if (actionName === 'toggle-save-discussion') {
             e.preventDefault();
             e.stopPropagation();
+            if (!(window as any).currentUserId) {
+                window.location.href = `/auth/login?returnUrl=${encodeURIComponent(window.location.pathname)}`;
+                return;
+            }
             const discussionId = action.dataset.discussionId || '';
             if (!discussionId) return;
             await toggleSaveDiscussion(action, discussionId);
         } else if (actionName === 'toggle-save-post') {
             e.preventDefault();
             e.stopPropagation();
+            if (!(window as any).currentUserId) {
+                window.location.href = `/auth/login?returnUrl=${encodeURIComponent(window.location.pathname)}`;
+                return;
+            }
             const postId = action.dataset.postId || '';
             if (!postId) return;
             await toggleSavePost(action, postId);

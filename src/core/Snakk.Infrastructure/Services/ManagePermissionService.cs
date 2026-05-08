@@ -9,10 +9,17 @@ namespace Snakk.Infrastructure.Services;
 
 public class ManagePermissionService(
     SnakkDbContext context,
+    IDbContextFactory<SnakkDbContext> dbFactory,
     HybridCache cache,
     ILogger<ManagePermissionService> logger) : IManagePermissionService
 {
     private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
 
     public async Task<ManagePermissionSet> GetPermissionsForScopeAsync(
         string userId,
@@ -52,11 +59,12 @@ public class ManagePermissionService(
         if (user is null)
             return ManagePermissionSet.None;
 
-        // Get all active roles for the user
-        var activeRoles = await context.UserRoles
-            .Where(ur =>
-                ur.UserId == user.Id
-                && ur.RevokedAt == null)
+        // Get all active roles for the user (parallel with temp elevations)
+        var now = DateTime.UtcNow;
+        var userId2 = user.Id;
+
+        var activeRolesTask = ReadAsync(db => db.UserRoles
+            .Where(ur => ur.UserId == userId2 && ur.RevokedAt == null)
             .Select(ur => new RoleWithScope
             {
                 RoleType = (UserRoleTypeEnum)ur.RoleId,
@@ -64,17 +72,15 @@ public class ManagePermissionService(
                 HubId = ur.HubId,
                 SpaceId = ur.SpaceId
             })
-            .ToListAsync();
+            .ToListAsync());
 
-        // Also include active temporary role elevations
-        var now = DateTime.UtcNow;
+        var tempElevationsTask = ReadAsync(db => db.TemporaryRoleElevations
+            .Where(e => e.UserId == userId2 && e.RevokedAt == null && e.ExpiresAt > now)
+            .ToListAsync());
 
-        var tempElevations = await context.TemporaryRoleElevations
-            .Where(e =>
-                e.UserId == user.Id
-                && e.RevokedAt == null
-                && e.ExpiresAt > now)
-            .ToListAsync();
+        await Task.WhenAll(activeRolesTask, tempElevationsTask);
+        var activeRoles    = activeRolesTask.Result;
+        var tempElevations = tempElevationsTask.Result;
 
         foreach (var e in tempElevations)
         {

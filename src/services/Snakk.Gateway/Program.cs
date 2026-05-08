@@ -1,11 +1,12 @@
 using System.IO.Compression;
 using System.Net;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Serilog;
-using Snakk.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 

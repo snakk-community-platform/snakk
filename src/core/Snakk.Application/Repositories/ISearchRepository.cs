@@ -281,7 +281,9 @@ public record DebatePositionPreviewDto(string Label, int Index, int PostCount);
 public record LinkPreviewDto(
     string Url, string? Title, string? Description, string? Domain,
     string? ImageUrl, string? ImagePath, string? ImageThumbnailPath, string? OEmbedHtml, bool IsInternal,
-    string? BlurDataUri = null);
+    string? BlurDataUri = null,
+    int? ImageWidth = null,
+    int? ImageHeight = null);
 
 public record ImagesPreviewDto(int ImageCount, IReadOnlyList<ImagePreviewItemDto> Items, bool IsSpoiler, string Layout);
 public record ImagePreviewItemDto(

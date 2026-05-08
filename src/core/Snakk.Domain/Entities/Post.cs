@@ -23,6 +23,7 @@ public class Post
     public bool IsNecro { get; private set; }
     public bool IsMilestone { get; private set; }
     public int RevisionCount { get; private set; }
+    public bool WasNormalized { get; private set; }
 
     private readonly List<PostRevision> _revisions = [];
     public IReadOnlyCollection<PostRevision> Revisions => _revisions.AsReadOnly();
@@ -61,7 +62,8 @@ public class Post
         bool isNecro = false,
         bool isMilestone = false,
         int revisionCount = 0,
-        List<PostRevision>? revisions = null)
+        List<PostRevision>? revisions = null,
+        bool wasNormalized = false)
     {
         PublicId = publicId;
         DiscussionId = discussionId;
@@ -81,6 +83,7 @@ public class Post
         IsNecro = isNecro;
         IsMilestone = isMilestone;
         RevisionCount = revisionCount;
+        WasNormalized = wasNormalized;
         _revisions = revisions ?? [];
         _unsavedRevisions = [];
         _domainEvents = [];
@@ -92,7 +95,8 @@ public class Post
         string content,
         string renderedContent,
         bool isFirstPost = false,
-        PostId? replyToPostId = null)
+        PostId? replyToPostId = null,
+        bool wasNormalized = false)
     {
         if (string.IsNullOrWhiteSpace(content))
             throw new ArgumentException("Post content cannot be empty", nameof(content));
@@ -106,7 +110,8 @@ public class Post
             DateTime.UtcNow,
             isFirstPost: isFirstPost,
             replyToPostId: replyToPostId,
-            hasCodeBlock: content.Contains('`'));
+            hasCodeBlock: content.Contains('`'),
+            wasNormalized: wasNormalized);
 
         post.AddDomainEvent(new PostCreatedEvent(post.PublicId, discussionId, createdByUserId));
 
@@ -132,7 +137,8 @@ public class Post
         bool isNecro = false,
         bool isMilestone = false,
         int revisionCount = 0,
-        List<PostRevision>? revisions = null) =>
+        List<PostRevision>? revisions = null,
+        bool wasNormalized = false) =>
         new Post(
             publicId,
             discussionId,
@@ -152,9 +158,10 @@ public class Post
             isNecro,
             isMilestone,
             revisionCount,
-            revisions);
+            revisions,
+            wasNormalized);
 
-    public void UpdateContent(string content, string renderedContent, UserId editorUserId)
+    public void UpdateContent(string content, string renderedContent, UserId editorUserId, bool wasNormalized = false)
     {
         if (IsDeleted)
             throw new InvalidOperationException("Cannot edit a deleted post");
@@ -174,6 +181,7 @@ public class Post
         Content = content;
         RenderedContent = renderedContent;
         HasCodeBlock = content.Contains('`');
+        WasNormalized = wasNormalized;
         EditedAt = DateTime.UtcNow;
         LastModifiedAt = DateTime.UtcNow;
 

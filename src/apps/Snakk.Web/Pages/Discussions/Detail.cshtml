@@ -1,7 +1,6 @@
 @page "/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/{slugWithId}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
-@using Snakk.Shared.Avatars
 @using static Snakk.Web.Helpers.DisplayHelper
 @using static Snakk.Web.Helpers.DiscussionTypeHelper
 @model Snakk.Web.Pages.Discussions.DetailModel
@@ -16,8 +15,9 @@
 }
 
 @section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
+    <partial name="Shared/_LeftSidebar" />
 }
+
 
 @section Meta {
     @if (Model.Discussion != null && Model.Space is not { IsRestricted: true })
@@ -69,26 +69,26 @@
 
         <!-- JSON-LD Structured Data -->
         <script type="application/ld+json">
-        {
+            {
             "@@context": "https://schema.org",
             "@@type": "DiscussionForumPosting",
             "headline": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Discussion.Title)),
             "url": "@url",
             "datePublished": "@Model.Discussion.CreatedAt.ToDateTime().ToString("O")",
             "author": {
-                "@@type": "Person",
-                "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(firstPost?.Author?.DisplayName ?? T.Pages.DiscAnonymous))
+            "@@type": "Person",
+            "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(firstPost?.Author?.DisplayName ?? T.Pages.DiscAnonymous))
             },
             "interactionStatistic": {
-                "@@type": "InteractionCounter",
-                "interactionType": "https://schema.org/CommentAction",
-                "userInteractionCount": @(Model.Posts?.Items?.Count ?? 0)
+            "@@type": "InteractionCounter",
+            "interactionType": "https://schema.org/CommentAction",
+            "userInteractionCount": @(Model.Posts?.Items?.Count ?? 0)
             },
             "isPartOf": {
-                "@@type": "WebPage",
-                "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Space?.Name ?? Model.SpaceSlug))
+            "@@type": "WebPage",
+            "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Space?.Name ?? Model.SpaceSlug))
             }
-        }
+            }
         </script>
 
         <!-- oEmbed Discovery -->
@@ -98,41 +98,41 @@
 
         <!-- Breadcrumb Schema -->
         <script type="application/ld+json">
-        {
+            {
             "@@context": "https://schema.org",
             "@@type": "BreadcrumbList",
             "itemListElement": [
-                {
-                    "@@type": "ListItem",
-                    "position": 1,
-                    "name": "@T.Pages.DiscBreadcrumbHome",
-                    "item": "@($"{baseUrl}/")"
-                },
-                {
-                    "@@type": "ListItem",
-                    "position": 2,
-                    "name": "@T.Pages.DiscBreadcrumbHubs",
-                    "item": "@($"{baseUrl}/hubs")"
-                },
-                {
-                    "@@type": "ListItem",
-                    "position": 3,
-                    "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Hub?.Name ?? Model.HubSlug)),
-                    "item": "@($"{baseUrl}{SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)}")"
-                },
-                {
-                    "@@type": "ListItem",
-                    "position": 4,
-                    "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Space?.Name ?? Model.SpaceSlug)),
-                    "item": "@($"{baseUrl}{SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)}")"
-                },
-                {
-                    "@@type": "ListItem",
-                    "position": 5,
-                    "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Discussion.Title))
-                }
+            {
+            "@@type": "ListItem",
+            "position": 1,
+            "name": "@T.Pages.DiscBreadcrumbHome",
+            "item": "@($"{baseUrl}/")"
+            },
+            {
+            "@@type": "ListItem",
+            "position": 2,
+            "name": "@T.Pages.DiscBreadcrumbHubs",
+            "item": "@($"{baseUrl}/hubs")"
+            },
+            {
+            "@@type": "ListItem",
+            "position": 3,
+            "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Hub?.Name ?? Model.HubSlug)),
+            "item": "@($"{baseUrl}{SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)}")"
+            },
+            {
+            "@@type": "ListItem",
+            "position": 4,
+            "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Space?.Name ?? Model.SpaceSlug)),
+            "item": "@($"{baseUrl}{SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)}")"
+            },
+            {
+            "@@type": "ListItem",
+            "position": 5,
+            "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Discussion.Title))
+            }
             ]
-        }
+            }
         </script>
     }
 }
@@ -140,1224 +140,1289 @@
 <!-- Center Column -->
 <div class="sn-center">
 
-@if (Model.AdultGateState == Snakk.Web.Services.AdultContentState.NeedsPrompt)
-{
-    <partial name="_AdultContentGate" />
-}
-else if (Model.AdultGateState == Snakk.Web.Services.AdultContentState.Hidden)
-{
-    <partial name="_AdultContentHidden" />
-}
-else if (Model.Discussion != null)
-{
-    <div class="sn-page-labels sn-page-labels--gradient" style="background-image: @AvatarGenerator.GenerateGradientCss($"space:{Model.Space?.PublicId}")">
-        @if (Model.ShowCommunityInBreadcrumb)
-        {
-            <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
-               data-popup-type="community"
-               data-popup-id="@Model.CommunityDetail?.PublicId"
-               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+    @if (Model.Discussion != null && Model.Space != null)
+    {
+        <div class="sn-breadcrumb-bar sn-breadcrumb-bar--colored" style="background-image: @SpaceGradient(Model.Space.PublicId, 45)">
+            @if (Model.ShowCommunityInBreadcrumb)
+            {
+                <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
+                   data-popup-type="community"
+                   data-popup-id="@Model.CommunityDetail?.PublicId"
+                   data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+                <span class="sn-page-labels-sep">›</span>
+            }
+            else if (!Model.Community.IsMultiCommunityEnabled)
+            {
+                <a href="/c" class="badge badge-ghost badge-sm"
+                   data-popup-type="community"
+                   data-popup-id="@Model.CommunityDetail?.PublicId"
+                   data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+                <span class="sn-page-labels-sep">›</span>
+            }
+            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm"
+               data-popup-type="hub"
+               data-popup-id="@Model.Hub?.PublicId"
+               data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
             <span class="sn-page-labels-sep">›</span>
-        }
-        else if (!Model.Community.IsMultiCommunityEnabled)
-        {
-            <a href="/c" class="badge badge-ghost badge-sm"
-               data-popup-type="community"
-               data-popup-id="@Model.CommunityDetail?.PublicId"
-               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-            <span class="sn-page-labels-sep">›</span>
-        }
-        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm"
-           data-popup-type="hub"
-           data-popup-id="@Model.Hub?.PublicId"
-           data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-        <span class="sn-page-labels-sep">›</span>
-        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="badge badge-ghost badge-sm"
-           data-popup-type="space"
-           data-popup-id="@Model.Space?.PublicId"
-           data-popup-name="@Model.Space?.Name">@(Model.Space?.Name ?? Model.SpaceSlug)</a>
-    </div>
-
-    <!-- Realtime context — JS reads these to subscribe to the correct groups -->
-    <div id="page-context"
-         data-discussion-id="@Model.Discussion.PublicId"
-         data-space-id="@Model.Space?.PublicId"
-         hidden></div>
-
-    <!-- Jump to Unread Button -->
-    <div id="jump-to-unread" class="hidden fixed bottom-6 right-6 z-30">
-        <button data-action="jump-to-unread" class="btn btn-primary btn-sm">
-            @T.Pages.DiscJumpToUnread
-        </button>
-    </div>
-    <div class="sn-center-inner">
-    @{
-        var firstPostItem = Model.Posts?.Items?.FirstOrDefault(p => p.IsFirstPost);
-    }
-
-    <!-- Thread Header -->
-    <header class="discussion-header">
-        <!-- Author + Time row -->
-        <div class="flex items-center gap-2 mb-2 text-sm">
-            @if (firstPostItem != null)
-            {
-                @if (!firstPostItem.Author.IsDeleted)
-                {
-                    <img src="@firstPostItem.Author.AvatarThumbnailUrl"
-                         alt="@firstPostItem.Author.DisplayName"
-                         width="24" height="24"
-                         class="rounded-full"
-                         decoding="async" />
-                    <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.PublicId)"
-                       class="font-medium hover:underline"
-                       data-popup-type="user"
-                       data-popup-id="@firstPostItem.Author.PublicId"
-                       data-popup-name="@firstPostItem.Author.DisplayName">@firstPostItem.Author.DisplayName</a>
-                }
-                else
-                {
-                    <span class="deleted">@firstPostItem.Author.DisplayName</span>
-                }
-                @if (firstPostItem.Author.Role == "admin")
-                {
-                    <span class="badge badge-error badge-xs">@T.Pages.DiscBadgeAdmin</span>
-                }
-                else if (firstPostItem.Author.Role == "mod")
-                {
-                    <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
-                }
-            }
-            <span style="color: var(--text-tertiary)">·</span>
-            <time style="color: var(--text-tertiary)" datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
-                @FormatRelativeTime(Model.Discussion.CreatedAt.ToDateTime())
-            </time>
-            @if (Model.Discussion.IsPinned)
-            {
-                <span class="badge badge-primary badge-xs">@T.Pages.DiscBadgePinned</span>
-            }
-            @if (Model.Discussion.IsLocked)
-            {
-                <span class="badge badge-warning badge-xs">@T.Pages.DiscBadgeLocked</span>
-            }
-            @if (Model.Discussion.Type != "Standard")
-            {
-                var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
-                <span class="discussion-type-badge badge-xs @cssClass">@icon @label</span>
-            }
-            <span id="viewer-count" class="badge badge-ghost badge-xs hidden"></span>
-
-            <!-- Actions — pushed right -->
-            <div class="flex items-center gap-1 ml-auto">
-                @if (Model.IsAuthenticated)
-                {
-                    <div class="dropdown dropdown-end">
-                        <button tabindex="0" class="btn btn-ghost btn-xs btn-square" aria-label="@T.Pages.DiscAriaDiscussionOptions">
-                            <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
-                        </button>
-                        <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
-                            <li>
-                                <button id="mute-discussion-btn" data-action="toggle-mute-discussion" data-discussion-id="@Model.Discussion.PublicId" class="text-sm">
-                                    <span class="icon icon-volume-off h-4 w-4" aria-hidden="true"></span>
-                                    <span id="mute-text">@T.Pages.DiscMuteDiscussion</span>
-                                </button>
-                            </li>
-                            @if (firstPostItem != null)
-                            {
-                                <li>
-                                    <button hx-get="/api/posts/@firstPostItem.PublicId/history"
-                                            hx-target="#history-modal-content"
-                                            hx-swap="innerHTML"
-                                            data-modal-open="history_modal"
-                                            class="text-sm">
-                                        @T.Pages.DiscHistory
-                                    </button>
-                                </li>
-                                @if (Model.CurrentUserId == firstPostItem.Author.PublicId)
-                                {
-                                    <li><button data-action="edit-post" data-post-id="@firstPostItem.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
-                                    <li>
-                                        <button hx-delete="/api/posts/@firstPostItem.PublicId?userId=@Model.CurrentUserId"
-                                                hx-target="#post-@firstPostItem.PostNumber"
-                                                hx-swap="outerHTML"
-                                                hx-confirm="@T.Pages.DiscDeleteConfirm"
-                                                class="text-sm text-error">
-                                            @T.Pages.DiscDelete
-                                        </button>
-                                    </li>
-                                }
-                                @if (Model.CurrentUserId != firstPostItem.Author.PublicId)
-                                {
-                                    <li>
-                                        <button data-action="open-report-modal" data-report-type="post" data-report-id="@firstPostItem.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="text-sm text-error">
-                                            @T.Pages.DiscReportPost
-                                        </button>
-                                    </li>
-                                }
-                            }
-                            <li>
-                                <button data-action="open-report-modal" data-report-type="discussion" data-report-id="@Model.Discussion.PublicId" data-report-label="@Model.Discussion.Title" class="text-sm text-error">
-                                    <span class="icon icon-exclamation-triangle h-4 w-4" aria-hidden="true"></span>
-                                    @T.Pages.DiscReportDiscussion
-                                </button>
-                            </li>
-                        </ul>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <!-- Title + OP reactions -->
-        <div class="flex items-start justify-between gap-4 group">
-            <h1 class="text-xl font-bold" style="color: var(--link-primary)">@Model.Discussion.Title</h1>
-            @if (firstPostItem != null)
-            {
-                var opReactionCounts = firstPostItem.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
-                var opHasReactions = opReactionCounts.Any(kvp => kvp.Value > 0);
-                var opMyReactions = (firstPostItem.Reactions?.UserReactions?.Reactions ?? Enumerable.Empty<string>()).ToList();
-                var opReactionEmojis = new Dictionary<string, string>
-                {
-                    ["Agree"] = "👍", ["Love"] = "❤️", ["Funny"] = "😂",
-                    ["Thinking"] = "🤔", ["Watching"] = "👀", ["Fire"] = "🔥",
-                    ["Thanks"] = "🙏", ["MindBlown"] = "🤯", ["ShipIt"] = "🚀"
-                };
-                <div class="flex items-center gap-2 text-base text-muted shrink-0 @(Model.IsAuthenticated && !Model.Discussion.IsLocked ? "cursor-pointer" : "")"
-                     id="reactions-@firstPostItem.PublicId"
-                     data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(opReactionCounts.ToDictionary(k => k.Key, k => k.Value))"
-                     data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(opMyReactions)"
-                     @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
-                     {
-                         <text>data-action="toggle-reaction-picker" data-post-id="@firstPostItem.PublicId"</text>
-                     }
-                     aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
-                    @foreach (var kvp in opReactionCounts.Where(c => c.Value > 0))
-                    {
-                        var emoji = opReactionEmojis.GetValueOrDefault(kvp.Key, "?");
-                        var isActive = opMyReactions.Contains(kvp.Key);
-                        <span data-type="@kvp.Key" class="@(isActive ? "active" : "")">@emoji @kvp.Value</span>
-                    }
-                    @if (!opHasReactions && !Model.Discussion.IsLocked && Model.IsAuthenticated)
-                    {
-                        <span class="hidden group-hover:inline" data-reaction-placeholder>
-                            <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
-                        </span>
-                    }
-                </div>
-            }
-        </div>
-    </header>
-
-    <!-- Locked Thread Banner -->
-    @if (Model.Discussion.IsLocked)
-    {
-        <div class="mb-4">
-            <div class="bg-warning/10 border-l-4 border-warning px-4 py-3 rounded">
-                <div class="flex items-center gap-2">
-                    <span class="icon icon-lock-closed h-5 w-5 text-warning" aria-hidden="true"></span>
-                    <p class="text-sm font-medium text-warning-content">
-                        @T.Pages.DiscLockedBanner
-                    </p>
-                </div>
-            </div>
+            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="badge badge-ghost badge-sm"
+               data-popup-type="space"
+               data-popup-id="@Model.Space?.PublicId"
+               data-popup-name="@Model.Space?.Name">@(Model.Space?.Name ?? Model.SpaceSlug)</a>
         </div>
     }
 
-    @* Type-specific widgets — server-rendered *@
-
-    @if (Model.Discussion.Type == "Question" && Model.QuestionStatus is not null && Model.QuestionStatus.IsSolved)
+    @if (Model.AdultGateState == Snakk.Web.Services.AdultContentState.NeedsPrompt)
     {
-        <div class="type-widget-container">
-            <div class="type-widget-solved">
-                <span>✅ @T.Pages.DiscSolved</span>
-            </div>
-        </div>
+        <partial name="_AdultContentGate" />
     }
-
-    @if (Model.Discussion.Type == "Link" && Model.LinkInfo is not null)
+    else if (Model.AdultGateState == Snakk.Web.Services.AdultContentState.Hidden)
     {
-        var linkDomain = Model.LinkInfo.HasDomain ? Model.LinkInfo.Domain : new Uri(Model.LinkInfo.Url).Host;
-        var linkImageSrc = Model.LinkInfo.HasImagePathUrl ? Model.LinkInfo.ImagePathUrl
-                         : Model.LinkInfo.HasImageUrl ? Model.LinkInfo.ImageUrl
-                         : null;
-        <div class="type-widget-container" id="link-preview-container"
-             data-oembed-html="@Model.LinkInfo.OembedHtml"
-             data-domain="@linkDomain"
-             data-prompt-body="@T.Pages.DiscEmbedPromptBody"
-             data-prompt-yes="@T.Pages.DiscEmbedPromptYes"
-             data-prompt-no="@T.Pages.DiscEmbedPromptNo"
-             data-prompt-remember="@T.Pages.DiscEmbedPromptRemember"
-             data-denied-message="@T.Pages.DiscEmbedDeniedMessage"
-             data-denied-settings="@T.Pages.DiscEmbedDeniedSettings">
-            <div class="link-preview-card">
-                @if (linkImageSrc is not null)
-                {
-                    <div class="link-preview-image"@(Model.LinkInfo.HasBlurDataUri ? $" style=\"--blur:url({Model.LinkInfo.BlurDataUri})\"" : "")>
-                        @if (Model.LinkInfo.HasBlurDataUri)
-                        {
-                            <img src="@Model.LinkInfo.BlurDataUri" alt="" aria-hidden="true" class="link-preview-lqip" />
-                        }
-                        <img src="@linkImageSrc" alt="" class="link-preview-img" loading="lazy" decoding="async" data-blur-up />
-                    </div>
-                }
-                <div class="link-preview-content">
-                    @if (Model.LinkInfo.IsInternal)
-                    {
-                        <a href="@Model.LinkInfo.Url" class="link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
-                    }
-                    else
-                    {
-                        <a href="@Model.LinkInfo.Url" target="_blank" rel="nofollow noopener noreferrer" class="link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
-                    }
-                    @if (Model.LinkInfo.HasDescription)
-                    {
-                        <p class="link-preview-description">@Model.LinkInfo.Description</p>
-                    }
-                    <span class="link-preview-domain">
-                        @if (!Model.LinkInfo.IsInternal)
-                        {
-                            <span class="icon icon-external-link" style="width:12px;height:12px" aria-hidden="true"></span>
-                        }
-                        @(Model.LinkInfo.IsInternal ? T.Pages.DiscInternalLink : linkDomain)
-                    </span>
-                </div>
-            </div>
-        </div>
+        <partial name="_AdultContentHidden" />
     }
-
-    @if (Model.Discussion.Type == "Debate" && Model.DebateInfo is not null)
+    else if (Model.Discussion != null)
     {
-        var debatePositions = Model.DebateInfo.Positions.OrderBy(p => p.Index).ToList();
-        var debateTotalPosts = debatePositions.Sum(p => p.PostCount);
-        var debateColors = new[] { "var(--link-primary)", "var(--text-tertiary)", "oklch(0.6 0.15 50)" };
+    
+        <header class="sn-discussion-header" style="background-image: @SpaceGradient(Model.Space?.PublicId)">
 
-        <div class="type-widget-container">
-            <div class="debate-distribution">
-                @for (var i = 0; i < debatePositions.Count; i++)
-                {
-                    var p = debatePositions[i];
-                    var pct = debateTotalPosts > 0 ? Math.Max((int)Math.Round(p.PostCount * 100.0 / debateTotalPosts), 5) : 33;
-                    <div class="debate-position-bar" style="width:@(pct)%;background:@debateColors[Math.Min(i, debateColors.Length - 1)]"
-                         title="@string.Format(T.Pages.DiscPositionPostsPattern, p.Label, p.PostCount)"></div>
-                }
-            </div>
-            <div class="debate-legend">
-                @for (var i = 0; i < debatePositions.Count; i++)
-                {
-                    var p = debatePositions[i];
-                    <span class="debate-legend-item">
-                        <span class="debate-legend-color" style="background:@debateColors[Math.Min(i, debateColors.Length - 1)]"></span>
-                        @p.Label (@p.PostCount)
-                    </span>
-                }
-            </div>
-        </div>
-    }
+            <!-- Realtime context — JS reads these to subscribe to the correct groups -->
+            <div id="page-context"
+                 data-discussion-id="@Model.Discussion.PublicId"
+                 data-space-id="@Model.Space?.PublicId"
+                 hidden></div>
 
-    @if (Model.Discussion.Type == "Guide")
-    {
-        <div id="guide-toc-container" class="type-widget-container"></div>
-    }
-
-    @* Poll widget — rendered client-side via JS *@
-    @if (Model.Discussion.Type == "Poll")
-    {
-        <div id="poll-container"
-             data-discussion-id="@Model.Discussion.PublicId"
-             data-authenticated="@(Model.IsAuthenticated ? "true" : "false")"
-             class="poll-widget">
-            <div class="poll-skeleton">
-                <div class="poll-skeleton-option"></div>
-                <div class="poll-skeleton-option"></div>
-                <div class="poll-skeleton-option"></div>
-            </div>
-        </div>
-    }
-
-    @* Images — server-rendered outside .prose so layout CSS works *@
-    @if (Model.Discussion.Type == "Images" && Model.ImagesItems.Count > 0)
-    {
-        var layout = Model.ImagesLayout ?? "grid";
-        var isSpoiler = Model.ImagesIsSpoiler;
-
-        // Helpers to pair the chosen source URL with its actual dimensions so <img width/height>
-        // prevents CLS and respects the real aspect ratio of whichever variant is rendered.
-        (string Url, int W, int H) pickOriginal(Snakk.Protos.Discussion.ImagesImageProto img) =>
-            (img.Url, img.Width, img.Height);
-
-        (string Url, int W, int H) pickThumb(Snakk.Protos.Discussion.ImagesImageProto img) =>
-            img.HasThumbnailUrl && img.HasThumbnailWidth && img.HasThumbnailHeight
-                ? (img.ThumbnailUrl, img.ThumbnailWidth, img.ThumbnailHeight)
-                : pickOriginal(img);
-
-        (string Url, int W, int H) pickMedium(Snakk.Protos.Discussion.ImagesImageProto img) =>
-            img.HasMediumThumbnailUrl && img.HasMediumThumbnailWidth && img.HasMediumThumbnailHeight
-                ? (img.MediumThumbnailUrl, img.MediumThumbnailWidth, img.MediumThumbnailHeight)
-                : pickOriginal(img);
-
-        <div class="images-display type-widget-container @(isSpoiler ? "images-spoiler" : "")" data-discussion-id="@Model.Discussion.PublicId">
-            @if (layout == "carousel")
-            {
-                var firstCarouselImg = Model.ImagesItems[0];
-                var (_, firstCarouselW, firstCarouselH) = pickOriginal(firstCarouselImg);
-                var carouselOuterStyle = firstCarouselImg.HasBlurDataUri ? $"--blur-bg: url({firstCarouselImg.BlurDataUri});" : "";
-                var carouselFrameStyle = firstCarouselW > 0 && firstCarouselH > 0
-                    ? $"aspect-ratio: {firstCarouselW} / {firstCarouselH}; max-width: {firstCarouselW}px;"
-                    : "";
-                <div class="images-display-framed" style="@carouselOuterStyle">
-                <div class="gup-carousel" id="images-carousel" style="@carouselFrameStyle">
-                    <div class="gup-carousel-track" id="images-carousel-track">
-                        @for (var i = 0; i < Model.ImagesItems.Count; i++)
-                        {
-                            var img = Model.ImagesItems[i];
-                            var isFirst = i == 0;
-                            var isAdjacent = i == 1;
-                            var (src, w, h) = (isFirst || isAdjacent) ? pickOriginal(img) : pickThumb(img);
-                            var carouselSrcset = (isFirst || isAdjacent) ? SnakkImageHelper.Srcset(img) : null;
-                            var blurStyle = img.HasBlurDataUri
-                                ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center"
-                                : "";
-                            <div class="images-upload-item" data-index="@i" style="@blurStyle">
-                                @if (isSpoiler && img.HasBlurDataUri) {
-                                    <img src="@img.BlurDataUri" data-deferred-src="@src" data-full="@img.Url" width="@w" height="@h" alt=""
-                                         decoding="async" class="images-blur-up" data-blur-up />
-                                } else {
-                                    <img src="@src"
-                                         @if (carouselSrcset != null) { <text>srcset="@carouselSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text> }
-                                         data-full="@img.Url" width="@w" height="@h" alt="" loading="@(isFirst ? "eager" : "lazy")"
-                                         decoding="async" class="images-blur-up" data-blur-up />
-                                }
-                            </div>
-                        }
-                    </div>
-                    @if (Model.ImagesItems.Count > 1)
-                    {
-                        <button type="button" class="gup-carousel-arrow gup-carousel-prev" id="gup-prev"><span class="icon icon-chevron-left" style="width:18px;height:18px" aria-hidden="true"></span></button>
-                        <button type="button" class="gup-carousel-arrow gup-carousel-next" id="gup-next"><span class="icon icon-chevron-right" style="width:18px;height:18px" aria-hidden="true"></span></button>
-                        <span class="gup-carousel-counter" id="images-carousel-counter">1 / @Model.ImagesItems.Count</span>
-                    }
-                </div>
-                </div>
-            }
-            else if (layout == "hero")
-            {
-                <div class="gup-hero">
-                    @{
-                        var heroFirst = Model.ImagesItems[0];
-                        var (heroSrc0, heroW0, heroH0) = pickOriginal(heroFirst);
-                        var heroSrcset = SnakkImageHelper.Srcset(heroFirst);
-                        var heroOuterStyle = heroFirst.HasBlurDataUri ? $"--blur-bg: url({heroFirst.BlurDataUri});" : "";
-                        var heroFrameStyle = heroW0 > 0 && heroH0 > 0
-                            ? $"aspect-ratio: {heroW0} / {heroH0}; max-width: {heroW0}px;"
-                            : "";
-                    }
-                    @* Frame only wraps the first (main) image. The secondary grid
-                       below is unaffected so per-cell blur + grid layout remain intact. *@
-                    <div class="images-display-framed gup-hero-main" style="@heroOuterStyle">
-                        <div class="images-upload-item" style="@heroFrameStyle">
-                            @if (isSpoiler && heroFirst.HasBlurDataUri) {
-                                <img src="@heroFirst.BlurDataUri" data-deferred-src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
-                                     decoding="async" class="images-blur-up" data-blur-up />
-                            } else {
-                                <img src="@heroSrc0"
-                                     @if (heroSrcset != null) { <text>srcset="@heroSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text> }
-                                     data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
-                                     decoding="async" class="images-blur-up" data-blur-up />
-                            }
-                        </div>
-                    </div>
-                    @if (Model.ImagesItems.Count > 1)
-                    {
-                        <div class="gup-hero-grid">
-                            @for (var i = 1; i < Model.ImagesItems.Count; i++)
-                            {
-                                var img = Model.ImagesItems[i];
-                                var (heroSrc, heroW, heroH) = pickThumb(img);
-                                <div class="images-upload-item"
-                                     style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
-                                    @if (isSpoiler && img.HasBlurDataUri) {
-                                        <img src="@img.BlurDataUri" data-deferred-src="@heroSrc" data-full="@img.Url" width="@heroW" height="@heroH" alt=""
-                                             decoding="async" class="images-blur-up" data-blur-up />
-                                    } else {
-                                        <img src="@heroSrc" data-full="@img.Url" width="@heroW" height="@heroH" alt="" loading="lazy"
-                                             decoding="async" class="images-blur-up" data-blur-up />
-                                    }
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            }
-            else if (layout == "compare" && Model.ImagesItems.Count >= 2)
-            {
-                var beforeImg = Model.ImagesItems[0];
-                var afterImg = Model.ImagesItems[1];
-                var (beforeMedium, beforeMW, beforeMH) = pickMedium(beforeImg);
-                var (afterMedium, afterMW, afterMH) = pickMedium(afterImg);
-                var compareOuterStyle = beforeImg.HasBlurDataUri ? $"--blur-bg: url({beforeImg.BlurDataUri});" : "";
-                var compareFrameStyle = beforeMW > 0 && beforeMH > 0
-                    ? $"aspect-ratio: {beforeMW} / {beforeMH}; max-width: {beforeMW}px;"
-                    : "";
-                <div class="images-display-framed" style="@compareOuterStyle">
-                <div class="gup-compare" id="images-compare" style="@compareFrameStyle">
-                    <div class="gup-compare-after images-upload-item"
-                         style="@(afterImg.HasBlurDataUri ? $"background-image:url({afterImg.BlurDataUri});background-size:cover;background-position:center" : "")">
-                        @if (isSpoiler && afterImg.HasBlurDataUri) {
-                            <img src="@afterImg.BlurDataUri" data-deferred-src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="@T.Pages.DiscImgAfter"
-                                 decoding="async" class="images-blur-up" data-blur-up />
-                        } else {
-                            <img src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="@T.Pages.DiscImgAfter"
-                                 decoding="async" class="images-blur-up" data-blur-up />
-                        }
-                        <span class="gup-compare-label gup-compare-label-after">@T.Pages.DiscImgAfter</span>
-                    </div>
-                    <div class="gup-compare-before images-upload-item"
-                         style="@(beforeImg.HasBlurDataUri ? $"background-image:url({beforeImg.BlurDataUri});background-size:cover;background-position:center" : "")">
-                        @if (isSpoiler && beforeImg.HasBlurDataUri) {
-                            <img src="@beforeImg.BlurDataUri" data-deferred-src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="@T.Pages.DiscImgBefore"
-                                 decoding="async" class="images-blur-up" data-blur-up />
-                        } else {
-                            <img src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="@T.Pages.DiscImgBefore"
-                                 decoding="async" class="images-blur-up" data-blur-up />
-                        }
-                        <span class="gup-compare-label gup-compare-label-before">@T.Pages.DiscImgBefore</span>
-                    </div>
-                    <div class="gup-compare-slider" id="images-compare-slider">
-                        <div class="gup-compare-line"></div>
-                        <div class="gup-compare-handle">
-                            <span class="icon icon-chevron-left" style="width:20px;height:20px" aria-hidden="true"></span>
-                            <span class="icon icon-chevron-right" style="width:20px;height:20px" aria-hidden="true"></span>
-                        </div>
-                    </div>
-                    <button type="button" class="gup-compare-expand" id="images-compare-expand"
-                            data-before-url="@beforeImg.Url"
-                            data-after-url="@afterImg.Url"
-                            data-before-blur="@(beforeImg.HasBlurDataUri ? beforeImg.BlurDataUri : "")"
-                            data-after-blur="@(afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "")"
-                            aria-label="@T.Pages.DiscAriaExpandCompare">
-                        <span class="icon icon-expand-fullscreen w-4 h-4" aria-hidden="true"></span>
-                    </button>
-                </div>
-                </div>
-            }
-            else if (Model.ImagesItems.Count == 1)
-            {
-                @* Single image — frame wrapper holds the blur backdrop, inner
-                   item is sized inline to the medium thumbnail's actual
-                   rendered dimensions. Mirrors the frontpage carousel pattern. *@
-                var singleImg = Model.ImagesItems[0];
-                var (singleSrc, singleW, singleH) = pickMedium(singleImg);
-                var singleOuterStyle = singleImg.HasBlurDataUri ? $"--blur-bg: url({singleImg.BlurDataUri});" : "";
-                var singleFrameStyle = singleW > 0 && singleH > 0
-                    ? $"aspect-ratio: {singleW} / {singleH}; max-width: {singleW}px;"
-                    : "";
-                <div class="gup-single images-display-framed" style="@singleOuterStyle">
-                    <div class="images-upload-item gup-single-item" style="@singleFrameStyle">
-                        @if (isSpoiler && singleImg.HasBlurDataUri) {
-                            <img src="@singleImg.BlurDataUri" data-deferred-src="@singleSrc" data-full="@singleImg.Url" width="@singleW" height="@singleH" alt=""
-                                 decoding="async" class="images-blur-up" data-blur-up />
-                        } else {
-                            <img src="@singleSrc" data-full="@singleImg.Url" width="@singleW" height="@singleH" alt=""
-                                 decoding="async" class="images-blur-up" data-blur-up />
-                        }
-                    </div>
-                </div>
-            }
-            else
-            {
-                @* Grid / Masonry / Justified — all use the same item structure *@
-                <div class="gup-@layout">
-                    @for (var i = 0; i < Model.ImagesItems.Count; i++)
-                    {
-                        var img = Model.ImagesItems[i];
-                        var (gridSrc, gridW, gridH) = pickThumb(img);
-                        <div class="images-upload-item"
-                             style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
-                            @if (isSpoiler && img.HasBlurDataUri) {
-                                <img src="@img.BlurDataUri" data-deferred-src="@gridSrc" data-full="@img.Url" width="@gridW" height="@gridH" alt=""
-                                     decoding="async" class="images-blur-up" data-blur-up />
-                            } else {
-                                <img src="@gridSrc" data-full="@img.Url" width="@gridW" height="@gridH" alt="" loading="lazy"
-                                     decoding="async" class="images-blur-up" data-blur-up />
-                            }
-                        </div>
-                    }
-                </div>
-            }
-
-            @if (layout != "compare")
-            {
-                <button type="button" class="images-expand-btn" id="images-expand-btn" aria-label="@T.Pages.DiscAriaViewFullscreen">
-                    <span class="icon icon-expand-fullscreen w-4 h-4" aria-hidden="true"></span>
+            <!-- Jump to Unread Button -->
+            <div id="jump-to-unread" class="hidden fixed bottom-6 right-6 z-30">
+                <button data-action="jump-to-unread" class="btn btn-primary btn-sm">
+                    @T.Pages.DiscJumpToUnread
                 </button>
-            }
-
-            @if (Model.ImagesIsSpoiler)
-            {
-                <div class="images-spoiler-overlay" id="images-spoiler-overlay">
-                    <button type="button" class="images-spoiler-btn" data-action="reveal-spoiler">
-                        <span class="icon icon-eye" style="width:20px;height:20px" aria-hidden="true"></span>
-                        @(Model.ImagesItems.Count != 1 ? T.Pages.DiscRevealImages : T.Pages.DiscRevealImage)
-                    </button>
-                </div>
-            }
-        </div>
-    }
-
-    <!-- Posts Container -->
-                <div id="posts-container" class="flex flex-col">
-        <!-- Load-up sentinel: hidden until entering via #post-N fragment, then shown by JS -->
-        <div id="load-up-sentinel" class="hidden">
-            <div id="load-up-indicator" class="hidden py-4 flex justify-center">
-                <span class="loading loading-spinner loading-sm text-muted"></span>
             </div>
-        </div>
-        @if (Model.Posts != null && Model.Posts.Items.Any())
-        {
-            var postList = Model.Posts.Items.ToList();
-            string? previousAuthorId = null;
-            DateTime? previousCreatedAt = null;
-
-            // For debate discussions: track the last position each author used
-            // so we can render a "position changed" timeline marker above any
-            // post where the author switched sides. Built up incrementally as
-            // we iterate posts in chronological order. Note: this only tracks
-            // positions within the currently-loaded page — switches that
-            // straddle a page boundary won't be detected.
-            var authorLastPosition = new Dictionary<string, int>();
-            var debateColors = new[] { "var(--link-primary)", "var(--text-tertiary)", "oklch(0.6 0.15 50)" };
-            string DebateColorFor(int positionIndex) =>
-                debateColors[Math.Min(positionIndex, debateColors.Length - 1)];
-
-            @for (int i = 0; i < postList.Count; i++)
-            {
-                var post = postList[i];
-                var isFirstInThread = i == 0;
-                var isNecro = post.IsNecro;
-                var nextIsNecro = i < postList.Count - 1 && postList[i + 1].IsNecro;
-                var isSameAuthorAsPrevious = !isNecro && previousAuthorId == post.Author.PublicId && !isFirstInThread;
-                var isOP = post.IsFirstPost;
-                var hasReplyTo = post.ReplyTo != null;
-                var isModerator = post.Author.Role == "mod" || post.Author.Role == "admin";
-                var isLastPost = i == postList.Count - 1;
-                var isOwnPost = Model.CurrentUserId == post.Author.PublicId;
-                var hideReplyQuote = isOwnPost && (isLastPost || isSameAuthorAsPrevious);
-
-                var reactionCounts = post.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
-                var hasReactions = reactionCounts.Any(kvp => kvp.Value > 0);
-                var reactionEmojis = new Dictionary<string, string>
-                {
-                    ["Agree"] = "👍", ["Love"] = "❤️", ["Funny"] = "😂",
-                    ["Thinking"] = "🤔", ["Watching"] = "👀", ["Fire"] = "🔥",
-                    ["Thanks"] = "🙏", ["MindBlown"] = "🤯", ["ShipIt"] = "🚀"
-                };
-                var myReactions = post.Reactions?.UserReactions?.Reactions?.ToList() ?? new List<string>();
-
-                @if (isNecro && previousCreatedAt.HasValue)
-                {
-                    <ul class="timeline timeline-vertical mb-4">
-                        <li>
-                            <hr class="bg-base-content/20" />
-                            <div class="timeline-middle">
-                                <span class="icon icon-clock-solid w-4 h-4 text-base-content/40" aria-hidden="true"></span>
-                            </div>
-                            <div class="timeline-end text-xs font-semibold text-base-content/50 uppercase tracking-wide">
-                                @FormatTimeBetween(previousCreatedAt.Value, post.CreatedAt.ToDateTime())
-                            </div>
-                            <hr class="bg-base-content/20" />
-                        </li>
-                    </ul>
-                }
-                var isJournalEntry = !isOP && Model.JournalInfo?.EntryPostPublicIds?.Contains(post.PublicId) == true;
-                var isAcceptedAnswer = !isOP && Model.QuestionStatus?.HasAcceptedPostPublicId == true && Model.QuestionStatus.AcceptedPostPublicId == post.PublicId;
-                var debatePositionId = Model.DebateInfo?.PostPositions?.ContainsKey(post.PublicId) == true ? (int?)Model.DebateInfo.PostPositions[post.PublicId] : null;
-
-                // Detect a position change for this author, relative to their previous post
-                // in the currently-loaded page. When detected, render a timeline marker above
-                // the current post using the same visual language as the necro marker.
-                Snakk.Protos.Discussion.DebatePositionInfo? debatePos = null;
-                Snakk.Protos.Discussion.DebatePositionInfo? debatePrevPos = null;
-                var isPositionChange = false;
-                if (debatePositionId.HasValue && Model.DebateInfo is not null)
-                {
-                    debatePos = Model.DebateInfo.Positions.FirstOrDefault(p => p.Id == debatePositionId.Value);
-                    if (authorLastPosition.TryGetValue(post.Author.PublicId, out var prevPositionId)
-                        && prevPositionId != debatePositionId.Value)
-                    {
-                        debatePrevPos = Model.DebateInfo.Positions.FirstOrDefault(p => p.Id == prevPositionId);
-                        isPositionChange = true;
-                    }
-                    authorLastPosition[post.Author.PublicId] = debatePositionId.Value;
-                }
-                @if (isPositionChange && debatePrevPos is not null && debatePos is not null)
-                {
-                    <ul class="timeline timeline-vertical timeline-position-change">
-                        <li>
-                            <hr />
-                            <div class="timeline-middle">
-                                <span class="icon icon-exclamation-triangle-solid w-4 h-4" aria-hidden="true"></span>
-                            </div>
-                            <div class="timeline-end text-xs uppercase tracking-wide">
-                                @string.Format(T.Pages.DiscPositionChangePattern, post.Author.DisplayName, debatePrevPos.Label, debatePos.Label)
-                            </div>
-                            <hr />
-                        </li>
-                    </ul>
+                @{
+                    var firstPostItem = Model.Posts?.Items?.FirstOrDefault(p => p.IsFirstPost);
                 }
 
-                <article id="post-@post.PostNumber"
-                         class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "") @(nextIsNecro ? "before-necro" : "") @(isJournalEntry ? "journal-entry" : "") @(isAcceptedAnswer ? "accepted-answer" : "")"
-                         data-author-id="@post.Author.PublicId"
-                         data-post-id="@post.PublicId"
-                         data-post-number="@post.PostNumber"
-                         data-created-at="@post.CreatedAt.ToDateTime().ToString("O")"
-                         role="article"
-                         aria-label="@string.Format(T.Pages.DiscAriaPostBy, post.PostNumber, post.Author.DisplayName)">
-
-                    @if (!isOP)
-                    {
-                    <!-- Left Pane: Avatar + Username -->
-                    <aside class="post-author-pane">
-                        @if (!isSameAuthorAsPrevious)
+                <!-- Author + Time row -->
+                <div class="flex items-center gap-2 text-sm">
+                        @if (firstPostItem != null)
                         {
-                            @if (post.Author.IsDeleted)
+                            @if (!firstPostItem.Author.IsDeleted)
                             {
-                                <div class="post-avatar post-avatar-deleted">
-                                    <span class="icon icon-user h-5 w-5" aria-hidden="true"></span>
-                                </div>
-                                <span class="post-author-name deleted">@post.Author.DisplayName</span>
+                                <img src="@firstPostItem.Author.AvatarThumbnailUrl"
+                                     alt="@firstPostItem.Author.DisplayName"
+                                     width="24" height="24"
+                                     class="rounded-full"
+                                     decoding="async" />
+                                <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.PublicId)"
+                                   class="font-medium hover:underline"
+                                   data-popup-type="user"
+                                   data-popup-id="@firstPostItem.Author.PublicId"
+                                   data-popup-name="@firstPostItem.Author.DisplayName">@firstPostItem.Author.DisplayName</a>
                             }
                             else
                             {
-                                <img src="@post.Author.AvatarThumbnailUrl"
-                                     alt="@post.Author.DisplayName"
-                                     width="48" height="48"
-                                     class="post-avatar"
-                                     decoding="async"
-                                     @(i >= 10 ? "loading=\"lazy\"" : "") />
-                                <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
-                                   class="post-author-name"
-                                   data-popup-type="user"
-                                   data-popup-id="@post.Author.PublicId"
-                                   data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
+                                <span class="deleted">@firstPostItem.Author.DisplayName</span>
                             }
-                            <div class="post-author-badges">
-                                @if (post.Author.Role == "admin")
+                            @if (firstPostItem.Author.Role == "admin")
+                            {
+                                <span class="badge badge-error badge-xs">@T.Pages.DiscBadgeAdmin</span>
+                            }
+                            else if (firstPostItem.Author.Role == "mod")
+                            {
+                                <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
+                            }
+                        }
+                        <span class="discussion-header-sep">·</span>
+                        <time class="discussion-header-time" datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
+                            @FormatRelativeTime(Model.Discussion.CreatedAt.ToDateTime())
+                        </time>
+                        @if (Model.Discussion.IsPinned)
+                        {
+                            <span class="badge badge-primary badge-xs">@T.Pages.DiscBadgePinned</span>
+                        }
+                        @if (Model.Discussion.IsLocked)
+                        {
+                            <span class="badge badge-warning badge-xs">@T.Pages.DiscBadgeLocked</span>
+                        }
+                        <span id="viewer-count" class="badge badge-ghost badge-xs hidden"></span>
+
+                        <!-- Actions — pushed right -->
+                        <div class="flex items-center gap-1 ml-auto">
+                            @if (Model.IsAuthenticated)
+                            {
+                                <div class="dropdown dropdown-end">
+                                    <button tabindex="0" class="btn btn-ghost btn-xs btn-square" aria-label="@T.Pages.DiscAriaDiscussionOptions">
+                                        <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
+                                    </button>
+                                    <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-[100]">
+                                        <li>
+                                            <button id="mute-discussion-btn" data-action="toggle-mute-discussion" data-discussion-id="@Model.Discussion.PublicId" class="text-sm">
+                                                <span class="icon icon-volume-off h-4 w-4" aria-hidden="true"></span>
+                                                <span id="mute-text">@T.Pages.DiscMuteDiscussion</span>
+                                            </button>
+                                        </li>
+                                        @if (firstPostItem != null)
+                                        {
+                                            <li>
+                                                <button hx-get="/api/posts/@firstPostItem.PublicId/history"
+                                                        hx-target="#history-modal-content"
+                                                        hx-swap="innerHTML"
+                                                        data-modal-open="history_modal"
+                                                        class="text-sm">
+                                                    @T.Pages.DiscHistory
+                                                </button>
+                                            </li>
+                                            @if (Model.CurrentUserId == firstPostItem.Author.PublicId)
+                                            {
+                                                <li><button data-action="edit-post" data-post-id="@firstPostItem.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
+                                                <li>
+                                                    <button hx-delete="/api/posts/@firstPostItem.PublicId?userId=@Model.CurrentUserId"
+                                                            hx-target="#post-@firstPostItem.PostNumber"
+                                                            hx-swap="outerHTML"
+                                                            hx-confirm="@T.Pages.DiscDeleteConfirm"
+                                                            class="text-sm text-error">
+                                                        @T.Pages.DiscDelete
+                                                    </button>
+                                                </li>
+                                            }
+                                            @if (Model.CurrentUserId != firstPostItem.Author.PublicId)
+                                            {
+                                                <li>
+                                                    <button data-action="open-report-modal" data-report-type="post" data-report-id="@firstPostItem.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="text-sm text-error">
+                                                        @T.Pages.DiscReportPost
+                                                    </button>
+                                                </li>
+                                            }
+                                        }
+                                        <li>
+                                            <button data-action="open-report-modal" data-report-type="discussion" data-report-id="@Model.Discussion.PublicId" data-report-label="@Model.Discussion.Title" class="text-sm text-error">
+                                                <span class="icon icon-exclamation-triangle h-4 w-4" aria-hidden="true"></span>
+                                                @T.Pages.DiscReportDiscussion
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Title + OP reactions -->
+                    <div class="flex items-start justify-between gap-4">
+                        <h1 class="text-xl font-bold">@Model.Discussion.Title</h1>
+                        @if (firstPostItem != null)
+                        {
+                            var opReactionCounts = firstPostItem.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
+                            var opHasReactions = opReactionCounts.Any(kvp => kvp.Value > 0);
+                            var opMyReactions = (firstPostItem.Reactions?.UserReactions?.Reactions ?? Enumerable.Empty<string>()).ToList();
+                            var opUserHasReacted = opMyReactions.Any();
+                            var opReactionEmojis = new Dictionary<string, string>
+                            {
+                                ["Agree"] = "👍",
+                                ["Love"] = "❤️",
+                                ["Funny"] = "😂",
+                                ["Thinking"] = "🤔",
+                                ["Watching"] = "👀",
+                                ["Fire"] = "🔥",
+                                ["Thanks"] = "🙏",
+                                ["MindBlown"] = "🤯",
+                                ["ShipIt"] = "🚀"
+                            };
+                            @if (opHasReactions || Model.IsAuthenticated)
+                            {
+                                <div class="sn-reaction-badge shrink-0 @(Model.IsAuthenticated && !Model.Discussion.IsLocked ? "cursor-pointer" : "")"
+                                    @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
+                                    {
+                                        <text>data-action="toggle-reaction-picker" data-post-id="@firstPostItem.PublicId"</text>
+                                    }
+                                     aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
+                                    @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
+                                    {
+                                        @if (!opHasReactions)
+                                        {
+                                            <span class="icon icon-plus-circle h-4 w-4" aria-hidden="true"></span>
+                                            <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
+                                        }
+                                        else if (opUserHasReacted)
+                                        {
+                                            <span class="icon icon-refresh h-4 w-4" aria-hidden="true"></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="icon icon-plus-circle h-4 w-4" aria-hidden="true"></span>
+                                        }
+                                    }
+                                    <div id="reactions-@firstPostItem.PublicId"
+                                         class="flex items-center gap-1"
+                                         data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(opReactionCounts.ToDictionary(k => k.Key, k => k.Value))"
+                                         data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(opMyReactions)">
+                                        @foreach (var kvp in opReactionCounts.Where(c => c.Value > 0))
+                                        {
+                                            var emoji = opReactionEmojis.GetValueOrDefault(kvp.Key, "?");
+                                            var isActive = opMyReactions.Contains(kvp.Key);
+                                            <span data-type="@kvp.Key" class="@(isActive ? "active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </div>
+
+                @* Type-specific widgets — server-rendered *@
+
+                @if (Model.Discussion.Type == "Question" && Model.QuestionStatus is not null && Model.QuestionStatus.IsSolved)
+                {
+                    <div class="type-widget-container">
+                        <div class="type-widget-solved">
+                            <span>✅ @T.Pages.DiscSolved</span>
+                        </div>
+                    </div>
+                }
+
+                @if (Model.Discussion.Type == "Link" && Model.LinkInfo is not null)
+                {
+                    var linkDomain = Model.LinkInfo.HasDomain ? Model.LinkInfo.Domain : new Uri(Model.LinkInfo.Url).Host;
+                    var linkImageSrc = Model.LinkInfo.HasImagePathUrl ? Model.LinkInfo.ImagePathUrl
+                                     : Model.LinkInfo.HasImageUrl ? Model.LinkInfo.ImageUrl
+                                     : null;
+                    <div class="type-widget-container" id="link-preview-container"
+                         data-oembed-html="@Model.LinkInfo.OembedHtml"
+                         data-domain="@linkDomain"
+                         data-prompt-body="@T.Pages.DiscEmbedPromptBody"
+                         data-prompt-yes="@T.Pages.DiscEmbedPromptYes"
+                         data-prompt-no="@T.Pages.DiscEmbedPromptNo"
+                         data-prompt-remember="@T.Pages.DiscEmbedPromptRemember"
+                         data-denied-message="@T.Pages.DiscEmbedDeniedMessage"
+                         data-denied-settings="@T.Pages.DiscEmbedDeniedSettings">
+                        <div class="link-preview-card">
+                            @if (linkImageSrc is not null)
+                            {
+                                var linkBlur = Model.LinkInfo.HasBlurDataUri ? Model.LinkInfo.BlurDataUri : null;
+                                var hasSize = Model.LinkInfo.HasImageWidth && Model.LinkInfo.ImageWidth > 0;
+                                var frameStyle = hasSize
+                                    ? $"aspect-ratio: {Model.LinkInfo.ImageWidth} / {Model.LinkInfo.ImageHeight}; max-width: {Model.LinkInfo.ImageWidth}px;"
+                                    : "";
+                                <div class="sn-images-preview link-preview-banner" style="--blur-bg:url(@(linkBlur ?? linkImageSrc))">
+                                    <div class="sn-images-frame"@(frameStyle != "" ? $" style=\"{frameStyle}\"" : "")>
+                                        <div class="sn-images-slide-wrapper" style="--blur:url(@(linkBlur ?? linkImageSrc))">
+                                            <img src="@linkImageSrc" alt="" class="sn-images-slide" loading="lazy" decoding="async" data-blur-up />
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            <div class="link-preview-content">
+                                @if (Model.LinkInfo.IsInternal)
                                 {
-                                    <span class="badge badge-error badge-xs">@T.Pages.DiscBadgeAdmin</span>
+                                    <a href="@Model.LinkInfo.Url" class="link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
                                 }
-                                else if (post.Author.Role == "mod")
+                                else
                                 {
-                                    <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
+                                    <a href="@Model.LinkInfo.Url" target="_blank" rel="nofollow noopener noreferrer" class="link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
                                 }
-                                @if (post.IsOp)
+                                @if (Model.LinkInfo.HasDescription)
                                 {
-                                    <span class="badge badge-primary badge-xs post-badge-op">@T.Pages.DiscBadgeOp</span>
+                                    <p class="link-preview-description">@Model.LinkInfo.Description</p>
                                 }
-                                @if (post.IsUsersFirstPostInSpace)
-                                {
-                                    <span class="badge badge-success badge-xs post-badge-new">@T.Pages.DiscBadgeNew</span>
+                                <span class="link-preview-domain">
+                                    @if (!Model.LinkInfo.IsInternal)
+                                    {
+                                        <span class="icon icon-external-link" style="width:12px;height:12px" aria-hidden="true"></span>
+                                    }
+                                    @(Model.LinkInfo.IsInternal ? T.Pages.DiscInternalLink : linkDomain)
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @if (Model.Discussion.Type == "Debate" && Model.DebateInfo is not null)
+                {
+                    var debatePositions = Model.DebateInfo.Positions.OrderBy(p => p.Index).ToList();
+                    var debateTotalPosts = debatePositions.Sum(p => p.PostCount);
+                    var debateColors = new[] { "var(--link-primary)", "oklch(0.6 0.18 15)", "oklch(0.6 0.15 50)" };
+
+                    <div class="type-widget-container">
+                        <div class="debate-distribution">
+                            @for (var i = 0; i < debatePositions.Count; i++)
+                            {
+                                var p = debatePositions[i];
+                                var pct = debateTotalPosts > 0 ? Math.Max((int)Math.Round(p.PostCount * 100.0 / debateTotalPosts), 5) : 100 / debatePositions.Count;
+                                <div class="debate-position-bar" style="width:@(pct)%;background:@debateColors[Math.Min(i, debateColors.Length - 1)]"
+                                     title="@string.Format(T.Pages.DiscPositionPostsPattern, p.Label, p.PostCount)"></div>
+                            }
+                        </div>
+                        <div class="debate-legend">
+                            @for (var i = 0; i < debatePositions.Count; i++)
+                            {
+                                var p = debatePositions[i];
+                                <span class="debate-legend-item">
+                                    <span class="debate-legend-color" style="background:@debateColors[Math.Min(i, debateColors.Length - 1)]"></span>
+                                    @p.Label (@p.PostCount)
+                                </span>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (Model.Discussion.Type == "Guide")
+                {
+                    <div id="guide-toc-container" class="type-widget-container"></div>
+                }
+
+                @* Poll widget — rendered client-side via JS *@
+                @if (Model.Discussion.Type == "Poll")
+                {
+                    <div id="poll-container"
+                         data-discussion-id="@Model.Discussion.PublicId"
+                         data-authenticated="@(Model.IsAuthenticated ? "true" : "false")"
+                         class="poll-widget">
+                        <div class="poll-skeleton">
+                            <div class="poll-skeleton-option"></div>
+                            <div class="poll-skeleton-option"></div>
+                            <div class="poll-skeleton-option"></div>
+                        </div>
+                    </div>
+                }
+
+                @* Images — server-rendered outside .prose so layout CSS works *@
+                @if (Model.Discussion.Type == "Images" && Model.ImagesItems.Count > 0)
+                {
+                    var layout = Model.ImagesLayout ?? "grid";
+                    var isSpoiler = Model.ImagesIsSpoiler;
+
+                    // Helpers to pair the chosen source URL with its actual dimensions so <img width/height>
+                    // prevents CLS and respects the real aspect ratio of whichever variant is rendered.
+                    (string Url, int W, int H) pickOriginal(Snakk.Protos.Discussion.ImagesImageProto img) =>
+                        (img.Url, img.Width, img.Height);
+
+                    (string Url, int W, int H) pickThumb(Snakk.Protos.Discussion.ImagesImageProto img) =>
+                        img.HasThumbnailUrl && img.HasThumbnailWidth && img.HasThumbnailHeight
+                            ? (img.ThumbnailUrl, img.ThumbnailWidth, img.ThumbnailHeight)
+                            : pickOriginal(img);
+
+                    (string Url, int W, int H) pickMedium(Snakk.Protos.Discussion.ImagesImageProto img) =>
+                        img.HasMediumThumbnailUrl && img.HasMediumThumbnailWidth && img.HasMediumThumbnailHeight
+                            ? (img.MediumThumbnailUrl, img.MediumThumbnailWidth, img.MediumThumbnailHeight)
+                            : pickOriginal(img);
+
+                    <div class="images-display type-widget-container @(isSpoiler ? "images-spoiler" : "")" data-discussion-id="@Model.Discussion.PublicId">
+                        @if (layout == "carousel")
+                        {
+                            var firstCarouselImg = Model.ImagesItems[0];
+                            var (_, firstCarouselW, firstCarouselH) = pickOriginal(firstCarouselImg);
+                            var carouselOuterStyle = firstCarouselImg.HasBlurDataUri ? $"--blur-bg: url({firstCarouselImg.BlurDataUri});" : "";
+                            var carouselFrameStyle = firstCarouselW > 0 && firstCarouselH > 0
+                                ? $"aspect-ratio: {firstCarouselW} / {firstCarouselH}; max-width: {firstCarouselW}px;"
+                                : "";
+                            <div class="images-display-framed" style="@carouselOuterStyle">
+                                <div class="gup-carousel" id="images-carousel" style="@carouselFrameStyle">
+                                    <div class="gup-carousel-track" id="images-carousel-track">
+                                        @for (var i = 0; i < Model.ImagesItems.Count; i++)
+                                        {
+                                            var img = Model.ImagesItems[i];
+                                            var isFirst = i == 0;
+                                            var isAdjacent = i == 1;
+                                            var (src, w, h) = (isFirst || isAdjacent) ? pickOriginal(img) : pickThumb(img);
+                                            var carouselSrcset = (isFirst || isAdjacent) ? SnakkImageHelper.Srcset(img) : null;
+                                            var blurStyle = img.HasBlurDataUri
+                                                ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center"
+                                                : "";
+                                            <div class="images-upload-item" data-index="@i" style="@blurStyle">
+                                                @if (isSpoiler && img.HasBlurDataUri)
+                                                {
+                                                    <img src="@img.BlurDataUri" data-deferred-src="@src" data-full="@img.Url" width="@w" height="@h" alt=""
+                                                         decoding="async" class="images-blur-up" data-blur-up />
+                                                }
+                                                else
+                                                {
+                                                    <img src="@src"
+                                                    @if (carouselSrcset != null)
+                                                    {
+                                                        <text>srcset="@carouselSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text>
+                                                    }
+                                                         data-full="@img.Url" width="@w" height="@h" alt="" loading="@(isFirst ? "eager" : "lazy")"
+                                                         decoding="async" class="images-blur-up" data-blur-up />
+                                                }
+                                            </div>
+                                        }
+                                    </div>
+                                    @if (Model.ImagesItems.Count > 1)
+                                    {
+                                        <button type="button" class="gup-carousel-arrow gup-carousel-prev" id="gup-prev"><span class="icon icon-chevron-left" style="width:18px;height:18px" aria-hidden="true"></span></button>
+                                        <button type="button" class="gup-carousel-arrow gup-carousel-next" id="gup-next"><span class="icon icon-chevron-right" style="width:18px;height:18px" aria-hidden="true"></span></button>
+                                        <span class="gup-carousel-counter" id="images-carousel-counter">1 / @Model.ImagesItems.Count</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                        else if (layout == "hero")
+                        {
+                            <div class="gup-hero">
+                                @{
+                                    var heroFirst = Model.ImagesItems[0];
+                                    var (heroSrc0, heroW0, heroH0) = pickOriginal(heroFirst);
+                                    var heroSrcset = SnakkImageHelper.Srcset(heroFirst);
+                                    var heroOuterStyle = heroFirst.HasBlurDataUri ? $"--blur-bg: url({heroFirst.BlurDataUri});" : "";
+                                    var heroFrameStyle = heroW0 > 0 && heroH0 > 0
+                                        ? $"aspect-ratio: {heroW0} / {heroH0}; max-width: {heroW0}px;"
+                                        : "";
                                 }
-                                @if (post.IsMilestone)
+                                @* Frame only wraps the first (main) image. The secondary grid
+                       below is unaffected so per-cell blur + grid layout remain intact. *@
+                                <div class="images-display-framed gup-hero-main" style="@heroOuterStyle">
+                                    <div class="images-upload-item" style="@heroFrameStyle">
+                                        @if (isSpoiler && heroFirst.HasBlurDataUri)
+                                        {
+                                            <img src="@heroFirst.BlurDataUri" data-deferred-src="@heroSrc0" data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
+                                                 decoding="async" class="images-blur-up" data-blur-up />
+                                        }
+                                        else
+                                        {
+                                            <img src="@heroSrc0"
+                                            @if (heroSrcset != null)
+                                            {
+                                                <text>srcset="@heroSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text>
+                                            }
+                                                 data-full="@heroFirst.Url" width="@heroW0" height="@heroH0" alt=""
+                                                 decoding="async" class="images-blur-up" data-blur-up />
+                                        }
+                                    </div>
+                                </div>
+                                @if (Model.ImagesItems.Count > 1)
                                 {
-                                    <span class="badge badge-warning badge-xs post-badge-milestone" title="@T.Pages.DiscBadgeMilestone">&#9733;</span>
+                                    <div class="gup-hero-grid">
+                                        @for (var i = 1; i < Model.ImagesItems.Count; i++)
+                                        {
+                                            var img = Model.ImagesItems[i];
+                                            var (heroSrc, heroW, heroH) = pickThumb(img);
+                                            <div class="images-upload-item"
+                                                 style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
+                                                @if (isSpoiler && img.HasBlurDataUri)
+                                                {
+                                                    <img src="@img.BlurDataUri" data-deferred-src="@heroSrc" data-full="@img.Url" width="@heroW" height="@heroH" alt=""
+                                                         decoding="async" class="images-blur-up" data-blur-up />
+                                                }
+                                                else
+                                                {
+                                                    <img src="@heroSrc" data-full="@img.Url" width="@heroW" height="@heroH" alt="" loading="lazy"
+                                                         decoding="async" class="images-blur-up" data-blur-up />
+                                                }
+                                            </div>
+                                        }
+                                    </div>
                                 }
                             </div>
                         }
-                    </aside>
-                    }
-
-                    <!-- Right Pane: Toolbar + Content -->
-                    <div class="post-main">
-                        <!-- Post Toolbar (hidden for first post — actions moved to header) -->
-                        @if (!isOP)
+                        else if (layout == "compare" && Model.ImagesItems.Count >= 2)
                         {
-                        <div class="post-toolbar">
-                            <div class="post-toolbar-left">
-                                @if (isJournalEntry)
-                                {
-                                    <span class="journal-entry-badge">@T.Pages.DiscJournalUpdate</span>
-                                }
-                                @if (isAcceptedAnswer)
-                                {
-                                    <span class="accepted-answer-badge">@T.Pages.DiscAcceptedAnswer</span>
-                                }
-                                @if (debatePos is not null)
-                                {
-                                    <span class="debate-position-badge" style="--badge-color:@DebateColorFor(debatePos.Index)">@debatePos.Label</span>
-                                }
-                                @if (!isOP)
-                                {
-                                    @if (isSameAuthorAsPrevious)
+                            var beforeImg = Model.ImagesItems[0];
+                            var afterImg = Model.ImagesItems[1];
+                            var (beforeMedium, beforeMW, beforeMH) = pickMedium(beforeImg);
+                            var (afterMedium, afterMW, afterMH) = pickMedium(afterImg);
+                            var compareOuterStyle = beforeImg.HasBlurDataUri ? $"--blur-bg: url({beforeImg.BlurDataUri});" : "";
+                            var compareFrameStyle = beforeMW > 0 && beforeMH > 0
+                                ? $"aspect-ratio: {beforeMW} / {beforeMH}; max-width: {beforeMW}px;"
+                                : "";
+                            <div class="images-display-framed" style="@compareOuterStyle">
+                                <div class="gup-compare" id="images-compare" style="@compareFrameStyle">
+                                    <div class="gup-compare-after images-upload-item"
+                                         style="@(afterImg.HasBlurDataUri ? $"background-image:url({afterImg.BlurDataUri});background-size:cover;background-position:center" : "")">
+                                        @if (isSpoiler && afterImg.HasBlurDataUri)
+                                        {
+                                            <img src="@afterImg.BlurDataUri" data-deferred-src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="@T.Pages.DiscImgAfter"
+                                                 decoding="async" class="images-blur-up" data-blur-up />
+                                        }
+                                        else
+                                        {
+                                            <img src="@afterMedium" data-full="@afterImg.Url" width="@afterMW" height="@afterMH" alt="@T.Pages.DiscImgAfter"
+                                                 decoding="async" class="images-blur-up" data-blur-up />
+                                        }
+                                        <span class="gup-compare-label gup-compare-label-after">@T.Pages.DiscImgAfter</span>
+                                    </div>
+                                    <div class="gup-compare-before images-upload-item"
+                                         style="@(beforeImg.HasBlurDataUri ? $"background-image:url({beforeImg.BlurDataUri});background-size:cover;background-position:center" : "")">
+                                        @if (isSpoiler && beforeImg.HasBlurDataUri)
+                                        {
+                                            <img src="@beforeImg.BlurDataUri" data-deferred-src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="@T.Pages.DiscImgBefore"
+                                                 decoding="async" class="images-blur-up" data-blur-up />
+                                        }
+                                        else
+                                        {
+                                            <img src="@beforeMedium" data-full="@beforeImg.Url" width="@beforeMW" height="@beforeMH" alt="@T.Pages.DiscImgBefore"
+                                                 decoding="async" class="images-blur-up" data-blur-up />
+                                        }
+                                        <span class="gup-compare-label gup-compare-label-before">@T.Pages.DiscImgBefore</span>
+                                    </div>
+                                    <div class="gup-compare-slider" id="images-compare-slider">
+                                        <div class="gup-compare-line"></div>
+                                        <div class="gup-compare-handle">
+                                            <span class="icon icon-chevron-left" style="width:20px;height:20px" aria-hidden="true"></span>
+                                            <span class="icon icon-chevron-right" style="width:20px;height:20px" aria-hidden="true"></span>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="gup-compare-expand" id="images-compare-expand"
+                                            data-before-url="@beforeImg.Url"
+                                            data-after-url="@afterImg.Url"
+                                            data-before-blur="@(beforeImg.HasBlurDataUri ? beforeImg.BlurDataUri : "")"
+                                            data-after-blur="@(afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "")"
+                                            aria-label="@T.Pages.DiscAriaExpandCompare">
+                                        <span class="icon icon-expand-fullscreen w-4 h-4" aria-hidden="true"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        }
+                        else if (Model.ImagesItems.Count == 1)
+                        {
+                            @* Single image — frame wrapper holds the blur backdrop, inner
+                   item is sized inline to the medium thumbnail's actual
+                   rendered dimensions. Mirrors the frontpage carousel pattern. *@
+                            var singleImg = Model.ImagesItems[0];
+                            var (singleSrc, singleW, singleH) = pickMedium(singleImg);
+                            var singleOuterStyle = singleImg.HasBlurDataUri ? $"--blur-bg: url({singleImg.BlurDataUri});" : "";
+                            var singleFrameStyle = singleW > 0 && singleH > 0
+                                ? $"aspect-ratio: {singleW} / {singleH}; max-width: {singleW}px;"
+                                : "";
+                            <div class="gup-single images-display-framed" style="@singleOuterStyle">
+                                <div class="images-upload-item gup-single-item" style="@singleFrameStyle">
+                                    @if (isSpoiler && singleImg.HasBlurDataUri)
                                     {
-                                        <span class="post-author-inline hidden">
-                                            @if (post.Author.IsDeleted)
-                                            {
-                                                <span class="deleted">@post.Author.DisplayName</span>
-                                            }
-                                            else
-                                            {
-                                                <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
-                                                   data-popup-type="user"
-                                                   data-popup-id="@post.Author.PublicId"
-                                                   data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
-                                            }
-                                        </span>
+                                        <img src="@singleImg.BlurDataUri" data-deferred-src="@singleSrc" data-full="@singleImg.Url" width="@singleW" height="@singleH" alt=""
+                                             decoding="async" class="images-blur-up" data-blur-up />
                                     }
                                     else
                                     {
-                                        <span class="post-author-inline">
-                                            @if (post.Author.IsDeleted)
-                                            {
-                                                <span class="deleted">@post.Author.DisplayName</span>
-                                            }
-                                            else
-                                            {
-                                                <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
-                                                   data-popup-type="user"
-                                                   data-popup-id="@post.Author.PublicId"
-                                                   data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
-                                            }
-                                        </span>
+                                        <img src="@singleSrc" data-full="@singleImg.Url" width="@singleW" height="@singleH" alt=""
+                                             decoding="async" class="images-blur-up" data-blur-up />
                                     }
-                                }
-                                <span class="post-time">
-                                    <time data-timestamp="@post.CreatedAt.ToDateTime().ToString("O")">@Model.FormatRelativeTime(post.CreatedAt.ToDateTime())</time>@if (post.EditedAt != null)
-                                    {
-                                        <span class="post-edited"> @T.Pages.DiscEdited</span>
-                                    }
-                                </span>
+                                </div>
                             </div>
-                            <div class="post-toolbar-right">
-                                @if (!isOP && !Model.Discussion.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
+                        }
+                        else
+                        {
+                            @* Grid / Masonry / Justified — all use the same item structure *@
+                            <div class="gup-@layout">
+                                @for (var i = 0; i < Model.ImagesItems.Count; i++)
                                 {
-                                    <div class="hidden group-hover:flex items-center gap-1">
-                                    <button data-action="reply-to-post"
-                                            data-post-id="@post.PublicId"
-                                            data-author-name="@post.Author.DisplayName"
-                                            class="subtle-btn"
-                                            aria-label="@string.Format(T.Pages.DiscAriaReplyTo, post.Author.DisplayName)">
-                                        <span class="icon icon-reply h-4 w-4" aria-hidden="true"></span>
-                                        @T.Pages.DiscReply
-                                    </button>
-                                    <button data-action="quote-post"
-                                            data-post-id="@post.PublicId"
-                                            data-content="@post.Content"
-                                            data-author-name="@post.Author.DisplayName"
-                                            class="subtle-btn"
-                                            aria-label="@string.Format(T.Pages.DiscAriaQuotePost, post.Author.DisplayName)">
-                                        <span class="icon icon-chat-square h-4 w-4" aria-hidden="true"></span>
-                                        @T.Pages.DiscQuote
-                                    </button>
+                                    var img = Model.ImagesItems[i];
+                                    var (gridSrc, gridW, gridH) = pickThumb(img);
+                                    <div class="images-upload-item"
+                                         style="@(img.HasBlurDataUri ? $"background-image:url({img.BlurDataUri});background-size:cover;background-position:center" : "")">
+                                        @if (isSpoiler && img.HasBlurDataUri)
+                                        {
+                                            <img src="@img.BlurDataUri" data-deferred-src="@gridSrc" data-full="@img.Url" width="@gridW" height="@gridH" alt=""
+                                                 decoding="async" class="images-blur-up" data-blur-up />
+                                        }
+                                        else
+                                        {
+                                            <img src="@gridSrc" data-full="@img.Url" width="@gridW" height="@gridH" alt="" loading="lazy"
+                                                 decoding="async" class="images-blur-up" data-blur-up />
+                                        }
                                     </div>
                                 }
-                                <div class="flex items-center gap-2 text-base text-muted @(Model.IsAuthenticated && !Model.Discussion.IsLocked ? "cursor-pointer" : "")"
-                                     id="reactions-@post.PublicId"
-                                     data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(reactionCounts.ToDictionary(k => k.Key, k => k.Value))"
-                                     data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(myReactions)"
-                                     @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
-                                     {
-                                         <text>data-action="toggle-reaction-picker" data-post-id="@post.PublicId"</text>
-                                     }
-                                     aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
-                                    @foreach (var kvp in reactionCounts.Where(c => c.Value > 0))
-                                    {
-                                        var emoji = reactionEmojis.GetValueOrDefault(kvp.Key, "?");
-                                        var isActive = myReactions.Contains(kvp.Key);
-                                        <span data-type="@kvp.Key" class="@(isActive ? "active" : "")">@emoji @kvp.Value</span>
-                                    }
-                                    @if (!hasReactions && !Model.Discussion.IsLocked && Model.IsAuthenticated)
-                                    {
-                                        <span class="hidden group-hover:inline" data-reaction-placeholder>
-                                            <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
-                                        </span>
-                                    }
-                                </div>
-                                @if (!isOP && Model.IsAuthenticated)
-                                {
-                                <div class="dropdown dropdown-end">
-                                    <button tabindex="0" class="subtle-btn" aria-label="@T.Pages.DiscAriaPostOptions">
-                                        <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
-                                    </button>
-                                    <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
-                                        <li>
-                                            <button hx-get="/api/posts/@post.PublicId/history"
-                                                    hx-target="#history-modal-content"
-                                                    hx-swap="innerHTML"
-                                                    data-modal-open="history_modal"
-                                                    class="text-sm">
-                                                @T.Pages.DiscHistory
-                                            </button>
-                                        </li>
-                                        <li>
-                                            <button type="button"
-                                                    data-action="toggle-save-post"
-                                                    data-post-id="@post.PublicId"
-                                                    data-saved="false"
-                                                    aria-pressed="false"
-                                                    title="@T.Pages.DiscSaveTitle"
-                                                    class="text-sm post-save-btn">
-                                                <span class="icon icon-bookmark-alt h-4 w-4" aria-hidden="true"></span>
-                                                @T.Pages.DiscSavePost
-                                            </button>
-                                        </li>
-                                        @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
-                                        {
-                                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
-                                            <li>
-                                                <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
-                                                        hx-target="#post-@post.PublicId"
-                                                        hx-swap="outerHTML"
-                                                        hx-confirm="@T.Pages.DiscDeleteConfirm"
-                                                        class="text-sm text-error">
-                                                    @T.Pages.DiscDelete
-                                                </button>
-                                            </li>
-                                        }
-                                        @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
-                                        {
-                                            <li>
-                                                <button data-action="hide-posts-from-user" data-author-id="@post.Author.PublicId" data-author-name="@post.Author.DisplayName" class="text-sm">
-                                                    @T.Pages.DiscHideFromUser
-                                                </button>
-                                            </li>
-                                            <li>
-                                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="text-sm text-error">
-                                                    @T.Pages.DiscReportPost
-                                                </button>
-                                            </li>
-                                        }
-                                    </ul>
-                                </div>
-                                }
                             </div>
-                        </div>
                         }
 
-                        <!-- Reply-to Quote Block -->
-                        @if (hasReplyTo)
+                        @if (layout != "compare")
                         {
-                            <div class="editorial-quote block mb-4 text-sm">
-                                <span class="quote-author">@string.Format(T.Pages.DiscQuoteWrotePattern, post.ReplyTo!.AuthorName)</span>
-                                <p class="line-clamp-2 mt-1">@post.ReplyTo!.ContentSnippet</p>
-                            </div>
+                            <button type="button" class="images-expand-btn" id="images-expand-btn" aria-label="@T.Pages.DiscAriaViewFullscreen">
+                                <span class="icon icon-expand-fullscreen w-4 h-4" aria-hidden="true"></span>
+                            </button>
                         }
 
-                        <!-- Post Content -->
-                        <div id="post-content-@post.PublicId"
-                            class="prose prose-content flex flex-col gap-4 leading-6"
-                             data-author-name="@post.Author.DisplayName">
-                            @Html.SanitizedRaw(post.RenderedContent)
+                        @if (Model.ImagesIsSpoiler)
+                        {
+                            <div class="images-spoiler-overlay" id="images-spoiler-overlay">
+                                <button type="button" class="images-spoiler-btn" data-action="reveal-spoiler">
+                                    <span class="icon icon-eye" style="width:20px;height:20px" aria-hidden="true"></span>
+                                    @(Model.ImagesItems.Count != 1 ? T.Pages.DiscRevealImages : T.Pages.DiscRevealImage)
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </header>
+        <div class="sn-center-inner">
+
+
+            <!-- Locked Thread Banner -->
+            @if (Model.Discussion.IsLocked)
+            {
+                <div class="mb-4">
+                    <div class="bg-warning/10 border-l-4 border-warning px-4 py-3 rounded">
+                        <div class="flex items-center gap-2">
+                            <span class="icon icon-lock-closed h-5 w-5 text-warning" aria-hidden="true"></span>
+                            <p class="text-sm font-medium text-warning-content">
+                                @T.Pages.DiscLockedBanner
+                            </p>
                         </div>
                     </div>
-
-                </article>
-
-                previousAuthorId = post.Author.PublicId;
-                previousCreatedAt = post.CreatedAt.ToDateTime();
+                </div>
             }
 
-            <!-- Endless scroll sentinel -->
-            <div id="scroll-sentinel" class="h-4"></div>
-            <div id="loading-indicator" class="hidden">
-                <!-- Skeleton loaders -->
-                <div class="skeleton-post post-layout">
-                    <aside class="post-author-pane">
-                        <div class="skeleton w-12 h-12 rounded-full"></div>
-                        <div class="skeleton h-3 w-16 mt-2"></div>
-                    </aside>
-                    <div class="post-main">
-                        <div class="skeleton skeleton-line skeleton-width-30"></div>
-                        <div class="skeleton skeleton-line mt-3"></div>
-                        <div class="skeleton skeleton-line"></div>
-                        <div class="skeleton skeleton-line short"></div>
+            
+
+            <!-- Posts Container -->
+            <div id="posts-container" class="flex flex-col">
+                <!-- Load-up sentinel: hidden until entering via #post-N fragment, then shown by JS -->
+                <div id="load-up-sentinel" class="hidden">
+                    <div id="load-up-indicator" class="hidden py-4 flex justify-center">
+                        <span class="loading loading-spinner loading-sm text-muted"></span>
                     </div>
                 </div>
-                <div class="skeleton-post post-layout">
-                    <aside class="post-author-pane">
-                        <div class="skeleton w-12 h-12 rounded-full"></div>
-                        <div class="skeleton h-3 w-14 mt-2"></div>
-                    </aside>
-                    <div class="post-main">
-                        <div class="skeleton skeleton-line skeleton-width-25"></div>
-                        <div class="skeleton skeleton-line mt-3"></div>
-                        <div class="skeleton skeleton-line short"></div>
+                @if (Model.Posts != null && Model.Posts.Items.Any())
+                {
+                    var postList = Model.Posts.Items.ToList();
+                    string? previousAuthorId = null;
+                    DateTime? previousCreatedAt = null;
+
+                    // For debate discussions: track the last position each author used
+                    // so we can render a "position changed" timeline marker above any
+                    // post where the author switched sides. Built up incrementally as
+                    // we iterate posts in chronological order. Note: this only tracks
+                    // positions within the currently-loaded page — switches that
+                    // straddle a page boundary won't be detected.
+                    var authorLastPosition = new Dictionary<string, int>();
+                    var debateColors = new[] { "var(--link-primary)", "oklch(0.6 0.18 15)", "oklch(0.6 0.15 50)" };
+                    string DebateColorFor(int positionIndex) =>
+                        debateColors[Math.Min(positionIndex, debateColors.Length - 1)];
+
+                    @for (int i = 0; i < postList.Count; i++)
+                    {
+                        var post = postList[i];
+                        var isFirstInThread = i == 0;
+                        var isNecro = post.IsNecro;
+                        var nextIsNecro = i < postList.Count - 1 && postList[i + 1].IsNecro;
+                        var isSameAuthorAsPrevious = !isNecro && previousAuthorId == post.Author.PublicId && !isFirstInThread;
+                        var isOP = post.IsFirstPost;
+                        var hasReplyTo = post.ReplyTo != null;
+                        var isModerator = post.Author.Role == "mod" || post.Author.Role == "admin";
+                        var isLastPost = i == postList.Count - 1;
+                        var isOwnPost = Model.CurrentUserId == post.Author.PublicId;
+                        var hideReplyQuote = isOwnPost && (isLastPost || isSameAuthorAsPrevious);
+
+                        var reactionCounts = post.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
+                        var hasReactions = reactionCounts.Any(kvp => kvp.Value > 0);
+                        var reactionEmojis = new Dictionary<string, string>
+                        {
+                            ["Agree"] = "👍",
+                            ["Love"] = "❤️",
+                            ["Funny"] = "😂",
+                            ["Thinking"] = "🤔",
+                            ["Watching"] = "👀",
+                            ["Fire"] = "🔥",
+                            ["Thanks"] = "🙏",
+                            ["MindBlown"] = "🤯",
+                            ["ShipIt"] = "🚀"
+                        };
+                        var myReactions = post.Reactions?.UserReactions?.Reactions?.ToList() ?? new List<string>();
+
+                        @if (isNecro && previousCreatedAt.HasValue)
+                        {
+                            <ul class="timeline timeline-vertical mb-4">
+                                <li>
+                                    <hr class="bg-base-content/20" />
+                                    <div class="timeline-middle">
+                                        <span class="icon icon-clock-solid w-4 h-4 text-base-content/40" aria-hidden="true"></span>
+                                    </div>
+                                    <div class="timeline-end text-xs font-semibold text-base-content/50 uppercase tracking-wide">
+                                        @FormatTimeBetween(previousCreatedAt.Value, post.CreatedAt.ToDateTime())
+                                    </div>
+                                    <hr class="bg-base-content/20" />
+                                </li>
+                            </ul>
+                        }
+                        var isJournalEntry = !isOP && Model.JournalInfo?.EntryPostPublicIds?.Contains(post.PublicId) == true;
+                        var isAcceptedAnswer = !isOP && Model.QuestionStatus?.HasAcceptedPostPublicId == true && Model.QuestionStatus.AcceptedPostPublicId == post.PublicId;
+                        var debatePositionId = Model.DebateInfo?.PostPositions?.ContainsKey(post.PublicId) == true ? (int?)Model.DebateInfo.PostPositions[post.PublicId] : null;
+
+                        // Detect a position change for this author, relative to their previous post
+                        // in the currently-loaded page. When detected, render a timeline marker above
+                        // the current post using the same visual language as the necro marker.
+                        Snakk.Protos.Discussion.DebatePositionInfo? debatePos = null;
+                        Snakk.Protos.Discussion.DebatePositionInfo? debatePrevPos = null;
+                        var isPositionChange = false;
+                        if (debatePositionId.HasValue && Model.DebateInfo is not null)
+                        {
+                            debatePos = Model.DebateInfo.Positions.FirstOrDefault(p => p.Id == debatePositionId.Value);
+                            if (authorLastPosition.TryGetValue(post.Author.PublicId, out var prevPositionId)
+                                && prevPositionId != debatePositionId.Value)
+                            {
+                                debatePrevPos = Model.DebateInfo.Positions.FirstOrDefault(p => p.Id == prevPositionId);
+                                isPositionChange = true;
+                            }
+                            authorLastPosition[post.Author.PublicId] = debatePositionId.Value;
+                        }
+                        @if (isPositionChange && debatePrevPos is not null && debatePos is not null)
+                        {
+                            <ul class="timeline timeline-vertical timeline-position-change">
+                                <li>
+                                    <hr />
+                                    <div class="timeline-middle">
+                                        <span class="icon icon-exclamation-triangle-solid w-4 h-4" aria-hidden="true"></span>
+                                    </div>
+                                    <div class="timeline-end text-xs uppercase tracking-wide">
+                                        @string.Format(T.Pages.DiscPositionChangePattern, post.Author.DisplayName, debatePrevPos.Label, debatePos.Label)
+                                    </div>
+                                    <hr />
+                                </li>
+                            </ul>
+                        }
+
+                        <article id="post-@post.PostNumber"
+                                 class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "") @(nextIsNecro ? "before-necro" : "") @(isJournalEntry ? "journal-entry" : "") @(isAcceptedAnswer ? "accepted-answer" : "")"
+                                 data-author-id="@post.Author.PublicId"
+                                 data-post-id="@post.PublicId"
+                                 data-post-number="@post.PostNumber"
+                                 data-created-at="@post.CreatedAt.ToDateTime().ToString("O")"
+                                 role="article"
+                                 aria-label="@string.Format(T.Pages.DiscAriaPostBy, post.PostNumber, post.Author.DisplayName)">
+
+                            @if (!isOP)
+                            {
+                                <!-- Left Pane: Avatar + Username -->
+                                <aside class="post-author-pane">
+                                    @if (!isSameAuthorAsPrevious)
+                                    {
+                                        @if (post.Author.IsDeleted)
+                                        {
+                                            <div class="post-avatar post-avatar-deleted">
+                                                <span class="icon icon-user h-5 w-5" aria-hidden="true"></span>
+                                            </div>
+                                            <span class="post-author-name deleted">@post.Author.DisplayName</span>
+                                        }
+                                        else
+                                        {
+                                            <img src="@post.Author.AvatarThumbnailUrl"
+                                                 alt="@post.Author.DisplayName"
+                                                 width="48" height="48"
+                                                 class="post-avatar"
+                                                 decoding="async"
+                                            @(i >= 10 ? "loading=\"lazy\"" : "") />
+                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                                               class="post-author-name"
+                                               data-popup-type="user"
+                                               data-popup-id="@post.Author.PublicId"
+                                               data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
+                                        }
+                                        <div class="post-author-badges">
+                                            @if (post.Author.Role == "admin")
+                                            {
+                                                <span class="badge badge-error badge-xs">@T.Pages.DiscBadgeAdmin</span>
+                                            }
+                                            else if (post.Author.Role == "mod")
+                                            {
+                                                <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
+                                            }
+                                            @if (post.IsOp)
+                                            {
+                                                <span class="badge badge-primary badge-xs post-badge-op">@T.Pages.DiscBadgeOp</span>
+                                            }
+                                            @if (post.IsUsersFirstPostInSpace)
+                                            {
+                                                <span class="badge badge-success badge-xs post-badge-new">@T.Pages.DiscBadgeNew</span>
+                                            }
+                                            @if (post.IsMilestone)
+                                            {
+                                                <span class="badge badge-warning badge-xs post-badge-milestone" title="@T.Pages.DiscBadgeMilestone">&#9733;</span>
+                                            }
+                                        </div>
+                                    }
+                                </aside>
+                            }
+
+                            <!-- Right Pane: Toolbar + Content -->
+                            <div class="post-main">
+                                <!-- Post Toolbar (hidden for first post — actions moved to header) -->
+                                @if (!isOP)
+                                {
+                                    <div class="post-toolbar">
+                                        <div class="post-toolbar-left">
+                                            @if (isJournalEntry)
+                                            {
+                                                <span class="journal-entry-badge">@T.Pages.DiscJournalUpdate</span>
+                                            }
+                                            @if (isAcceptedAnswer)
+                                            {
+                                                <span class="accepted-answer-badge">@T.Pages.DiscAcceptedAnswer</span>
+                                            }
+                                            @if (debatePos is not null)
+                                            {
+                                                <span class="debate-position-badge" style="--badge-color:@DebateColorFor(debatePos.Index)">@debatePos.Label</span>
+                                            }
+                                            @if (!isOP)
+                                            {
+                                                @if (isSameAuthorAsPrevious)
+                                                {
+                                                    <span class="post-author-inline hidden">
+                                                        @if (post.Author.IsDeleted)
+                                                        {
+                                                            <span class="deleted">@post.Author.DisplayName</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                                                               data-popup-type="user"
+                                                               data-popup-id="@post.Author.PublicId"
+                                                               data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
+                                                        }
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="post-author-inline">
+                                                        @if (post.Author.IsDeleted)
+                                                        {
+                                                            <span class="deleted">@post.Author.DisplayName</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                                                               data-popup-type="user"
+                                                               data-popup-id="@post.Author.PublicId"
+                                                               data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
+                                                        }
+                                                    </span>
+                                                }
+                                            }
+                                            <span class="post-time">
+                                                <time data-timestamp="@post.CreatedAt.ToDateTime().ToString("O")">@Model.FormatRelativeTime(post.CreatedAt.ToDateTime())</time>@if (post.EditedAt != null)
+                                                {
+                                                    <span class="post-edited"> @T.Pages.DiscEdited</span>
+                                                }
+                                            </span>
+                                        </div>
+                                        <div class="post-toolbar-right">
+                                            @if (!isOP && !Model.Discussion.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
+                                            {
+                                                <div class="hidden group-hover:flex items-center gap-1">
+                                                    <button data-action="reply-to-post"
+                                                            data-post-id="@post.PublicId"
+                                                            data-author-name="@post.Author.DisplayName"
+                                                            class="subtle-btn"
+                                                            aria-label="@string.Format(T.Pages.DiscAriaReplyTo, post.Author.DisplayName)">
+                                                        <span class="icon icon-reply h-4 w-4" aria-hidden="true"></span>
+                                                        @T.Pages.DiscReply
+                                                    </button>
+                                                    <button data-action="quote-post"
+                                                            data-post-id="@post.PublicId"
+                                                            data-content="@post.Content"
+                                                            data-author-name="@post.Author.DisplayName"
+                                                            class="subtle-btn"
+                                                            aria-label="@string.Format(T.Pages.DiscAriaQuotePost, post.Author.DisplayName)">
+                                                        <span class="icon icon-chat-square h-4 w-4" aria-hidden="true"></span>
+                                                        @T.Pages.DiscQuote
+                                                    </button>
+                                                </div>
+                                            }
+                                            <div class="flex items-center gap-2 text-base text-muted @(Model.IsAuthenticated && !Model.Discussion.IsLocked ? "cursor-pointer" : "")"
+                                                 id="reactions-@post.PublicId"
+                                                 data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(reactionCounts.ToDictionary(k => k.Key, k => k.Value))"
+                                                 data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(myReactions)"
+                                                @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
+                                                {
+                                                    <text>data-action="toggle-reaction-picker" data-post-id="@post.PublicId"</text>
+                                                }
+                                                 aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
+                                                @foreach (var kvp in reactionCounts.Where(c => c.Value > 0))
+                                                {
+                                                    var emoji = reactionEmojis.GetValueOrDefault(kvp.Key, "?");
+                                                    var isActive = myReactions.Contains(kvp.Key);
+                                                    <span data-type="@kvp.Key" class="@(isActive ? "active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
+                                                }
+                                                @if (!hasReactions && !Model.Discussion.IsLocked && Model.IsAuthenticated)
+                                                {
+                                                    <span class="hidden group-hover:inline" data-reaction-placeholder>
+                                                        <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
+                                                    </span>
+                                                }
+                                            </div>
+                                            @if (!isOP && Model.IsAuthenticated)
+                                            {
+                                                <div class="dropdown dropdown-end">
+                                                    <button tabindex="0" class="subtle-btn" aria-label="@T.Pages.DiscAriaPostOptions">
+                                                        <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
+                                                    </button>
+                                                    <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-[100]">
+                                                        <li>
+                                                            <button hx-get="/api/posts/@post.PublicId/history"
+                                                                    hx-target="#history-modal-content"
+                                                                    hx-swap="innerHTML"
+                                                                    data-modal-open="history_modal"
+                                                                    class="text-sm">
+                                                                @T.Pages.DiscHistory
+                                                            </button>
+                                                        </li>
+                                                        <li>
+                                                            <button type="button"
+                                                                    data-action="toggle-save-post"
+                                                                    data-post-id="@post.PublicId"
+                                                                    data-saved="false"
+                                                                    aria-pressed="false"
+                                                                    title="@T.Pages.DiscSaveTitle"
+                                                                    class="text-sm post-save-btn">
+                                                                <span class="icon icon-bookmark-alt h-4 w-4" aria-hidden="true"></span>
+                                                                @T.Pages.DiscSavePost
+                                                            </button>
+                                                        </li>
+                                                        @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
+                                                        {
+                                                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
+                                                            <li>
+                                                                <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
+                                                                        hx-target="#post-@post.PublicId"
+                                                                        hx-swap="outerHTML"
+                                                                        hx-confirm="@T.Pages.DiscDeleteConfirm"
+                                                                        class="text-sm text-error">
+                                                                    @T.Pages.DiscDelete
+                                                                </button>
+                                                            </li>
+                                                        }
+                                                        @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
+                                                        {
+                                                            <li>
+                                                                <button data-action="hide-posts-from-user" data-author-id="@post.Author.PublicId" data-author-name="@post.Author.DisplayName" class="text-sm">
+                                                                    @T.Pages.DiscHideFromUser
+                                                                </button>
+                                                            </li>
+                                                            <li>
+                                                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="text-sm text-error">
+                                                                    @T.Pages.DiscReportPost
+                                                                </button>
+                                                            </li>
+                                                        }
+                                                    </ul>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Reply-to Quote Block -->
+                                @if (hasReplyTo)
+                                {
+                                    <div class="editorial-quote block mb-4 text-sm">
+                                        <span class="quote-author">@string.Format(T.Pages.DiscQuoteWrotePattern, post.ReplyTo!.AuthorName)</span>
+                                        <p class="line-clamp-2 mt-1">@post.ReplyTo!.ContentSnippet</p>
+                                    </div>
+                                }
+
+                                <!-- Post Content -->
+                                <div id="post-content-@post.PublicId"
+                                     class="prose prose-content flex flex-col gap-4 leading-6"
+                                     data-author-name="@post.Author.DisplayName">
+                                    @Html.SanitizedRaw(post.RenderedContent)
+                                </div>
+                            </div>
+
+                        </article>
+
+                        previousAuthorId = post.Author.PublicId;
+                        previousCreatedAt = post.CreatedAt.ToDateTime();
+                    }
+
+                    <!-- Endless scroll sentinel -->
+                    <div id="scroll-sentinel" class="h-4"></div>
+                    <div id="loading-indicator" class="hidden">
+                        <!-- Skeleton loaders -->
+                        <div class="skeleton-post post-layout">
+                            <aside class="post-author-pane">
+                                <div class="skeleton w-12 h-12 rounded-full"></div>
+                                <div class="skeleton h-3 w-16 mt-2"></div>
+                            </aside>
+                            <div class="post-main">
+                                <div class="skeleton skeleton-line skeleton-width-30"></div>
+                                <div class="skeleton skeleton-line mt-3"></div>
+                                <div class="skeleton skeleton-line"></div>
+                                <div class="skeleton skeleton-line short"></div>
+                            </div>
+                        </div>
+                        <div class="skeleton-post post-layout">
+                            <aside class="post-author-pane">
+                                <div class="skeleton w-12 h-12 rounded-full"></div>
+                                <div class="skeleton h-3 w-14 mt-2"></div>
+                            </aside>
+                            <div class="post-main">
+                                <div class="skeleton skeleton-line skeleton-width-25"></div>
+                                <div class="skeleton skeleton-line mt-3"></div>
+                                <div class="skeleton skeleton-line short"></div>
+                            </div>
+                        </div>
                     </div>
+                    <div id="end-message" class="hidden text-center py-8 text-base-content/50 text-sm">
+                        @T.Pages.DiscEndReached
+                    </div>
+                    <div id="load-error-message" class="hidden text-center py-8">
+                        <div class="inline-flex flex-col items-center gap-3 p-4 bg-error/10 border border-error/20 rounded-lg">
+                            <span class="icon icon-exclamation-triangle h-8 w-8 text-error" aria-hidden="true"></span>
+                            <p class="text-sm text-error font-medium">@T.Pages.DiscLoadFailed</p>
+                            <button data-action="retry-load-posts" class="btn btn-sm btn-primary">
+                                <span class="icon icon-refresh h-4 w-4" aria-hidden="true"></span>
+                                @T.Pages.DiscRetry
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state-simple">
+                        <h3>@T.Pages.DiscStartConvHeading</h3>
+                        <p>@T.Pages.DiscStartConvBody</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typing-indicator" class="hidden mt-4">
+                <div class="typing-indicator">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <span id="typing-users">@T.Pages.DiscTypingSomeone</span>
                 </div>
             </div>
-            <div id="end-message" class="hidden text-center py-8 text-base-content/50 text-sm">
-                @T.Pages.DiscEndReached
+
+            <!-- Reply Form -->
+            <!-- Realtime lock banner (shown dynamically via SignalR when discussion is locked while viewing) -->
+            <div id="discussion-lock-banner" class="mt-8 hidden">
+                <div class="clean-card p-6 text-center">
+                    <h3 class="font-semibold mb-1">@T.Pages.DiscLockedTitle</h3>
+                    <p class="text-sm text-muted">@T.Pages.DiscLockedBody</p>
+                </div>
             </div>
-            <div id="load-error-message" class="hidden text-center py-8">
-                <div class="inline-flex flex-col items-center gap-3 p-4 bg-error/10 border border-error/20 rounded-lg">
-                    <span class="icon icon-exclamation-triangle h-8 w-8 text-error" aria-hidden="true"></span>
-                    <p class="text-sm text-error font-medium">@T.Pages.DiscLoadFailed</p>
-                    <button data-action="retry-load-posts" class="btn btn-sm btn-primary">
-                        <span class="icon icon-refresh h-4 w-4" aria-hidden="true"></span>
-                        @T.Pages.DiscRetry
+
+            @if (Model.Discussion.IsLocked)
+            {
+                <div class="mt-8">
+                    <div class="clean-card p-6 text-center">
+                        <h3 class="font-semibold mb-1">@T.Pages.DiscLockedTitle</h3>
+                        <p class="text-sm text-muted">@T.Pages.DiscLockedBody</p>
+                    </div>
+                </div>
+            }
+            else if (!Model.IsAuthenticated)
+            {
+                ViewData["Nudge.Title"] = T.Pages.DiscNudgeJoinTitle;
+                ViewData["Nudge.Body"] = T.Pages.DiscNudgeJoinBody;
+                <partial name="Shared/_RegistrationNudge" />
+            }
+            else
+            {
+                <div id="reply-form-container" class="mt-8">
+                    <!-- Reply context indicator -->
+                    <div id="reply-context" class="hidden mb-3 p-3 bg-subtle border border-subtle rounded-lg flex items-center justify-between">
+                        <span class="text-sm text-muted">
+                            @T.Pages.DiscReplyingToPrefix<span id="reply-context-author" class="font-semibold"></span>
+                        </span>
+                        <button type="button" data-action="clear-reply-context" class="subtle-btn">
+                            @T.Pages.DiscCancel
+                        </button>
+                    </div>
+
+                    <!-- Typing indicator -->
+                    <div id="typing-indicator" class="hidden text-sm text-base-content/50 mb-2">
+                        <span id="typing-users"></span>
+                    </div>
+
+                    <div class="composer-area">
+                        <form method="post" id="reply-form" hx-boost="false">
+                            <input type="hidden" name="ReplyToPostId" id="reply-to-post-id" value="" />
+
+                            <!-- Hidden textarea: synced by Toast UI Editor, used for form submission -->
+                            <textarea name="PostContent"
+                                      id="post-content-input"
+                                      style="display:none"></textarea>
+
+                            <!-- Toast UI Editor mounts here -->
+                            <div id="editor-container">
+                                <div class="editor-skeleton">
+                                    <div class="editor-skeleton-toolbar">
+                                        <div class="skeleton-pill"></div>
+                                        <div class="skeleton-pill"></div>
+                                        <div class="skeleton-pill"></div>
+                                        <div class="skeleton-pill w-6"></div>
+                                        <div class="skeleton-pill"></div>
+                                        <div class="skeleton-pill"></div>
+                                    </div>
+                                    <div class="editor-skeleton-body">
+                                        <div class="skeleton-line w-3/4"></div>
+                                        <div class="skeleton-line w-1/2"></div>
+                                        <div class="skeleton-line w-5/6"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <div id="upload-progress-row" class="upload-progress-row hidden">
+                                    <div id="upload-image-chips" class="upload-image-chips"></div>
+                                    <span id="upload-status-text" class="upload-status-text"></span>
+                                </div>
+                                <button type="submit" id="reply-submit-btn" class="btn btn-primary btn-sm hidden">
+                                    <span id="reply-submit-label">@T.Pages.DiscPostReply</span>
+                                    <span id="reply-submit-spinner" class="loading loading-spinner loading-xs hidden"></span>
+                                </button>
+                                <span id="draft-restored-msg" class="text-xs text-base-content/40 hidden">@T.Pages.DiscDraftRestored</span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
+
+        </div> <!-- End sn-center-inner -->
+        @if (Model.Discussion.PostCount > 1)
+        {
+            <!-- Thread Navigation Bar (sticky bottom, inside sn-center but outside sn-center-inner) -->
+            <div id="thread-nav" class="thread-nav hidden">
+                <div class="thread-nav-controls">
+                    <button class="thread-nav-btn" data-nav="first" title="@T.Pages.DiscTitleFirst" aria-label="@T.Pages.DiscAriaJumpFirst">
+                        <span class="icon icon-thread-nav-first w-3.5 h-3.5" aria-hidden="true"></span>
+                    </button>
+                    <button class="thread-nav-btn" data-nav="prev" title="@T.Pages.DiscAriaBack20" aria-label="@T.Pages.DiscAriaBack20">
+                        <span class="icon icon-thread-nav-prev w-3.5 h-3.5" aria-hidden="true"></span>
+                    </button>
+                    <div class="thread-nav-position">
+                        <input id="thread-nav-input" type="number" class="thread-nav-input" min="1" max="@Model.Discussion.PostCount" value="1" aria-label="@T.Pages.DiscAriaCurrentPost" />
+                        <span class="thread-nav-separator">/</span>
+                        <span id="thread-nav-total" class="thread-nav-total">@Model.Discussion.PostCount</span>
+                    </div>
+                    <button class="thread-nav-btn" data-nav="next" title="@T.Pages.DiscAriaForward20" aria-label="@T.Pages.DiscAriaForward20">
+                        <span class="icon icon-thread-nav-next w-3.5 h-3.5" aria-hidden="true"></span>
+                    </button>
+                    <button class="thread-nav-btn" data-nav="last" title="@T.Pages.DiscTitleLast" aria-label="@T.Pages.DiscAriaJumpLast">
+                        <span class="icon icon-thread-nav-last w-3.5 h-3.5" aria-hidden="true"></span>
                     </button>
                 </div>
             </div>
         }
-        else
-        {
-            <div class="empty-state-simple">
-                <h3>@T.Pages.DiscStartConvHeading</h3>
-                <p>@T.Pages.DiscStartConvBody</p>
-            </div>
-        }
-    </div>
-
-    <!-- Typing Indicator -->
-    <div id="typing-indicator" class="hidden mt-4">
-        <div class="typing-indicator">
-            <div class="typing-dots">
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-            </div>
-            <span id="typing-users">@T.Pages.DiscTypingSomeone</span>
-        </div>
-    </div>
-
-    <!-- Reply Form -->
-    <!-- Realtime lock banner (shown dynamically via SignalR when discussion is locked while viewing) -->
-    <div id="discussion-lock-banner" class="mt-8 hidden">
-        <div class="clean-card p-6 text-center">
-            <h3 class="font-semibold mb-1">@T.Pages.DiscLockedTitle</h3>
-            <p class="text-sm text-muted">@T.Pages.DiscLockedBody</p>
-        </div>
-    </div>
-
-    @if (Model.Discussion.IsLocked)
-    {
-        <div class="mt-8">
-            <div class="clean-card p-6 text-center">
-                <h3 class="font-semibold mb-1">@T.Pages.DiscLockedTitle</h3>
-                <p class="text-sm text-muted">@T.Pages.DiscLockedBody</p>
-            </div>
-        </div>
-    }
-    else if (!Model.IsAuthenticated)
-    {
-        ViewData["Nudge.Title"] = T.Pages.DiscNudgeJoinTitle;
-        ViewData["Nudge.Body"]  = T.Pages.DiscNudgeJoinBody;
-        <partial name="Shared/_RegistrationNudge" />
     }
     else
     {
-        <div id="reply-form-container" class="mt-8">
-            <!-- Reply context indicator -->
-            <div id="reply-context" class="hidden mb-3 p-3 bg-subtle border border-subtle rounded-lg flex items-center justify-between">
-                <span class="text-sm text-muted">
-                    @T.Pages.DiscReplyingToPrefix<span id="reply-context-author" class="font-semibold"></span>
-                </span>
-                <button type="button" data-action="clear-reply-context" class="subtle-btn">
-                    @T.Pages.DiscCancel
-                </button>
-            </div>
-
-            <!-- Typing indicator -->
-            <div id="typing-indicator" class="hidden text-sm text-base-content/50 mb-2">
-                <span id="typing-users"></span>
-            </div>
-
-            <div class="composer-area">
-                <form method="post" id="reply-form" hx-boost="false">
-                    <input type="hidden" name="ReplyToPostId" id="reply-to-post-id" value="" />
-
-                    <!-- Hidden textarea: synced by Toast UI Editor, used for form submission -->
-                    <textarea name="PostContent"
-                              id="post-content-input"
-                              style="display:none"></textarea>
-
-                    <!-- Toast UI Editor mounts here -->
-                    <div id="editor-container">
-                        <div class="editor-skeleton">
-                            <div class="editor-skeleton-toolbar">
-                                <div class="skeleton-pill"></div>
-                                <div class="skeleton-pill"></div>
-                                <div class="skeleton-pill"></div>
-                                <div class="skeleton-pill w-6"></div>
-                                <div class="skeleton-pill"></div>
-                                <div class="skeleton-pill"></div>
-                            </div>
-                            <div class="editor-skeleton-body">
-                                <div class="skeleton-line w-3/4"></div>
-                                <div class="skeleton-line w-1/2"></div>
-                                <div class="skeleton-line w-5/6"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-3">
-                        <button type="submit" id="reply-submit-btn" class="btn btn-primary btn-sm hidden">
-                            @T.Pages.DiscPostReply
-                        </button>
-                        <span id="draft-restored-msg" class="text-xs text-base-content/40 hidden">@T.Pages.DiscDraftRestored</span>
-                    </div>
-                </form>
+        <div class="sn-center-inner">
+            <div class="max-w-xl mx-auto empty-state-simple">
+                <h3>@T.Pages.DiscNotFoundHeading</h3>
+                <p>@T.Pages.DiscNotFoundBody</p>
+                <a href="/hubs" class="btn btn-primary btn-sm mt-4">@T.Pages.DiscBackToHubs</a>
             </div>
         </div>
     }
-
-    </div> <!-- End sn-center-inner -->
-
-    @if (Model.Discussion.PostCount > 1)
-    {
-        <!-- Thread Navigation Bar (sticky bottom, inside sn-center but outside sn-center-inner) -->
-        <div id="thread-nav" class="thread-nav hidden">
-            <div class="thread-nav-controls">
-                <button class="thread-nav-btn" data-nav="first" title="@T.Pages.DiscTitleFirst" aria-label="@T.Pages.DiscAriaJumpFirst">
-                    <span class="icon icon-thread-nav-first w-3.5 h-3.5" aria-hidden="true"></span>
-                </button>
-                <button class="thread-nav-btn" data-nav="prev" title="@T.Pages.DiscAriaBack20" aria-label="@T.Pages.DiscAriaBack20">
-                    <span class="icon icon-thread-nav-prev w-3.5 h-3.5" aria-hidden="true"></span>
-                </button>
-                <div class="thread-nav-position">
-                    <input id="thread-nav-input" type="number" class="thread-nav-input" min="1" max="@Model.Discussion.PostCount" value="1" aria-label="@T.Pages.DiscAriaCurrentPost" />
-                    <span class="thread-nav-separator">/</span>
-                    <span id="thread-nav-total" class="thread-nav-total">@Model.Discussion.PostCount</span>
-                </div>
-                <button class="thread-nav-btn" data-nav="next" title="@T.Pages.DiscAriaForward20" aria-label="@T.Pages.DiscAriaForward20">
-                    <span class="icon icon-thread-nav-next w-3.5 h-3.5" aria-hidden="true"></span>
-                </button>
-                <button class="thread-nav-btn" data-nav="last" title="@T.Pages.DiscTitleLast" aria-label="@T.Pages.DiscAriaJumpLast">
-                    <span class="icon icon-thread-nav-last w-3.5 h-3.5" aria-hidden="true"></span>
-                </button>
-            </div>
-        </div>
-    }
-}
-else
-{
-    <div class="sn-center-inner">
-        <div class="max-w-xl mx-auto empty-state-simple">
-            <h3>@T.Pages.DiscNotFoundHeading</h3>
-            <p>@T.Pages.DiscNotFoundBody</p>
-            <a href="/hubs" class="btn btn-primary btn-sm mt-4">@T.Pages.DiscBackToHubs</a>
-        </div>
-    </div>
-}
 
 </div> <!-- End sn-center -->
-
 <!-- Right Column -->
 <aside class="sn-right">
-@{
-    ViewData["RightPane.NewDiscussionUrl"] = Model.Space != null ? "/new?spaceId=" + Model.Space.PublicId : "/new";
-    ViewData["RightPane.Actions"] = new[] { "share", "subscribe", "save" };
-    ViewData["RightPane.ShareUrl"] = Model.CanonicalUrl;
-    ViewData["RightPane.ShareTitle"] = Model.Discussion.Title;
-    ViewData["RightPane.ShareIsPublic"] = Model.Space is not { IsRestricted: true };
-    ViewData["RightPane.SubscribeAction"] = "toggle-follow-discussion";
-    ViewData["RightPane.SubscribeEntityAttr"] = "discussion-id";
-    ViewData["RightPane.SubscribeEntityId"] = Model.Discussion.PublicId;
-    ViewData["RightPane.SaveDiscussionId"] = Model.Discussion.PublicId;
-}
-<div class="sn-right-sticky">
-    <partial name="Shared/_RightActionPane" />
-    <div class="sn-right-body">
-    @if (Model.SpaceStats != null)
-    {
-        <div class="sn-right-section">
-            <div class="sn-right-title">
-                <span class="icon icon-chart-bar" aria-hidden="true"></span>
-                @T.Sections.SpaceStats
-            </div>
-            <div class="sn-sidebar-stats">
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Pages.DiscStatsDiscussions</div>
-                        <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
-                    </div>
-                </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Pages.DiscStatsReplies</div>
-                        <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
-                    </div>
-                </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Pages.DiscStatsFollowers</div>
-                        <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
-                    </div>
-                </div>
-                @if (Model.Space != null)
-                {
-                    <div class="stats shadow">
-                        <div class="stat">
-                            <div class="stat-title">@T.Pages.DiscStatsActivity</div>
-                            <div class="sn-sparkline-container sn-right-sparkline"
-                                 data-sparkline-type="space"
-                                 data-sparkline-id="@Model.Space.PublicId"
-                                 data-sparkline-days="7"></div>
-                        </div>
-                    </div>
-                }
-            </div>
-        </div>
+    @{
+        ViewData["RightPane.NewDiscussionUrl"] = Model.Space != null ? "/new?spaceId=" + Model.Space.PublicId : "/new";
+        ViewData["RightPane.Actions"] = new[] { "share", "subscribe", "save" };
+        ViewData["RightPane.ShareUrl"] = Model.CanonicalUrl;
+        ViewData["RightPane.ShareTitle"] = Model.Discussion.Title;
+        ViewData["RightPane.ShareIsPublic"] = Model.Space is not { IsRestricted: true };
+        ViewData["RightPane.SubscribeAction"] = "toggle-follow-discussion";
+        ViewData["RightPane.SubscribeEntityAttr"] = "discussion-id";
+        ViewData["RightPane.SubscribeEntityId"] = Model.Discussion.PublicId;
+        ViewData["RightPane.SaveDiscussionId"] = Model.Discussion.PublicId;
     }
-    @if (Model.Space != null)
-    {
-        <div class="sn-right-section">
-            <div class="sn-right-title">
-                <span class="icon icon-info-circle" aria-hidden="true"></span>
-                @T.Pages.DiscAboutPrefix@Model.Space?.Name
-            </div>
-            @if (!string.IsNullOrEmpty(Model.Space.Description))
+    <div class="sn-right-sticky">
+        <partial name="Shared/_RightActionPane" />
+        <div class="sn-right-body">
+            @if (Model.SpaceStats != null)
             {
-                <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="icon icon-chart-bar" aria-hidden="true"></span>
+                        @T.Sections.SpaceStats
+                    </div>
+                    <div class="sn-sidebar-stats">
+                        <div class="stats shadow">
+                            <div class="stat">
+                                <div class="stat-title">@T.Pages.DiscStatsDiscussions</div>
+                                <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
+                            </div>
+                        </div>
+                        <div class="stats shadow">
+                            <div class="stat">
+                                <div class="stat-title">@T.Pages.DiscStatsReplies</div>
+                                <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
+                            </div>
+                        </div>
+                        <div class="stats shadow">
+                            <div class="stat">
+                                <div class="stat-title">@T.Pages.DiscStatsFollowers</div>
+                                <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
+                            </div>
+                        </div>
+                        @if (Model.Space != null)
+                        {
+                            <div class="stats shadow">
+                                <div class="stat">
+                                    <div class="stat-title">@T.Pages.DiscStatsActivity</div>
+                                    <div class="sn-sparkline-container sn-right-sparkline"
+                                         data-sparkline-type="space"
+                                         data-sparkline-id="@Model.Space.PublicId"
+                                         data-sparkline-days="7"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+            @if (Model.Space != null)
+            {
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="icon icon-info-circle" aria-hidden="true"></span>
+                        @T.Pages.DiscAboutPrefix@Model.Space?.Name
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Space.Description))
+                    {
+                        <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
+                    }
+                </div>
+            }
+
+            @if (Model.Space?.HasRules == true)
+            {
+                <div class="sn-right-section">
+                    <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug)/rules"
+                           class="sn-right-title flex items-center justify-between hover:text-primary transition-colors">
+                        <span>@T.Pages.DiscSpaceRules</span>
+                        <span class="icon icon-chevron-right w-3.5 h-3.5 shrink-0" aria-hidden="true"></span>
+                    </a>
+                    <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
+                                    model="Model.InlineSpaceRules"
+                                    htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
+                        <div class="flex flex-col gap-2">
+                            <div class="skeleton h-4 w-full"></div>
+                            <div class="skeleton h-4 w-5/6"></div>
+                            <div class="skeleton h-4 w-4/6"></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
+            }
+
+            @if (Model.Space != null)
+            {
+                <div class="sn-right-section">
+                    <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators"
+                           class="sn-right-title flex items-center justify-between hover:text-primary transition-colors">
+                        <span>@T.Pages.DiscSpaceModerators</span>
+                        <span class="flex items-center gap-1">
+                            @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
+                            {
+                                <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
+                            }
+                            <span class="icon icon-chevron-right w-3.5 h-3.5 shrink-0" aria-hidden="true"></span>
+                        </span>
+                    </a>
+                    <inline-or-htmx partial="Shared/Sidebar/_Moderators"
+                                    model="Model.InlineModerators"
+                                    htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
+                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
+                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-28"></div></div>
+                        </div>
+                    </inline-or-htmx>
+                </div>
             }
         </div>
-    }
-
-    @if (Model.Space?.HasRules == true)
-    {
-        <div class="sn-right-section">
-            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug)/rules"
-               class="sn-right-title flex items-center justify-between hover:text-primary transition-colors">
-                <span>@T.Pages.DiscSpaceRules</span>
-                <span class="icon icon-chevron-right w-3.5 h-3.5 shrink-0" aria-hidden="true"></span>
-            </a>
-            <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
-                             model="Model.InlineSpaceRules"
-                             htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
-                <div class="flex flex-col gap-2">
-                    <div class="skeleton h-4 w-full"></div>
-                    <div class="skeleton h-4 w-5/6"></div>
-                    <div class="skeleton h-4 w-4/6"></div>
-                </div>
-            </inline-or-htmx>
-        </div>
-    }
-
-    @if (Model.Space != null)
-    {
-        <div class="sn-right-section">
-            <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators"
-               class="sn-right-title flex items-center justify-between hover:text-primary transition-colors">
-                <span>@T.Pages.DiscSpaceModerators</span>
-                <span class="flex items-center gap-1">
-                    @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
-                    {
-                        <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
-                    }
-                    <span class="icon icon-chevron-right w-3.5 h-3.5 shrink-0" aria-hidden="true"></span>
-                </span>
-            </a>
-            <inline-or-htmx partial="Shared/Sidebar/_Moderators"
-                             model="Model.InlineModerators"
-                             htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
-                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
-                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-28"></div></div>
-                </div>
-            </inline-or-htmx>
-        </div>
-    }
     </div>
-</div>
 </aside>
 
 <!-- History Modal -->
@@ -1477,37 +1542,37 @@ else
 <script src="@SnakkUrlHelper.Js("pages/discussion-detail")" asp-append-version="true"></script>
 @* Discussion config — parsed by discussion-detail.ts (CSP-safe: type=application/json is not executed) *@
 <script type="application/json" id="discussion-page-config">
-@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
-{
-    discussionId = Model.Discussion?.PublicId ?? "",
-    isAuthenticated = Model.IsAuthenticated,
-    currentUserId = Model.CurrentUserId ?? "",
-    isLocked = Model.Discussion?.IsLocked == true,
-    spaceId = Model.Space?.PublicId ?? "",
-    preferEndlessScroll = true,
-    postsCurrentOffset = Model.Posts?.Items?.Count() ?? 0,
-    postsHasMoreItems = Model.Posts?.HasMoreItems == true,
-    hasCodeBlocks = Model.HasCodeBlocks,
-    postCount = Model.Discussion?.PostCount ?? 0,
-    displayName = Model.CurrentUserDisplayName ?? "",
-    discussionType = Model.Discussion?.Type ?? "",
-    spaceSlug = Model.SpaceSlug ?? "",
-    hubSlug = Model.HubSlug ?? "",
-    readHistory = Model.Discussion != null ? new
+    @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new
     {
-        discussionPublicId = Model.Discussion.PublicId,
-        discussionTitle = Model.Discussion.Title,
-        discussionSlug = Model.SlugWithId.Split('~')[0],
-        spacePublicId = Model.Space?.PublicId ?? "",
+        discussionId = Model.Discussion?.PublicId ?? "",
+        isAuthenticated = Model.IsAuthenticated,
+        currentUserId = Model.CurrentUserId ?? "",
+        isLocked = Model.Discussion?.IsLocked == true,
+        spaceId = Model.Space?.PublicId ?? "",
+        preferEndlessScroll = true,
+        postsCurrentOffset = Model.Posts?.Items?.Count() ?? 0,
+        postsHasMoreItems = Model.Posts?.HasMoreItems == true,
+        hasCodeBlocks = Model.HasCodeBlocks,
+        postCount = Model.Discussion?.PostCount ?? 0,
+        displayName = Model.CurrentUserDisplayName ?? "",
+        discussionType = Model.Discussion?.Type ?? "",
         spaceSlug = Model.SpaceSlug ?? "",
-        spaceName = Model.Space?.Name ?? Model.SpaceSlug ?? "",
-        hubPublicId = Model.Hub?.PublicId ?? "",
         hubSlug = Model.HubSlug ?? "",
-        hubName = Model.Hub?.Name ?? Model.HubSlug ?? "",
-        communitySlug = Model.Community.CommunitySlug ?? "",
-        communityName = Model.Community.CommunityName ?? Model.Community.CommunitySlug ?? "",
-        isMultiCommunity = Model.Community.IsMultiCommunityEnabled,
-        lastActivityAt = (Model.Discussion.LastActivityAt?.ToDateTime() ?? Model.Discussion.CreatedAt.ToDateTime()).ToString("O")
-    } : (object?)null
-}, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
+        readHistory = Model.Discussion != null ? new
+        {
+            discussionPublicId = Model.Discussion.PublicId,
+            discussionTitle = Model.Discussion.Title,
+            discussionSlug = Model.SlugWithId.Split('~')[0],
+            spacePublicId = Model.Space?.PublicId ?? "",
+            spaceSlug = Model.SpaceSlug ?? "",
+            spaceName = Model.Space?.Name ?? Model.SpaceSlug ?? "",
+            hubPublicId = Model.Hub?.PublicId ?? "",
+            hubSlug = Model.HubSlug ?? "",
+            hubName = Model.Hub?.Name ?? Model.HubSlug ?? "",
+            communitySlug = Model.Community.CommunitySlug ?? "",
+            communityName = Model.Community.CommunityName ?? Model.Community.CommunitySlug ?? "",
+            isMultiCommunity = Model.Community.IsMultiCommunityEnabled,
+            lastActivityAt = (Model.Discussion.LastActivityAt?.ToDateTime() ?? Model.Discussion.CreatedAt.ToDateTime()).ToString("O")
+        } : (object?)null
+    }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
 </script>

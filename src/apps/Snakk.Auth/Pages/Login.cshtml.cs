@@ -44,8 +44,21 @@ public class LoginModel(
 
     public IActionResult OnGet(string? error)
     {
-        if (Request.Cookies.ContainsKey(".Snakk.Auth"))
+        var accessToken = Request.Cookies[".Snakk.Auth"];
+        if (!string.IsNullOrEmpty(accessToken) && IsTokenValid(accessToken))
             return Redirect("/");
+
+        // Token is missing, expired or malformed — delete stale auth cookies
+        // so the user starts from a clean state before logging in.
+        if (Request.Cookies.ContainsKey(".Snakk.Auth") ||
+            Request.Cookies.ContainsKey(".Snakk.Auth.Session") ||
+            Request.Cookies.ContainsKey(".Snakk.Auth.Refresh"))
+        {
+            var deleteOptions = new CookieOptions { Path = "/" };
+            Response.Cookies.Delete(".Snakk.Auth",         deleteOptions);
+            Response.Cookies.Delete(".Snakk.Auth.Session", deleteOptions);
+            Response.Cookies.Delete(".Snakk.Auth.Refresh", deleteOptions);
+        }
 
         Input.ReturnUrl = ReturnUrl;
 
@@ -165,5 +178,17 @@ public class LoginModel(
             ErrorMessage = "An error occurred during login. Please try again.";
             return Page();
         }
+    }
+
+    private static bool IsTokenValid(string token)
+    {
+        try
+        {
+            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            if (!handler.CanReadToken(token)) return false;
+            var jwt = handler.ReadJwtToken(token);
+            return jwt.ValidTo > DateTime.UtcNow.AddSeconds(30);
+        }
+        catch { return false; }
     }
 }

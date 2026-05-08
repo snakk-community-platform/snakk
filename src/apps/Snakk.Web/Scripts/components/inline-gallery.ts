@@ -178,11 +178,25 @@
         });
     }
 
+    function wireInlineSingle(el: HTMLElement): void {
+        const fullUrl = el.dataset.full ?? '';
+        if (!fullUrl) return;
+        const img = el.querySelector<HTMLImageElement>('img');
+        if (img && isSnakkMediaUrl(fullUrl)) upgradeImg(img, fullUrl);
+        const lqip = el.dataset.blur ?? (isSnakkMediaUrl(fullUrl) ? deriveVariants(fullUrl).thumb : null);
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+            const lb = (window as any).SnakkLightbox;
+            if (lb?.open) lb.open([fullUrl], 0, [lqip]);
+        });
+    }
+
     function processGalleries(root: Document | HTMLElement): void {
         const proseEls = root.querySelectorAll<HTMLElement>('.prose-content:not([data-ig-init])');
         proseEls.forEach(prose => {
             prose.dataset.igInit = '1';
             processProseImages(prose);
+            prose.querySelectorAll<HTMLElement>('.ig-single[data-full]').forEach(wireInlineSingle);
             const galleries = prose.querySelectorAll<HTMLElement>(GALLERY_SELECTORS);
             galleries.forEach(g => {
                 if (g.classList.contains('ig-carousel')) {

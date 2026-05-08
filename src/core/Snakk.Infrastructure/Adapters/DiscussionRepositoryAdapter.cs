@@ -22,7 +22,7 @@ public class DiscussionRepositoryAdapter(
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
-                d.IsPinned, d.IsLocked, d.IsAdultOnly))
+                d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -34,7 +34,7 @@ public class DiscussionRepositoryAdapter(
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
-                d.IsPinned, d.IsLocked, d.IsAdultOnly))
+                d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -46,7 +46,7 @@ public class DiscussionRepositoryAdapter(
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
-                d.IsPinned, d.IsLocked, d.IsAdultOnly))
+                d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
     }
@@ -67,7 +67,7 @@ public class DiscussionRepositoryAdapter(
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
-                d.IsPinned, d.IsLocked, d.IsAdultOnly))
+                d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -129,7 +129,7 @@ public class DiscussionRepositoryAdapter(
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
-                d.IsPinned, d.IsLocked, d.IsAdultOnly))
+                d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -382,7 +382,8 @@ public class DiscussionRepositoryAdapter(
         DateTime? LastActivityAt,
         bool IsPinned,
         bool IsLocked,
-        bool IsAdult)
+        bool IsAdult,
+        bool WasNormalized)
     {
         public Discussion ToDomain() => Discussion.Rehydrate(
             DiscussionId.From(PublicId),
@@ -390,6 +391,6 @@ public class DiscussionRepositoryAdapter(
             UserId.From(CreatedByUserPublicId),
             Title, Slug, (DiscussionTypeEnum)Type,
             CreatedAt, LastModifiedAt, LastActivityAt,
-            IsPinned, IsLocked, posts: [], isAdult: IsAdult);
+            IsPinned, IsLocked, posts: [], isAdult: IsAdult, wasNormalized: WasNormalized);
     }
 }

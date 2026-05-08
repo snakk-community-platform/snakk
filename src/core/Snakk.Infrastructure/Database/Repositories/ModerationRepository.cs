@@ -9,9 +9,16 @@ using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
-public class ModerationRepository(SnakkDbContext context) : IModerationRepository
+public class ModerationRepository(SnakkDbContext context, IDbContextFactory<SnakkDbContext> dbFactory) : IModerationRepository
 {
     private readonly SnakkDbContext _context = context;
+    private readonly IDbContextFactory<SnakkDbContext> _dbFactory = dbFactory;
+
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    {
+        await using var db = await _dbFactory.CreateDbContextAsync();
+        return await query(db);
+    }
 
     // ==================== Role Management ====================
 
@@ -137,11 +144,18 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         string? spacePublicId,
         string assignedByUserPublicId)
     {
-        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == targetUserPublicId)
-            ?? throw new InvalidOperationException("Target user not found");
+        var userTask = ReadAsync(db => db.Users
+            .Where(u => u.PublicId == targetUserPublicId)
+            .Select(u => new { u.Id, u.DisplayName })
+            .FirstOrDefaultAsync());
+        var assignerTask = ReadAsync(db => db.Users
+            .Where(u => u.PublicId == assignedByUserPublicId)
+            .Select(u => new { u.Id, u.DisplayName })
+            .FirstOrDefaultAsync());
+        await Task.WhenAll(userTask, assignerTask);
 
-        var assigner = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == assignedByUserPublicId)
-            ?? throw new InvalidOperationException("Assigning user not found");
+        var targetUser = userTask.Result ?? throw new InvalidOperationException("Target user not found");
+        var assigner   = assignerTask.Result ?? throw new InvalidOperationException("Assigning user not found");
 
         int? communityId = null, hubId = null, spaceId = null;
         string? communityName = null, hubName = null, spaceName = null;
@@ -216,20 +230,24 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         string rolePublicId,
         string revokedByUserPublicId)
     {
-        var role = await _context.UserRoles
+        var roleTask = _context.UserRoles
             .AsTracking()
             .Include(ur => ur.User)
             .Include(ur => ur.Community)
             .Include(ur => ur.Hub)
             .Include(ur => ur.Space)
-            .FirstOrDefaultAsync(ur => ur.PublicId == rolePublicId)
-            ?? throw new InvalidOperationException("Role not found");
+            .FirstOrDefaultAsync(ur => ur.PublicId == rolePublicId);
+        var revokerIdTask = ReadAsync(db => db.Users
+            .Where(u => u.PublicId == revokedByUserPublicId)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync());
+        await Task.WhenAll(roleTask, revokerIdTask);
 
-        var revoker = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == revokedByUserPublicId)
-            ?? throw new InvalidOperationException("Revoking user not found");
+        var role      = roleTask.Result ?? throw new InvalidOperationException("Role not found");
+        var revokerId = revokerIdTask.Result ?? throw new InvalidOperationException("Revoking user not found");
 
         role.RevokedAt = DateTime.UtcNow;
-        role.RevokedByUserId = revoker.Id;
+        role.RevokedByUserId = revokerId;
 
         await _context.SaveChangesAsync();
 
@@ -495,11 +513,18 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         DateTime? expiresAt,
         string bannedByUserPublicId)
     {
-        var targetUser = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == targetUserPublicId)
-            ?? throw new InvalidOperationException("Target user not found");
+        var userTask   = ReadAsync(db => db.Users
+            .Where(u => u.PublicId == targetUserPublicId)
+            .Select(u => new { u.Id, u.DisplayName })
+            .FirstOrDefaultAsync());
+        var bannerTask = ReadAsync(db => db.Users
+            .Where(u => u.PublicId == bannedByUserPublicId)
+            .Select(u => new { u.Id, u.DisplayName })
+            .FirstOrDefaultAsync());
+        await Task.WhenAll(userTask, bannerTask);
 
-        var banner = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == bannedByUserPublicId)
-            ?? throw new InvalidOperationException("Banning user not found");
+        var targetUser = userTask.Result ?? throw new InvalidOperationException("Target user not found");
+        var banner     = bannerTask.Result ?? throw new InvalidOperationException("Banning user not found");
 
         int? communityId = null, hubId = null, spaceId = null;
         string? communityName = null, hubName = null, spaceName = null;
@@ -574,20 +599,24 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         string banPublicId,
         string unbannedByUserPublicId)
     {
-        var ban = await _context.UserBans
+        var banTask      = _context.UserBans
             .AsTracking()
             .Include(ub => ub.User)
             .Include(ub => ub.Community)
             .Include(ub => ub.Hub)
             .Include(ub => ub.Space)
-            .FirstOrDefaultAsync(ub => ub.PublicId == banPublicId)
-            ?? throw new InvalidOperationException("Ban not found");
+            .FirstOrDefaultAsync(ub => ub.PublicId == banPublicId);
+        var unbannerIdTask = ReadAsync(db => db.Users
+            .Where(u => u.PublicId == unbannedByUserPublicId)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync());
+        await Task.WhenAll(banTask, unbannerIdTask);
 
-        var unbanner = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == unbannedByUserPublicId)
-            ?? throw new InvalidOperationException("Unbanning user not found");
+        var ban        = banTask.Result ?? throw new InvalidOperationException("Ban not found");
+        var unbannerId = unbannerIdTask.Result ?? throw new InvalidOperationException("Unbanning user not found");
 
         ban.UnbannedAt = DateTime.UtcNow;
-        ban.UnbannedByUserId = unbanner.Id;
+        ban.UnbannedByUserId = unbannerId;
 
         await _context.SaveChangesAsync();
 
@@ -742,8 +771,38 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
 
     public async Task<int> GetPendingReportCountForModeratorAsync(string moderatorPublicId)
     {
-        var reports = await GetReportsForModeratorAsync(moderatorPublicId, (int)ReportStatusEnum.Pending, 0, 1000);
-        return reports.Items.Count();
+        var roles = await GetActiveRolesForUserAsync(moderatorPublicId);
+        if (!roles.Any()) return 0;
+
+        var highestRole = roles.OrderBy(r => r.Role switch
+        {
+            "GlobalAdmin" => 0,
+            "CommunityAdmin" => 1,
+            "CommunityMod" => 2,
+            "HubMod" => 3,
+            "SpaceMod" => 4,
+            _ => 5
+        }).First();
+
+        var statusId = (int)ReportStatusEnum.Pending;
+
+        if (!string.IsNullOrEmpty(highestRole.CommunityPublicId))
+            return await _context.Reports.CountAsync(r =>
+                r.Community != null && r.Community.PublicId == highestRole.CommunityPublicId
+                && r.StatusId == statusId);
+
+        if (!string.IsNullOrEmpty(highestRole.HubPublicId))
+            return await _context.Reports.CountAsync(r =>
+                ((r.Hub != null && r.Hub.PublicId == highestRole.HubPublicId)
+                || (r.Space != null && r.Space.Hub.PublicId == highestRole.HubPublicId))
+                && r.StatusId == statusId);
+
+        if (!string.IsNullOrEmpty(highestRole.SpacePublicId))
+            return await _context.Reports.CountAsync(r =>
+                r.Space != null && r.Space.PublicId == highestRole.SpacePublicId
+                && r.StatusId == statusId);
+
+        return 0;
     }
 
     private async Task<PagedResult<ReportListDto>> GetPagedReportsAsync(
@@ -897,20 +956,24 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         string? resolutionNote,
         bool dismiss)
     {
-        var report = await _context.Reports
+        var reportTask     = _context.Reports
             .AsTracking()
             .Include(r => r.Community)
             .Include(r => r.Hub)
             .Include(r => r.Space)
-            .FirstOrDefaultAsync(r => r.PublicId == reportPublicId)
-            ?? throw new InvalidOperationException("Report not found");
+            .FirstOrDefaultAsync(r => r.PublicId == reportPublicId);
+        var resolverIdTask = ReadAsync(db => db.Users
+            .Where(u => u.PublicId == resolvedByUserPublicId)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync());
+        await Task.WhenAll(reportTask, resolverIdTask);
 
-        var resolver = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == resolvedByUserPublicId)
-            ?? throw new InvalidOperationException("Resolver not found");
+        var report     = reportTask.Result ?? throw new InvalidOperationException("Report not found");
+        var resolverId = resolverIdTask.Result ?? throw new InvalidOperationException("Resolver not found");
 
         report.StatusId = dismiss ? (int)ReportStatusEnum.Dismissed : (int)ReportStatusEnum.Resolved;
         report.ResolvedAt = DateTime.UtcNow;
-        report.ResolvedByUserId = resolver.Id;
+        report.ResolvedByUserId = resolverId;
         report.ResolutionNote = resolutionNote;
 
         await _context.SaveChangesAsync();
@@ -929,16 +992,23 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         string authorUserPublicId,
         string content)
     {
-        var report = await _context.Reports.FirstOrDefaultAsync(r => r.PublicId == reportPublicId)
-            ?? throw new InvalidOperationException("Report not found");
+        var reportIdTask = ReadAsync(db => db.Reports
+            .Where(r => r.PublicId == reportPublicId)
+            .Select(r => (int?)r.Id)
+            .FirstOrDefaultAsync());
+        var authorTask = ReadAsync(db => db.Users
+            .Where(u => u.PublicId == authorUserPublicId)
+            .Select(u => new { u.Id, u.DisplayName })
+            .FirstOrDefaultAsync());
+        await Task.WhenAll(reportIdTask, authorTask);
 
-        var author = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == authorUserPublicId)
-            ?? throw new InvalidOperationException("Author not found");
+        var reportId = reportIdTask.Result ?? throw new InvalidOperationException("Report not found");
+        var author   = authorTask.Result ?? throw new InvalidOperationException("Author not found");
 
         var comment = new ReportCommentDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
-            ReportId = report.Id,
+            ReportId = reportId,
             AuthorUserId = author.Id,
             Content = content,
             CreatedAt = DateTime.UtcNow
@@ -1196,35 +1266,30 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
             reason.DeletedAt = now;
         }
 
-        // Resolve scope entity ID and user ID
-        int? communityId = null, hubId = null, spaceId = null;
-
-        switch (scopeType)
+        // Resolve scope entity ID and user ID in parallel
+        var scopeIdTask = scopeType switch
         {
-            case "Community":
-                communityId = await _context.Communities
-                    .Where(c => c.PublicId == scopePublicId)
-                    .Select(c => (int?)c.Id)
-                    .FirstOrDefaultAsync();
-                break;
-            case "Hub":
-                hubId = await _context.Hubs
-                    .Where(h => h.PublicId == scopePublicId)
-                    .Select(h => (int?)h.Id)
-                    .FirstOrDefaultAsync();
-                break;
-            case "Space":
-                spaceId = await _context.Spaces
-                    .Where(s => s.PublicId == scopePublicId)
-                    .Select(s => (int?)s.Id)
-                    .FirstOrDefaultAsync();
-                break;
-        }
+            "Community" => ReadAsync(db => db.Communities
+                .Where(c => c.PublicId == scopePublicId).Select(c => (int?)c.Id).FirstOrDefaultAsync()),
+            "Hub" => ReadAsync(db => db.Hubs
+                .Where(h => h.PublicId == scopePublicId).Select(h => (int?)h.Id).FirstOrDefaultAsync()),
+            "Space" => ReadAsync(db => db.Spaces
+                .Where(s => s.PublicId == scopePublicId).Select(s => (int?)s.Id).FirstOrDefaultAsync()),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
 
-        var userId = await _context.Users
+        var userIdTask = ReadAsync(db => db.Users
             .Where(u => u.PublicId == userPublicId)
             .Select(u => (int?)u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync());
+
+        await Task.WhenAll(scopeIdTask, userIdTask);
+
+        var scopeEntityId = scopeIdTask.Result;
+        int? communityId = scopeType == "Community" ? scopeEntityId : null;
+        int? hubId       = scopeType == "Hub"       ? scopeEntityId : null;
+        int? spaceId     = scopeType == "Space"     ? scopeEntityId : null;
+        var userId = userIdTask.Result;
 
         // Insert new reasons
         foreach (var r in reasons)
@@ -1372,35 +1437,45 @@ public class ModerationRepository(SnakkDbContext context) : IModerationRepositor
         string? details = null,
         string? reason = null)
     {
-        var actor = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == actorUserPublicId);
+        var actorId = await _context.Users
+            .Where(u => u.PublicId == actorUserPublicId)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync();
 
-        if (actor is null) return;
+        if (actorId is null) return;
 
-        int? targetPostId = null, targetDiscussionId = null, targetUserId = null;
-        int? communityId = null, hubId = null, spaceId = null;
+        var postTask       = !string.IsNullOrEmpty(targetPostPublicId)
+            ? ReadAsync(db => db.Posts.Where(p => p.PublicId == targetPostPublicId).Select(p => (int?)p.Id).FirstOrDefaultAsync())
+            : Task.FromResult<int?>(null);
+        var discussionTask = !string.IsNullOrEmpty(targetDiscussionPublicId)
+            ? ReadAsync(db => db.Discussions.Where(d => d.PublicId == targetDiscussionPublicId).Select(d => (int?)d.Id).FirstOrDefaultAsync())
+            : Task.FromResult<int?>(null);
+        var targetUserTask = !string.IsNullOrEmpty(targetUserPublicId)
+            ? ReadAsync(db => db.Users.Where(u => u.PublicId == targetUserPublicId).Select(u => (int?)u.Id).FirstOrDefaultAsync())
+            : Task.FromResult<int?>(null);
+        var communityTask  = !string.IsNullOrEmpty(communityPublicId)
+            ? ReadAsync(db => db.Communities.Where(c => c.PublicId == communityPublicId).Select(c => (int?)c.Id).FirstOrDefaultAsync())
+            : Task.FromResult<int?>(null);
+        var hubTask        = !string.IsNullOrEmpty(hubPublicId)
+            ? ReadAsync(db => db.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => (int?)h.Id).FirstOrDefaultAsync())
+            : Task.FromResult<int?>(null);
+        var spaceTask      = !string.IsNullOrEmpty(spacePublicId)
+            ? ReadAsync(db => db.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => (int?)s.Id).FirstOrDefaultAsync())
+            : Task.FromResult<int?>(null);
 
-        if (!string.IsNullOrEmpty(targetPostPublicId))
-            targetPostId = (await _context.Posts.FirstOrDefaultAsync(p => p.PublicId == targetPostPublicId))?.Id;
+        await Task.WhenAll(postTask, discussionTask, targetUserTask, communityTask, hubTask, spaceTask);
 
-        if (!string.IsNullOrEmpty(targetDiscussionPublicId))
-            targetDiscussionId = (await _context.Discussions.FirstOrDefaultAsync(d => d.PublicId == targetDiscussionPublicId))?.Id;
-
-        if (!string.IsNullOrEmpty(targetUserPublicId))
-            targetUserId = (await _context.Users.FirstOrDefaultAsync(u => u.PublicId == targetUserPublicId))?.Id;
-
-        if (!string.IsNullOrEmpty(communityPublicId))
-            communityId = (await _context.Communities.FirstOrDefaultAsync(c => c.PublicId == communityPublicId))?.Id;
-
-        if (!string.IsNullOrEmpty(hubPublicId))
-            hubId = (await _context.Hubs.FirstOrDefaultAsync(h => h.PublicId == hubPublicId))?.Id;
-
-        if (!string.IsNullOrEmpty(spacePublicId))
-            spaceId = (await _context.Spaces.FirstOrDefaultAsync(s => s.PublicId == spacePublicId))?.Id;
+        int? targetPostId       = postTask.Result;
+        int? targetDiscussionId = discussionTask.Result;
+        int? targetUserId       = targetUserTask.Result;
+        int? communityId        = communityTask.Result;
+        int? hubId              = hubTask.Result;
+        int? spaceId            = spaceTask.Result;
 
         var log = new ModerationLogDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
-            ActorUserId = actor.Id,
+            ActorUserId = actorId.Value,
             TargetPostId = targetPostId,
             TargetDiscussionId = targetDiscussionId,
             TargetUserId = targetUserId,

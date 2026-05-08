@@ -99,34 +99,18 @@ public static class ReadStateEndpoints
         if (userId is null)
             return Results.Unauthorized();
 
-        var processed = 0;
         var userIdValue = UserId.From(userId);
 
-        foreach (var update in request.Updates)
-        {
-            try
-            {
-                var discussionIdValue = DiscussionId.From(update.DiscussionId);
-                var postIdValue = PostId.From(update.PostId);
-                var readState = await readStateRepository.GetAsync(userId, discussionIdValue);
+        var updatedStates = request.Updates
+            .Select(u => DiscussionReadState.Create(userIdValue, DiscussionId.From(u.DiscussionId), PostId.From(u.PostId)))
+            .ToList();
 
-                if (readState is null)
-                    readState = DiscussionReadState.Create(userId, discussionIdValue, postIdValue);
-                else
-                    readState.MarkAsRead(postIdValue);
+        await readStateRepository.BatchSaveAsync(updatedStates);
 
-                await readStateRepository.SaveAsync(readState);
-                await realtimeNotifier.NotifyReadStateUpdatedAsync(userIdValue, update.DiscussionId, update.PostId);
-                processed++;
-            }
-            catch
-            {
-                // Continue processing other updates even if one fails
-                continue;
-            }
-        }
+        await Task.WhenAll(request.Updates.Select(u =>
+            realtimeNotifier.NotifyReadStateUpdatedAsync(userIdValue, u.DiscussionId, u.PostId)));
 
-        return TypedResults.Ok(new SuccessResponse(true, processed));
+        return TypedResults.Ok(new SuccessResponse(true, request.Updates.Count));
     }
 }
 

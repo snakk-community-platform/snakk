@@ -1,7 +1,6 @@
 @page "/moderators"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
-@using Snakk.Shared.Avatars
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.ModeratorsModel
 @{
@@ -43,7 +42,7 @@
                         <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="sn-mod-list-card"
                            data-popup-type="user" data-popup-id="@mod.UserPublicId" data-popup-name="@mod.DisplayName">
                             <div class="sn-mod-list-banner"
-                                 style="background-image: @AvatarGenerator.GenerateGradientCss($"user:{mod.UserPublicId}")">
+                                 style="background-image: @UserGradient(mod.UserPublicId)">
                                 <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
                                      alt="" width="34" height="34"
                                      class="sn-mod-list-avatar"

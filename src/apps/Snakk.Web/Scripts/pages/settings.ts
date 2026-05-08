@@ -760,22 +760,21 @@ interface SettingsPageConfig {
     }
 
     function initDisplayPreferences(): void {
-        const previewsToggle = document.getElementById('pref-discussion-previews') as HTMLInputElement | null;
+        const listLayoutSelect = document.getElementById('pref-discussion-list-layout') as HTMLSelectElement | null;
         const animationsToggle = document.getElementById('pref-animations') as HTMLInputElement | null;
-        if (!previewsToggle && !animationsToggle) return;
+        const linkPreviewToggle = document.getElementById('pref-link-preview-large') as HTMLInputElement | null;
+        if (!listLayoutSelect && !animationsToggle && !linkPreviewToggle) return;
 
         try {
-            if (previewsToggle) {
-                previewsToggle.checked = localStorage.getItem('snakk:disable-previews') !== 'true';
-                previewsToggle.addEventListener('change', () => {
-                    const disabled = !previewsToggle.checked;
-                    if (disabled) {
-                        localStorage.setItem('snakk:disable-previews', 'true');
-                        document.documentElement.classList.add('no-discussion-previews');
-                    } else {
-                        localStorage.removeItem('snakk:disable-previews');
-                        document.documentElement.classList.remove('no-discussion-previews');
-                    }
+            if (listLayoutSelect) {
+                listLayoutSelect.value = localStorage.getItem('snakk:discussion-list-layout') ?? 'full';
+                listLayoutSelect.addEventListener('change', () => {
+                    const value = listLayoutSelect.value;
+                    localStorage.setItem('snakk:discussion-list-layout', value);
+                    const root = document.documentElement;
+                    root.classList.remove('no-discussion-previews', 'discussion-list-compact');
+                    if (value === 'none') root.classList.add('no-discussion-previews');
+                    else if (value === 'compact') root.classList.add('discussion-list-compact');
                 });
             }
 
@@ -789,6 +788,19 @@ interface SettingsPageConfig {
                     } else {
                         localStorage.removeItem('snakk:disable-animations');
                         document.documentElement.classList.remove('no-animations');
+                    }
+                });
+            }
+            if (linkPreviewToggle) {
+                linkPreviewToggle.checked = localStorage.getItem('snakk:link-preview-compact') !== 'true';
+                linkPreviewToggle.addEventListener('change', () => {
+                    const compact = !linkPreviewToggle.checked;
+                    if (compact) {
+                        localStorage.setItem('snakk:link-preview-compact', 'true');
+                        document.documentElement.classList.add('link-preview-compact');
+                    } else {
+                        localStorage.removeItem('snakk:link-preview-compact');
+                        document.documentElement.classList.remove('link-preview-compact');
                     }
                 });
             }

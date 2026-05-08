@@ -93,7 +93,9 @@ public class ActivitySnapshotRepository(SnakkDbContext context) : IActivitySnaps
         var spaceToHub = spaces.ToDictionary(s => s.Id, s => s.HubId);
         var hubToCommunity = hubs.ToDictionary(h => h.Id, h => h.CommunityId);
 
-        // ── Upsert per-day ────────────────────────────────────────────────────
+        // ── Collect all rows, then batch-upsert once ──────────────────────────
+        var rows = new List<(DateOnly Date, int EntityType, int EntityId, int PostCount, int DiscussionCount)>();
+
         foreach (var date in new[] { today, yesterday })
         {
             var dateTime = date.ToDateTime(TimeOnly.MinValue);
@@ -110,7 +112,7 @@ public class ActivitySnapshotRepository(SnakkDbContext context) : IActivitySnaps
                 var p = daySpacePosts.GetValueOrDefault(spaceId);
                 var d = daySpaceDiscussions.GetValueOrDefault(spaceId);
 
-                await UpsertCoreAsync(date, ActivityEntityTypeEnum.Space, spaceId, p, d, ct);
+                rows.Add((date, (int)ActivityEntityTypeEnum.Space, spaceId, p, d));
 
                 if (!spaceToHub.TryGetValue(spaceId, out var hubId)) continue;
                 hubPosts[hubId]        = hubPosts.GetValueOrDefault(hubId) + p;
@@ -122,29 +124,44 @@ public class ActivitySnapshotRepository(SnakkDbContext context) : IActivitySnaps
             }
 
             foreach (var (hubId, p) in hubPosts)
-                await UpsertCoreAsync(date, ActivityEntityTypeEnum.Hub, hubId, p, hubDiscussions.GetValueOrDefault(hubId), ct);
+                rows.Add((date, (int)ActivityEntityTypeEnum.Hub, hubId, p, hubDiscussions.GetValueOrDefault(hubId)));
 
             foreach (var (communityId, p) in communityPosts)
-                await UpsertCoreAsync(date, ActivityEntityTypeEnum.Community, communityId, p, communityDiscussions.GetValueOrDefault(communityId), ct);
+                rows.Add((date, (int)ActivityEntityTypeEnum.Community, communityId, p, communityDiscussions.GetValueOrDefault(communityId)));
 
             var totalPosts       = communityPosts.Values.Sum();
             var totalDiscussions = communityDiscussions.Values.Sum();
             if (totalPosts > 0 || totalDiscussions > 0)
-                await UpsertCoreAsync(date, ActivityEntityTypeEnum.Platform, 0, totalPosts, totalDiscussions, ct);
+                rows.Add((date, (int)ActivityEntityTypeEnum.Platform, 0, totalPosts, totalDiscussions));
 
-            // ── Discussion sparklines ───────────────────────────────────────────
             foreach (var x in discussionPosts.Where(x => x.DateVal == dateTime))
-                await UpsertCoreAsync(date, ActivityEntityTypeEnum.Discussion, x.DiscussionId, x.Count, 0, ct);
+                rows.Add((date, (int)ActivityEntityTypeEnum.Discussion, x.DiscussionId, x.Count, 0));
 
-            // ── User sparklines ─────────────────────────────────────────────────
             foreach (var x in userPosts.Where(x => x.DateVal == dateTime))
             {
                 var d = userDiscussions.FirstOrDefault(u => u.DateVal == dateTime && u.CreatedByUserId == x.CreatedByUserId)?.Count ?? 0;
-                await UpsertCoreAsync(date, ActivityEntityTypeEnum.User, x.CreatedByUserId, x.Count, d, ct);
+                rows.Add((date, (int)ActivityEntityTypeEnum.User, x.CreatedByUserId, x.Count, d));
             }
             foreach (var x in userDiscussions.Where(x => x.DateVal == dateTime && !userPosts.Any(p => p.DateVal == dateTime && p.CreatedByUserId == x.CreatedByUserId)))
-                await UpsertCoreAsync(date, ActivityEntityTypeEnum.User, x.CreatedByUserId, 0, x.Count, ct);
+                rows.Add((date, (int)ActivityEntityTypeEnum.User, x.CreatedByUserId, 0, x.Count));
         }
+
+        if (rows.Count == 0) return;
+
+        var dates      = rows.Select(r => r.Date).ToArray();
+        var types      = rows.Select(r => r.EntityType).ToArray();
+        var ids        = rows.Select(r => r.EntityId).ToArray();
+        var posts      = rows.Select(r => r.PostCount).ToArray();
+        var discs      = rows.Select(r => r.DiscussionCount).ToArray();
+
+        await context.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "ActivityDailySnapshot" ("Date", "EntityType", "EntityId", "PostCount", "DiscussionCount")
+            SELECT UNNEST({dates}), UNNEST({types}), UNNEST({ids}), UNNEST({posts}), UNNEST({discs})
+            ON CONFLICT ("Date", "EntityType", "EntityId")
+            DO UPDATE SET
+                "PostCount"       = EXCLUDED."PostCount",
+                "DiscussionCount" = EXCLUDED."DiscussionCount"
+            """, ct);
     }
 
     // ── Prune ─────────────────────────────────────────────────────────────────
@@ -158,20 +175,6 @@ public class ActivitySnapshotRepository(SnakkDbContext context) : IActivitySnaps
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
-
-    private async Task UpsertCoreAsync(DateOnly date, ActivityEntityTypeEnum entityType, int entityId, int postCount, int discussionCount, CancellationToken ct)
-    {
-        var entityTypeInt = (int)entityType;
-
-        await context.Database.ExecuteSqlInterpolatedAsync($"""
-            INSERT INTO "ActivityDailySnapshot" ("Date", "EntityType", "EntityId", "PostCount", "DiscussionCount")
-            VALUES ({date}, {entityTypeInt}, {entityId}, {postCount}, {discussionCount})
-            ON CONFLICT ("Date", "EntityType", "EntityId")
-            DO UPDATE SET
-                "PostCount"       = EXCLUDED."PostCount",
-                "DiscussionCount" = EXCLUDED."DiscussionCount"
-            """, ct);
-    }
 
     private async Task<int?> ResolveEntityIdAsync(ActivityEntityTypeEnum entityType, string? publicId, CancellationToken ct)
     {

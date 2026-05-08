@@ -58,6 +58,12 @@ public class TestWebServer : WebApplicationFactory<Program>
             services.AddDbContext<SnakkDbContext>(options =>
                 options.UseInMemoryDatabase(_databaseName));
 
+            // Services added in production now inject IDbContextFactory<SnakkDbContext>
+            // (e.g. CounterService, PermissionService). Provide an InMemory factory that
+            // shares the same database name so both paths see the same data.
+            services.AddSingleton<IDbContextFactory<SnakkDbContext>>(
+                new TestDbContextFactory(_databaseName));
+
             // Remove the health check that requires a real DB connection
             var healthCheckDescriptors = services.Where(d =>
                 d.ServiceType.FullName?.Contains("HealthCheck") == true).ToList();
@@ -84,5 +90,16 @@ public class TestWebServer : WebApplicationFactory<Program>
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
         return client;
+    }
+
+    private sealed class TestDbContextFactory(string dbName) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext()
+        {
+            var options = new DbContextOptionsBuilder<SnakkDbContext>()
+                .UseInMemoryDatabase(dbName)
+                .Options;
+            return new SnakkDbContext(options);
+        }
     }
 }

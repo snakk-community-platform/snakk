@@ -123,7 +123,8 @@
                 @foreach (var space in Model.InlineLatestSpaces.Spaces.Items)
                 {
                     <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                       class="sn-card-tag"
+                       class="sn-card-tag sn-card-tag--space"
+                       style="--space-grad: @SpaceGradient(space.PublicId)"
                        data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
                 }
             </div>

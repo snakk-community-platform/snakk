@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
-using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Services;
 
 namespace Snakk.Infrastructure.Tests.Services;
@@ -13,22 +12,27 @@ namespace Snakk.Infrastructure.Tests.Services;
 /// </summary>
 public class CounterServiceTests : IDisposable
 {
-    private readonly SnakkDbContext _context;
+    private readonly string _dbName = $"CounterServiceTests_{Guid.NewGuid()}";
     private readonly CounterService _service;
 
     public CounterServiceTests()
     {
-        var options = new DbContextOptionsBuilder<SnakkDbContext>()
-            .UseInMemoryDatabase(databaseName: $"CounterServiceTests_{Guid.NewGuid()}")
-            .Options;
-        _context = new SnakkDbContext(options);
-        _service = new CounterService(_context);
+        _service = new CounterService(new InMemoryDbContextFactory(_dbName));
     }
 
     public void Dispose()
     {
-        _context.Database.EnsureDeleted();
-        _context.Dispose();
+        var options = new DbContextOptionsBuilder<SnakkDbContext>()
+            .UseInMemoryDatabase(_dbName).Options;
+        using var db = new SnakkDbContext(options);
+        db.Database.EnsureDeleted();
+    }
+
+    private sealed class InMemoryDbContextFactory(string dbName) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() =>
+            new(new DbContextOptionsBuilder<SnakkDbContext>()
+                .UseInMemoryDatabase(dbName).Options);
     }
 
     #region IncrementDiscussionCountAsync Tests
@@ -36,7 +40,6 @@ public class CounterServiceTests : IDisposable
     [Test]
     public async Task IncrementDiscussionCountAsync_NonexistentSpace_ReturnsWithoutError()
     {
-        // When the space doesn't exist, the service should return early
         var act = async () => await _service.IncrementDiscussionCountAsync(SpaceId.From("nonexistent"));
 
         await Assert.That(act).ThrowsNothing();

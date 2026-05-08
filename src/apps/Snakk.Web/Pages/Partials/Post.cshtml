@@ -141,7 +141,7 @@
                     {
                         var emoji = reactionEmojis.GetValueOrDefault(kvp.Key, "?");
                         var isActive = myReactions.Contains(kvp.Key);
-                        <span data-type="@kvp.Key" class="@(isActive ? "active" : "")">@emoji @kvp.Value</span>
+                        <span data-type="@kvp.Key" class="@(isActive ? "active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
                     }
                     @if (!hasReactions && !Model.IsDiscussionLocked && Model.IsAuthenticated)
                     {
@@ -155,6 +155,14 @@
                         <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
                     </button>
                     <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
+                        <li>
+                            <button type="button"
+                                    data-action="expand-post"
+                                    data-post-id="@post.PublicId"
+                                    class="text-sm">
+                                @T.Pages.DiscExpandPost
+                            </button>
+                        </li>
                         <li>
                             <button hx-get="/api/posts/@post.PublicId/history"
                                     hx-target="#history-modal-content"

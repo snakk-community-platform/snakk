@@ -58,7 +58,8 @@ public static class BffApiEndpoints
         group.MapGet("/discussions/{discussionId}/poll", GetPollAsync)
             .WithName("BffGetPoll");
         group.MapPost("/discussions/{discussionId}/poll/vote", VotePollAsync)
-            .WithName("BffVotePoll");
+            .WithName("BffVotePoll")
+            .RequireRateLimiting("flood-engage");
         group.MapDelete("/discussions/{discussionId}/poll/vote", RemovePollVoteAsync)
             .WithName("BffRemovePollVote");
 
@@ -73,7 +74,8 @@ public static class BffApiEndpoints
             .WithName("BffGetDebateInfo");
 
         group.MapPost("/discussions/{discussionId}/debate/position", SetPostDebatePositionBffAsync)
-            .WithName("BffSetPostDebatePosition");
+            .WithName("BffSetPostDebatePosition")
+            .RequireRateLimiting("flood-post");
 
         // Link
         group.MapGet("/discussions/{discussionId}/link", GetDiscussionLinkBffAsync)
@@ -83,7 +85,8 @@ public static class BffApiEndpoints
         group.MapGet("/discussions/{discussionId}/journal", GetJournalEntriesBffAsync)
             .WithName("BffGetJournalEntries");
         group.MapPost("/discussions/{discussionId}/journal/entry", AddJournalEntryBffAsync)
-            .WithName("BffAddJournalEntry");
+            .WithName("BffAddJournalEntry")
+            .RequireRateLimiting("flood-post");
 
         // Follow lists (for caching)
         group.MapGet("/follows/spaces", GetFollowedSpacesAsync)
@@ -107,15 +110,18 @@ public static class BffApiEndpoints
             .WithName("BffGetMyPostReactions");
 
         group.MapPost("/posts/{postId}/reactions", TogglePostReactionAsync)
-            .WithName("BffTogglePostReaction");
+            .WithName("BffTogglePostReaction")
+            .RequireRateLimiting("flood-engage");
 
         // Markup preview
         group.MapPost("/markup/preview", PreviewMarkupAsync)
-            .WithName("BffPreviewMarkup");
+            .WithName("BffPreviewMarkup")
+            .RequireRateLimiting("flood-post");
 
         // Moderation
         group.MapPost("/moderation/reports", CreateReportAsync)
-            .WithName("BffCreateReport");
+            .WithName("BffCreateReport")
+            .RequireRateLimiting("flood-post");
 
         // Endless scroll data
         group.MapGet("/discussions/recent", GetRecentDiscussionsAsync)
@@ -237,7 +243,8 @@ public static class BffApiEndpoints
             .WithName("BffGetDiscussionPosts");
 
         group.MapPost("/posts/{postId}/edit", EditPostAsync)
-            .WithName("BffEditPost");
+            .WithName("BffEditPost")
+            .RequireRateLimiting("flood-post");
 
         group.MapDelete("/posts/{postId}", DeletePostAsync)
             .WithName("BffDeletePost");
@@ -276,6 +283,7 @@ public static class BffApiEndpoints
         // Media upload + delete
         group.MapPost("/media/upload", UploadMediaAsync)
             .WithName("BffUploadMedia")
+            .RequireRateLimiting("flood-upload")
             .DisableAntiforgery();
         group.MapDelete("/media/draft", DeleteDraftMediaBffAsync)
             .WithName("BffDeleteDraftMedia");
@@ -283,6 +291,7 @@ public static class BffApiEndpoints
         // Avatar upload + delete (proxy to internal API)
         group.MapPost("/avatars/upload", UploadAvatarBffAsync)
             .WithName("BffUploadAvatar")
+            .RequireRateLimiting("flood-upload")
             .DisableAntiforgery();
         group.MapDelete("/avatars", DeleteAvatarBffAsync)
             .WithName("BffDeleteAvatar");
@@ -777,7 +786,12 @@ public static class BffApiEndpoints
                 new Snakk.Protos.Auth.RefreshTokenRequest { RefreshToken = currentRefreshToken });
 
             if (string.IsNullOrEmpty(response.AccessToken) || string.IsNullOrEmpty(response.RefreshToken))
+            {
+                // Token was rejected by the server — clear all auth cookies so the browser
+                // is not stuck with a permanently revoked refresh token.
+                AuthCookieHelper.DeleteAuthCookies(httpContext);
                 return Results.Unauthorized();
+            }
 
             // Set updated cookies (no tokens in response body)
             AuthCookieHelper.SetAuthCookies(httpContext, response.AccessToken, response.RefreshToken);
@@ -785,6 +799,8 @@ public static class BffApiEndpoints
         }
         catch
         {
+            // gRPC call failed — clear all auth cookies to force a clean re-login.
+            AuthCookieHelper.DeleteAuthCookies(httpContext);
             return Results.Unauthorized();
         }
     }
@@ -1173,32 +1189,25 @@ public static class BffApiEndpoints
         var space = await apiClient.GetSpaceAsync(spaceId);
         if (space is null) return Results.NotFound();
 
-        // Access check — verify user can see this space (restricted spaces/hubs/communities)
-        if (space.IsRestricted)
-        {
-            var community2 = !string.IsNullOrEmpty(space.CommunitySlug)
-                ? await apiClient.GetCommunityBySlugAsync(space.CommunitySlug)
-                : null;
-            var hub2 = !string.IsNullOrEmpty(space.HubSlug)
-                ? (await apiClient.GetHubBySlugResultAsync(space.HubSlug, space.CommunitySlug))
-                : null;
-
-            var access = await apiClient.CheckGroupAccessAsync(
-                community2?.PublicId!,
-                hub2?.IsSuccess == true ? hub2.Value?.PublicId : null,
-                space.PublicId);
-
-            if (access is not null && access.AccessLevel < 1)
-                return Results.NotFound(); // Don't reveal existence
-        }
-
-        // Get hub and community names
+        // Fetch hub + community once — reused for both access check and response payload
         var hub = !string.IsNullOrEmpty(space.HubSlug)
             ? await apiClient.GetHubBySlugResultAsync(space.HubSlug, space.CommunitySlug)
             : null;
         var community = !string.IsNullOrEmpty(space.CommunitySlug)
             ? await apiClient.GetCommunityBySlugAsync(space.CommunitySlug)
             : null;
+
+        // Access check — verify user can see this space (restricted spaces/hubs/communities)
+        if (space.IsRestricted)
+        {
+            var access = await apiClient.CheckGroupAccessAsync(
+                community?.PublicId!,
+                hub?.IsSuccess == true ? hub.Value?.PublicId : null,
+                space.PublicId);
+
+            if (access is not null && access.AccessLevel < 1)
+                return Results.NotFound(); // Don't reveal existence
+        }
 
         return Results.Ok(new
         {

@@ -1,0 +1,73 @@
+// ── Search Modal ──────────────────────────────
+.sn-search-modal {
+    position: fixed;
+    inset: 0;
+    width: min(38rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 8rem);
+    margin: 6rem auto auto;
+    padding: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.75rem;
+    background: var(--bg-primary);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+
+    &::backdrop {
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(2px);
+    }
+}
+
+.sn-search-modal-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.sn-search-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.sn-search-modal-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    color: var(--text-tertiary);
+}
+
+.sn-search-modal-input {
+    flex: 1;
+    min-width: 0;
+    font-size: 1rem;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-primary);
+
+    &::placeholder { color: var(--text-tertiary); }
+}
+
+.sn-search-modal-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.sn-search-modal-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.sn-search-modal-filter-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    min-width: 4rem;
+}
