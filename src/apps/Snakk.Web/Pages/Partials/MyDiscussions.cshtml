@@ -14,7 +14,7 @@
 @if (Model.HasMoreItems)
 {
     <div hx-get="/partials/my-discussions?offset=@Model.NextOffset&pageSize=20"
-         hx-trigger="revealed"
+         hx-trigger="revealed once"
          hx-swap="outerHTML"
          hx-target="this"
          hx-push-url="false"

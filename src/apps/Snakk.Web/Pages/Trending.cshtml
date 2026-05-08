@@ -44,7 +44,7 @@
                     var communityParam = Model.SidebarScopeType == "community" ? $"&communityId={Model.SidebarScopeId}" : "";
 
                     <div hx-get="/partials/discussions?sort=trending&offset=@nextOffset&pageSize=20@(communityParam)"
-                         hx-trigger="revealed"
+                         hx-trigger="revealed once"
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"

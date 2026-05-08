@@ -159,7 +159,7 @@ else
                     var nextCursor = Model.RecentDiscussions.NextCursor;
 
                     <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20&hubId=@Model.Hub.PublicId&hideHub=true"
-                         hx-trigger="revealed"
+                         hx-trigger="revealed once"
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"

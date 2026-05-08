@@ -374,3 +374,26 @@
 
     .icon { background-color: var(--color-primary); }
 }
+
+@media (max-width: 360px) {
+    .sn-card-type-badge:not(.sn-card-type-badge-nsfw) {
+        display: none;
+    }
+
+    .sn-card-path-link,
+    .sn-card-path-sep {
+        display: none;
+    }
+
+    .sn-card-comments-label {
+        display: none;
+    }
+
+    .sn-card-reply-excerpt {
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        text-overflow: clip;
+    }
+}

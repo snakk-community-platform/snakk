@@ -127,7 +127,7 @@ else
                     var nextCursor = Model.Discussions.NextCursor;
 
                     <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20&spaceId=@Model.Space.PublicId"
-                         hx-trigger="revealed"
+                         hx-trigger="revealed once"
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"

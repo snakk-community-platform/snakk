@@ -46,22 +46,24 @@ public class SettingsService : ISettingsService
             cacheKey,
             async cancel =>
             {
-                var settings = await _context.SystemSettings
+                var rawSettings = await _context.SystemSettings
                     .Where(s => s.Category == category)
                     .OrderBy(s => s.Key)
-                    .Select(s => new SettingDto
-                    {
-                        Id = s.PublicId,
-                        Category = s.Category,
-                        Key = s.Key,
-                        Value = s.IsEncrypted ? DecryptValue(s.Value) : s.Value,
-                        ValueType = s.ValueType,
-                        IsEncrypted = s.IsEncrypted,
-                        Description = s.Description,
-                        UpdatedAt = s.UpdatedAt,
-                        UpdatedByUsername = s.UpdatedBy != null ? s.UpdatedBy.DisplayName : null
-                    })
+                    .Include(s => s.UpdatedBy)
                     .ToListAsync(cancel);
+
+                var settings = rawSettings.Select(s => new SettingDto
+                {
+                    Id = s.PublicId,
+                    Category = s.Category,
+                    Key = s.Key,
+                    Value = s.IsEncrypted ? DecryptValue(s.Value) : s.Value,
+                    ValueType = s.ValueType,
+                    IsEncrypted = s.IsEncrypted,
+                    Description = s.Description,
+                    UpdatedAt = s.UpdatedAt,
+                    UpdatedByUsername = s.UpdatedBy?.DisplayName
+                }).ToList();
 
                 return new SettingsByCategoryResponse
                 {

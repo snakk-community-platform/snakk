@@ -29,7 +29,7 @@ else
     @if (Model.HasMoreItems)
     {
         <div hx-get="/partials/reacted-posts?offset=@Model.NextOffset&pageSize=10"
-             hx-trigger="revealed"
+             hx-trigger="revealed once"
              hx-swap="outerHTML"
              hx-target="this"
              hx-push-url="false"

@@ -53,7 +53,7 @@
                 @if (Model.Discussions.HasMoreItems && Model.NextCursor != null)
                 {
                     <div hx-get="/partials/discussions?sort=my-feed&cursor=@Model.NextCursor&pageSize=20"
-                         hx-trigger="revealed"
+                         hx-trigger="revealed once"
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"

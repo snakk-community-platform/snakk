@@ -71,7 +71,7 @@
                 {
                     var nextOffset = Model.Offset + Model.SavedDiscussions.Items.Count;
                     <div hx-get="/partials/saved-discussions?offset=@nextOffset&pageSize=20"
-                         hx-trigger="revealed"
+                         hx-trigger="revealed once"
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"
@@ -115,7 +115,7 @@
                     {
                         var nextOffset = Model.Offset + Model.SavedPosts.Items.Count;
                         <div hx-get="/partials/saved-posts?offset=@nextOffset&pageSize=20"
-                             hx-trigger="revealed"
+                             hx-trigger="revealed once"
                              hx-swap="outerHTML"
                              hx-target="this"
                              hx-push-url="false">

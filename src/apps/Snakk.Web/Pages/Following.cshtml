@@ -147,7 +147,7 @@
                     @if (Model.DiscussionsHasMore)
                     {
                         <div hx-get="/partials/following-discussions?offset=@Model.DiscussionsNextOffset&pageSize=10"
-                             hx-trigger="revealed"
+                             hx-trigger="revealed once"
                              hx-swap="outerHTML"
                              hx-target="this"
                              hx-push-url="false"

@@ -14,7 +14,7 @@
 @if (Model.HasMoreItems && Model.NextCursor != null && Model.NextOffset < Model.MaxOffset)
 {
     <div hx-get="/partials/space-discussions?spaceId=@Model.SpaceId&cursor=@Model.NextCursor&offset=@Model.NextOffset&pageSize=20@(Model.TypeFilter.HasValue ? $"&typeFilter={Model.TypeFilter}" : "")"
-         hx-trigger="revealed"
+         hx-trigger="revealed once"
          hx-swap="outerHTML"
          hx-target="this"
          hx-push-url="false"
