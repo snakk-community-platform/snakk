@@ -72,10 +72,12 @@
                 }
 
                 function showSlide(index: number): void {
-                    current = (index + slides.length) % slides.length;
+                    current = Math.max(0, Math.min(slides.length - 1, index));
                     track!.style.transform = `translateX(-${current * 100}%)`;
                     loadSrc(slides[current]!);
                     if (counter) counter.textContent = (current + 1) + ' / ' + slides.length;
+                    if (prev) (prev as HTMLElement).style.visibility = current === 0 ? 'hidden' : '';
+                    if (next) (next as HTMLElement).style.visibility = current === slides.length - 1 ? 'hidden' : '';
                 }
 
                 function preloadSlide(index: number): void {
@@ -93,6 +95,7 @@
                     next.addEventListener('mouseenter', function() { preloadSlide(current + 1); });
                 }
                 if (prev) prev.addEventListener('mouseenter', function() { preloadSlide(current - 1); });
+                showSlide(0);
             }
 
             // Expand button opens lightbox at current slide

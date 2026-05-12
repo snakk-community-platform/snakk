@@ -17,8 +17,11 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
     // Viewer count tracking: discussionId → count
     private static readonly ConcurrentDictionary<string, int> ViewerCounts = new();
 
-    // Connection → discussion mapping for cleanup on disconnect
+    // Connection → discussion mapping for viewer count cleanup on disconnect
     private static readonly ConcurrentDictionary<string, string> ConnectionDiscussions = new();
+
+    // Connection → discussionId for typing cleanup on disconnect
+    private static readonly ConcurrentDictionary<string, string> TypingConnections = new();
 
     /// <summary>Current number of tracked connections (for health checks)</summary>
     public static int ActiveConnectionCount => ConnectionDiscussions.Count;
@@ -60,6 +63,14 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
         {
             DecrementViewerCount(discussionId);
             await BroadcastViewerCount(discussionId);
+        }
+
+        // Clean up typing state — broadcast stop so other clients clear the indicator immediately
+        if (TypingConnections.TryRemove(Context.ConnectionId, out var typingDiscussionId))
+        {
+            var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
+            await Clients.OthersInGroup($"discussion:{typingDiscussionId}")
+                .SendAsync("ReceiveTyping", new { displayName, isTyping = false, group = $"discussion:{typingDiscussionId}" });
         }
 
         if (exception is not null)
@@ -184,18 +195,20 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
 
     // ==================== Typing Indicators ====================
 
-    /// <summary>Notify others that this user is typing in a discussion</summary>
+    /// <summary>Notify others that this user is composing a reply in a discussion</summary>
     public async Task StartTyping(string discussionId)
     {
         var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        TypingConnections[Context.ConnectionId] = discussionId;
         await Clients.OthersInGroup($"discussion:{discussionId}")
             .SendAsync("ReceiveTyping", new { displayName, isTyping = true, group = $"discussion:{discussionId}" });
     }
 
-    /// <summary>Notify others that this user stopped typing</summary>
+    /// <summary>Notify others that this user stopped composing a reply</summary>
     public async Task StopTyping(string discussionId)
     {
         var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        TypingConnections.TryRemove(Context.ConnectionId, out _);
         await Clients.OthersInGroup($"discussion:{discussionId}")
             .SendAsync("ReceiveTyping", new { displayName, isTyping = false, group = $"discussion:{discussionId}" });
     }

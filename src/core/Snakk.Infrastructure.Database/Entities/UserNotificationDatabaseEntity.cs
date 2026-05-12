@@ -9,6 +9,7 @@ public class UserNotificationDatabaseEntity
     public required string PublicId { get; set; }
 
     public int RecipientUserId { get; set; }
+    public string? RecipientUserPublicId { get; set; }
     public virtual UserDatabaseEntity RecipientUser { get; set; } = null!;
 
     public int TypeId { get; set; } // Maps to NotificationTypeEnum
@@ -17,15 +18,19 @@ public class UserNotificationDatabaseEntity
 
     // Source references (nullable)
     public int? SourcePostId { get; set; }
+    public string? SourcePostPublicId { get; set; }
     public virtual PostDatabaseEntity? SourcePost { get; set; }
 
     public int? SourceDiscussionId { get; set; }
+    public string? SourceDiscussionPublicId { get; set; }
     public virtual DiscussionDatabaseEntity? SourceDiscussion { get; set; }
 
     public int? SourceSpaceId { get; set; }
+    public string? SourceSpacePublicId { get; set; }
     public virtual SpaceDatabaseEntity? SourceSpace { get; set; }
 
     public int? ActorUserId { get; set; }
+    public string? ActorUserPublicId { get; set; }
     public virtual UserDatabaseEntity? ActorUser { get; set; }
 
     public bool IsRead { get; set; }

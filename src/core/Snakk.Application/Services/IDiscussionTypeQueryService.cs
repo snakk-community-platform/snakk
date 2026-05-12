@@ -32,7 +32,10 @@ public record IamaInfo(
     bool IsScheduled,
     DateTime? ScheduledStartUtc,
     DateTime? ScheduledEndUtc,
+    DateTime? ActualStartedAtUtc,
+    DateTime? ActualEndedAtUtc,
     string? VerificationNote,
+    string? VerificationNoteHtml,
     Dictionary<string, string> OfficialAnswers,
     List<string> BestQuestionPostPublicIds);
 

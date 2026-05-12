@@ -122,6 +122,7 @@
 // height: 600px).
 .sn-images-preview {
     position: relative;
+    width: 100%;
     border-radius: 0.375rem;
     overflow: hidden;
     background: var(--bg-secondary);
@@ -550,9 +551,23 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.625rem 0.75rem;
-    border: 1px solid var(--border-secondary);
     border-radius: 0.375rem;
     background: color-mix(in srgb, var(--sidebar-bg) 40%, transparent);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+
+    &.sn-iama-phase--announced {
+        background: color-mix(in srgb, var(--accent-warning-strong) 18%, transparent);
+    }
+    &.sn-iama-phase--live {
+        background: color-mix(in srgb, var(--accent-success) 18%, transparent);
+    }
+    &.sn-iama-phase--closed {
+        background: color-mix(in srgb, var(--text-secondary) 15%, transparent);
+    }
+    &.sn-iama-phase--archived {
+        background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
+    }
 }
 
 .sn-iama-header {
@@ -575,20 +590,20 @@
     letter-spacing: 0.025em;
 
     &--announced {
-        background: color-mix(in srgb, var(--accent-warning-strong) 20%, transparent);
-        color: var(--accent-warning-text);
+        background: var(--accent-warning-strong);
+        color: black;
     }
     &--live {
-        background: color-mix(in srgb, var(--accent-success) 20%, transparent);
-        color: var(--accent-success-text);
+        background: var(--accent-success);
+        color: white;
     }
     &--closed {
-        background: color-mix(in srgb, var(--text-tertiary) 20%, transparent);
-        color: var(--text-secondary);
+        background: var(--text-secondary);
+        color: white;
     }
     &--archived {
-        background: color-mix(in srgb, var(--text-tertiary) 15%, transparent);
-        color: var(--text-tertiary);
+        background: var(--text-tertiary);
+        color: white;
     }
 }
 
@@ -606,11 +621,11 @@
     color: var(--text-tertiary);
 }
 
-.sn-iama-countdown {
+.sn-iama-preview .sn-iama-countdown,
+.sn-poll-preview .sn-iama-countdown {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.75rem;
     color: var(--text-secondary);
 }
 

@@ -1,6 +1,7 @@
 namespace Snakk.Application.Services;
 
 using Snakk.Application.DTOs.Settings;
+using Snakk.Shared.Enums;
 
 public interface ISettingsService
 {
@@ -25,6 +26,9 @@ public interface ISettingsService
 
     Task<ContentSettingsDto> GetContentSettingsAsync();
     Task UpdateContentSettingsAsync(ContentSettingsDto settings, string adminUserId);
+
+    Task<IReadOnlyList<ScriptGroup>> GetAllowedDisplayNameScriptsAsync();
+    Task UpdateAllowedDisplayNameScriptsAsync(IEnumerable<ScriptGroup> scripts, string adminUserId);
 
     Task<RateLimitingSettingsDto> GetRateLimitingSettingsAsync();
     Task UpdateRateLimitingSettingsAsync(RateLimitingSettingsDto settings, string adminUserId);

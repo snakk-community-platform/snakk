@@ -28,7 +28,7 @@ public class EntityHierarchyCacheService(
 
         var h = await context.Discussions
             .Where(d => d.PublicId == publicId)
-            .Select(d => new DiscussionHierarchy(d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId))
+            .Select(d => new DiscussionHierarchy(d.SpaceId, d.HubId, d.CommunityId))
             .FirstOrDefaultAsync();
 
         if (h is not null)

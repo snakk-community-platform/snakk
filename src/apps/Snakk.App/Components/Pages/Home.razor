@@ -1,0 +1,169 @@
+@page "/"
+
+@inject AuthService Auth
+@inject DiscussionApiClient Api
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@if (!Auth.IsLoggedIn)
+{
+    <MudPaper Class="pa-6 mb-4" Elevation="2">
+        <MudStack AlignItems="AlignItems.Center" Spacing="3">
+            <MudText Typo="Typo.h6">Welcome to Snakk</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="Login" Disabled="_loginLoading">
+                @if (_loginLoading)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                }
+                Sign in
+            </MudButton>
+            @if (_loginError is not null)
+            {
+                <MudAlert Severity="Severity.Error">@_loginError</MudAlert>
+            }
+        </MudStack>
+    </MudPaper>
+}
+
+<MudText Typo="Typo.h5" Class="mb-4">Recent Discussions</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-4" />
+}
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-4">@_error</MudAlert>
+}
+
+@foreach (var d in _discussions)
+{
+    <DiscussionCard Discussion="@d" />
+}
+
+@if (_hasMore)
+{
+    <div @ref="_sentinel" style="height:1px"></div>
+}
+
+@if (_loadingMore)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2" />
+}
+
+@if (_discussions.Count == 0 && !_loading && _error is null)
+{
+    <MudText Color="Color.Secondary">No discussions found.</MudText>
+}
+
+@code {
+    private List<DiscussionListItem> _discussions = [];
+    private bool _loading;
+    private bool _loadingMore;
+    private bool _hasMore = true;
+    private string? _cursor;
+    private bool _loginLoading;
+    private string? _error;
+    private string? _loginError;
+    private ElementReference _sentinel;
+    private DotNetObjectReference<Home>? _dotNetRef;
+    protected override async Task OnInitializedAsync()
+    {
+        await Auth.InitializeAsync();
+        await LoadDiscussions();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("infiniteScroll.observe", _sentinel, _dotNetRef);
+        }
+    }
+
+    private async Task Login()
+    {
+        _loginLoading = true;
+        _loginError = null;
+        StateHasChanged();
+
+        try
+        {
+            var success = await Auth.LoginAsync();
+            if (success)
+                await LoadDiscussions();
+            else
+                _loginError = Auth.LastError ?? "Sign-in failed. Please try again.";
+        }
+        catch (Exception ex)
+        {
+            _loginError = ex.Message;
+        }
+        finally
+        {
+            _loginLoading = false;
+        }
+    }
+
+    private async Task LoadDiscussions()
+    {
+        _loading = true;
+        _error = null;
+        _discussions.Clear();
+        _cursor = null;
+        _hasMore = true;
+        StateHasChanged();
+
+        try
+        {
+            var paged = await Api.GetRecentAsync(20);
+            _discussions.AddRange(paged.Items);
+            _cursor = paged.NextCursor;
+            _hasMore = paged.HasMore;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    [JSInvokable]
+    public async Task LoadMoreAsync()
+    {
+        if (_loading || _loadingMore || !_hasMore) return;
+        _loadingMore = true;
+        await InvokeAsync(StateHasChanged);
+
+        try
+        {
+            var paged = await Api.GetRecentAsync(20, _cursor);
+            _discussions.AddRange(paged.Items);
+            _cursor = paged.NextCursor;
+            _hasMore = paged.HasMore;
+            if (!_hasMore)
+                await JS.InvokeVoidAsync("infiniteScroll.disconnect");
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loadingMore = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("infiniteScroll.disconnect"); } catch { }
+        _dotNetRef?.Dispose();
+    }
+}

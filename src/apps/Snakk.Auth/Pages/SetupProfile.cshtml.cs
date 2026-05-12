@@ -18,7 +18,7 @@ public class SetupProfileModel(
     public class InputModel
     {
         [Required(ErrorMessage = "Display name is required.")]
-        [StringLength(50, MinimumLength = 2, ErrorMessage = "Display name must be between 2 and 50 characters.")]
+        [StringLength(20, MinimumLength = 3, ErrorMessage = "Display name must be between 3 and 20 characters.")]
         [Display(Name = "Display Name")]
         public string DisplayName { get; set; } = "";
 

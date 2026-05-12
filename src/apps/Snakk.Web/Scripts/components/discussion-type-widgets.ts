@@ -434,14 +434,19 @@
                     img.src = img.dataset.full;
                 }
             });
+
+            const prevEl = document.getElementById('gup-prev') as HTMLElement | null;
+            const nextEl = document.getElementById('gup-next') as HTMLElement | null;
+            if (prevEl) prevEl.style.visibility = carouselIdx === 0 ? 'hidden' : '';
+            if (nextEl) nextEl.style.visibility = carouselIdx === items.length - 1 ? 'hidden' : '';
         }
 
-        // Arrow buttons (wrap around)
+        // Arrow buttons (stop at boundary)
         document.getElementById('gup-prev')?.addEventListener('click', () => {
-            slide(carouselIdx > 0 ? carouselIdx - 1 : items.length - 1);
+            if (carouselIdx > 0) slide(carouselIdx - 1);
         });
         document.getElementById('gup-next')?.addEventListener('click', () => {
-            slide(carouselIdx < items.length - 1 ? carouselIdx + 1 : 0);
+            if (carouselIdx < items.length - 1) slide(carouselIdx + 1);
         });
 
         // Arrow hover preload
@@ -455,6 +460,8 @@
             const img = items[target]?.querySelector('img') as HTMLImageElement | null;
             if (img?.dataset.full) { const p = new window.Image(); p.src = img.dataset.full; }
         });
+
+        slide(0);
 
     }
 

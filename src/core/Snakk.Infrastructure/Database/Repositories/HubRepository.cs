@@ -37,7 +37,7 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
         .Where(h => h.PublicId == publicId)
         .Select(h => new HubDetailDto(
             h.PublicId,
-            h.Community.PublicId,
+            h.CommunityPublicId,
             h.Name,
             h.Slug,
             h.Description,
@@ -62,7 +62,7 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
             .Take(pageSize + 1)
             .Select(h => new HubListDto(
                 h.PublicId,
-                h.Community.PublicId,
+                h.CommunityPublicId,
                 h.Name,
                 h.Slug,
                 h.Description,
@@ -104,7 +104,7 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
             .Take(pageSize + 1)
             .Select(h => new HubListDto(
                 h.PublicId,
-                h.Community.PublicId,
+                h.CommunityPublicId,
                 h.Name,
                 h.Slug,
                 h.Description,

@@ -27,6 +27,7 @@ COPY src/core/Snakk.Protos/Snakk.Protos.csproj core/Snakk.Protos/
 COPY src/core/Snakk.Shared/Snakk.Shared.csproj core/Snakk.Shared/
 COPY src/services/Snakk.Api/Snakk.Api.csproj services/Snakk.Api/
 COPY src/services/Snakk.Gateway/Snakk.Gateway.csproj services/Snakk.Gateway/
+COPY src/services/Snakk.PublicApi/Snakk.PublicApi.csproj services/Snakk.PublicApi/
 COPY src/services/Snakk.Realtime/Snakk.Realtime.csproj services/Snakk.Realtime/
 COPY src/services/Snakk.Worker/Snakk.Worker.csproj services/Snakk.Worker/
 COPY src/apps/Snakk.Setup/Snakk.Setup.csproj apps/Snakk.Setup/
@@ -76,6 +77,7 @@ RUN dotnet publish apps/Snakk.Admin/Snakk.Admin.csproj -c Release -o /publish/ad
 # --- Publish remaining projects in parallel (no compilation, just copy) ---
 RUN dotnet publish services/Snakk.Gateway/Snakk.Gateway.csproj -c Release -o /publish/gateway --no-build --no-restore & \
     dotnet publish services/Snakk.Api/Snakk.Api.csproj -c Release -o /publish/api --no-build --no-restore & \
+    dotnet publish services/Snakk.PublicApi/Snakk.PublicApi.csproj -c Release -o /publish/public-api --no-build --no-restore & \
     dotnet publish services/Snakk.Realtime/Snakk.Realtime.csproj -c Release -o /publish/realtime --no-build --no-restore & \
     dotnet publish services/Snakk.Worker/Snakk.Worker.csproj -c Release -o /publish/worker --no-build --no-restore & \
     dotnet publish apps/Snakk.Auth/Snakk.Auth.csproj -c Release -o /publish/auth --no-build --no-restore & \
@@ -111,6 +113,7 @@ WORKDIR /app
 # Copy all published services
 COPY --from=build /publish/gateway ./gateway/
 COPY --from=build /publish/api ./api/
+COPY --from=build /publish/public-api ./public-api/
 COPY --from=build /publish/realtime ./realtime/
 COPY --from=build /publish/worker ./worker/
 COPY --from=build /publish/web ./web/

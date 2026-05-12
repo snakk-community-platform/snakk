@@ -33,7 +33,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         // Verify the user is the discussion author (OP)
         var discussion = await context.Discussions
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
-            .Select(d => new { d.Id, CreatedByPublicId = d.CreatedByUser.PublicId })
+            .Select(d => new { d.Id, CreatedByPublicId = d.CreatedByUserPublicId })
             .FirstOrDefaultAsync();
 
         if (discussion is null)
@@ -180,7 +180,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
 
         var post = await context.Posts
             .Where(p => p.PublicId == postPublicId && !p.IsDeleted)
-            .Select(p => new { p.Id, CreatedByPublicId = p.CreatedByUser.PublicId })
+            .Select(p => new { p.Id, CreatedByPublicId = p.CreatedByUserPublicId })
             .FirstOrDefaultAsync();
 
         if (post is null)
@@ -253,7 +253,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         // Verify the user is the discussion author (OP)
         var discussion = await context.Discussions
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
-            .Select(d => new { CreatedByPublicId = d.CreatedByUser.PublicId })
+            .Select(d => new { CreatedByPublicId = d.CreatedByUserPublicId })
             .FirstOrDefaultAsync();
 
         if (discussion is null)
@@ -306,7 +306,10 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                 i.IsScheduled,
                 i.ScheduledStartUtc,
                 i.ScheduledEndUtc,
+                i.ActualStartedAtUtc,
+                i.ActualEndedAtUtc,
                 i.VerificationNote,
+                i.VerificationNoteHtml,
                 i.Id
             })
             .FirstOrDefaultAsync();
@@ -333,7 +336,10 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             iama.IsScheduled,
             iama.ScheduledStartUtc,
             iama.ScheduledEndUtc,
+            iama.ActualStartedAtUtc,
+            iama.ActualEndedAtUtc,
             iama.VerificationNote,
+            iama.VerificationNoteHtml,
             officialAnswers,
             bestQuestions);
     }
@@ -344,7 +350,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         // Verify the user is the host (discussion creator)
         var discussion = await context.Discussions
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
-            .Select(d => new { d.Id, CreatedByPublicId = d.CreatedByUser.PublicId })
+            .Select(d => new { d.Id, CreatedByPublicId = d.CreatedByUserPublicId })
             .FirstOrDefaultAsync();
 
         if (discussion is null)
@@ -400,6 +406,14 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         }
 
         await context.SaveChangesAsync();
+
+        if (existing is null)
+        {
+            await context.DiscussionIamas
+                .Where(i => i.Id == iama.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(i => i.OfficialAnswerCount, i => i.OfficialAnswerCount + 1));
+        }
+
         return (true, null);
     }
 
@@ -411,7 +425,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
 
         var discussion = await context.Discussions
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
-            .Select(d => new { d.Id, CreatedByPublicId = d.CreatedByUser.PublicId })
+            .Select(d => new { d.Id, CreatedByPublicId = d.CreatedByUserPublicId })
             .FirstOrDefaultAsync();
 
         if (discussion is null)
@@ -455,6 +469,11 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         }
 
         await context.SaveChangesAsync();
+
+        await context.DiscussionIamas
+            .Where(i => i.Id == iama.Id)
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.BestQuestionCount, postPublicIds.Count));
+
         return (true, null);
     }
 
@@ -488,6 +507,11 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             return (false, "Cannot move to a previous phase");
 
         iama.Phase = newPhase;
+
+        if (newPhase == 1)
+            iama.ActualStartedAtUtc ??= DateTime.UtcNow;
+        else if (newPhase == 2)
+            iama.ActualEndedAtUtc ??= DateTime.UtcNow;
 
         // Lock discussion when closing or archiving
         if (newPhase >= 2)

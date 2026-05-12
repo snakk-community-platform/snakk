@@ -18,7 +18,7 @@ public class SpaceRepositoryAdapter(
         var projection = await context.Spaces
             .Where(s => s.Id == id)
             .Select(s => new SpaceProjection(
-                s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
+                s.PublicId, s.HubPublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
@@ -32,7 +32,7 @@ public class SpaceRepositoryAdapter(
         var projection = await context.Spaces
             .Where(s => s.PublicId == publicId.Value)
             .Select(s => new SpaceProjection(
-                s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
+                s.PublicId, s.HubPublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
@@ -44,9 +44,9 @@ public class SpaceRepositoryAdapter(
     public async Task<Space?> GetBySlugAsync(string slug, string hubSlug)
     {
         var projection = await context.Spaces
-            .Where(s => s.Slug == slug && s.Hub.Slug == hubSlug)
+            .Where(s => s.Slug == slug && s.HubSlug == hubSlug)
             .Select(s => new SpaceProjection(
-                s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
+                s.PublicId, s.HubPublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
@@ -85,7 +85,7 @@ public class SpaceRepositoryAdapter(
     {
         var projections = await context.Spaces
             .Select(s => new SpaceProjection(
-                s.PublicId, s.Hub.PublicId, s.Name, s.Slug, s.Description,
+                s.PublicId, s.HubPublicId, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
@@ -99,12 +99,20 @@ public class SpaceRepositoryAdapter(
     {
         var entity = space.ToPersistence();
 
-        var hub = await context.Hubs.FirstOrDefaultAsync(h => h.PublicId == space.HubId.Value);
+        var hub = await context.Hubs
+            .Include(h => h.Community)
+            .FirstOrDefaultAsync(h => h.PublicId == space.HubId.Value);
 
         if (hub is null)
             throw new InvalidOperationException($"Hub with PublicId '{space.HubId}' not found");
 
         entity.HubId = hub.Id;
+        entity.HubPublicId = hub.PublicId;
+        entity.HubSlug = hub.Slug;
+        entity.HubName = hub.Name;
+        entity.CommunityPublicId = hub.Community.PublicId;
+        entity.CommunitySlug = hub.Community.Slug;
+        entity.CommunityName = hub.Community.Name;
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();

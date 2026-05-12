@@ -9,9 +9,11 @@ public class PostReactionDatabaseEntity
     public required string PublicId { get; set; }
 
     public int PostId { get; set; }
+    public string? PostPublicId { get; set; }
     public virtual PostDatabaseEntity Post { get; set; } = null!;
 
     public int UserId { get; set; }
+    public string? UserPublicId { get; set; }
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
     public int TypeId { get; set; } // Maps to ReactionTypeEnum

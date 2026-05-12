@@ -11,14 +11,14 @@ public static class NotificationMapper
     public static Notification FromPersistence(this UserNotificationDatabaseEntity entity) =>
         Notification.Rehydrate(
             NotificationId.From(entity.PublicId),
-            UserId.From(entity.RecipientUser.PublicId),
+            UserId.From(entity.RecipientUserPublicId!),
             ((NotificationTypeEnum)entity.TypeId).ToDomain(),
             entity.Title,
             entity.Body,
-            entity.SourcePost is not null ? PostId.From(entity.SourcePost.PublicId) : null,
-            entity.SourceDiscussion is not null ? DiscussionId.From(entity.SourceDiscussion.PublicId) : null,
-            entity.SourceSpace is not null ? SpaceId.From(entity.SourceSpace.PublicId) : null,
-            entity.ActorUser is not null ? UserId.From(entity.ActorUser.PublicId) : null,
+            entity.SourcePostPublicId is not null ? PostId.From(entity.SourcePostPublicId) : null,
+            entity.SourceDiscussionPublicId is not null ? DiscussionId.From(entity.SourceDiscussionPublicId) : null,
+            entity.SourceSpacePublicId is not null ? SpaceId.From(entity.SourceSpacePublicId) : null,
+            entity.ActorUserPublicId is not null ? UserId.From(entity.ActorUserPublicId) : null,
             entity.IsRead,
             entity.CreatedAt,
             entity.ReadAt);

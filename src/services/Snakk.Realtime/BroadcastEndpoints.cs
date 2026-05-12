@@ -28,7 +28,15 @@ public static class BroadcastEndpoints
                 title = request.Title,
                 delta = request.Delta,
                 authorId = request.AuthorId,
-                authorName = request.AuthorName
+                authorName = request.AuthorName,
+                debatePositions = request.DebatePositions?.Select(p => new { index = p.Index, label = p.Label, postCount = p.PostCount, pct = p.Pct }),
+                pollOptions = request.PollOptions?.Select(p => new { text = p.Text, voteCount = p.VoteCount, pct = p.Pct }),
+                totalVotes = request.TotalVotes,
+                lastPostExcerpt = request.LastPostExcerpt,
+                lastReplierId = request.LastReplierId,
+                lastReplierName = request.LastReplierName,
+                lastReplierAvatarUrl = request.LastReplierAvatarUrl,
+                lastActivityAtUnix = request.LastActivityAtUnix
             });
 
         return Results.Ok(new { success = true, targetGroup = request.TargetGroup });

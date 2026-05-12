@@ -17,7 +17,7 @@ public interface IPrefetchCacheService
     /// Tries to consume a prefetched Task (with timeout), falls through to shared cache on miss.
     /// Called by sidebar partial endpoints. Returns result with source tag ("prefetch", "cache", or "api").
     /// </summary>
-    Task<CacheResult<T>> GetOrFetchAsync<T>(string cacheKey, Func<Task<T?>> factory, TimeSpan? timeout = null) where T : class;
+    Task<CacheResult<T>> GetOrFetchAsync<T>(string cacheKey, Func<Task<T?>> factory, TimeSpan? timeout = null, TimeSpan? sharedTtl = null) where T : class;
 
     /// <summary>
     /// Request coalescing: ensures only one factory invocation under concurrent access.
@@ -92,7 +92,8 @@ public class PrefetchCacheService(
     public async Task<CacheResult<T>> GetOrFetchAsync<T>(
         string cacheKey,
         Func<Task<T?>> factory,
-        TimeSpan? timeout = null) where T : class
+        TimeSpan? timeout = null,
+        TimeSpan? sharedTtl = null) where T : class
     {
         var prefetchKey = $"prefetch:{cacheKey}";
 
@@ -130,7 +131,7 @@ public class PrefetchCacheService(
         var collector2 = _httpContextAccessor.HttpContext?.Items["ServerTiming"] as ServerTimingCollector;
         var offsetMs2 = collector2?.GetOffsetMs();
         var sw2 = System.Diagnostics.Stopwatch.StartNew();
-        var value = await GetOrCreateSharedAsync(cacheKey, factory);
+        var value = await GetOrCreateSharedAsync(cacheKey, factory, sharedTtl);
         sw2.Stop();
         var source = isSharedHit ? "cache" : "api";
         AddServerTiming("cache", sw2.ElapsedMilliseconds, $"{source}:{cacheKey}", offsetMs2);

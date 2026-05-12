@@ -18,8 +18,10 @@ public class UserAchievementProgressDatabaseEntity
 
     // Many-to-one relationships
     public int UserId { get; set; }
+    public string? UserPublicId { get; set; }
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
     public int AchievementId { get; set; }
+    public string? AchievementPublicId { get; set; }
     public virtual AchievementDatabaseEntity Achievement { get; set; } = null!;
 }

@@ -18,14 +18,14 @@ public class FollowRepositoryAdapter(
     {
         var projection = await context.UserFollows
             .Where(f =>
-                f.User.PublicId == userId.Value
+                f.UserPublicId == userId.Value
                 && f.Discussion != null
-                && f.Discussion.PublicId == discussionId.Value)
+                && f.DiscussionPublicId == discussionId.Value)
             .Select(f => new FollowProjection(
-                f.PublicId, f.User.PublicId, f.TargetTypeId,
-                f.Discussion != null ? f.Discussion.PublicId : null,
-                f.Space != null ? f.Space.PublicId : null,
-                f.FollowedUser != null ? f.FollowedUser.PublicId : null,
+                f.PublicId, f.UserPublicId, f.TargetTypeId,
+                f.DiscussionPublicId,
+                f.SpacePublicId,
+                f.FollowedUserPublicId,
                 f.LevelId, f.CreatedAt))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -35,14 +35,14 @@ public class FollowRepositoryAdapter(
     {
         var projection = await context.UserFollows
             .Where(f =>
-                f.User.PublicId == userId.Value
+                f.UserPublicId == userId.Value
                 && f.Space != null
-                && f.Space.PublicId == spaceId.Value)
+                && f.SpacePublicId == spaceId.Value)
             .Select(f => new FollowProjection(
-                f.PublicId, f.User.PublicId, f.TargetTypeId,
-                f.Discussion != null ? f.Discussion.PublicId : null,
-                f.Space != null ? f.Space.PublicId : null,
-                f.FollowedUser != null ? f.FollowedUser.PublicId : null,
+                f.PublicId, f.UserPublicId, f.TargetTypeId,
+                f.DiscussionPublicId,
+                f.SpacePublicId,
+                f.FollowedUserPublicId,
                 f.LevelId, f.CreatedAt))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -52,14 +52,14 @@ public class FollowRepositoryAdapter(
     {
         var projection = await context.UserFollows
             .Where(f =>
-                f.User.PublicId == userId.Value
+                f.UserPublicId == userId.Value
                 && f.FollowedUser != null
-                && f.FollowedUser.PublicId == followedUserId.Value)
+                && f.FollowedUserPublicId == followedUserId.Value)
             .Select(f => new FollowProjection(
-                f.PublicId, f.User.PublicId, f.TargetTypeId,
-                f.Discussion != null ? f.Discussion.PublicId : null,
-                f.Space != null ? f.Space.PublicId : null,
-                f.FollowedUser != null ? f.FollowedUser.PublicId : null,
+                f.PublicId, f.UserPublicId, f.TargetTypeId,
+                f.DiscussionPublicId,
+                f.SpacePublicId,
+                f.FollowedUserPublicId,
                 f.LevelId, f.CreatedAt))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -125,7 +125,7 @@ public class FollowRepositoryAdapter(
     public async Task<int> GetFollowingCountByUserAsync(UserId userId)
     {
         return await context.UserFollows
-            .Where(f => f.User.PublicId == userId.Value)
+            .Where(f => f.UserPublicId == userId.Value)
             .CountAsync();
     }
 
@@ -229,6 +229,7 @@ public class FollowRepositoryAdapter(
             .Select(u => (int?)u.Id)
             .FirstOrDefaultAsync()
             ?? throw new InvalidOperationException($"User with PublicId '{follow.UserId}' not found");
+        entity.UserPublicId = follow.UserId.Value;
 
         if (follow.DiscussionId is not null)
         {
@@ -237,6 +238,7 @@ public class FollowRepositoryAdapter(
                 .Select(d => (int?)d.Id)
                 .FirstOrDefaultAsync()
                 ?? throw new InvalidOperationException($"Discussion with PublicId '{follow.DiscussionId}' not found");
+            entity.DiscussionPublicId = follow.DiscussionId.Value;
         }
 
         if (follow.SpaceId is not null)
@@ -246,6 +248,7 @@ public class FollowRepositoryAdapter(
                 .Select(s => (int?)s.Id)
                 .FirstOrDefaultAsync()
                 ?? throw new InvalidOperationException($"Space with PublicId '{follow.SpaceId}' not found");
+            entity.SpacePublicId = follow.SpaceId.Value;
         }
 
         if (follow.FollowedUserId is not null)
@@ -255,6 +258,7 @@ public class FollowRepositoryAdapter(
                 .Select(u => (int?)u.Id)
                 .FirstOrDefaultAsync()
                 ?? throw new InvalidOperationException($"User with PublicId '{follow.FollowedUserId}' not found");
+            entity.FollowedUserPublicId = follow.FollowedUserId.Value;
         }
 
         await databaseRepository.AddAsync(entity);

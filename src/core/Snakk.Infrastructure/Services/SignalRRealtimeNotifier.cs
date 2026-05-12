@@ -126,17 +126,14 @@ public class SignalRRealtimeNotifier(
                 swapStrategy = ""
             });
 
-    public async Task NotifyDiscussionCreatedAsync(DiscussionId discussionId, SpaceId spaceId, User author) =>
-        await hubContext.Clients
-            .Group($"space:{spaceId.Value}")
-            .SendAsync("ReceiveUpdate", new
-            {
-                group = $"space:{spaceId.Value}",
-                eventType = "discussion-created",
-                discussionId = discussionId.Value,
-                authorId = author.PublicId.Value,
-                authorName = author.DisplayName
-            });
+    public async Task NotifyDiscussionCreatedAsync(DiscussionId discussionId, SpaceId spaceId, HubId hubId)
+    {
+        var payload = new { eventType = "discussion-created", discussionId = discussionId.Value, spaceId = spaceId.Value, hubId = hubId.Value };
+        await Task.WhenAll(
+            hubContext.Clients.Group($"space:{spaceId.Value}").SendAsync("ReceiveUpdate", payload),
+            hubContext.Clients.Group($"hub:{hubId.Value}").SendAsync("ReceiveUpdate", payload)
+        );
+    }
 
     public async Task NotifyGlobalAsync(string eventType, string message) =>
         await hubContext.Clients
@@ -220,15 +217,59 @@ public class SignalRRealtimeNotifier(
                 swapStrategy = ""
             });
 
-    public async Task NotifyPostCountUpdatedAsync(DiscussionId discussionId, SpaceId spaceId, int delta) =>
+    public async Task NotifyPostCountUpdatedAsync(
+        DiscussionId discussionId, SpaceId spaceId, HubId? hubId, int delta,
+        string? lastPostExcerpt = null, string? lastReplierId = null, string? lastReplierName = null,
+        string? lastReplierAvatarUrl = null, long? lastActivityAtUnix = null)
+    {
+        var payload = new { eventType = "post-count-updated", discussionId = discussionId.Value, delta,
+            lastPostExcerpt, lastReplierId, lastReplierName, lastReplierAvatarUrl, lastActivityAtUnix,
+            htmlContent = "", swapStrategy = "" };
+        var broadcasts = new List<Task>
+        {
+            hubContext.Clients.Group($"space:{spaceId.Value}").SendAsync("ReceiveUpdate", payload)
+        };
+        if (hubId is not null)
+            broadcasts.Add(hubContext.Clients.Group($"hub:{hubId.Value}").SendAsync("ReceiveUpdate", payload));
+        await Task.WhenAll(broadcasts);
+    }
+
+    public async Task NotifyDiscussionReactionCountAsync(DiscussionId discussionId, SpaceId spaceId, int delta) =>
         await hubContext.Clients
             .Group($"space:{spaceId.Value}")
             .SendAsync("ReceiveUpdate", new
             {
                 group = $"space:{spaceId.Value}",
-                eventType = "post-count-updated",
+                eventType = "discussion-reaction-count-updated",
                 discussionId = discussionId.Value,
                 delta,
+                htmlContent = "",
+                swapStrategy = ""
+            });
+
+    public async Task NotifyDebateUpdatedAsync(DiscussionId discussionId, IReadOnlyList<DebatePositionUpdate> positions) =>
+        await hubContext.Clients
+            .Group($"discussion:{discussionId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                group = $"discussion:{discussionId.Value}",
+                eventType = "debate-updated",
+                discussionId = discussionId.Value,
+                debatePositions = positions.Select(p => new { index = p.Index, label = p.Label, postCount = p.PostCount, pct = p.Pct }),
+                htmlContent = "",
+                swapStrategy = ""
+            });
+
+    public async Task NotifyPollUpdatedAsync(DiscussionId discussionId, IReadOnlyList<PollOptionUpdate> options, int totalVotes) =>
+        await hubContext.Clients
+            .Group($"discussion:{discussionId.Value}")
+            .SendAsync("ReceiveUpdate", new
+            {
+                group = $"discussion:{discussionId.Value}",
+                eventType = "poll-updated",
+                discussionId = discussionId.Value,
+                pollOptions = options.Select(o => new { text = o.Text, voteCount = o.VoteCount, pct = o.Pct }),
+                totalVotes,
                 htmlContent = "",
                 swapStrategy = ""
             });

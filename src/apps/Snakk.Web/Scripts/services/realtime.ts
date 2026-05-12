@@ -21,10 +21,32 @@ interface RealtimeMessage {
     postId?: string;
     counts?: ReactionCounts;
     discussionId?: string;
+    spaceId?: string;
+    hubId?: string;
     title?: string;
     delta?: number;
-    authorId?: string;
-    authorName?: string;
+    count?: number;
+    debatePositions?: DebatePosition[];
+    pollOptions?: PollOption[];
+    totalVotes?: number;
+    lastPostExcerpt?: string;
+    lastReplierId?: string;
+    lastReplierName?: string;
+    lastReplierAvatarUrl?: string;
+    lastActivityAtUnix?: number;
+}
+
+interface DebatePosition {
+    index: number;
+    label: string;
+    postCount: number;
+    pct: number;
+}
+
+interface PollOption {
+    text: string;
+    voteCount: number;
+    pct: number;
 }
 
 interface ReactionCounts {
@@ -195,17 +217,24 @@ interface Subscriptions {
     }
 
     function handleDiscussionPinned(discussionId: string, isPinned: boolean): void {
-        const item = document.querySelector<HTMLElement>(`.topic-item-wrapper[data-discussion-id="${CSS.escape(discussionId)}"]`);
+        const escaped = CSS.escape(discussionId);
+        const item = document.querySelector<HTMLElement>(
+            `.topic-item-wrapper[data-discussion-id="${escaped}"],
+             article.sn-card[data-discussion-id="${escaped}"]`
+        );
         if (!item) return;
         item.classList.toggle('is-pinned', isPinned);
-        // Move pinned items to top, unpinned back to natural order
         const container = item.parentElement;
         if (!container) return;
         if (isPinned) container.prepend(item);
     }
 
     function handleDiscussionDeleted(discussionId: string): void {
-        document.querySelector(`.topic-item-wrapper[data-discussion-id="${CSS.escape(discussionId)}"]`)?.remove();
+        const escaped = CSS.escape(discussionId);
+        document.querySelectorAll(
+            `.topic-item-wrapper[data-discussion-id="${escaped}"],
+             article.sn-card[data-discussion-id="${escaped}"]`
+        ).forEach(el => el.remove());
     }
 
     function handleDiscussionTitleUpdated(title: string): void {
@@ -218,13 +247,138 @@ interface Subscriptions {
         else document.title = title;
     }
 
-    function handlePostCountUpdated(discussionId: string, delta: number): void {
-        const item = document.querySelector<HTMLElement>(`.topic-item-wrapper[data-discussion-id="${CSS.escape(discussionId)}"]`);
-        if (!item) return;
-        const countEl = item.querySelector<HTMLElement>('[data-stat="post-count"]');
-        if (!countEl) return;
-        const current = parseInt(countEl.textContent || '0', 10);
-        if (!isNaN(current)) countEl.textContent = String(current + delta);
+    function handleDebateUpdated(discussionId: string, positions: DebatePosition[]): void {
+        const escaped = CSS.escape(discussionId);
+        document.querySelectorAll<HTMLElement>(`article.sn-card[data-discussion-id="${escaped}"]`).forEach(card => {
+            const bar = card.querySelector<HTMLElement>('.sn-debate-bar');
+            const labelsEl = card.querySelector<HTMLElement>('.sn-debate-labels');
+            if (!bar || !labelsEl) return;
+            positions.forEach(pos => {
+                const seg = bar.querySelector<HTMLElement>(`[data-position-index="${pos.index}"]`);
+                if (seg) {
+                    seg.dataset.debateWidth = `${pos.pct}%`;
+                    seg.style.width = `${pos.pct}%`;
+                    const labelSpan = seg.querySelector<HTMLElement>(':scope > span');
+                    if (pos.pct >= 15) {
+                        if (!labelSpan) {
+                            const span = document.createElement('span');
+                            span.textContent = pos.label;
+                            seg.appendChild(span);
+                        }
+                    } else {
+                        labelSpan?.remove();
+                    }
+                }
+                const labelEl = labelsEl.querySelector<HTMLElement>(`[data-position-index="${pos.index}"]`);
+                if (labelEl) {
+                    Array.from(labelEl.childNodes)
+                        .filter(n => n.nodeType === Node.TEXT_NODE)
+                        .forEach(n => (n as ChildNode).remove());
+                    labelEl.appendChild(document.createTextNode(` ${pos.label} ${pos.pct}%`));
+                }
+            });
+        });
+    }
+
+    function handlePollUpdated(discussionId: string, options: PollOption[]): void {
+        const escaped = CSS.escape(discussionId);
+        document.querySelectorAll<HTMLElement>(`article.sn-card[data-discussion-id="${escaped}"]`).forEach(card => {
+            const pollPreview = card.querySelector<HTMLElement>('.sn-poll-preview');
+            if (!pollPreview) return;
+            const pollOptions = Array.from(pollPreview.querySelectorAll<HTMLElement>('.sn-poll-option'));
+            options.forEach(opt => {
+                const optionEl = pollOptions.find(el => {
+                    const textEl = el.querySelector<HTMLElement>('.sn-poll-label > span:first-child');
+                    return textEl?.textContent?.trim() === opt.text;
+                });
+                if (!optionEl) return;
+                const fill = optionEl.querySelector<HTMLElement>('.sn-poll-fill');
+                const stats = optionEl.querySelector<HTMLElement>('.sn-poll-stats');
+                if (fill) { fill.dataset.pollWidth = `${opt.pct}%`; fill.style.width = `${opt.pct}%`; }
+                if (stats) stats.textContent = `${opt.pct}% (${opt.voteCount})`;
+            });
+        });
+    }
+
+    function handleDiscussionReactionCount(discussionId: string, delta: number): void {
+        const escaped = CSS.escape(discussionId);
+        document.querySelectorAll<HTMLElement>(`article.sn-card[data-discussion-id="${escaped}"]`).forEach(card => {
+            const badge = card.querySelector<HTMLElement>('.sn-card-reactions');
+            const countEl = badge?.querySelector<HTMLElement>('[data-stat="reaction-count"]');
+            if (!badge || !countEl) return;
+            const current = parseInt(countEl.textContent || '0', 10);
+            const next = Math.max(0, (isNaN(current) ? 0 : current) + delta);
+            countEl.textContent = String(next);
+            badge.classList.toggle('hidden', next === 0);
+        });
+    }
+
+    function handlePostCountUpdated(msg: RealtimeMessage): void {
+        const discussionId = msg.discussionId!;
+        const delta = msg.delta!;
+        const escaped = CSS.escape(discussionId);
+        document.querySelectorAll<HTMLElement>(
+            `.topic-item-wrapper[data-discussion-id="${escaped}"],
+             article.sn-card[data-discussion-id="${escaped}"]`
+        ).forEach(item => {
+            const countEl = item.querySelector<HTMLElement>('[data-stat="post-count"]');
+            if (countEl) {
+                const current = parseInt(countEl.textContent || '0', 10);
+                if (!isNaN(current)) countEl.textContent = String(current + delta);
+            }
+
+            if (msg.lastReplierId && msg.lastReplierName && delta > 0) {
+                const stripWrapper = item.querySelector<HTMLElement>('[data-reply-strip]');
+                if (!stripWrapper) return;
+
+                const strip = document.createElement('div');
+                strip.className = 'sn-card-reply-strip';
+
+                const meta = document.createElement('div');
+                meta.className = 'sn-card-reply-meta';
+
+                const icon = document.createElement('span');
+                icon.className = 'icon icon-chat-bubble-filled';
+                icon.style.cssText = 'width:1rem;height:1rem';
+                icon.setAttribute('aria-hidden', 'true');
+
+                const excerptSpan = document.createElement('span');
+                excerptSpan.className = 'sn-card-reply-excerpt';
+                const rawExcerpt = msg.lastPostExcerpt ?? '';
+                excerptSpan.textContent = `"${rawExcerpt.length > 100 ? rawExcerpt.slice(0, 100) + '…' : rawExcerpt}"`;
+
+                const dot = document.createElement('span');
+                dot.className = 'sn-card-dot';
+                dot.textContent = '·';
+
+                const time = document.createElement('time');
+                time.className = 'sn-card-reply-time';
+                const formatTime = (window as any).SnakkUtils?.formatRelativeTime;
+                time.textContent = formatTime && msg.lastActivityAtUnix
+                    ? formatTime(new Date(msg.lastActivityAtUnix * 1000))
+                    : '';
+
+                const avatar = document.createElement('img');
+                avatar.src = msg.lastReplierAvatarUrl ?? '';
+                avatar.alt = '';
+                avatar.className = 'sn-card-reply-avatar';
+                avatar.width = 16;
+                avatar.height = 16;
+                avatar.loading = 'lazy';
+
+                const userLink = document.createElement('a');
+                userLink.href = `/u/${msg.lastReplierId}`;
+                userLink.className = 'sn-card-reply-username';
+                userLink.dataset.popupType = 'user';
+                userLink.dataset.popupId = msg.lastReplierId;
+                userLink.dataset.popupName = msg.lastReplierName;
+                userLink.textContent = msg.lastReplierName;
+
+                meta.append(icon, excerptSpan, dot, time, avatar, userLink);
+                strip.appendChild(meta);
+                stripWrapper.replaceChildren(strip);
+            }
+        });
     }
 
     function handleReadStateUpdated(discussionId: string): void {
@@ -237,25 +391,35 @@ interface Subscriptions {
         document.dispatchEvent(new CustomEvent('snakk:realtime:announcement-updated'));
     }
 
-    async function handleDiscussionCreated(discussionId: string, authorId: string, authorName: string): Promise<void> {
+    function handleDiscussionCreated(discussionId: string, msgSpaceId?: string, msgHubId?: string): void {
+        // Deduplicate — same event may arrive from multiple subscribed groups
+        if (seenDiscussionIds.has(discussionId)) return;
+        seenDiscussionIds.add(discussionId);
+
+        // Filter by page scope when we're on a scoped page
+        const ctx = getPageContext();
+        if (ctx.spaceId && ctx.spaceId !== msgSpaceId) return;
+        if (!ctx.spaceId && ctx.hubId && ctx.hubId !== msgHubId) return;
+
         const container = document.getElementById('discussions-container');
         if (!container) return;
 
-        const ctx = document.getElementById('page-context');
-        const hubSlug = ctx?.dataset.hubSlug;
-        const spaceSlug = ctx?.dataset.spaceSlug;
-        if (!hubSlug || !spaceSlug) return;
+        newDiscussionCount++;
 
-        try {
-            const params = new URLSearchParams({ discussionId, hubSlug, spaceSlug, authorId, authorName });
-            const resp = await fetch(`/partials/discussion-item?${params}`);
-            if (!resp.ok) return;
+        let indicator = document.getElementById('new-discussions-indicator') as HTMLButtonElement | null;
+        if (!indicator) {
+            indicator = document.createElement('button');
+            indicator.id = 'new-discussions-indicator';
+            indicator.type = 'button';
+            indicator.className = 'sn-new-discussions-indicator';
+            indicator.addEventListener('click', () => window.location.reload());
+            container.insertAdjacentElement('beforebegin', indicator);
+        }
 
-            const safeHtml = sanitizeHtml(await resp.text());
-            container.insertAdjacentHTML('afterbegin', safeHtml);
-
-            if (typeof htmx !== 'undefined') htmx.process(container);
-        } catch { /* silently ignore fetch failures */ }
+        const label = newDiscussionCount === 1 ? '1 new discussion' : `${newDiscussionCount} new discussions`;
+        indicator.innerHTML =
+            `<span class="sn-ndi-icon" aria-hidden="true">↓</span>` +
+            `<span class="sn-ndi-label">${label} — click to refresh</span>`;
     }
 
     async function handlePostCreated(postId: string, discussionId: string): Promise<void> {
@@ -312,6 +476,12 @@ interface Subscriptions {
         }
     }
 
+    const seenDiscussionIds = new Set<string>();
+    let newDiscussionCount = 0;
+
+    // Fallback timeout: 5 min safety net for missed StopTyping (crash/network drop).
+    // Normal stop comes via StopTyping hub call or 3-min client inactivity timeout.
+    const TYPING_FALLBACK_MS = 5 * 60 * 1000;
     const typingUsers = new Map<string, ReturnType<typeof setTimeout>>();
 
     function handleTypingIndicator(data: TypingData): void {
@@ -321,7 +491,7 @@ interface Subscriptions {
             typingUsers.set(data.displayName, setTimeout(() => {
                 typingUsers.delete(data.displayName);
                 renderTypingIndicator();
-            }, 3000));
+            }, TYPING_FALLBACK_MS));
         } else {
             const existing = typingUsers.get(data.displayName);
             if (existing) clearTimeout(existing);
@@ -339,13 +509,13 @@ interface Subscriptions {
         if (names.length === 0) {
             el.classList.add('hidden');
         } else if (names.length === 1) {
-            usersEl.textContent = `${names[0]} is typing...`;
+            usersEl.textContent = `${names[0]} is composing a reply…`;
             el.classList.remove('hidden');
         } else if (names.length === 2) {
-            usersEl.textContent = `${names[0]} and ${names[1]} are typing...`;
+            usersEl.textContent = `${names[0]} and ${names[1]} are composing a reply…`;
             el.classList.remove('hidden');
         } else {
-            usersEl.textContent = `${names.length} people are typing...`;
+            usersEl.textContent = `${names.length} people are composing a reply…`;
             el.classList.remove('hidden');
         }
     }
@@ -359,8 +529,8 @@ interface Subscriptions {
         }
         if (message.eventType === 'discussion-locked') { handleDiscussionLockChange(true); return; }
         if (message.eventType === 'discussion-unlocked') { handleDiscussionLockChange(false); return; }
-        if (message.eventType === 'discussion-created' && message.discussionId && message.authorId && message.authorName) {
-            handleDiscussionCreated(message.discussionId, message.authorId, message.authorName);
+        if (message.eventType === 'discussion-created' && message.discussionId) {
+            handleDiscussionCreated(message.discussionId, message.spaceId, message.hubId);
             return;
         }
         if (message.eventType === 'discussion-pinned' && message.discussionId) {
@@ -380,7 +550,19 @@ interface Subscriptions {
             return;
         }
         if (message.eventType === 'post-count-updated' && message.discussionId && message.delta != null) {
-            handlePostCountUpdated(message.discussionId, message.delta);
+            handlePostCountUpdated(message);
+            return;
+        }
+        if (message.eventType === 'discussion-reaction-count-updated' && message.discussionId && message.delta != null) {
+            handleDiscussionReactionCount(message.discussionId, message.delta);
+            return;
+        }
+        if (message.eventType === 'debate-updated' && message.discussionId && message.debatePositions) {
+            handleDebateUpdated(message.discussionId, message.debatePositions);
+            return;
+        }
+        if (message.eventType === 'poll-updated' && message.discussionId && message.pollOptions) {
+            handlePollUpdated(message.discussionId, message.pollOptions);
             return;
         }
         if (message.eventType === 'read-state-updated' && message.discussionId) {

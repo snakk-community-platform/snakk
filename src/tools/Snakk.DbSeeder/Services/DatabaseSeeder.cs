@@ -99,6 +99,13 @@ public class DatabaseSeeder(
         await UpsertSystemSettingAsync("General", "Timezone", timezone, "String");
         await UpsertSystemSettingAsync("Registration", "Mode", "Open", "String");
         await UpsertSystemSettingAsync("Registration", "InviteCode", "", "String");
+
+        // Seed allowed display name scripts (JSON array of script group names)
+        var scriptsRaw = _configuration["Setup:AllowedDisplayNameScripts"] ?? "Latin";
+        var scripts = scriptsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (scripts.Length == 0) scripts = ["Latin"];
+        var scriptsJson = System.Text.Json.JsonSerializer.Serialize(scripts);
+        await UpsertRawSystemSettingAsync("Content", "AllowedDisplayNameScripts", scriptsJson, "JSON");
     }
 
     private async Task UpsertSystemSettingAsync(string category, string key, string value, string valueType)
@@ -123,6 +130,32 @@ public class DatabaseSeeder(
         else
         {
             existing.Value = serialized;
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
+    }
+
+    private async Task UpsertRawSystemSettingAsync(string category, string key, string rawValue, string valueType)
+    {
+        var existing = await _context.SystemSettings
+            .FirstOrDefaultAsync(s => s.Category == category && s.Key == key);
+
+        if (existing is null)
+        {
+            _context.SystemSettings.Add(new SystemSettingDatabaseEntity
+            {
+                PublicId = Ulid.NewUlid().ToString(),
+                Category = category,
+                Key = key,
+                Value = rawValue,
+                ValueType = valueType,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            existing.Value = rawValue;
             existing.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -782,6 +815,7 @@ public class DatabaseSeeder(
         {
             PublicId = Ulid.NewUlid().ToString(),
             CommunityId = community.Id,
+            CommunityPublicId = community.PublicId,
             Name = name,
             Slug = slug,
             Description = description,
@@ -798,10 +832,17 @@ public class DatabaseSeeder(
     private async Task<(SpaceDatabaseEntity Space, int[] AllowedTypes)> CreateSpaceAsync(
         HubDatabaseEntity hub, string name, string slug, string description)
     {
+        var community = await _context.Communities.FindAsync(hub.CommunityId);
         var space = new SpaceDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
             HubId = hub.Id,
+            HubPublicId = hub.PublicId,
+            HubSlug = hub.Slug,
+            HubName = hub.Name,
+            CommunityPublicId = community!.PublicId,
+            CommunitySlug = community.Slug,
+            CommunityName = community.Name,
             Name = name,
             Slug = slug,
             Description = description,
@@ -848,6 +889,7 @@ public class DatabaseSeeder(
         SpaceDatabaseEntity space, List<UserDatabaseEntity> users, int count, int[] allowedTypes)
     {
         Console.WriteLine($"  Creating {count} discussions in {space.Name}...");
+        var hub = await _context.Hubs.FindAsync(space.HubId);
 
         // Time window: from space creation to 1 hour ago (guaranteed past)
         var spaceCreated = space.CreatedAt;
@@ -910,10 +952,19 @@ public class DatabaseSeeder(
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 SpaceId = space.Id,
+                SpacePublicId = space.PublicId,
+                HubId = space.HubId,
+                HubPublicId = space.HubPublicId,
+                CommunityId = hub!.CommunityId,
+                CommunityPublicId = space.CommunityPublicId,
                 Title = title,
                 Slug = slug,
                 Type = type,
                 CreatedByUserId = author.Id,
+                CreatedByUserPublicId = author.PublicId,
+                AuthorDisplayName = author.DisplayName,
+                AuthorAvatarFileName = author.AvatarFileName,
+                AuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName,
                 CreatedAt = createdAt,
                 LastActivityAt = createdAt,
                 IsPinned = isPinned,
@@ -958,10 +1009,18 @@ public class DatabaseSeeder(
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 DiscussionId = discussion.Id,
+                DiscussionPublicId = discussion.PublicId,
+                SpaceId = space.Id,
+                SpacePublicId = space.PublicId,
+                HubId = space.HubId,
+                HubPublicId = space.HubPublicId,
+                CommunityId = hub!.CommunityId,
+                CommunityPublicId = space.CommunityPublicId,
                 Content = firstPostContent,
                 RenderedContent = _markupParser.ToHtml(firstPostContent),
                 PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
                 CreatedByUserId = author.Id,
+                CreatedByUserPublicId = author.PublicId,
                 CreatedAt = discussion.CreatedAt,
                 IsFirstPost = true,
                 RevisionCount = 0,
@@ -1009,10 +1068,18 @@ public class DatabaseSeeder(
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     DiscussionId = discussion.Id,
+                    DiscussionPublicId = discussion.PublicId,
+                    SpaceId = space.Id,
+                    SpacePublicId = space.PublicId,
+                    HubId = space.HubId,
+                    HubPublicId = space.HubPublicId,
+                    CommunityId = hub!.CommunityId,
+                    CommunityPublicId = space.CommunityPublicId,
                     Content = replyContent,
                     RenderedContent = _markupParser.ToHtml(replyContent),
                     PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
                     CreatedByUserId = replyAuthor.Id,
+                    CreatedByUserPublicId = replyAuthor.PublicId,
                     CreatedAt = replyCreatedAt,
                     IsFirstPost = false,
                     RevisionCount = 0,
@@ -1503,6 +1570,7 @@ public class DatabaseSeeder(
             return;
         }
 
+        var hub = await _context.Hubs.FindAsync(space.HubId);
         var latestAllowed = Now.AddHours(-1);
         var milestoneThresholds = new HashSet<int> { 100, 500, 1000, 2500, 5000, 10000 };
         var usersWhoPostedInSpace = new HashSet<int>();
@@ -1524,9 +1592,18 @@ public class DatabaseSeeder(
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 SpaceId = space.Id,
+                SpacePublicId = space.PublicId,
+                HubId = space.HubId,
+                HubPublicId = space.HubPublicId,
+                CommunityId = hub!.CommunityId,
+                CommunityPublicId = space.CommunityPublicId,
                 Title = title,
                 Slug = slug,
                 CreatedByUserId = author.Id,
+                CreatedByUserPublicId = author.PublicId,
+                AuthorDisplayName = author.DisplayName,
+                AuthorAvatarFileName = author.AvatarFileName,
+                AuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName,
                 CreatedAt = createdAt,
                 LastActivityAt = createdAt,
                 IsPinned = true
@@ -1551,10 +1628,18 @@ public class DatabaseSeeder(
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 DiscussionId = discussion.Id,
+                DiscussionPublicId = discussion.PublicId,
+                SpaceId = space.Id,
+                SpacePublicId = space.PublicId,
+                HubId = space.HubId,
+                HubPublicId = space.HubPublicId,
+                CommunityId = hub.CommunityId,
+                CommunityPublicId = space.CommunityPublicId,
                 Content = firstPostContent,
                 RenderedContent = _markupParser.ToHtml(firstPostContent),
                 PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
                 CreatedByUserId = author.Id,
+                CreatedByUserPublicId = author.PublicId,
                 CreatedAt = createdAt,
                 IsFirstPost = true,
                 RevisionCount = 0,
@@ -1590,10 +1675,18 @@ public class DatabaseSeeder(
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     DiscussionId = discussion.Id,
+                    DiscussionPublicId = discussion.PublicId,
+                    SpaceId = space.Id,
+                    SpacePublicId = space.PublicId,
+                    HubId = space.HubId,
+                    HubPublicId = space.HubPublicId,
+                    CommunityId = hub!.CommunityId,
+                    CommunityPublicId = space.CommunityPublicId,
                     Content = replyContent,
                     RenderedContent = _markupParser.ToHtml(replyContent),
                     PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
                     CreatedByUserId = replyAuthor.Id,
+                    CreatedByUserPublicId = replyAuthor.PublicId,
                     CreatedAt = replyCreatedAt,
                     IsFirstPost = false,
                     RevisionCount = 0,
@@ -1625,6 +1718,7 @@ public class DatabaseSeeder(
     private async Task SeedNecroDiscussionsAsync(SpaceDatabaseEntity space, List<UserDatabaseEntity> users, HashSet<int> usersWhoPostedInSpace)
     {
         Console.WriteLine("  Seeding necro discussions (30+ day gaps)...");
+        var hub = await _context.Hubs.FindAsync(space.HubId);
 
         var necroThreads = new[]
         {
@@ -1643,9 +1737,18 @@ public class DatabaseSeeder(
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 SpaceId = space.Id,
+                SpacePublicId = space.PublicId,
+                HubId = space.HubId,
+                HubPublicId = space.HubPublicId,
+                CommunityId = hub!.CommunityId,
+                CommunityPublicId = space.CommunityPublicId,
                 Title = thread.Title,
                 Slug = slug,
                 CreatedByUserId = author.Id,
+                CreatedByUserPublicId = author.PublicId,
+                AuthorDisplayName = author.DisplayName,
+                AuthorAvatarFileName = author.AvatarFileName,
+                AuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName,
                 CreatedAt = createdAt,
                 LastActivityAt = createdAt
             };
@@ -1666,9 +1769,17 @@ public class DatabaseSeeder(
             {
                 PublicId = Ulid.NewUlid().ToString(),
                 DiscussionId = discussion.Id,
+                DiscussionPublicId = discussion.PublicId,
+                SpaceId = space.Id,
+                SpacePublicId = space.PublicId,
+                HubId = space.HubId,
+                HubPublicId = space.HubPublicId,
+                CommunityId = hub!.CommunityId,
+                CommunityPublicId = space.CommunityPublicId,
                 Content = firstContent,
                 RenderedContent = _markupParser.ToHtml(firstContent),
                 CreatedByUserId = author.Id,
+                CreatedByUserPublicId = author.PublicId,
                 CreatedAt = createdAt,
                 IsFirstPost = true,
                 RevisionCount = 0,
@@ -1695,9 +1806,17 @@ public class DatabaseSeeder(
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     DiscussionId = discussion.Id,
+                    DiscussionPublicId = discussion.PublicId,
+                    SpaceId = space.Id,
+                    SpacePublicId = space.PublicId,
+                    HubId = space.HubId,
+                    HubPublicId = space.HubPublicId,
+                    CommunityId = hub!.CommunityId,
+                    CommunityPublicId = space.CommunityPublicId,
                     Content = content,
                     RenderedContent = _markupParser.ToHtml(content),
                     CreatedByUserId = replyAuthor.Id,
+                    CreatedByUserPublicId = replyAuthor.PublicId,
                     CreatedAt = replyDate,
                     IsFirstPost = false,
                     RevisionCount = 0,
@@ -1728,9 +1847,17 @@ public class DatabaseSeeder(
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     DiscussionId = discussion.Id,
+                    DiscussionPublicId = discussion.PublicId,
+                    SpaceId = space.Id,
+                    SpacePublicId = space.PublicId,
+                    HubId = space.HubId,
+                    HubPublicId = space.HubPublicId,
+                    CommunityId = hub!.CommunityId,
+                    CommunityPublicId = space.CommunityPublicId,
                     Content = content,
                     RenderedContent = _markupParser.ToHtml(content),
                     CreatedByUserId = replyAuthor.Id,
+                    CreatedByUserPublicId = replyAuthor.PublicId,
                     CreatedAt = replyDate,
                     IsFirstPost = false,
                     RevisionCount = 0,
@@ -1777,9 +1904,9 @@ public class DatabaseSeeder(
 
         var allReactionTypes = Enum.GetValues<ReactionTypeEnum>();
 
-        // Load all posts (id, discussion id, created at) in one query
+        // Load all posts (id, public id, discussion id, created at) in one query
         var posts = await _context.Posts
-            .Select(p => new { p.Id, p.DiscussionId, p.CreatedAt })
+            .Select(p => new { p.Id, p.PublicId, p.DiscussionId, p.CreatedAt })
             .ToListAsync();
 
         Console.WriteLine($"  Distributing reactions across {posts.Count} posts...");
@@ -1817,7 +1944,9 @@ public class DatabaseSeeder(
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     PostId = post.Id,
+                    PostPublicId = post.PublicId,
                     UserId = user.Id,
+                    UserPublicId = user.PublicId,
                     TypeId = (int)_faker.PickRandom(allReactionTypes),
                     CreatedAt = post.CreatedAt.AddMinutes(_faker.Random.Double(1, 60 * 24))
                 });
@@ -2252,9 +2381,11 @@ public class DatabaseSeeder(
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     UserId = user.Id,
+                    UserPublicId = user.PublicId,
                     TargetTypeId = (int)FollowTargetTypeEnum.Discussion,
                     LevelId = (int)FollowLevelEnum.DiscussionsAndPosts,
                     DiscussionId = discussion.Id,
+                    DiscussionPublicId = discussion.PublicId,
                     CreatedAt = _faker.Date.Between(discussion.CreatedAt, Now)
                 });
             }
@@ -2268,11 +2399,13 @@ public class DatabaseSeeder(
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     UserId = user.Id,
+                    UserPublicId = user.PublicId,
                     TargetTypeId = (int)FollowTargetTypeEnum.Space,
                     LevelId = _faker.PickRandom(FollowLevelEnum.DiscussionsOnly, FollowLevelEnum.DiscussionsAndPosts) == FollowLevelEnum.DiscussionsOnly
                         ? (int)FollowLevelEnum.DiscussionsOnly
                         : (int)FollowLevelEnum.DiscussionsAndPosts,
                     SpaceId = space.Id,
+                    SpacePublicId = space.PublicId,
                     CreatedAt = _faker.Date.Between(space.CreatedAt, Now)
                 });
             }
@@ -2287,9 +2420,11 @@ public class DatabaseSeeder(
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     UserId = user.Id,
+                    UserPublicId = user.PublicId,
                     TargetTypeId = (int)FollowTargetTypeEnum.User,
                     LevelId = (int)FollowLevelEnum.DiscussionsAndPosts,
                     FollowedUserId = followed.Id,
+                    FollowedUserPublicId = followed.PublicId,
                     CreatedAt = _faker.Date.Between(followed.CreatedAt, Now)
                 });
             }

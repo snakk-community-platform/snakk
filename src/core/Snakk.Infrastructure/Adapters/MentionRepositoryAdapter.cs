@@ -16,9 +16,9 @@ public class MentionRepositoryAdapter(
     public async Task<IEnumerable<Mention>> GetByPostIdAsync(PostId postId)
     {
         var projections = await context.PostMentions
-            .Where(m => m.Post.PublicId == postId.Value)
+            .Where(m => m.PostPublicId == postId.Value)
             .Select(m => new MentionProjection(
-                m.PublicId, m.Post.PublicId, m.MentionedUser.PublicId, m.CreatedAt))
+                m.PublicId, m.PostPublicId, m.MentionedUserPublicId, m.CreatedAt))
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain());
@@ -52,7 +52,9 @@ public class MentionRepositoryAdapter(
 
             var entity = mention.ToPersistence();
             entity.PostId = postId;
+            entity.PostPublicId = mention.PostId.Value;
             entity.MentionedUserId = userId;
+            entity.MentionedUserPublicId = mention.MentionedUserId.Value;
             entities.Add(entity);
         }
 

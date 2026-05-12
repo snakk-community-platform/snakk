@@ -1,0 +1,158 @@
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@{
+    var type = Type?.ToLowerInvariant();
+}
+
+@if (type == "images")
+{
+    if (Images is { Items.Count: > 0 } imgs)
+    {
+        if (imgs.Items.Count == 1)
+        {
+            var img = imgs.Items[0];
+            var bg = img.BlurDataUri ?? img.ThumbnailUrl ?? img.Url;
+            <div @ref="_imageContainerRef" style="position:relative;max-height:380px;overflow:hidden;background:#111;border-radius:4px;margin-top:8px;">
+                <div style="position:absolute;inset:0;background-image:url('@bg');background-size:cover;background-position:center;filter:blur(24px);transform:scale(1.08);z-index:0;"></div>
+                @if (_imageVisible)
+                {
+                    <CachedImage Src="@(img.MediumThumbnailUrl ?? img.Url)"
+                                 Style="display:block;max-height:380px;max-width:100%;object-fit:contain;margin:0 auto;position:relative;z-index:1;" />
+                }
+            </div>
+        }
+        else
+        {
+            <div @ref="_imageContainerRef">
+                <MudCarousel TData="object"
+                             Style="height:380px;border-radius:4px;margin-top:8px;"
+                             ShowArrows="true"
+                             ShowBullets="true"
+                             EnableSwipeGesture="true"
+                             AutoCycle="false"
+                             SelectedIndex="@_carouselIndex"
+                             SelectedIndexChanged="@OnCarouselIndexChanged">
+                    @for (var i = 0; i < imgs.Items.Count; i++)
+                    {
+                        var img = imgs.Items[i];
+                        var bg = img.BlurDataUri ?? img.ThumbnailUrl ?? img.Url;
+                        var loaded = _loadedIndices.Contains(i);
+                        <MudCarouselItem>
+                            <div style="position:relative;height:380px;overflow:hidden;background:#111;">
+                                <div style="position:absolute;inset:0;background-image:url('@bg');background-size:cover;background-position:center;filter:blur(24px);transform:scale(1.08);z-index:0;"></div>
+                                @if (loaded)
+                                {
+                                    <CachedImage Src="@(img.MediumThumbnailUrl ?? img.Url)"
+                                                 Style="display:block;height:380px;max-width:100%;object-fit:contain;margin:0 auto;position:relative;z-index:1;" />
+                                }
+                            </div>
+                        </MudCarouselItem>
+                    }
+                </MudCarousel>
+            </div>
+        }
+    }
+}
+else if (type == "poll")
+{
+    if (Poll is { Options.Count: > 0 } p)
+    {
+        var secretAndOpen = p.IsSecret && (p.ClosesAt == null || p.ClosesAt > DateTimeOffset.UtcNow);
+        if (secretAndOpen)
+        {
+            <MudPaper Class="pa-3 mt-2" Elevation="0" Style="border: 1px dashed var(--mud-palette-divider);">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Secret poll · @p.TotalVotes vote@(p.TotalVotes == 1 ? "" : "s")
+                </MudText>
+            </MudPaper>
+        }
+        else
+        {
+            var sorted = p.Options.OrderByDescending(o => o.VoteCount).ToList();
+            var toShow = Math.Min(sorted.Count, 4);
+            var extra = sorted.Count - toShow;
+            <div style="margin-top:8px;">
+                @for (var i = 0; i < toShow; i++)
+                {
+                    var opt = sorted[i];
+                    var pct = p.TotalVotes > 0 ? (int)Math.Round(100.0 * opt.VoteCount / p.TotalVotes) : 0;
+                    <div style="margin-bottom:6px;">
+                        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;">
+                            <MudText Typo="Typo.caption" Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;">@opt.Text</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Style="flex-shrink:0;">@(pct)%</MudText>
+                        </div>
+                        <div style="height:4px;background:var(--mud-palette-divider);border-radius:2px;margin-top:2px;">
+                            <div style="height:4px;width:@(pct)%;background:var(--mud-palette-primary);border-radius:2px;"></div>
+                        </div>
+                    </div>
+                }
+                @if (extra > 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">+@extra more option@(extra == 1 ? "" : "s")</MudText>
+                }
+                <MudText Typo="Typo.caption" Color="Color.Tertiary" Class="mt-1">@p.TotalVotes vote@(p.TotalVotes == 1 ? "" : "s") total</MudText>
+            </div>
+        }
+    }
+}
+else if (type == "link")
+{
+    <MudPaper Class="pa-3 mt-2" Elevation="0" Style="border: 1px dashed var(--mud-palette-divider);">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Link preview</MudText>
+    </MudPaper>
+}
+else if (type == "iama")
+{
+    <MudPaper Class="pa-3 mt-2" Elevation="0" Style="border: 1px dashed var(--mud-palette-divider);">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">AMA / I Am A preview</MudText>
+    </MudPaper>
+}
+else if (type == "debate")
+{
+    <MudPaper Class="pa-3 mt-2" Elevation="0" Style="border: 1px dashed var(--mud-palette-divider);">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Debate preview</MudText>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string? Type { get; set; }
+    [Parameter] public ImagesPreview? Images { get; set; }
+    [Parameter] public PollPreview? Poll { get; set; }
+
+    private ElementReference _imageContainerRef;
+    private DotNetObjectReference<DiscussionPreviewPane>? _dotNetRef;
+    private bool _imageVisible;
+
+    private int _carouselIndex;
+    private readonly HashSet<int> _loadedIndices = [];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        if (Type?.ToLowerInvariant() != "images" || Images is not { Items.Count: > 0 }) return;
+
+        _dotNetRef = DotNetObjectReference.Create(this);
+        await JS.InvokeVoidAsync("lazyImage.observe", _imageContainerRef, _dotNetRef);
+    }
+
+    [JSInvokable]
+    public void OnImageVisible()
+    {
+        _imageVisible = true;
+        _loadedIndices.Add(0);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void OnCarouselIndexChanged(int index)
+    {
+        _carouselIndex = index;
+        _loadedIndices.Add(index);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JS.InvokeVoidAsync("lazyImage.unobserve", _imageContainerRef); } catch { }
+        _dotNetRef?.Dispose();
+    }
+}

@@ -54,13 +54,13 @@ public class PermissionService(
     private static Task<ScopeIds?> GetDiscussionScopeByPublicIdAsync(SnakkDbContext ctx, string publicId) =>
         ctx.Discussions
             .Where(d => d.PublicId == publicId)
-            .Select(d => new ScopeIds(d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId))
+            .Select(d => new ScopeIds(d.SpaceId, d.HubId, d.CommunityId))
             .FirstOrDefaultAsync();
 
     private static Task<ScopeIds?> GetPostScopeByPublicIdAsync(SnakkDbContext ctx, string publicId) =>
         ctx.Posts
             .Where(p => p.PublicId == publicId)
-            .Select(p => new ScopeIds(p.Discussion.SpaceId, p.Discussion.Space.HubId, p.Discussion.Space.Hub.CommunityId))
+            .Select(p => new ScopeIds(p.SpaceId, p.HubId, p.CommunityId))
             .FirstOrDefaultAsync();
 
     public async Task<bool> UserHasPermissionAsync(

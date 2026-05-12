@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using OpenIddict.Abstractions;
 using Serilog;
+using Snakk.Auth.Data;
 using Snakk.ServiceDefaults;
 using System.Net;
 using System.Text;
@@ -44,6 +47,67 @@ builder.Services.AddScoped(sp =>
     new Snakk.Protos.TwoFactor.TwoFactorService.TwoFactorServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
 builder.Services.AddScoped(sp =>
     new Snakk.Protos.Consent.ConsentService.ConsentServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
+
+// Auth database — OpenIddict store (isolated from main domain DB)
+builder.Services.AddDbContext<SnakkAuthDbContext>(options =>
+{
+    options.UseNpgsql(builder.Configuration.GetConnectionString("AuthDbConnection")
+        ?? throw new InvalidOperationException("AuthDbConnection not configured"));
+    options.UseOpenIddict();
+});
+
+// OpenIddict OAuth2/OIDC Authorization Server
+builder.Services.AddOpenIddict()
+    .AddCore(options =>
+    {
+        options.UseEntityFrameworkCore()
+               .UseDbContext<SnakkAuthDbContext>();
+    })
+    .AddServer(options =>
+    {
+        // Paths registered WITHOUT a leading slash so that URI resolution appends them
+        // to context.BaseUri (which includes the PathBase, e.g. "/auth/") rather than
+        // resetting to the server root — RFC 3986 §5.2: a leading "/" in a relative-ref
+        // replaces the entire path component, discarding any PathBase prefix.
+        options.SetTokenEndpointUris("connect/token")
+               .SetAuthorizationEndpointUris("connect/authorize")
+               .SetRevocationEndpointUris("connect/revoke")
+               .SetIntrospectionEndpointUris("connect/introspect");
+
+        options.AllowClientCredentialsFlow()
+               .AllowAuthorizationCodeFlow().RequireProofKeyForCodeExchange()
+               .AllowRefreshTokenFlow();
+
+        options.RegisterScopes(
+            OpenIddictConstants.Scopes.OpenId,
+            OpenIddictConstants.Scopes.OfflineAccess,
+            "discussions:read");
+
+        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(30));
+        options.SetRefreshTokenLifetime(TimeSpan.FromDays(14));
+
+        // Explicit issuer — required when served behind a path-prefix reverse proxy (e.g. /auth).
+        // Without this, OpenIddict derives the issuer from the incoming Host header and omits the
+        // path prefix, causing OidcClient issuer-name validation to fail.
+        var explicitIssuer = builder.Configuration["Auth:Issuer"];
+        if (!string.IsNullOrEmpty(explicitIssuer) && Uri.TryCreate(explicitIssuer, UriKind.Absolute, out var issuerUri))
+            options.SetIssuer(issuerUri);
+
+        // Dev: ephemeral keys — lost on restart, fine for development.
+        // Production: replace with persisted ES256 signing key (DB or key vault).
+        options.AddEphemeralEncryptionKey()
+               .AddEphemeralSigningKey();
+
+        options.UseAspNetCore()
+               .EnableAuthorizationEndpointPassthrough()
+               .DisableTransportSecurityRequirement();
+        // Token endpoint is NOT in passthrough mode — OpenIddict handles it automatically.
+    })
+    .AddValidation(options =>
+    {
+        options.UseLocalServer();
+        options.UseAspNetCore();
+    });
 
 // Cookie-based session for auth flow (before JWT is issued)
 builder.Services.AddSession(options =>
@@ -159,7 +223,16 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
     .SetApplicationName("Snakk");
 
+builder.Services.AddHostedService<Snakk.Auth.Services.MauiClientSeeder>();
+
 var app = builder.Build();
+
+// Apply any pending OpenIddict DB migrations at startup
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SnakkAuthDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 //app.UseSerilogRequestLogging();
 
@@ -175,14 +248,15 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+// Inform ASP.NET Core (and OpenIddict) that this service is mounted at /auth behind the
+// gateway. UsePathBase strips /auth from Request.Path into PathBase on every request,
+// so OpenIddict generates discovery-doc endpoint URIs that include the /auth/ prefix.
+// When accessed without the prefix (Aspire dev / direct), this is a no-op.
+app.UsePathBase("/auth");
+
 // Handle forwarded headers from reverse proxy
 app.UseForwardedHeaders();
 
-// Use path base — gateway routes /auth/* and strips the prefix,
-// so generated URLs (OAuth redirect URIs, etc.) need to include it
-app.UsePathBase("/auth");
-
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();

@@ -102,24 +102,24 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
         int limit = 5)
     {
         var postsQuery = _context.Posts
-            .Where(p => !p.IsDeleted && p.CreatedAt >= since);
+            .Where(p => p.CreatedAt >= since);
 
         // Filter by community if specified
         if (!string.IsNullOrEmpty(communityId))
         {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.Hub.Community.PublicId == communityId);
+            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync();
+            postsQuery = postsQuery.Where(p => p.CommunityId == communityDbId);
         }
 
         // Filter by hub if specified
         if (!string.IsNullOrEmpty(hubId))
         {
-            postsQuery = postsQuery
-                .Where(p => p.Discussion.Space.Hub.PublicId == hubId);
+            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync();
+            postsQuery = postsQuery.Where(p => p.HubId == hubDbId);
         }
 
         var topSpaces = await postsQuery
-            .GroupBy(p => p.Discussion.SpaceId)
+            .GroupBy(p => p.SpaceId)
             .Select(g => new {
                 SpaceId = g.Key,
                 PostCountToday = g.Count() })
@@ -134,10 +134,10 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                     s.Name,
                     s.Slug,
                     x.PostCountToday,
-                    s.Hub.PublicId,
-                    s.Hub.Slug,
-                    s.Hub.Name,
-                    s.Hub.Community.Slug))
+                    s.HubPublicId,
+                    s.HubSlug,
+                    s.HubName,
+                    s.CommunitySlug))
             .ToListAsync();
 
         return topSpaces;
@@ -148,16 +148,22 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
         string? communityId = null,
         int limit = 5)
     {
-        var postsQuery = _context.Posts.Where(p => !p.IsDeleted);
+        var postsQuery = _context.Posts.AsQueryable();
 
         if (!string.IsNullOrEmpty(communityId))
-            postsQuery = postsQuery.Where(p => p.Discussion.Space.Hub.Community.PublicId == communityId);
+        {
+            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync();
+            postsQuery = postsQuery.Where(p => p.CommunityId == communityDbId);
+        }
 
         if (!string.IsNullOrEmpty(hubId))
-            postsQuery = postsQuery.Where(p => p.Discussion.Space.Hub.PublicId == hubId);
+        {
+            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync();
+            postsQuery = postsQuery.Where(p => p.HubId == hubDbId);
+        }
 
         var latestSpaces = await postsQuery
-            .GroupBy(p => p.Discussion.SpaceId)
+            .GroupBy(p => p.SpaceId)
             .Select(g => new { SpaceId = g.Key, LastPostAt = g.Max(p => p.CreatedAt) })
             .OrderByDescending(x => x.LastPostAt)
             .Take(limit)
@@ -168,8 +174,8 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 (x, s) => new LatestActiveSpaceDto(
                     s.PublicId, s.Name, s.Slug,
                     x.LastPostAt,
-                    s.Hub.PublicId, s.Hub.Slug, s.Hub.Name,
-                    s.Hub.Community.Slug))
+                    s.HubPublicId, s.HubSlug, s.HubName,
+                    s.CommunitySlug))
             .ToListAsync();
 
         return latestSpaces;

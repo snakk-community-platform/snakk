@@ -50,9 +50,9 @@ public interface IRealtimeNotifier
     Task NotifyDiscussionUnlockedAsync(DiscussionId discussionId);
 
     /// <summary>
-    /// Notify space subscribers when a new discussion is created
+    /// Notify space, hub, and global subscribers when a new discussion is created
     /// </summary>
-    Task NotifyDiscussionCreatedAsync(DiscussionId discussionId, SpaceId spaceId, User author);
+    Task NotifyDiscussionCreatedAsync(DiscussionId discussionId, SpaceId spaceId, HubId hubId);
 
     /// <summary>
     /// Broadcast a message to all connected clients (global announcements, maintenance alerts)
@@ -85,7 +85,32 @@ public interface IRealtimeNotifier
     Task NotifyReadStateUpdatedAsync(UserId userId, string discussionId, string postId);
 
     /// <summary>
-    /// Notify space subscribers when a new post is created, with the updated post count for the discussion
+    /// Notify space and hub subscribers when a post count changes for a discussion.
+    /// Optional reply strip fields update the last-reply preview on feed cards (null on decrements).
     /// </summary>
-    Task NotifyPostCountUpdatedAsync(DiscussionId discussionId, SpaceId spaceId, int delta);
+    Task NotifyPostCountUpdatedAsync(
+        DiscussionId discussionId, SpaceId spaceId, HubId? hubId, int delta,
+        string? lastPostExcerpt = null,
+        string? lastReplierId = null,
+        string? lastReplierName = null,
+        string? lastReplierAvatarUrl = null,
+        long? lastActivityAtUnix = null);
+
+    /// <summary>
+    /// Notify space subscribers when the total reaction count on a discussion changes
+    /// </summary>
+    Task NotifyDiscussionReactionCountAsync(DiscussionId discussionId, SpaceId spaceId, int delta);
+
+    /// <summary>
+    /// Notify global subscribers when debate position vote counts change
+    /// </summary>
+    Task NotifyDebateUpdatedAsync(DiscussionId discussionId, IReadOnlyList<DebatePositionUpdate> positions);
+
+    /// <summary>
+    /// Notify global subscribers when poll vote counts change
+    /// </summary>
+    Task NotifyPollUpdatedAsync(DiscussionId discussionId, IReadOnlyList<PollOptionUpdate> options, int totalVotes);
 }
+
+public record DebatePositionUpdate(int Index, string Label, int PostCount, int Pct);
+public record PollOptionUpdate(string Text, int VoteCount, int Pct);

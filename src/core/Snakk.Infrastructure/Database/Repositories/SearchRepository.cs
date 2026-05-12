@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
+using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Models;
 
 public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache, IFileStorage fileStorage) : ISearchRepository
@@ -51,16 +52,22 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
 
         // Apply filters
         if (!string.IsNullOrEmpty(authorPublicId))
-            baseQuery = baseQuery.Where(d => d.CreatedByUser.PublicId == authorPublicId);
+            baseQuery = baseQuery.Where(d => d.CreatedByUserPublicId == authorPublicId);
 
         if (!string.IsNullOrEmpty(spacePublicId))
-            baseQuery = baseQuery.Where(d => d.Space.PublicId == spacePublicId);
+        {
+            var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => s.Id).FirstOrDefaultAsync();
+            baseQuery = baseQuery.Where(d => d.SpaceId == spaceDbId);
+        }
 
         if (!string.IsNullOrEmpty(hubPublicId))
-            baseQuery = baseQuery.Where(d => d.Space.Hub.PublicId == hubPublicId);
+        {
+            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync();
+            baseQuery = baseQuery.Where(d => d.HubId == hubDbId);
+        }
 
         // Order by relevance when searching, by activity when browsing
-        IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity> orderedQuery;
+        IOrderedQueryable<DiscussionDatabaseEntity> orderedQuery;
         if (!string.IsNullOrWhiteSpace(query) && IsPostgres)
         {
             orderedQuery = baseQuery
@@ -80,15 +87,15 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.PublicId,
                 d.Title,
                 d.Slug,
-                d.CreatedByUser.PublicId,
-                d.CreatedByUser.DisplayName ?? "",
-                d.CreatedByUser.AvatarFileName,
-                d.Space.PublicId,
+                d.CreatedByUserPublicId,
+                d.AuthorDisplayName ?? "",
+                d.AuthorAvatarFileName,
+                d.SpacePublicId,
                 d.Space.Name,
                 d.Space.Slug,
-                d.Space.Hub.Slug,
-                d.Space.Hub.Name,
-                d.Space.Hub.Community.Slug,
+                d.Space.HubSlug,
+                d.Space.HubName,
+                d.Space.CommunitySlug,
                 d.CreatedAt,
                 d.LastActivityAt,
                 d.PostCount,
@@ -139,16 +146,19 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
 
         // Apply filters
         if (!string.IsNullOrEmpty(authorPublicId))
-            baseQuery = baseQuery.Where(p => p.CreatedByUser.PublicId == authorPublicId);
+            baseQuery = baseQuery.Where(p => p.CreatedByUserPublicId == authorPublicId);
 
         if (!string.IsNullOrEmpty(discussionPublicId))
-            baseQuery = baseQuery.Where(p => p.Discussion.PublicId == discussionPublicId);
+            baseQuery = baseQuery.Where(p => p.DiscussionPublicId == discussionPublicId);
 
         if (!string.IsNullOrEmpty(spacePublicId))
-            baseQuery = baseQuery.Where(p => p.Discussion.Space.PublicId == spacePublicId);
+        {
+            var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => s.Id).FirstOrDefaultAsync();
+            baseQuery = baseQuery.Where(p => p.SpaceId == spaceDbId);
+        }
 
         // Order by relevance when searching, by date when browsing
-        IOrderedQueryable<Database.Entities.PostDatabaseEntity> orderedQuery;
+        IOrderedQueryable<PostDatabaseEntity> orderedQuery;
         if (!string.IsNullOrWhiteSpace(query) && IsPostgres)
         {
             orderedQuery = baseQuery
@@ -170,17 +180,17 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 // without truncating mid-tag. Untruncated — most posts are small;
                 // revisit with HTML-aware truncation if payload becomes a concern.
                 p.RenderedContent,
-                p.CreatedByUser.PublicId,
+                p.CreatedByUserPublicId,
                 p.CreatedByUser.DisplayName ?? "",
                 p.CreatedByUser.AvatarFileName,
-                p.Discussion.PublicId,
+                p.DiscussionPublicId,
                 p.Discussion.Title,
                 p.Discussion.Slug,
                 p.Discussion.Space.Slug,
                 p.Discussion.Space.Name,
-                p.Discussion.Space.Hub.Slug,
-                p.Discussion.Space.Hub.Name,
-                p.Discussion.Space.Hub.Community.Slug,
+                p.Discussion.Space.HubSlug,
+                p.Discussion.Space.HubName,
+                p.Discussion.Space.CommunitySlug,
                 p.CreatedAt))
             .ToListAsync();
 
@@ -223,8 +233,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         string? cursor = null,
         bool viewerAllowsAdult = false)
     {
+        var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => s.Id).FirstOrDefaultAsync();
         var baseQuery = _context.Discussions
-            .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted);
+            .Where(d => d.SpaceId == spaceDbId && !d.IsDeleted);
 
         baseQuery = await WithAccessFilterAsync(baseQuery, userId);
         baseQuery = WithAdultDiscussionFilter(baseQuery, viewerAllowsAdult);
@@ -259,7 +270,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         // Only apply offset-based skip when no cursor is provided;
         // the cursor's WHERE clause already positions the query.
         if (!cursorData.HasValue)
-            orderedQuery = (IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
+            orderedQuery = (IOrderedQueryable<DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
 
         var items = await orderedQuery
             .Take(pageSize + 1)
@@ -268,7 +279,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.Id,
                 Dto = new DiscussionListItemDto(
                     d.PublicId,
-                    d.Space.PublicId,
+                    d.SpacePublicId,
                     d.Title,
                     d.Slug,
                     d.Type,
@@ -278,9 +289,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d.IsLocked,
                     d.PostCount,
                     d.ReactionCount,
-                    d.CreatedByUser.PublicId,
-                    d.CreatedByUser.DisplayName ?? "",
-                    d.CreatedByUser.AvatarFileName,
+                    d.CreatedByUserPublicId,
+                    d.AuthorDisplayName ?? "",
+                    d.AuthorAvatarFileName,
                     d.Tags)
             })
             .ToListAsync();
@@ -325,7 +336,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             .Take(pageSize + 1)
             .Select(h => new HubListItemDto(
                 h.PublicId,
-                h.Community.PublicId,
+                h.CommunityPublicId,
                 h.Name,
                 h.Slug,
                 h.Description,
@@ -361,9 +372,12 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         baseQuery = await WithSpaceAccessFilterAsync(baseQuery, userId);
 
         if (!string.IsNullOrEmpty(hubPublicId))
-            baseQuery = baseQuery.Where(s => s.Hub.PublicId == hubPublicId);
+        {
+            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync();
+            baseQuery = baseQuery.Where(s => s.HubId == hubDbId);
+        }
         else if (!string.IsNullOrEmpty(communityPublicId))
-            baseQuery = baseQuery.Where(s => s.Hub.Community.PublicId == communityPublicId);
+            baseQuery = baseQuery.Where(s => s.CommunityPublicId == communityPublicId);
 
         if (!string.IsNullOrWhiteSpace(query))
         {
@@ -380,11 +394,11 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 s.PublicId,
                 s.Name,
                 s.Slug,
-                HubSlug = s.Hub.Slug,
-                HubName = s.Hub.Name,
-                CommunitySlug = s.Hub.Community.Slug,
+                HubSlug = s.HubSlug,
+                HubName = s.HubName,
+                CommunitySlug = s.CommunitySlug,
                 s.DiscussionCount,
-                CommunityName = s.Hub.Community.Name
+                CommunityName = s.CommunityName
             })
             .ToListAsync();
 
@@ -402,8 +416,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         string? userId = null)
     {
         // Use denormalized counts + fetch one extra row to check HasMoreItems (avoids separate COUNT query)
+        var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync();
         var baseSpaceQuery = _context.Spaces
-            .Where(s => s.Hub.PublicId == hubPublicId);
+            .Where(s => s.HubId == hubDbId);
         baseSpaceQuery = await WithSpaceAccessFilterAsync(baseSpaceQuery, userId);
         var spaces = await baseSpaceQuery
             .OrderBy(s => s.Name)
@@ -411,7 +426,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             .Take(pageSize + 1)
             .Select(s => new {
                 s.PublicId,
-                HubPublicId = s.Hub.PublicId,
+                HubPublicId = s.HubPublicId,
                 s.Name,
                 s.Slug,
                 s.Description,
@@ -427,9 +442,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                         d.Title,
                         d.Slug,
                         LastActivityAt = d.LastActivityAt ?? d.CreatedAt,
-                        AuthorPublicId = d.CreatedByUser.PublicId,
-                        AuthorDisplayName = d.CreatedByUser.DisplayName,
-                        AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
+                        AuthorPublicId = d.CreatedByUserPublicId,
+                        AuthorDisplayName = d.AuthorDisplayName,
+                        AuthorAvatarFileName = d.AuthorAvatarFileName,
                         d.PostCount })
                     .FirstOrDefault()
             })
@@ -471,8 +486,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         };
     }
 
-    private async Task<IQueryable<Database.Entities.HubDatabaseEntity>> WithHubAccessFilterAsync(
-        IQueryable<Database.Entities.HubDatabaseEntity> query, string? userId)
+    private async Task<IQueryable<HubDatabaseEntity>> WithHubAccessFilterAsync(
+        IQueryable<HubDatabaseEntity> query, string? userId)
     {
         if (!await grantsCache.AnyRestrictedAsync())
             return query;
@@ -491,8 +506,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             && (!h.Community.IsRestricted || communityIds.Contains(h.CommunityId)));
     }
 
-    private async Task<IQueryable<Database.Entities.SpaceDatabaseEntity>> WithSpaceAccessFilterAsync(
-        IQueryable<Database.Entities.SpaceDatabaseEntity> query, string? userId)
+    private async Task<IQueryable<SpaceDatabaseEntity>> WithSpaceAccessFilterAsync(
+        IQueryable<SpaceDatabaseEntity> query, string? userId)
     {
         if (!await grantsCache.AnyRestrictedAsync())
             return query;
@@ -521,8 +536,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
     /// grant at each restricted level (intersection-gate model).
     /// Grant lookups are resolved via <see cref="IUserGrantsCacheService"/> (5-minute TTL).
     /// </summary>
-    private async Task<IQueryable<Database.Entities.PostDatabaseEntity>> WithPostAccessFilterAsync(
-        IQueryable<Database.Entities.PostDatabaseEntity> query, string? userId)
+    private async Task<IQueryable<PostDatabaseEntity>> WithPostAccessFilterAsync(
+        IQueryable<PostDatabaseEntity> query, string? userId)
     {
         if (!await grantsCache.AnyRestrictedAsync())
             return query;
@@ -550,15 +565,15 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
     /// content (authenticated with AllowAdultContent==true, or anonymous with the confirm cookie)
     /// see all discussions regardless of community setting.
     /// </summary>
-    private static IQueryable<Database.Entities.DiscussionDatabaseEntity> WithAdultDiscussionFilter(
-        IQueryable<Database.Entities.DiscussionDatabaseEntity> query, bool viewerAllowsAdult)
+    private static IQueryable<DiscussionDatabaseEntity> WithAdultDiscussionFilter(
+        IQueryable<DiscussionDatabaseEntity> query, bool viewerAllowsAdult)
     {
         if (viewerAllowsAdult) return query;
-        return query.Where(d => !(d.IsAdultOnly && d.Space.Hub.Community.HideAdultDiscussionsFromLists));
+        return query.Where(d => !(d.IsAdultOnly && d.Space.CommunityHideAdultDiscussionsFromLists));
     }
 
-    private async Task<IQueryable<Database.Entities.DiscussionDatabaseEntity>> WithAccessFilterAsync(
-        IQueryable<Database.Entities.DiscussionDatabaseEntity> query, string? userId)
+    private async Task<IQueryable<DiscussionDatabaseEntity>> WithAccessFilterAsync(
+        IQueryable<DiscussionDatabaseEntity> query, string? userId)
     {
         if (!await grantsCache.AnyRestrictedAsync())
             return query;
@@ -596,9 +611,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             .Select(d => new SitemapDiscussionDto(
                 d.PublicId,
                 d.Slug,
-                d.Space.Hub.Slug,
+                d.Space.HubSlug,
                 d.Space.Slug,
-                d.Space.Hub.Community.Slug,
+                d.Space.CommunitySlug,
                 d.LastModifiedAt ?? d.CreatedAt,
                 d.IsPinned))
             .ToListAsync();
@@ -626,28 +641,32 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         // Filter by author if specified
         if (!string.IsNullOrEmpty(authorId))
         {
-            query = query.Where(d => d.CreatedByUser.PublicId == authorId);
+            query = query.Where(d => d.CreatedByUserPublicId == authorId);
         }
 
         // Filter by multiple spaces (e.g. My Feed)
         if (spaceIds is { Count: > 0 })
         {
-            query = query.Where(d => spaceIds.Contains(d.Space.PublicId));
+            var dbIds = await _context.Spaces.Where(s => spaceIds.Contains(s.PublicId)).Select(s => s.Id).ToListAsync();
+            query = query.Where(d => dbIds.Contains(d.SpaceId));
         }
         // Filter by single space (most specific)
         else if (!string.IsNullOrEmpty(spaceId))
         {
-            query = query.Where(d => d.Space.PublicId == spaceId);
+            var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spaceId).Select(s => s.Id).FirstOrDefaultAsync();
+            query = query.Where(d => d.SpaceId == spaceDbId);
         }
         // Filter by hub if specified (more specific than community)
         else if (!string.IsNullOrEmpty(hubId))
         {
-            query = query.Where(d => d.Space.Hub.PublicId == hubId);
+            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync();
+            query = query.Where(d => d.HubId == hubDbId);
         }
         // Filter by community if specified
         else if (!string.IsNullOrEmpty(communityId))
         {
-            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
+            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync();
+            query = query.Where(d => d.CommunityId == communityDbId);
         }
 
         // Apply keyset pagination if cursor provided
@@ -669,7 +688,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         // Only apply offset-based skip when no cursor is provided;
         // the cursor's WHERE clause already positions the query.
         if (!cursorData.HasValue)
-            orderedQuery = (IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
+            orderedQuery = (IOrderedQueryable<DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
 
         var rawItems = await orderedQuery
             .Take(pageSize + 1)
@@ -687,30 +706,24 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.ReactionCount,
                 d.Tags,
                 d.IsAdultOnly,
-                SpacePublicId = d.Space.PublicId,
+                SpacePublicId = d.SpacePublicId,
                 SpaceSlug = d.Space.Slug,
                 SpaceName = d.Space.Name,
-                HubPublicId = d.Space.Hub.PublicId,
-                HubSlug = d.Space.Hub.Slug,
-                HubName = d.Space.Hub.Name,
-                CommunityPublicId = d.Space.Hub.Community.PublicId,
-                CommunitySlug = d.Space.Hub.Community.Slug,
-                CommunityName = d.Space.Hub.Community.Name,
-                AuthorPublicId = d.CreatedByUser.PublicId,
-                AuthorDisplayName = d.CreatedByUser.DisplayName,
-                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
-                LastReplier = d.Posts
-                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                    .OrderByDescending(p => p.CreatedAt)
-                    .Select(p => new {
-                        p.CreatedByUser.PublicId,
-                        p.CreatedByUser.DisplayName,
-                        p.CreatedByUser.AvatarFileName,
-                        p.CreatedByUser.AvatarThumbnailFileName,
-                        p.PlainTextExcerpt
-                    })
-                    .FirstOrDefault()
+                HubPublicId = d.HubPublicId,
+                HubSlug = d.Space.HubSlug,
+                HubName = d.Space.HubName,
+                CommunityPublicId = d.CommunityPublicId,
+                CommunitySlug = d.Space.CommunitySlug,
+                CommunityName = d.Space.CommunityName,
+                AuthorPublicId = d.CreatedByUserPublicId,
+                AuthorDisplayName = d.AuthorDisplayName,
+                AuthorAvatarFileName = d.AuthorAvatarFileName,
+                AuthorAvatarThumbnailFileName = d.AuthorAvatarThumbnailFileName,
+                LastPostAuthorPublicId = d.LastPostAuthorPublicId,
+                LastPostAuthorDisplayName = d.LastPostAuthorDisplayName,
+                LastPostAuthorAvatarFileName = d.LastPostAuthorAvatarFileName,
+                LastPostAuthorAvatarThumbnailFileName = d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostPlainTextExcerpt = d.LastPostPlainTextExcerpt
             })
             .ToListAsync();
 
@@ -741,11 +754,11 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.PostCount,
                 d.ReactionCount,
                 string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                LastReplierPublicId: d.LastReplier?.PublicId,
-                LastReplierDisplayName: d.LastReplier?.DisplayName,
-                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
-                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
-                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                LastReplierPublicId: d.LastPostAuthorPublicId,
+                LastReplierDisplayName: d.LastPostAuthorDisplayName,
+                LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostExcerpt: d.LastPostPlainTextExcerpt,
                 IsAdult: d.IsAdultOnly)
         }).ToList();
 
@@ -817,30 +830,24 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.ReactionCount,
                 d.Tags,
                 d.IsAdultOnly,
-                SpacePublicId = d.Space.PublicId,
+                SpacePublicId = d.SpacePublicId,
                 SpaceSlug = d.Space.Slug,
                 SpaceName = d.Space.Name,
-                HubPublicId = d.Space.Hub.PublicId,
-                HubSlug = d.Space.Hub.Slug,
-                HubName = d.Space.Hub.Name,
-                CommunityPublicId = d.Space.Hub.Community.PublicId,
-                CommunitySlug = d.Space.Hub.Community.Slug,
-                CommunityName = d.Space.Hub.Community.Name,
-                AuthorPublicId = d.CreatedByUser.PublicId,
-                AuthorDisplayName = d.CreatedByUser.DisplayName,
-                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
-                LastReplier = d.Posts
-                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                    .OrderByDescending(p => p.CreatedAt)
-                    .Select(p => new {
-                        p.CreatedByUser.PublicId,
-                        p.CreatedByUser.DisplayName,
-                        p.CreatedByUser.AvatarFileName,
-                        p.CreatedByUser.AvatarThumbnailFileName,
-                        p.PlainTextExcerpt
-                    })
-                    .FirstOrDefault()
+                HubPublicId = d.HubPublicId,
+                HubSlug = d.Space.HubSlug,
+                HubName = d.Space.HubName,
+                CommunityPublicId = d.CommunityPublicId,
+                CommunitySlug = d.Space.CommunitySlug,
+                CommunityName = d.Space.CommunityName,
+                AuthorPublicId = d.CreatedByUserPublicId,
+                AuthorDisplayName = d.AuthorDisplayName,
+                AuthorAvatarFileName = d.AuthorAvatarFileName,
+                AuthorAvatarThumbnailFileName = d.AuthorAvatarThumbnailFileName,
+                LastPostAuthorPublicId = d.LastPostAuthorPublicId,
+                LastPostAuthorDisplayName = d.LastPostAuthorDisplayName,
+                LastPostAuthorAvatarFileName = d.LastPostAuthorAvatarFileName,
+                LastPostAuthorAvatarThumbnailFileName = d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostPlainTextExcerpt = d.LastPostPlainTextExcerpt
             })
             .ToListAsync();
         var resultItems = rawItems.Select(d => new {
@@ -870,11 +877,11 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.PostCount,
                 d.ReactionCount,
                 string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                LastReplierPublicId: d.LastReplier?.PublicId,
-                LastReplierDisplayName: d.LastReplier?.DisplayName,
-                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
-                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
-                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                LastReplierPublicId: d.LastPostAuthorPublicId,
+                LastReplierDisplayName: d.LastPostAuthorDisplayName,
+                LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostExcerpt: d.LastPostPlainTextExcerpt,
                 IsAdult: d.IsAdultOnly)
         }).ToList();
         var previewMap = await BatchFetchPreviewsAsync(
@@ -1070,8 +1077,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     i.Phase,
                     i.ScheduledStartUtc,
                     i.ScheduledEndUtc,
-                    OfficialAnswerCount = i.OfficialAnswers.Count,
-                    BestQuestionCount = i.BestQuestions.Count,
+                    OfficialAnswerCount = i.OfficialAnswerCount,
+                    BestQuestionCount = i.BestQuestionCount,
                     IsVerified = i.VerificationNote != null && i.VerificationNote != ""
                 })
                 .ToListAsync();
@@ -1106,7 +1113,10 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         query = WithAdultDiscussionFilter(query, viewerAllowsAdult);
 
         if (!string.IsNullOrEmpty(communityId))
-            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
+        {
+            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync();
+            query = query.Where(d => d.CommunityId == communityDbId);
+        }
 
         // Only show discussions with recent activity (TrendScore > 0)
         query = query.Where(d => d.TrendScore > 0);
@@ -1132,30 +1142,24 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.ReactionCount,
                 d.Tags,
                 d.IsAdultOnly,
-                SpacePublicId = d.Space.PublicId,
+                SpacePublicId = d.SpacePublicId,
                 SpaceSlug = d.Space.Slug,
                 SpaceName = d.Space.Name,
-                HubPublicId = d.Space.Hub.PublicId,
-                HubSlug = d.Space.Hub.Slug,
-                HubName = d.Space.Hub.Name,
-                CommunityPublicId = d.Space.Hub.Community.PublicId,
-                CommunitySlug = d.Space.Hub.Community.Slug,
-                CommunityName = d.Space.Hub.Community.Name,
-                AuthorPublicId = d.CreatedByUser.PublicId,
-                AuthorDisplayName = d.CreatedByUser.DisplayName,
-                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
-                LastReplier = d.Posts
-                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                    .OrderByDescending(p => p.CreatedAt)
-                    .Select(p => new {
-                        p.CreatedByUser.PublicId,
-                        p.CreatedByUser.DisplayName,
-                        p.CreatedByUser.AvatarFileName,
-                        p.CreatedByUser.AvatarThumbnailFileName,
-                        p.PlainTextExcerpt
-                    })
-                    .FirstOrDefault()
+                HubPublicId = d.HubPublicId,
+                HubSlug = d.Space.HubSlug,
+                HubName = d.Space.HubName,
+                CommunityPublicId = d.CommunityPublicId,
+                CommunitySlug = d.Space.CommunitySlug,
+                CommunityName = d.Space.CommunityName,
+                AuthorPublicId = d.CreatedByUserPublicId,
+                AuthorDisplayName = d.AuthorDisplayName,
+                AuthorAvatarFileName = d.AuthorAvatarFileName,
+                AuthorAvatarThumbnailFileName = d.AuthorAvatarThumbnailFileName,
+                LastPostAuthorPublicId = d.LastPostAuthorPublicId,
+                LastPostAuthorDisplayName = d.LastPostAuthorDisplayName,
+                LastPostAuthorAvatarFileName = d.LastPostAuthorAvatarFileName,
+                LastPostAuthorAvatarThumbnailFileName = d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostPlainTextExcerpt = d.LastPostPlainTextExcerpt
             })
             .ToListAsync();
 
@@ -1186,11 +1190,11 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.PostCount,
                 d.ReactionCount,
                 string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                LastReplierPublicId: d.LastReplier?.PublicId,
-                LastReplierDisplayName: d.LastReplier?.DisplayName,
-                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
-                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
-                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                LastReplierPublicId: d.LastPostAuthorPublicId,
+                LastReplierDisplayName: d.LastPostAuthorDisplayName,
+                LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostExcerpt: d.LastPostPlainTextExcerpt,
                 IsAdult: d.IsAdultOnly)
         }).ToList();
 
@@ -1229,7 +1233,10 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         query = WithAdultDiscussionFilter(query, viewerAllowsAdult);
 
         if (!string.IsNullOrEmpty(communityId))
-            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
+        {
+            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync();
+            query = query.Where(d => d.CommunityId == communityDbId);
+        }
 
         // Apply time window filter on CreatedAt
         DateTime? cutoff = timePeriod switch
@@ -1265,30 +1272,24 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.ReactionCount,
                 d.Tags,
                 d.IsAdultOnly,
-                SpacePublicId = d.Space.PublicId,
+                SpacePublicId = d.SpacePublicId,
                 SpaceSlug = d.Space.Slug,
                 SpaceName = d.Space.Name,
-                HubPublicId = d.Space.Hub.PublicId,
-                HubSlug = d.Space.Hub.Slug,
-                HubName = d.Space.Hub.Name,
-                CommunityPublicId = d.Space.Hub.Community.PublicId,
-                CommunitySlug = d.Space.Hub.Community.Slug,
-                CommunityName = d.Space.Hub.Community.Name,
-                AuthorPublicId = d.CreatedByUser.PublicId,
-                AuthorDisplayName = d.CreatedByUser.DisplayName,
-                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
-                LastReplier = d.Posts
-                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                    .OrderByDescending(p => p.CreatedAt)
-                    .Select(p => new {
-                        p.CreatedByUser.PublicId,
-                        p.CreatedByUser.DisplayName,
-                        p.CreatedByUser.AvatarFileName,
-                        p.CreatedByUser.AvatarThumbnailFileName,
-                        p.PlainTextExcerpt
-                    })
-                    .FirstOrDefault()
+                HubPublicId = d.HubPublicId,
+                HubSlug = d.Space.HubSlug,
+                HubName = d.Space.HubName,
+                CommunityPublicId = d.CommunityPublicId,
+                CommunitySlug = d.Space.CommunitySlug,
+                CommunityName = d.Space.CommunityName,
+                AuthorPublicId = d.CreatedByUserPublicId,
+                AuthorDisplayName = d.AuthorDisplayName,
+                AuthorAvatarFileName = d.AuthorAvatarFileName,
+                AuthorAvatarThumbnailFileName = d.AuthorAvatarThumbnailFileName,
+                LastPostAuthorPublicId = d.LastPostAuthorPublicId,
+                LastPostAuthorDisplayName = d.LastPostAuthorDisplayName,
+                LastPostAuthorAvatarFileName = d.LastPostAuthorAvatarFileName,
+                LastPostAuthorAvatarThumbnailFileName = d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostPlainTextExcerpt = d.LastPostPlainTextExcerpt
             })
             .ToListAsync();
 
@@ -1319,11 +1320,11 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.PostCount,
                 d.ReactionCount,
                 string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                LastReplierPublicId: d.LastReplier?.PublicId,
-                LastReplierDisplayName: d.LastReplier?.DisplayName,
-                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
-                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
-                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                LastReplierPublicId: d.LastPostAuthorPublicId,
+                LastReplierDisplayName: d.LastPostAuthorDisplayName,
+                LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostExcerpt: d.LastPostPlainTextExcerpt,
                 IsAdult: d.IsAdultOnly)
         }).ToList();
 
@@ -1362,7 +1363,10 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         query = WithAdultDiscussionFilter(query, viewerAllowsAdult);
 
         if (!string.IsNullOrEmpty(communityId))
-            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
+        {
+            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync();
+            query = query.Where(d => d.CommunityId == communityDbId);
+        }
 
         var cursorData = Cursor.Decode(cursor);
 
@@ -1381,7 +1385,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             .ThenByDescending(d => d.Id);
 
         if (!cursorData.HasValue)
-            orderedQuery = (IOrderedQueryable<Database.Entities.DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
+            orderedQuery = (IOrderedQueryable<DiscussionDatabaseEntity>)orderedQuery.Skip(offset);
 
         var rawItems = await orderedQuery
             .Take(pageSize + 1)
@@ -1399,30 +1403,24 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.ReactionCount,
                 d.Tags,
                 d.IsAdultOnly,
-                SpacePublicId = d.Space.PublicId,
+                SpacePublicId = d.SpacePublicId,
                 SpaceSlug = d.Space.Slug,
                 SpaceName = d.Space.Name,
-                HubPublicId = d.Space.Hub.PublicId,
-                HubSlug = d.Space.Hub.Slug,
-                HubName = d.Space.Hub.Name,
-                CommunityPublicId = d.Space.Hub.Community.PublicId,
-                CommunitySlug = d.Space.Hub.Community.Slug,
-                CommunityName = d.Space.Hub.Community.Name,
-                AuthorPublicId = d.CreatedByUser.PublicId,
-                AuthorDisplayName = d.CreatedByUser.DisplayName,
-                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                AuthorAvatarThumbnailFileName = d.CreatedByUser.AvatarThumbnailFileName,
-                LastReplier = d.Posts
-                    .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                    .OrderByDescending(p => p.CreatedAt)
-                    .Select(p => new {
-                        p.CreatedByUser.PublicId,
-                        p.CreatedByUser.DisplayName,
-                        p.CreatedByUser.AvatarFileName,
-                        p.CreatedByUser.AvatarThumbnailFileName,
-                        p.PlainTextExcerpt
-                    })
-                    .FirstOrDefault()
+                HubPublicId = d.HubPublicId,
+                HubSlug = d.Space.HubSlug,
+                HubName = d.Space.HubName,
+                CommunityPublicId = d.CommunityPublicId,
+                CommunitySlug = d.Space.CommunitySlug,
+                CommunityName = d.Space.CommunityName,
+                AuthorPublicId = d.CreatedByUserPublicId,
+                AuthorDisplayName = d.AuthorDisplayName,
+                AuthorAvatarFileName = d.AuthorAvatarFileName,
+                AuthorAvatarThumbnailFileName = d.AuthorAvatarThumbnailFileName,
+                LastPostAuthorPublicId = d.LastPostAuthorPublicId,
+                LastPostAuthorDisplayName = d.LastPostAuthorDisplayName,
+                LastPostAuthorAvatarFileName = d.LastPostAuthorAvatarFileName,
+                LastPostAuthorAvatarThumbnailFileName = d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostPlainTextExcerpt = d.LastPostPlainTextExcerpt
             })
             .ToListAsync();
 
@@ -1453,11 +1451,11 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 d.PostCount,
                 d.ReactionCount,
                 string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                LastReplierPublicId: d.LastReplier?.PublicId,
-                LastReplierDisplayName: d.LastReplier?.DisplayName,
-                LastReplierAvatarFileName: d.LastReplier?.AvatarFileName,
-                LastReplierAvatarThumbnailFileName: d.LastReplier?.AvatarThumbnailFileName,
-                LastPostExcerpt: d.LastReplier?.PlainTextExcerpt,
+                LastReplierPublicId: d.LastPostAuthorPublicId,
+                LastReplierDisplayName: d.LastPostAuthorDisplayName,
+                LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
+                LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
+                LastPostExcerpt: d.LastPostPlainTextExcerpt,
                 IsAdult: d.IsAdultOnly)
         }).ToList();
 

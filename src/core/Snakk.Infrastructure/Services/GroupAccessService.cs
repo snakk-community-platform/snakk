@@ -40,7 +40,7 @@ public class GroupAccessService(
     {
         var hierarchy = await context.Spaces
             .Where(s => s.PublicId == spacePublicId)
-            .Select(s => new { CommunityPublicId = s.Hub.Community.PublicId, HubPublicId = s.Hub.PublicId })
+            .Select(s => new { CommunityPublicId = s.CommunityPublicId, HubPublicId = s.HubPublicId })
             .FirstOrDefaultAsync(ct);
 
         if (hierarchy is null)
@@ -58,10 +58,10 @@ public class GroupAccessService(
             .Where(d => d.PublicId == discussionPublicId)
             .Select(d => new
             {
-                SpacePublicId = d.Space.PublicId,
-                HubPublicId = d.Space.Hub.PublicId,
-                CommunityPublicId = d.Space.Hub.Community.PublicId,
-                AuthorPublicId = d.CreatedByUser.PublicId
+                SpacePublicId = d.SpacePublicId,
+                HubPublicId = d.HubPublicId,
+                CommunityPublicId = d.CommunityPublicId,
+                AuthorPublicId = d.CreatedByUserPublicId
             })
             .FirstOrDefaultAsync(ct);
 
@@ -367,7 +367,7 @@ public class GroupAccessService(
         if (spacePublicId is not null)
         {
             var scope = await context.Spaces
-                .Where(s => s.PublicId == spacePublicId && s.Hub.Community.PublicId == communityPublicId)
+                .Where(s => s.PublicId == spacePublicId && s.CommunityPublicId == communityPublicId)
                 .Select(s => new
                 {
                     CommunityId = s.Hub.CommunityId,
@@ -392,7 +392,7 @@ public class GroupAccessService(
         else if (hubPublicId is not null)
         {
             var scope = await context.Hubs
-                .Where(h => h.PublicId == hubPublicId && h.Community.PublicId == communityPublicId)
+                .Where(h => h.PublicId == hubPublicId && h.CommunityPublicId == communityPublicId)
                 .Select(h => new
                 {
                     CommunityId = h.CommunityId,

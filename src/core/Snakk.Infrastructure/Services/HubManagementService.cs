@@ -161,8 +161,16 @@ public class HubManagementService(
         if (hub is null)
             return null;
 
+        var nameChanged = hub.Name != request.Name;
         hub.Name = request.Name;
         hub.Description = request.Description;
+
+        if (nameChanged)
+        {
+            await context.Spaces
+                .Where(s => s.HubId == hub.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.HubName, request.Name), cancellationToken);
+        }
 
         if (request.LanguageCode is not null || hub.LanguageCode is not null)
         {

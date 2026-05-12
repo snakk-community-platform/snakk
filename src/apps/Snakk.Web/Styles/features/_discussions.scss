@@ -626,3 +626,50 @@
     color: var(--text-secondary);
     white-space: nowrap;
 }
+
+// ============================================
+// New Discussions Indicator
+// Sticky banner injected by realtime.ts above
+// #discussions-container when new discussions
+// arrive. Sticks to the top of the viewport
+// as the user scrolls, acting as a pull-down
+// tab to prompt a refresh.
+// ============================================
+
+.sn-new-discussions-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background: var(--link-primary);
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    border-radius: 0 0 0.5rem 0.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    transition: background 0.15s ease, opacity 0.15s ease;
+    text-align: center;
+
+    &:hover {
+        background: color-mix(in srgb, var(--link-primary) 85%, #000);
+    }
+
+    &:active {
+        opacity: 0.85;
+    }
+
+    .sn-ndi-icon {
+        font-size: 0.875rem;
+        line-height: 1;
+    }
+
+    .sn-ndi-label {
+        line-height: 1;
+    }
+}

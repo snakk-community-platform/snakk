@@ -306,7 +306,14 @@
 
                     <!-- Title + OP reactions -->
                     <div class="flex items-start justify-between gap-4">
-                        <h1 class="text-xl font-bold">@Model.Discussion.Title</h1>
+                        <h1 class="text-xl font-bold">
+                            @if (!string.IsNullOrEmpty(Model.Discussion.Type) && Model.Discussion.Type != "Standard")
+                            {
+                                var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
+                                <span class="sn-card-type-badge @cssClass">@icon @label</span>
+                            }
+                            @Model.Discussion.Title
+                        </h1>
                         @if (firstPostItem != null)
                         {
                             var opReactionCounts = firstPostItem.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
@@ -458,6 +465,134 @@
                                 </span>
                             }
                         </div>
+                    </div>
+                }
+
+                @if (Model.Discussion.Type == "Iama" && Model.IamaInfo is not null)
+                {
+                    var iama = Model.IamaInfo;
+                    var isOp = Model.CurrentUserId != null && firstPostItem != null
+                        && Model.CurrentUserId == firstPostItem.Author.PublicId;
+                    var iamaPhaseClass = iama.Phase switch
+                    {
+                        0 => "sn-iama-phase--announced",
+                        1 => "sn-iama-phase--live",
+                        2 => "sn-iama-phase--closed",
+                        3 => "sn-iama-phase--archived",
+                        _ => ""
+                    };
+                    var iamaPhaseLabel = iama.Phase switch
+                    {
+                        0 => T.IamaPhase.Announced,
+                        1 => T.IamaPhase.Live,
+                        2 => T.IamaPhase.Closed,
+                        3 => T.IamaPhase.Archived,
+                        _ => ""
+                    };
+                    var iamaPhaseDesc = iama.Phase switch
+                    {
+                        0 => T.IamaPhase.AnnouncedDesc,
+                        1 => T.IamaPhase.LiveDesc,
+                        2 => T.IamaPhase.ClosedDesc,
+                        3 => T.IamaPhase.ArchivedDesc,
+                        _ => ""
+                    };
+
+                    <div class="type-widget-container sn-iama-widget">
+                        <div class="@iamaPhaseClass">
+                            <div class="sn-iama-phase-header">
+                                <span class="sn-iama-phase-label">
+                                    @if (iama.Phase == 1) { <span class="sn-iama-live-dot" aria-hidden="true"></span> }
+                                    @iamaPhaseLabel
+                                </span>
+                                @if (isOp && iama.Phase == 1)
+                                {
+                                    <button type="button" class="btn btn-sm btn-ghost sn-iama-end-btn"
+                                            data-discussion-id="@Model.Discussion.PublicId"
+                                            data-confirm-label="@T.Iama.EndConfirmBtn">
+                                        @T.Iama.EndSession
+                                    </button>
+                                }
+                            </div>
+                            <p class="sn-iama-phase-desc">@iamaPhaseDesc</p>
+
+                            <div class="sn-iama-widget-dates">
+                            @if (iama.ActualStartedAtUtc != null)
+                            {
+                                <div class="sn-iama-date-row">
+                                    <span class="sn-iama-date-label">@T.Iama.Started</span>
+                                    <time datetime="@iama.ActualStartedAtUtc.ToDateTime().ToString("o")">
+                                        @FormatFullDateTime(iama.ActualStartedAtUtc.ToDateTime())
+                                    </time>
+                                </div>
+                            }
+                            else if (iama.ScheduledStartUtc != null)
+                            {
+                                <div class="sn-iama-date-row-group">
+                                    <div class="sn-iama-date-row">
+                                        <span class="sn-iama-date-label">@T.Iama.Starts</span>
+                                        <time datetime="@iama.ScheduledStartUtc.ToDateTime().ToString("o")">
+                                            @FormatFullDateTime(iama.ScheduledStartUtc.ToDateTime())
+                                        </time>
+                                    </div>
+                                    @if (iama.Phase == 0 && iama.ScheduledStartUtc.ToDateTime() > DateTime.UtcNow)
+                                    {
+                                        <span class="sn-iama-countdown" data-countdown-to="@iama.ScheduledStartUtc.ToDateTime().ToString("o")"><span class="countdown font-mono">
+                                            <span data-unit="days" style="--value:0;">0</span>d
+                                            <span data-unit="hours" style="--value:0;">0</span>h
+                                            <span data-unit="minutes" style="--value:0;">0</span>m
+                                            <span data-unit="seconds" style="--value:0;">0</span>s
+                                        </span></span>
+                                    }
+                                </div>
+                            }
+
+                            @if (iama.ActualEndedAtUtc != null)
+                            {
+                                <div class="sn-iama-date-row">
+                                    <span class="sn-iama-date-label">@T.Iama.Ended</span>
+                                    <time datetime="@iama.ActualEndedAtUtc.ToDateTime().ToString("o")">
+                                        @FormatFullDateTime(iama.ActualEndedAtUtc.ToDateTime())
+                                    </time>
+                                </div>
+                            }
+                            else if (iama.ScheduledEndUtc != null)
+                            {
+                                <div class="sn-iama-date-row-group">
+                                    <div class="sn-iama-date-row">
+                                        <span class="sn-iama-date-label">@T.Iama.Ends</span>
+                                        <time datetime="@iama.ScheduledEndUtc.ToDateTime().ToString("o")">
+                                            @FormatFullDateTime(iama.ScheduledEndUtc.ToDateTime())
+                                        </time>
+                                    </div>
+                                    @if (iama.Phase == 1 && iama.ScheduledEndUtc.ToDateTime() > DateTime.UtcNow)
+                                    {
+                                        <span class="sn-iama-countdown" data-countdown-to="@iama.ScheduledEndUtc.ToDateTime().ToString("o")"><span class="countdown font-mono">
+                                            <span data-unit="days" style="--value:0;">0</span>d
+                                            <span data-unit="hours" style="--value:0;">0</span>h
+                                            <span data-unit="minutes" style="--value:0;">0</span>m
+                                            <span data-unit="seconds" style="--value:0;">0</span>s
+                                        </span></span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        </div>
+
+                        @if (iama.HasVerificationNoteHtml || !string.IsNullOrWhiteSpace(iama.VerificationNote))
+                        {
+                            <div class="sn-iama-verification">
+                                <span class="sn-iama-verification-label">@T.Iama.Verification</span>
+                                @if (iama.HasVerificationNoteHtml)
+                                {
+                                    <div class="sn-iama-verification-text prose prose-sm max-w-none">@Html.Raw(iama.VerificationNoteHtml)</div>
+                                }
+                                else
+                                {
+                                    <p class="sn-iama-verification-text">@iama.VerificationNote</p>
+                                }
+                            </div>
+                        }
                     </div>
                 }
 
@@ -758,6 +893,26 @@
 
             
 
+            @if (Model.Discussion?.Type == "Iama" && Model.IamaInfo?.OfficialAnswers.Count > 0)
+            {
+                var qaUrl = Url.Page("/Discussions/Detail",
+                    new { hubSlug = Model.HubSlug, spaceSlug = Model.SpaceSlug, slugWithId = Model.SlugWithId, sort = "qa" });
+                var chronoUrl = Url.Page("/Discussions/Detail",
+                    new { hubSlug = Model.HubSlug, spaceSlug = Model.SpaceSlug, slugWithId = Model.SlugWithId });
+                <div class="iama-sort-toggle">
+                    @if (Model.Sort == "qa")
+                    {
+                        <span class="iama-sort-active">@T.Iama.SortQa</span>
+                        <a href="@chronoUrl" class="iama-sort-link">@T.Iama.SortChronological</a>
+                    }
+                    else
+                    {
+                        <a href="@qaUrl" class="iama-sort-link">@T.Iama.SortQa</a>
+                        <span class="iama-sort-active">@T.Iama.SortChronological</span>
+                    }
+                </div>
+            }
+
             <!-- Posts Container -->
             <div id="posts-container" class="flex flex-col">
                 <!-- Load-up sentinel: hidden until entering via #post-N fragment, then shown by JS -->
@@ -783,17 +938,75 @@
                     string DebateColorFor(int positionIndex) =>
                         debateColors[Math.Min(positionIndex, debateColors.Length - 1)];
 
-                    @for (int i = 0; i < postList.Count; i++)
+                    // IAmA: reorder posts depending on sort mode
+                    HashSet<string> iamaQuestionIds = [];
+                    Dictionary<string, string> iamaAnswerToQuestion = [];
+                    List<Snakk.Protos.Post.EnrichedPostInfo> orderedPosts;
+                    if (Model.Discussion?.Type == "Iama" && Model.IamaInfo?.OfficialAnswers is { Count: > 0 } iamaOfficialAnswers)
                     {
-                        var post = postList[i];
+                        iamaQuestionIds = [..iamaOfficialAnswers.Keys];
+                        iamaAnswerToQuestion = iamaOfficialAnswers.ToDictionary(kv => kv.Value, kv => kv.Key);
+                        var postById = postList.ToDictionary(p => p.PublicId);
+
+                        if (Model.Sort == "qa")
+                        {
+                            // Q&A sort: all answered pairs first (Q then A), remaining chronological after
+                            var emitted = new HashSet<string>();
+                            orderedPosts = new List<Snakk.Protos.Post.EnrichedPostInfo>(postList.Count);
+                            foreach (var q in postList.Where(p => iamaOfficialAnswers.ContainsKey(p.PublicId)))
+                            {
+                                if (emitted.Contains(q.PublicId)) continue;
+                                orderedPosts.Add(q);
+                                emitted.Add(q.PublicId);
+                                if (iamaOfficialAnswers.TryGetValue(q.PublicId, out var aId)
+                                    && postById.TryGetValue(aId, out var answerPost)
+                                    && !emitted.Contains(aId))
+                                {
+                                    orderedPosts.Add(answerPost);
+                                    emitted.Add(aId);
+                                }
+                            }
+                            foreach (var p in postList)
+                                if (!emitted.Contains(p.PublicId)) orderedPosts.Add(p);
+                        }
+                        else
+                        {
+                            // Chronological with each answer placed immediately after its question
+                            var emitted = new HashSet<string>();
+                            orderedPosts = new List<Snakk.Protos.Post.EnrichedPostInfo>(postList.Count);
+                            foreach (var p in postList)
+                            {
+                                if (emitted.Contains(p.PublicId)) continue;
+                                orderedPosts.Add(p);
+                                emitted.Add(p.PublicId);
+                                if (iamaOfficialAnswers.TryGetValue(p.PublicId, out var answerId)
+                                    && postById.TryGetValue(answerId, out var answerPost)
+                                    && !emitted.Contains(answerId))
+                                {
+                                    orderedPosts.Add(answerPost);
+                                    emitted.Add(answerId);
+                                }
+                            }
+                            foreach (var p in postList)
+                                if (!emitted.Contains(p.PublicId)) orderedPosts.Add(p);
+                        }
+                    }
+                    else
+                    {
+                        orderedPosts = postList;
+                    }
+
+                    @for (int i = 0; i < orderedPosts.Count; i++)
+                    {
+                        var post = orderedPosts[i];
                         var isFirstInThread = i == 0;
                         var isNecro = post.IsNecro;
-                        var nextIsNecro = i < postList.Count - 1 && postList[i + 1].IsNecro;
+                        var nextIsNecro = i < orderedPosts.Count - 1 && orderedPosts[i + 1].IsNecro;
                         var isSameAuthorAsPrevious = !isNecro && previousAuthorId == post.Author.PublicId && !isFirstInThread;
                         var isOP = post.IsFirstPost;
                         var hasReplyTo = post.ReplyTo != null;
                         var isModerator = post.Author.Role == "mod" || post.Author.Role == "admin";
-                        var isLastPost = i == postList.Count - 1;
+                        var isLastPost = i == orderedPosts.Count - 1;
                         var isOwnPost = Model.CurrentUserId == post.Author.PublicId;
                         var hideReplyQuote = isOwnPost && (isLastPost || isSameAuthorAsPrevious);
 
@@ -869,6 +1082,7 @@
                                  class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "") @(nextIsNecro ? "before-necro" : "") @(isJournalEntry ? "journal-entry" : "") @(isAcceptedAnswer ? "accepted-answer" : "")"
                                  data-author-id="@post.Author.PublicId"
                                  data-post-id="@post.PublicId"
+                                 data-public-id="@post.PublicId"
                                  data-post-number="@post.PostNumber"
                                  data-created-at="@post.CreatedAt.ToDateTime().ToString("O")"
                                  role="article"
@@ -941,6 +1155,15 @@
                                             @if (isAcceptedAnswer)
                                             {
                                                 <span class="accepted-answer-badge">@T.Pages.DiscAcceptedAnswer</span>
+                                            }
+                                            @if (iamaQuestionIds.Contains(post.PublicId))
+                                            {
+                                                <span class="iama-answered-badge">@T.Iama.Answered</span>
+                                            }
+                                            @if (iamaAnswerToQuestion.TryGetValue(post.PublicId, out var iamaLinkedQuestionId))
+                                            {
+                                                var iamaQuestion = orderedPosts.FirstOrDefault(p => p.PublicId == iamaLinkedQuestionId);
+                                                <a class="iama-answer-badge" href="#post-@iamaQuestion?.PostNumber">@T.Iama.AnswerTo #@iamaQuestion?.PostNumber</a>
                                             }
                                             @if (debatePos is not null)
                                             {
@@ -1166,18 +1389,6 @@
                         <p>@T.Pages.DiscStartConvBody</p>
                     </div>
                 }
-            </div>
-
-            <!-- Typing Indicator -->
-            <div id="typing-indicator" class="hidden mt-4">
-                <div class="typing-indicator">
-                    <div class="typing-dots">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                    </div>
-                    <span id="typing-users">@T.Pages.DiscTypingSomeone</span>
-                </div>
             </div>
 
             <!-- Reply Form -->
@@ -1528,6 +1739,11 @@
 {
     <script src="@SnakkUrlHelper.Js("components/poll-widget")" asp-append-version="true" defer></script>
 }
+@if (Model.Discussion?.Type == "Iama")
+{
+    <script src="@SnakkUrlHelper.Js("components/iama-countdown")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("components/iama-widget")" asp-append-version="true" defer></script>
+}
 @if (Model.Discussion?.Type == "Images")
 {
     <script src="@SnakkUrlHelper.Js("components/lightbox")" asp-append-version="true"></script>
@@ -1573,6 +1789,10 @@
             communityName = Model.Community.CommunityName ?? Model.Community.CommunitySlug ?? "",
             isMultiCommunity = Model.Community.IsMultiCommunityEnabled,
             lastActivityAt = (Model.Discussion.LastActivityAt?.ToDateTime() ?? Model.Discussion.CreatedAt.ToDateTime()).ToString("O")
-        } : (object?)null
+        } : (object?)null,
+        officialAnswers = Model.Discussion?.Type == "Iama" && Model.IamaInfo != null
+            ? Model.IamaInfo.OfficialAnswers.ToDictionary(kv => kv.Key, kv => kv.Value)
+            : (object?)null,
+        sort = Model.Sort
     }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
 </script>

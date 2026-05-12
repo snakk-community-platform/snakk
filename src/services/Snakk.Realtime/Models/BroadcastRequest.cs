@@ -14,7 +14,18 @@ public record BroadcastRequest
     public int? Delta { get; init; }
     public string? AuthorId { get; init; }
     public string? AuthorName { get; init; }
+    public IReadOnlyList<DebateBroadcastPosition>? DebatePositions { get; init; }
+    public IReadOnlyList<PollBroadcastOption>? PollOptions { get; init; }
+    public int? TotalVotes { get; init; }
+    public string? LastPostExcerpt { get; init; }
+    public string? LastReplierId { get; init; }
+    public string? LastReplierName { get; init; }
+    public string? LastReplierAvatarUrl { get; init; }
+    public long? LastActivityAtUnix { get; init; }
 }
+
+public record DebateBroadcastPosition(int Index, string Label, int PostCount, int Pct);
+public record PollBroadcastOption(string Text, int VoteCount, int Pct);
 
 public record ActivityBroadcastRequest
 {

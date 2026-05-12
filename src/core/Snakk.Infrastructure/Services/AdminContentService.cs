@@ -156,7 +156,7 @@ public class AdminContentService(
         {
             var q = db.Spaces.AsQueryable();
             if (!string.IsNullOrWhiteSpace(hubId))
-                q = q.Where(s => s.Hub.Slug == hubId);
+                q = q.Where(s => s.HubSlug == hubId);
             if (!string.IsNullOrWhiteSpace(search))
                 q = q.Where(s => s.Name.Contains(search) || s.Slug.Contains(search));
             return q.CountAsync();
@@ -166,7 +166,7 @@ public class AdminContentService(
         {
             var q = db.Spaces.AsQueryable();
             if (!string.IsNullOrWhiteSpace(hubId))
-                q = q.Where(s => s.Hub.Slug == hubId);
+                q = q.Where(s => s.HubSlug == hubId);
             if (!string.IsNullOrWhiteSpace(search))
                 q = q.Where(s => s.Name.Contains(search) || s.Slug.Contains(search));
             return q.OrderByDescending(s => s.CreatedAt)
@@ -176,9 +176,9 @@ public class AdminContentService(
                     Slug = s.Slug,
                     Name = s.Name,
                     Description = s.Description,
-                    HubSlug = s.Hub.Slug,
-                    HubName = s.Hub.Name,
-                    CommunitySlug = s.Hub.Community.Slug,
+                    HubSlug = s.HubSlug,
+                    HubName = s.HubName,
+                    CommunitySlug = s.CommunitySlug,
                     DiscussionCount = s.Discussions.Count,
                     CreatedAt = s.CreatedAt
                 })

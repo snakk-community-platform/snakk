@@ -33,17 +33,22 @@ public class StatisticsUseCase(
             .Select(c => c.UserId)
             .ToList();
 
-        var users = await userRepo.GetByPublicIdsAsync(userIds);
-        var userDict = users.ToDictionary(u => u.PublicId.Value);
+        var users = await userRepo.GetAvatarSlimByPublicIdsAsync(userIds);
+        var userDict = users.ToDictionary(u => u.PublicId);
 
         var results = topContributors
-            .Select(c => new TopContributorResult(
-                UserId: c.UserId.Value,
-                DisplayName: userDict.TryGetValue(c.UserId.Value, out var user) ? user.DisplayName ?? "" : "Deleted User",
-                AvatarFileName: userDict.TryGetValue(c.UserId.Value, out var u) ? u.AvatarFileName : null,
-                AvatarThumbnailFileName: userDict.TryGetValue(c.UserId.Value, out var ut) ? ut.AvatarThumbnailFileName : null,
-                AvatarMicroFileName: userDict.TryGetValue(c.UserId.Value, out var um) ? um.AvatarMicroFileName : null,
-                PostCountToday: c.PostCount))
+            .Select(c =>
+            {
+                userDict.TryGetValue(c.UserId.Value, out var u);
+                return new TopContributorResult(
+                    UserId: c.UserId.Value,
+                    DisplayName: u?.DisplayName ?? "Deleted User",
+                    AvatarFileName: u?.AvatarFileName,
+                    AvatarThumbnailFileName: u?.AvatarThumbnailFileName,
+                    AvatarMicroFileName: u?.AvatarMicroFileName,
+                    AvatarRevision: u?.AvatarRevision ?? 0,
+                    PostCountToday: c.PostCount);
+            })
             .ToList();
 
         return Result<PagedResult<TopContributorResult>>.Success(
@@ -316,17 +321,22 @@ public class StatisticsUseCase(
             limit);
 
         var userIds = latestContributors.Select(c => c.UserId).ToList();
-        var users = await userRepo.GetByPublicIdsAsync(userIds);
-        var userDict = users.ToDictionary(u => u.PublicId.Value);
+        var users = await userRepo.GetAvatarSlimByPublicIdsAsync(userIds);
+        var userDict = users.ToDictionary(u => u.PublicId);
 
         var results = latestContributors
-            .Select(c => new LatestContributorResult(
-                UserId: c.UserId.Value,
-                DisplayName: userDict.TryGetValue(c.UserId.Value, out var user) ? user.DisplayName ?? "" : "Deleted User",
-                AvatarFileName: userDict.TryGetValue(c.UserId.Value, out var u) ? u.AvatarFileName : null,
-                AvatarThumbnailFileName: userDict.TryGetValue(c.UserId.Value, out var ut) ? ut.AvatarThumbnailFileName : null,
-                AvatarMicroFileName: userDict.TryGetValue(c.UserId.Value, out var um) ? um.AvatarMicroFileName : null,
-                LastPostAt: c.LastPostAt))
+            .Select(c =>
+            {
+                userDict.TryGetValue(c.UserId.Value, out var u);
+                return new LatestContributorResult(
+                    UserId: c.UserId.Value,
+                    DisplayName: u?.DisplayName ?? "Deleted User",
+                    AvatarFileName: u?.AvatarFileName,
+                    AvatarThumbnailFileName: u?.AvatarThumbnailFileName,
+                    AvatarMicroFileName: u?.AvatarMicroFileName,
+                    AvatarRevision: u?.AvatarRevision ?? 0,
+                    LastPostAt: c.LastPostAt);
+            })
             .ToList();
 
         return Result<PagedResult<LatestContributorResult>>.Success(
@@ -347,6 +357,7 @@ public record TopContributorResult(
     string? AvatarFileName,
     string? AvatarThumbnailFileName,
     string? AvatarMicroFileName,
+    int AvatarRevision,
     int PostCountToday);
 
 public record TopDiscussionResult(
@@ -372,6 +383,7 @@ public record LatestContributorResult(
     string? AvatarFileName,
     string? AvatarThumbnailFileName,
     string? AvatarMicroFileName,
+    int AvatarRevision,
     DateTime LastPostAt);
 
 public record UserActivityHistoryResult(

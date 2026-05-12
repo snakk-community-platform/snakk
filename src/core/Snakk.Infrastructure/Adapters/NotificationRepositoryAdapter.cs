@@ -20,12 +20,12 @@ public class NotificationRepositoryAdapter(
         var projection = await context.UserNotifications
             .Where(n => n.PublicId == notificationId.Value)
             .Select(n => new NotificationProjection(
-                n.PublicId, n.RecipientUser.PublicId, n.TypeId,
+                n.PublicId, n.RecipientUserPublicId!, n.TypeId,
                 n.Title, n.Body,
-                n.SourcePost != null ? n.SourcePost.PublicId : null,
-                n.SourceDiscussion != null ? n.SourceDiscussion.PublicId : null,
-                n.SourceSpace != null ? n.SourceSpace.PublicId : null,
-                n.ActorUser != null ? n.ActorUser.PublicId : null,
+                n.SourcePostPublicId,
+                n.SourceDiscussionPublicId,
+                n.SourceSpacePublicId,
+                n.ActorUserPublicId,
                 n.IsRead, n.CreatedAt, n.ReadAt))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -50,12 +50,12 @@ public class NotificationRepositoryAdapter(
             .Skip(offset)
             .Take(pageSize + 1)
             .Select(n => new NotificationProjection(
-                n.PublicId, n.RecipientUser.PublicId, n.TypeId,
+                n.PublicId, n.RecipientUserPublicId!, n.TypeId,
                 n.Title, n.Body,
-                n.SourcePost != null ? n.SourcePost.PublicId : null,
-                n.SourceDiscussion != null ? n.SourceDiscussion.PublicId : null,
-                n.SourceSpace != null ? n.SourceSpace.PublicId : null,
-                n.ActorUser != null ? n.ActorUser.PublicId : null,
+                n.SourcePostPublicId,
+                n.SourceDiscussionPublicId,
+                n.SourceSpacePublicId,
+                n.ActorUserPublicId,
                 n.IsRead, n.CreatedAt, n.ReadAt))
             .ToListAsync();
 
@@ -71,14 +71,11 @@ public class NotificationRepositoryAdapter(
         };
     }
 
-    public async Task<int> GetUnreadCountAsync(UserId userId)
-    {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-
-        if (user is null) return 0;
-
-        return await databaseRepository.GetUnreadCountAsync(user.Id);
-    }
+    public async Task<int> GetUnreadCountAsync(UserId userId) =>
+        await context.Users
+            .Where(u => u.PublicId == userId.Value)
+            .Select(u => u.UnreadNotificationCount)
+            .FirstOrDefaultAsync();
 
     public async Task AddAsync(Notification notification)
     {
@@ -90,29 +87,34 @@ public class NotificationRepositoryAdapter(
             throw new InvalidOperationException($"User with PublicId '{notification.RecipientUserId}' not found");
 
         entity.RecipientUserId = recipientUser.Id;
+        entity.RecipientUserPublicId = notification.RecipientUserId.Value;
 
         if (notification.SourcePostId is not null)
         {
             var post = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == notification.SourcePostId.Value);
             entity.SourcePostId = post?.Id;
+            entity.SourcePostPublicId = notification.SourcePostId.Value;
         }
 
         if (notification.SourceDiscussionId is not null)
         {
             var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == notification.SourceDiscussionId.Value);
             entity.SourceDiscussionId = discussion?.Id;
+            entity.SourceDiscussionPublicId = notification.SourceDiscussionId.Value;
         }
 
         if (notification.SourceSpaceId is not null)
         {
             var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == notification.SourceSpaceId.Value);
             entity.SourceSpaceId = space?.Id;
+            entity.SourceSpacePublicId = notification.SourceSpaceId.Value;
         }
 
         if (notification.ActorUserId is not null)
         {
             var actorUser = await context.Users.FirstOrDefaultAsync(u => u.PublicId == notification.ActorUserId.Value);
             entity.ActorUserId = actorUser?.Id;
+            entity.ActorUserPublicId = notification.ActorUserId.Value;
         }
 
         await databaseRepository.AddAsync(entity);

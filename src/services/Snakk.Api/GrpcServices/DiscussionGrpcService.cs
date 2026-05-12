@@ -27,7 +27,8 @@ public class DiscussionGrpcService(
     IDiscussionTypeQueryService typeQueryService,
     IFileStorage fileStorage,
     IGroupAccessService groupAccessService,
-    IServiceScopeFactory scopeFactory) : DiscussionService.DiscussionServiceBase
+    IServiceScopeFactory scopeFactory,
+    IRealtimeNotifier realtimeNotifier) : DiscussionService.DiscussionServiceBase
 {
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
@@ -820,6 +821,7 @@ public class DiscussionGrpcService(
         var userId = RequireAuth();
         var (success, error) = await pollService.VoteAsync(request.DiscussionId, request.OptionId, userId.Value, request.HasSegmentIndex ? (int?)request.SegmentIndex : null);
 
+        if (success) await BroadcastPollUpdatedAsync(request.DiscussionId);
         return new VotePollResponse { Success = success, Error = error };
     }
 
@@ -828,7 +830,19 @@ public class DiscussionGrpcService(
         var userId = RequireAuth();
         var (success, error) = await pollService.RemoveVoteAsync(request.DiscussionId, request.OptionId, userId.Value);
 
+        if (success) await BroadcastPollUpdatedAsync(request.DiscussionId);
         return new VotePollResponse { Success = success, Error = error };
+    }
+
+    private async Task BroadcastPollUpdatedAsync(string discussionPublicId)
+    {
+        var poll = await pollService.GetPollAsync(discussionPublicId);
+        if (poll is null || (poll.IsSecret && !poll.IsClosed)) return;
+        var updates = poll.Options
+            .Select(o => new PollOptionUpdate(o.Text, o.VoteCount,
+                poll.TotalVotes > 0 ? (int)Math.Round(100.0 * o.VoteCount / poll.TotalVotes) : 0))
+            .ToList();
+        await realtimeNotifier.NotifyPollUpdatedAsync(DiscussionId.From(discussionPublicId), updates, poll.TotalVotes);
     }
 
     // --- Question RPCs ---
@@ -935,6 +949,21 @@ public class DiscussionGrpcService(
     {
         var userId = RequireAuth();
         var (success, error) = await typeQueryService.SetPostDebatePositionAsync(request.DiscussionId, request.PostPublicId, request.PositionId, userId.Value);
+
+        if (success)
+        {
+            var info = await typeQueryService.GetDebateInfoAsync(request.DiscussionId);
+            if (info is not null)
+            {
+                var totalPosts = info.Positions.Sum(p => p.PostCount);
+                var updates = info.Positions
+                    .Select(p => new DebatePositionUpdate(p.Index, p.Label, p.PostCount,
+                        totalPosts > 0 ? (int)Math.Round(100.0 * p.PostCount / totalPosts) : 0))
+                    .ToList();
+                await realtimeNotifier.NotifyDebateUpdatedAsync(DiscussionId.From(request.DiscussionId), updates);
+            }
+        }
+
         return new SetPostDebatePositionResponse { Success = success, Error = error };
     }
 
@@ -957,8 +986,9 @@ public class DiscussionGrpcService(
         {
             Phase = info.Phase,
             IsScheduled = info.IsScheduled,
-            VerificationNote = info.VerificationNote
         };
+        if (info.VerificationNote != null) response.VerificationNote = info.VerificationNote;
+        if (info.VerificationNoteHtml != null) response.VerificationNoteHtml = info.VerificationNoteHtml;
 
         if (info.ScheduledStartUtc.HasValue)
             response.ScheduledStartUtc = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
@@ -967,6 +997,14 @@ public class DiscussionGrpcService(
         if (info.ScheduledEndUtc.HasValue)
             response.ScheduledEndUtc = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
                 DateTime.SpecifyKind(info.ScheduledEndUtc.Value, DateTimeKind.Utc));
+
+        if (info.ActualStartedAtUtc.HasValue)
+            response.ActualStartedAtUtc = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                DateTime.SpecifyKind(info.ActualStartedAtUtc.Value, DateTimeKind.Utc));
+
+        if (info.ActualEndedAtUtc.HasValue)
+            response.ActualEndedAtUtc = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                DateTime.SpecifyKind(info.ActualEndedAtUtc.Value, DateTimeKind.Utc));
 
         response.OfficialAnswers.Add(info.OfficialAnswers);
         response.BestQuestionPostPublicIds.AddRange(info.BestQuestionPostPublicIds);

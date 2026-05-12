@@ -15,11 +15,13 @@
   <Folder Name="/services/">
     <Project Path="services/Snakk.Api/Snakk.Api.csproj" />
     <Project Path="services/Snakk.Gateway/Snakk.Gateway.csproj" />
+    <Project Path="services/Snakk.PublicApi/Snakk.PublicApi.csproj" />
     <Project Path="services/Snakk.Realtime/Snakk.Realtime.csproj" />
     <Project Path="services/Snakk.Worker/Snakk.Worker.csproj" />
   </Folder>
   <Folder Name="/apps/">
     <Project Path="apps/Snakk.Admin/Snakk.Admin.csproj" />
+    <Project Path="apps/Snakk.App/Snakk.App.csproj" />
     <Project Path="apps/Snakk.Auth/Snakk.Auth.csproj" />
     <Project Path="apps/Snakk.Setup/Snakk.Setup.csproj" />
     <Project Path="apps/Snakk.Web/Snakk.Web.csproj" />

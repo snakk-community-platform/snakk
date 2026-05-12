@@ -119,8 +119,8 @@ public class ContentNormalizer : IContentNormalizer
                 var word = text[wordStart..i];
                 int alphaCount = word.Count(ch => char.IsLetter(ch));
 
-                // Preserve short all-caps tokens (acronyms like OK, EU, NASA)
-                bool isShortAllCaps = alphaCount is > 0 and <= 4
+                // Only single-letter tokens (I, A) — larger thresholds treat common short words as acronyms
+                bool isShortAllCaps = alphaCount == 1
                     && word.All(ch => !char.IsLetter(ch) || char.IsUpper(ch));
 
                 if (isShortAllCaps)

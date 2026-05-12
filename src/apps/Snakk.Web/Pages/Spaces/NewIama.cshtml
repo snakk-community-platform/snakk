@@ -52,10 +52,11 @@
 
                     <!-- Verification note -->
                     <div class="space-y-2">
-                        <label class="text-sm font-medium" for="iama-verification">@T.Pages.SpacesNewIamaVerifLabel</label>
-                        <textarea name="IamaVerificationNote" id="iama-verification" class="textarea w-full" rows="3"
-                                  placeholder="@T.Pages.SpacesNewIamaVerifPh"
-                                  maxlength="2000">@Model.IamaVerificationNote</textarea>
+                        <label class="text-sm font-medium">@T.Pages.SpacesNewIamaVerifLabel</label>
+                        <textarea name="IamaVerificationNote" id="iama-verif-content" style="display:none">@Model.IamaVerificationNote</textarea>
+                        <div id="iama-verif-editor-container" data-placeholder="@T.Pages.SpacesNewIamaVerifPh">
+                            <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:100px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+                        </div>
                         <p class="text-xs text-base-content/50">@T.Pages.SpacesNewIamaVerifHelp</p>
                     </div>
 

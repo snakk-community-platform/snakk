@@ -112,7 +112,6 @@
 
     <script id="js-dompurify"    hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true"></script>
     <script id="js-htmx"         hx-preserve src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
-    <script id="js-htmx-preload" hx-preserve src="@SnakkUrlHelper.Js("htmx-preload", isVendor: true)" asp-append-version="true" defer></script>
     <script id="js-htmx-head"    hx-preserve src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
     <script id="js-loading-bar"  hx-preserve src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
     <script id="js-actions"      hx-preserve src="@SnakkUrlHelper.Js("core/actions")" asp-append-version="true" defer></script>
@@ -126,7 +125,7 @@
    inside the body MUST set hx-target="this" (or its own target), otherwise its response
    will replace #main-content and wipe the whole page. Required by hx-boost — boosted
    anchors look up hx-target via inheritance, so we can't disinherit at body level. *@
-<body class="antialiased" data-auth="@(isAuth ? "1" : "0")" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="preload,head-support" preload>
+<body class="antialiased" data-auth="@(isAuth ? "1" : "0")" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="head-support">
     <div id="loading-bar" class="loading-bar"></div>
 
     @{

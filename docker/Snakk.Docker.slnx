@@ -13,6 +13,7 @@
   <Folder Name="/services/">
     <Project Path="services/Snakk.Api/Snakk.Api.csproj" />
     <Project Path="services/Snakk.Gateway/Snakk.Gateway.csproj" />
+    <Project Path="services/Snakk.PublicApi/Snakk.PublicApi.csproj" />
     <Project Path="services/Snakk.Realtime/Snakk.Realtime.csproj" />
     <Project Path="services/Snakk.Worker/Snakk.Worker.csproj" />
   </Folder>

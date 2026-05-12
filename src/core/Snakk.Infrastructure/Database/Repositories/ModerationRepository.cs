@@ -893,8 +893,8 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
                 .Select(d => new {
                     DiscussionId = d.Id,
                     SpaceId = d.SpaceId,
-                    HubId = d.Space.HubId,
-                    CommunityId = d.Space.Hub.CommunityId })
+                    HubId = d.HubId,
+                    CommunityId = d.CommunityId })
                 .FirstOrDefaultAsync()
                 ?? throw new InvalidOperationException("Reported discussion not found");
             reportedDiscussionId = discussion.DiscussionId;

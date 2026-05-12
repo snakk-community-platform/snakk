@@ -9,6 +9,7 @@ using Snakk.Shared.Models;
 public class ReactionUseCase(
     IReactionRepository reactionRepository,
     IPostRepository postRepository,
+    IDiscussionRepository discussionRepository,
     IRealtimeNotifier realtimeNotifier,
     ICounterService counterService)
 {
@@ -39,10 +40,13 @@ public class ReactionUseCase(
                 await counterService.DecrementReactionCountAsync(postId, post.DiscussionId);
                 var counts = await reactionRepository.GetCountsByPostIdAsync(postId);
                 await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, counts);
+                var discussionOff = await discussionRepository.GetByPublicIdAsync(post.DiscussionId);
+                if (discussionOff is not null)
+                    await realtimeNotifier.NotifyDiscussionReactionCountAsync(post.DiscussionId, discussionOff.SpaceId, -1);
                 return Result<bool>.Success(false);
             }
 
-            // Replace with new type — counter stays the same
+            // Replace with new type — counter stays the same, no card update needed
             var replacement = Reaction.Create(postId, userId, type);
             await reactionRepository.AddAsync(replacement);
             var replacedCounts = await reactionRepository.GetCountsByPostIdAsync(postId);
@@ -56,6 +60,9 @@ public class ReactionUseCase(
 
         var updatedCounts = await reactionRepository.GetCountsByPostIdAsync(postId);
         await realtimeNotifier.NotifyReactionUpdatedAsync(postId, post.DiscussionId, updatedCounts);
+        var discussionAdd = await discussionRepository.GetByPublicIdAsync(post.DiscussionId);
+        if (discussionAdd is not null)
+            await realtimeNotifier.NotifyDiscussionReactionCountAsync(post.DiscussionId, discussionAdd.SpaceId, 1);
 
         return Result<bool>.Success(true);
     }

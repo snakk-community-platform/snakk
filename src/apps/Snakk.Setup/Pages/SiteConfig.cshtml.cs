@@ -9,6 +9,7 @@ public class SiteConfigModel : SetupPageBase
     [BindProperty] public bool MultiCommunityEnabled { get; set; }
     [BindProperty] public string Timezone { get; set; } = "UTC";
     [BindProperty] public string Language { get; set; } = "en";
+    [BindProperty] public List<string> AllowedDisplayNameScripts { get; set; } = ["Latin"];
 
     public void OnGet()
     {
@@ -19,6 +20,9 @@ public class SiteConfigModel : SetupPageBase
         MultiCommunityEnabled = state.MultiCommunityEnabled;
         Timezone = state.Timezone;
         Language = !string.IsNullOrEmpty(state.Language) ? state.Language : DetectLanguageFromRequest();
+        AllowedDisplayNameScripts = state.AllowedDisplayNameScripts.Count > 0
+            ? state.AllowedDisplayNameScripts
+            : ["Latin"];
     }
 
     private string DetectLanguageFromRequest()
@@ -46,6 +50,9 @@ public class SiteConfigModel : SetupPageBase
         state.MultiCommunityEnabled = MultiCommunityEnabled;
         state.Timezone = string.IsNullOrWhiteSpace(Timezone) ? "UTC" : Timezone;
         state.Language = string.IsNullOrWhiteSpace(Language) ? "en" : Language;
+        state.AllowedDisplayNameScripts = AllowedDisplayNameScripts.Count > 0
+            ? AllowedDisplayNameScripts
+            : ["Latin"];
         SaveState(state);
 
         return RedirectToPage("Storage");

@@ -39,6 +39,15 @@
                         <option value="none">@T.Settings.BrowserStickyNone</option>
                     </select>
                 </div>
+                <div class="flex items-start justify-between gap-6 mt-4">
+                    <div>
+                        <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserContentWidthTitle</p>
+                        <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserContentWidthHelp</p>
+                    </div>
+                    <button type="button" id="btn-content-width" class="btn btn-sm btn-outline shrink-0 mt-0.5">
+                        @T.Settings.BrowserContentWidthButton
+                    </button>
+                </div>
             </div>
 
             <!-- Behavior -->
@@ -231,6 +240,31 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+</div>
+
+<!-- Content Width Modal -->
+<div id="content-width-modal" class="fixed inset-0 hidden" style="z-index: 10000;" aria-modal="true" role="dialog">
+    <div id="content-width-backdrop" class="absolute inset-0 bg-black/50"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
+        <div class="relative w-80 rounded-xl shadow-2xl p-6 pointer-events-auto" style="background: var(--card-bg);">
+            <div class="flex items-start justify-between mb-1">
+                <h3 class="font-semibold text-base" style="color: var(--text-primary)">@T.Settings.BrowserContentWidthTitle</h3>
+                <button type="button" id="btn-content-width-cancel-x" class="btn btn-ghost btn-xs btn-circle -mt-1 -mr-1">✕</button>
+            </div>
+            <p class="text-xs mb-5" style="color: var(--text-tertiary)">@T.Settings.BrowserContentWidthHelp</p>
+            <div class="flex items-center gap-3 mb-6">
+                <span id="pref-content-width-label" class="text-sm tabular-nums shrink-0" style="color: var(--text-secondary); min-width: 4.5rem; text-align: right;">Default</span>
+                <input type="range" id="pref-content-width" min="54" max="128" step="1" class="range range-sm range-primary flex-1" />
+            </div>
+            <div class="flex items-center justify-between">
+                <button type="button" id="btn-content-width-reset" class="btn btn-ghost btn-sm">@T.Settings.BrowserContentWidthReset</button>
+                <div class="flex gap-2">
+                    <button type="button" id="btn-content-width-cancel" class="btn btn-ghost btn-sm">@T.Settings.BrowserContentWidthCancel</button>
+                    <button type="button" id="btn-content-width-apply" class="btn btn-primary btn-sm">@T.Settings.BrowserContentWidthApply</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>

@@ -185,14 +185,12 @@
 
         if (container && textarea && (window as any).SnakkEditor) {
             const placeholder = container.dataset.placeholder || 'Write your content...';
-            const hideImageButton = container.dataset.hideImage === 'true';
 
             editor = await (window as any).SnakkEditor.init({
                 container,
                 textarea,
                 placeholder,
                 initialValue: textarea.value || '',
-                hideImageButton,
                 onChange: (markdown: string) => {
                     setBlocker('body', !hasTextContent(markdown));
                 },

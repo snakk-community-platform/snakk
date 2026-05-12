@@ -21,6 +21,14 @@ public class DiscussionTypeIamaDatabaseEntity
     [MaxLength(2000)]
     public string? VerificationNote { get; set; }
 
+    public string? VerificationNoteHtml { get; set; }
+
+    public DateTime? ActualStartedAtUtc { get; set; }
+    public DateTime? ActualEndedAtUtc { get; set; }
+
+    public int OfficialAnswerCount { get; set; }
+    public int BestQuestionCount { get; set; }
+
     public virtual ICollection<DiscussionTypeIamaOfficialAnswerDatabaseEntity> OfficialAnswers { get; set; } = [];
     public virtual ICollection<DiscussionTypeIamaBestQuestionDatabaseEntity> BestQuestions { get; set; } = [];
 }

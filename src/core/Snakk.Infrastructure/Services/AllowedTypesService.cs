@@ -52,7 +52,7 @@ public class AllowedTypesService(SnakkDbContext context) : IAllowedTypesService
         // Get parent hub's PublicId to compute hub's effective types
         var hubPublicId = await context.Spaces
             .Where(s => s.PublicId == spacePublicId && !s.IsDeleted)
-            .Select(s => s.Hub.PublicId)
+            .Select(s => s.HubPublicId)
             .FirstOrDefaultAsync();
 
         if (hubPublicId is null)
@@ -68,7 +68,7 @@ public class AllowedTypesService(SnakkDbContext context) : IAllowedTypesService
     {
         var communityPublicId = await context.Hubs
             .Where(h => h.PublicId == hubPublicId && !h.IsDeleted)
-            .Select(h => h.Community.PublicId)
+            .Select(h => h.CommunityPublicId)
             .FirstOrDefaultAsync();
 
         if (communityPublicId is null)
@@ -81,7 +81,7 @@ public class AllowedTypesService(SnakkDbContext context) : IAllowedTypesService
     {
         var hubPublicId = await context.Spaces
             .Where(s => s.PublicId == spacePublicId && !s.IsDeleted)
-            .Select(s => s.Hub.PublicId)
+            .Select(s => s.HubPublicId)
             .FirstOrDefaultAsync();
 
         if (hubPublicId is null)

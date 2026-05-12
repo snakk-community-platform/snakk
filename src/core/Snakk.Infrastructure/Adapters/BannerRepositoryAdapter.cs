@@ -58,7 +58,7 @@ public class BannerRepositoryAdapter(
         // Resolve hub and its parent community
         var hub = await context.Hubs
             .Where(h => h.PublicId == hubId.Value)
-            .Select(h => new { h.PublicId, CommunityPublicId = h.Community.PublicId })
+            .Select(h => new { h.PublicId, h.CommunityPublicId })
             .FirstOrDefaultAsync();
 
         if (hub is null)
@@ -91,8 +91,8 @@ public class BannerRepositoryAdapter(
             .Select(s => new
             {
                 s.PublicId,
-                HubPublicId = s.Hub.PublicId,
-                CommunityPublicId = s.Hub.Community.PublicId
+                s.HubPublicId,
+                s.CommunityPublicId
             })
             .FirstOrDefaultAsync();
 

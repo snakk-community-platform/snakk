@@ -19,11 +19,11 @@ public class ReactionRepositoryAdapter(
         var typeId = (int)type.ToShared();
         var projection = await context.PostReactions
             .Where(r =>
-                r.User.PublicId == userId.Value
-                && r.Post.PublicId == postId.Value
+                r.UserPublicId == userId.Value
+                && r.PostPublicId == postId.Value
                 && r.TypeId == typeId)
             .Select(r => new ReactionProjection(
-                r.PublicId, r.Post.PublicId, r.User.PublicId,
+                r.PublicId, r.PostPublicId, r.UserPublicId,
                 r.TypeId, r.CreatedAt))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -33,10 +33,10 @@ public class ReactionRepositoryAdapter(
     {
         var projection = await context.PostReactions
             .Where(r =>
-                r.User.PublicId == userId.Value
-                && r.Post.PublicId == postId.Value)
+                r.UserPublicId == userId.Value
+                && r.PostPublicId == postId.Value)
             .Select(r => new ReactionProjection(
-                r.PublicId, r.Post.PublicId, r.User.PublicId,
+                r.PublicId, r.PostPublicId, r.UserPublicId,
                 r.TypeId, r.CreatedAt))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -45,9 +45,9 @@ public class ReactionRepositoryAdapter(
     public async Task<IEnumerable<Reaction>> GetByPostIdAsync(PostId postId)
     {
         var projections = await context.PostReactions
-            .Where(r => r.Post.PublicId == postId.Value)
+            .Where(r => r.PostPublicId == postId.Value)
             .Select(r => new ReactionProjection(
-                r.PublicId, r.Post.PublicId, r.User.PublicId,
+                r.PublicId, r.PostPublicId, r.UserPublicId,
                 r.TypeId, r.CreatedAt))
             .ToListAsync();
 
@@ -95,7 +95,9 @@ public class ReactionRepositoryAdapter(
             throw new InvalidOperationException($"User with PublicId '{reaction.UserId}' not found");
 
         entity.PostId = post.Id;
+        entity.PostPublicId = post.PublicId;
         entity.UserId = user.Id;
+        entity.UserPublicId = user.PublicId;
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -218,7 +220,7 @@ public class ReactionRepositoryAdapter(
     public async Task<int> GetTotalReactionsReceivedByUserAsync(UserId userId)
     {
         return await context.PostReactions
-            .Where(r => r.Post.CreatedByUser.PublicId == userId.Value)
+            .Where(r => r.Post.CreatedByUserPublicId == userId.Value)
             .CountAsync();
     }
 

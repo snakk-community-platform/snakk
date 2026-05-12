@@ -103,16 +103,16 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
                     s.Discussion.LastActivityAt,
                     s.Discussion.IsPinned,
                     s.Discussion.IsLocked,
-                    s.Discussion.Space.PublicId,
+                    s.Discussion.SpacePublicId,
                     s.Discussion.Space.Slug,
                     s.Discussion.Space.Name,
-                    s.Discussion.Space.Hub.PublicId,
-                    s.Discussion.Space.Hub.Slug,
-                    s.Discussion.Space.Hub.Name,
-                    s.Discussion.Space.Hub.Community.PublicId,
-                    s.Discussion.Space.Hub.Community.Slug,
-                    s.Discussion.Space.Hub.Community.Name,
-                    s.Discussion.CreatedByUser.PublicId,
+                    s.Discussion.HubPublicId,
+                    s.Discussion.Space.HubSlug,
+                    s.Discussion.Space.HubName,
+                    s.Discussion.CommunityPublicId,
+                    s.Discussion.Space.CommunitySlug,
+                    s.Discussion.Space.CommunityName,
+                    s.Discussion.CreatedByUserPublicId,
                     s.Discussion.CreatedByUser.DisplayName ?? "",
                     s.Discussion.CreatedByUser.AvatarFileName,
                     s.Discussion.CreatedByUser.AvatarThumbnailFileName,
@@ -121,31 +121,11 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
                     string.IsNullOrEmpty(s.Discussion.Tags)
                         ? Array.Empty<string>()
                         : s.Discussion.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                    LastReplierPublicId: s.Discussion!.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.PublicId)
-                        .FirstOrDefault(),
-                    LastReplierDisplayName: s.Discussion!.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.DisplayName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarFileName: s.Discussion!.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarFileName)
-                        .FirstOrDefault(),
-                    LastReplierAvatarThumbnailFileName: s.Discussion!.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.CreatedByUser.AvatarThumbnailFileName)
-                        .FirstOrDefault(),
-                    LastPostExcerpt: s.Discussion!.Posts
-                        .Where(p => !p.IsFirstPost && !p.IsDeleted)
-                        .OrderByDescending(p => p.CreatedAt)
-                        .Select(p => p.PlainTextExcerpt)
-                        .FirstOrDefault(),
+                    LastReplierPublicId: s.Discussion!.LastPostAuthorPublicId,
+                    LastReplierDisplayName: s.Discussion!.LastPostAuthorDisplayName,
+                    LastReplierAvatarFileName: s.Discussion!.LastPostAuthorAvatarFileName,
+                    LastReplierAvatarThumbnailFileName: s.Discussion!.LastPostAuthorAvatarThumbnailFileName,
+                    LastPostExcerpt: s.Discussion!.LastPostPlainTextExcerpt,
                     IsAdult: s.Discussion.IsAdultOnly)
             })
             .ToListAsync();
@@ -177,15 +157,15 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
                         : s.Post.RenderedContent
                     : "",
                 s.Post.CreatedAt,
-                s.Post.Discussion.PublicId,
+                s.Post.DiscussionPublicId,
                 s.Post.Discussion.Title,
                 s.Post.Discussion.Slug,
                 s.Post.Discussion.Space.Slug,
                 s.Post.Discussion.Space.Name,
-                s.Post.Discussion.Space.Hub.Slug,
-                s.Post.Discussion.Space.Hub.Name,
-                s.Post.Discussion.Space.Hub.Community.Slug,
-                s.Post.CreatedByUser.PublicId,
+                s.Post.Discussion.Space.HubSlug,
+                s.Post.Discussion.Space.HubName,
+                s.Post.Discussion.Space.CommunitySlug,
+                s.Post.CreatedByUserPublicId,
                 s.Post.CreatedByUser.DisplayName ?? "",
                 s.Post.CreatedByUser.AvatarFileName,
                 s.CreatedAt))

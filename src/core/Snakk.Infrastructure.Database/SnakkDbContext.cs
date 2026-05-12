@@ -363,7 +363,8 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
         modelBuilder.Entity<DiscussionDatabaseEntity>()
             .HasIndex(d => new { d.LastActivityAt, d.Id })
             .IsDescending(true, true)
-            .HasDatabaseName("IX_Discussion_LastActivityAt_Id_Desc");
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Discussion_LastActivityAt_Id_NotDeleted");
 
         // Discussion feed: space-scoped feed
         modelBuilder.Entity<DiscussionDatabaseEntity>()
@@ -983,10 +984,47 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .IsDescending(true, false, false)
             .HasDatabaseName("IX_Post_CreatedAt_DiscussionId_IsDeleted");
 
+        // Contributor leaderboard: time-range scan + group by author, no heap fetch for deleted rows
+        modelBuilder.Entity<PostDatabaseEntity>()
+            .HasIndex(p => new { p.CreatedAt, p.CreatedByUserId })
+            .IsDescending(true, false)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Post_CreatedAt_CreatedByUserId_NotDeleted");
+
+        // Contributor leaderboard: covering index on public ID string so the top-contributors
+        // query is an index-only scan (no heap fetch per row to read CreatedByUserPublicId)
+        modelBuilder.Entity<PostDatabaseEntity>()
+            .HasIndex(p => new { p.CreatedAt, p.CreatedByUserPublicId })
+            .IsDescending(true, false)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Post_CreatedAt_CreatedByUserPublicId_NotDeleted");
+
         // Post reply-to index (for fetching reply chains)
         modelBuilder.Entity<PostDatabaseEntity>()
             .HasIndex(p => p.ReplyToPostId)
             .HasDatabaseName("IX_Post_ReplyToPostId");
+
+        // Denormalized-column indexes: cover the WHERE/GroupBy patterns that replaced
+        // navigation-property JOIN chains. Without these, queries do full table scans.
+
+        // Scoped contributor leaderboard (integer FK, pairs with CreatedAt since filter)
+        modelBuilder.Entity<PostDatabaseEntity>()
+            .HasIndex(p => new { p.SpaceId, p.CreatedAt })
+            .IsDescending(false, true)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Post_SpaceId_CreatedAt_NotDeleted");
+
+        modelBuilder.Entity<PostDatabaseEntity>()
+            .HasIndex(p => new { p.HubId, p.CreatedAt })
+            .IsDescending(false, true)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Post_HubId_CreatedAt_NotDeleted");
+
+        modelBuilder.Entity<PostDatabaseEntity>()
+            .HasIndex(p => new { p.CommunityId, p.CreatedAt })
+            .IsDescending(false, true)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Post_CommunityId_CreatedAt_NotDeleted");
 
         // === RefreshToken Configuration ===
 
@@ -1741,6 +1779,32 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(d => d.TrendScore)
             .IsDescending(true)
             .HasDatabaseName("IX_Discussion_TrendScore_Desc");
+
+        // Scoped discussion feeds — integer FK columns for efficient keyset pagination
+        // (pre-lookup resolves string publicId to int before filtering)
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .HasIndex(d => new { d.SpaceId, d.LastActivityAt, d.Id })
+            .IsDescending(false, true, true)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Discussion_SpaceId_LastActivityAt_Id_NotDeleted");
+
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .HasIndex(d => new { d.HubId, d.LastActivityAt, d.Id })
+            .IsDescending(false, true, true)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Discussion_HubId_LastActivityAt_Id_NotDeleted");
+
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .HasIndex(d => new { d.CommunityId, d.LastActivityAt, d.Id })
+            .IsDescending(false, true, true)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Discussion_CommunityId_LastActivityAt_Id_NotDeleted");
+
+        // Space listing by community public ID (Space has no CommunityId FK, string column only)
+        modelBuilder.Entity<SpaceDatabaseEntity>()
+            .HasIndex(s => s.CommunityPublicId)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Space_CommunityPublicId_NotDeleted");
 
         // Notification pagination without IsRead filter
         modelBuilder.Entity<UserNotificationDatabaseEntity>()

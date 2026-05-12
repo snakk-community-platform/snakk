@@ -18,6 +18,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\services\Snakk.Api\Snakk.Api.csproj" />
     <ProjectReference Include="..\..\services\Snakk.Gateway\Snakk.Gateway.csproj" />
+    <ProjectReference Include="..\..\services\Snakk.PublicApi\Snakk.PublicApi.csproj" />
     <ProjectReference Include="..\..\services\Snakk.Realtime\Snakk.Realtime.csproj" />
     <ProjectReference Include="..\..\services\Snakk.Worker\Snakk.Worker.csproj" />
     <ProjectReference Include="..\..\apps\Snakk.Setup\Snakk.Setup.csproj" />

@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Snakk.PublicApi": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:64239;http://localhost:64240"
+    }
+  }
+}

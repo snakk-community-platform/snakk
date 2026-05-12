@@ -10,6 +10,7 @@ public class DiscussionExtensionService(
     SnakkDbContext context,
     IFileStorage fileStorage,
     ILinkMetadataService linkMetadataService,
+    IMarkupParser markupParser,
     Microsoft.Extensions.Logging.ILogger<DiscussionExtensionService> logger) : IDiscussionExtensionService
 {
     public async Task CreateQuestionAsync(string discussionPublicId)
@@ -311,7 +312,8 @@ public class DiscussionExtensionService(
             IsScheduled = isScheduled,
             ScheduledStartUtc = scheduledStartUtc,
             ScheduledEndUtc = scheduledEndUtc,
-            VerificationNote = verificationNote
+            VerificationNote = verificationNote,
+            VerificationNoteHtml = verificationNote != null ? markupParser.ToHtml(verificationNote) : null,
         });
 
         await context.SaveChangesAsync();

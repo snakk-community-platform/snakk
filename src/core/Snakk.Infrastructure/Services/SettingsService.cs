@@ -272,13 +272,15 @@ public class SettingsService : ISettingsService
     public async Task<ContentSettingsDto> GetContentSettingsAsync()
     {
         var s = await LoadCategoryAsync("Content");
+        var scripts = ParseScriptGroups(s.GetValueOrDefault("AllowedDisplayNameScripts"));
         return new ContentSettingsDto
         {
             PostMaxLength = GetValue<int>(s, "PostMaxLength"),
             DiscussionTitleMaxLength = GetValue<int>(s, "DiscussionTitleMaxLength"),
             AllowMarkdown = GetValue<bool>(s, "AllowMarkdown"),
             AllowHtml = GetValue<bool>(s, "AllowHtml"),
-            RequireModeration = GetValue<bool>(s, "RequireModeration")
+            RequireModeration = GetValue<bool>(s, "RequireModeration"),
+            AllowedDisplayNameScripts = scripts.Select(sg => sg.ToString()).ToList()
         };
     }
 
@@ -289,6 +291,37 @@ public class SettingsService : ISettingsService
         await UpdateSettingAsync("Content", "AllowMarkdown", settings.AllowMarkdown, adminUserId);
         await UpdateSettingAsync("Content", "AllowHtml", settings.AllowHtml, adminUserId);
         await UpdateSettingAsync("Content", "RequireModeration", settings.RequireModeration, adminUserId);
+
+        var scripts = (settings.AllowedDisplayNameScripts ?? [])
+            .Select(name => Enum.TryParse<ScriptGroup>(name, out var sg) ? (ScriptGroup?)sg : null)
+            .Where(sg => sg.HasValue)
+            .Select(sg => sg!.Value);
+        await UpdateAllowedDisplayNameScriptsAsync(scripts, adminUserId);
+    }
+
+    public async Task<IReadOnlyList<ScriptGroup>> GetAllowedDisplayNameScriptsAsync()
+    {
+        var s = await LoadCategoryAsync("Content");
+        return ParseScriptGroups(s.GetValueOrDefault("AllowedDisplayNameScripts"));
+    }
+
+    public async Task UpdateAllowedDisplayNameScriptsAsync(IEnumerable<ScriptGroup> scripts, string adminUserId)
+    {
+        var names = scripts.Select(sg => sg.ToString()).ToList();
+        if (names.Count == 0) names = [ScriptGroup.Latin.ToString()];
+        var serialized = JsonSerializer.Serialize(names);
+
+        await UpsertRawSettingAsync("Content", "AllowedDisplayNameScripts", serialized, "JSON", adminUserId);
+        await _cache.RemoveAsync("settings_category_Content");
+
+        await _securityService.LogAuditAsync(
+            action: "UpdateDisplayNameScripts",
+            category: "Settings",
+            actorUserId: adminUserId,
+            targetType: "Setting",
+            targetId: "Content.AllowedDisplayNameScripts",
+            details: $"Updated allowed display name scripts: {string.Join(", ", names)}",
+            severity: AuditLogSeverityEnum.Info);
     }
 
     public async Task<RateLimitingSettingsDto> GetRateLimitingSettingsAsync()
@@ -406,6 +439,57 @@ public class SettingsService : ISettingsService
         var clientSecret = _configuration[$"OAuth:{provider}:ClientSecret"];
 
         return !string.IsNullOrEmpty(clientId) && !string.IsNullOrEmpty(clientSecret);
+    }
+
+    private static List<ScriptGroup> ParseScriptGroups(string? raw)
+    {
+        if (raw is null) return [ScriptGroup.Latin];
+        try
+        {
+            var names = JsonSerializer.Deserialize<List<string>>(raw) ?? [];
+            var result = names
+                .Select(n => Enum.TryParse<ScriptGroup>(n, out var sg) ? (ScriptGroup?)sg : null)
+                .Where(sg => sg.HasValue)
+                .Select(sg => sg!.Value)
+                .ToList();
+            return result.Count > 0 ? result : [ScriptGroup.Latin];
+        }
+        catch
+        {
+            return [ScriptGroup.Latin];
+        }
+    }
+
+    private async Task UpsertRawSettingAsync(
+        string category, string key, string serializedValue, string valueType, string adminUserId)
+    {
+        var existing = await _context.SystemSettings
+            .FirstOrDefaultAsync(s => s.Category == category && s.Key == key);
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == adminUserId);
+
+        if (existing is null)
+        {
+            _context.SystemSettings.Add(new SystemSettingDatabaseEntity
+            {
+                PublicId = Ulid.NewUlid().ToString(),
+                Category = category,
+                Key = key,
+                Value = serializedValue,
+                ValueType = valueType,
+                UpdatedById = user?.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            existing.Value = serializedValue;
+            existing.UpdatedById = user?.Id;
+            existing.UpdatedAt = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     #endregion

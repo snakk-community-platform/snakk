@@ -12,6 +12,7 @@ public class HubDatabaseEntity
 
     // Foreign key to Community
     public int CommunityId { get; set; }
+    public string? CommunityPublicId { get; set; }
 
     // Required attributes
     public required string Name { get; set; }

@@ -74,6 +74,14 @@
         const targetMs = parseTarget(root);
         if (targetMs === null) return;
 
+        const prefix = root.dataset.countdownPrefix;
+        if (prefix) {
+            const prefixEl = document.createElement('span');
+            prefixEl.className = 'sn-iama-countdown-prefix';
+            prefixEl.textContent = prefix;
+            root.insertBefore(prefixEl, root.firstChild);
+        }
+
         const entry: CountdownUnits = {
             root,
             targetMs,

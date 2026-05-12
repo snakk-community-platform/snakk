@@ -16,10 +16,10 @@ public class UserAchievementProgressRepositoryAdapter(
     {
         var projection = await context.UserAchievementProgress
             .Where(p =>
-                p.User.PublicId == userId.Value
-                && p.Achievement.PublicId == achievementId.Value)
+                p.UserPublicId == userId.Value
+                && p.AchievementPublicId == achievementId.Value)
             .Select(p => new UserAchievementProgressProjection(
-                p.User.PublicId, p.Achievement.PublicId,
+                p.UserPublicId, p.AchievementPublicId,
                 p.CurrentValue, p.TargetValue, p.ProgressData, p.LastUpdated))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -28,9 +28,9 @@ public class UserAchievementProgressRepositoryAdapter(
     public async Task<IEnumerable<UserAchievementProgress>> GetByUserIdAsync(UserId userId)
     {
         var projections = await context.UserAchievementProgress
-            .Where(p => p.User.PublicId == userId.Value)
+            .Where(p => p.UserPublicId == userId.Value)
             .Select(p => new UserAchievementProgressProjection(
-                p.User.PublicId, p.Achievement.PublicId,
+                p.UserPublicId, p.AchievementPublicId,
                 p.CurrentValue, p.TargetValue, p.ProgressData, p.LastUpdated))
             .ToListAsync();
 
@@ -41,10 +41,10 @@ public class UserAchievementProgressRepositoryAdapter(
     {
         var projections = await context.UserAchievementProgress
             .Where(p =>
-                p.User.PublicId == userId.Value
+                p.UserPublicId == userId.Value
                 && p.CurrentValue < p.TargetValue)
             .Select(p => new UserAchievementProgressProjection(
-                p.User.PublicId, p.Achievement.PublicId,
+                p.UserPublicId, p.AchievementPublicId,
                 p.CurrentValue, p.TargetValue, p.ProgressData, p.LastUpdated))
             .ToListAsync();
 
@@ -67,7 +67,9 @@ public class UserAchievementProgressRepositoryAdapter(
             throw new InvalidOperationException($"Achievement with PublicId '{progress.AchievementId}' not found");
 
         entity.UserId = user.Id;
+        entity.UserPublicId = user.PublicId;
         entity.AchievementId = achievement.Id;
+        entity.AchievementPublicId = achievement.PublicId;
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();

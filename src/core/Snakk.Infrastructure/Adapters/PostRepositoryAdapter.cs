@@ -19,7 +19,7 @@ public class PostRepositoryAdapter(
         var projection = await context.Posts
             .Where(p => p.Id == id)
             .Select(p => new PostProjection(
-                p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
+                p.PublicId, p.DiscussionPublicId, p.CreatedByUserPublicId,
                 p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted, p.HasCodeBlock,
@@ -34,7 +34,7 @@ public class PostRepositoryAdapter(
         var projection = await context.Posts
             .Where(p => p.PublicId == publicId.Value)
             .Select(p => new PostProjection(
-                p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
+                p.PublicId, p.DiscussionPublicId, p.CreatedByUserPublicId,
                 p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted, p.HasCodeBlock,
@@ -57,8 +57,8 @@ public class PostRepositoryAdapter(
             .Where(p => publicIdStrings.Contains(p.PublicId))
             .Select(p => new PostProjection(
                 p.PublicId,
-                p.Discussion.PublicId,
-                p.CreatedByUser.PublicId,
+                p.DiscussionPublicId,
+                p.CreatedByUserPublicId,
                 p.Content,
                 p.RenderedContent,
                 p.CreatedAt,
@@ -82,11 +82,12 @@ public class PostRepositoryAdapter(
 
     public async Task<IEnumerable<Post>> GetByDiscussionIdAsync(DiscussionId discussionId)
     {
+        var dbId = await context.Discussions.Where(d => d.PublicId == discussionId.Value).Select(d => d.Id).FirstOrDefaultAsync();
         var projections = await context.Posts
-            .Where(p => p.Discussion.PublicId == discussionId.Value)
+            .Where(p => p.DiscussionId == dbId)
             .OrderBy(p => p.CreatedAt)
             .Select(p => new PostProjection(
-                p.PublicId, p.Discussion.PublicId, p.CreatedByUser.PublicId,
+                p.PublicId, p.DiscussionPublicId, p.CreatedByUserPublicId,
                 p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
                 p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
                 p.IsDeleted, p.HasCodeBlock,
@@ -120,8 +121,8 @@ public class PostRepositoryAdapter(
             .Take(pageSize + 1)
             .Select(p => new PostProjection(
                 p.PublicId,
-                p.Discussion.PublicId,
-                p.CreatedByUser.PublicId,
+                p.DiscussionPublicId,
+                p.CreatedByUserPublicId,
                 p.Content,
                 p.RenderedContent,
                 p.CreatedAt,
@@ -168,7 +169,15 @@ public class PostRepositoryAdapter(
             ?? throw new InvalidOperationException($"User with PublicId '{post.CreatedByUserId}' not found");
 
         entity.DiscussionId = discussion.Id;
+        entity.DiscussionPublicId = discussion.PublicId;
+        entity.SpaceId = discussion.SpaceId;
+        entity.SpacePublicId = discussion.SpacePublicId;
+        entity.HubId = discussion.HubId;
+        entity.HubPublicId = discussion.HubPublicId;
+        entity.CommunityId = discussion.CommunityId;
+        entity.CommunityPublicId = discussion.CommunityPublicId;
         entity.CreatedByUserId = user.Id;
+        entity.CreatedByUserPublicId = user.PublicId;
 
         if (post.ReplyToPostId is not null)
         {
@@ -185,7 +194,7 @@ public class PostRepositoryAdapter(
             .AnyAsync(p => p.DiscussionId == discussion.Id && p.CreatedByUserId == user.Id);
 
         entity.IsUsersFirstPostInSpace = !await context.Posts
-            .AnyAsync(p => p.Discussion.SpaceId == discussion.SpaceId && p.CreatedByUserId == user.Id);
+            .AnyAsync(p => p.SpaceId == discussion.SpaceId && p.CreatedByUserId == user.Id);
 
         var necroDays = configuration.GetValue("PostFlags:NecroDays", 30);
         var lastPostDate = await context.Posts
@@ -317,8 +326,8 @@ public class PostRepositoryAdapter(
             .OrderBy(p => p.CreatedAt)
             .Select(p => new PostProjection(
                 p.PublicId,
-                p.Discussion.PublicId,
-                p.CreatedByUser.PublicId,
+                p.DiscussionPublicId,
+                p.CreatedByUserPublicId,
                 p.Content,
                 p.RenderedContent,
                 p.CreatedAt,
@@ -348,41 +357,40 @@ public class PostRepositoryAdapter(
         int limit)
     {
         var postsQuery = context.Posts
-            .Where(p => !p.IsDeleted && p.CreatedAt >= since);
+            .Where(p => p.CreatedAt >= since);
 
         // Resolve public IDs to internal IDs once, outside the query
         if (communityId is not null)
         {
             var dbId = await context.Communities.Where(c => c.PublicId == communityId.Value).Select(c => c.Id).FirstOrDefaultAsync();
             if (dbId == 0) return [];
-            postsQuery = postsQuery.Where(p => p.Discussion.Space.Hub.CommunityId == dbId);
+            postsQuery = postsQuery.Where(p => p.CommunityId == dbId);
         }
 
         if (hubId is not null)
         {
             var dbId = await context.Hubs.Where(h => h.PublicId == hubId.Value).Select(h => h.Id).FirstOrDefaultAsync();
             if (dbId == 0) return [];
-            postsQuery = postsQuery.Where(p => p.Discussion.Space.HubId == dbId);
+            postsQuery = postsQuery.Where(p => p.HubId == dbId);
         }
 
         if (spaceId is not null)
         {
             var dbId = await context.Spaces.Where(s => s.PublicId == spaceId.Value).Select(s => s.Id).FirstOrDefaultAsync();
             if (dbId == 0) return [];
-            postsQuery = postsQuery.Where(p => p.Discussion.SpaceId == dbId);
+            postsQuery = postsQuery.Where(p => p.SpaceId == dbId);
         }
 
         var topContributors = await postsQuery
-            .GroupBy(p => p.CreatedByUser.PublicId)
-            .Select(g => new {
-                UserId = g.Key,
-                PostCount = g.Count() })
+            .GroupBy(p => p.CreatedByUserPublicId)
+            .Select(g => new { PublicId = g.Key, PostCount = g.Count() })
             .OrderByDescending(x => x.PostCount)
             .Take(limit)
             .ToListAsync();
 
         return topContributors
-            .Select(c => (UserId.From(c.UserId), c.PostCount))
+            .Where(c => c.PublicId is not null)
+            .Select(c => (UserId.From(c.PublicId!), c.PostCount))
             .ToList();
     }
 
@@ -392,38 +400,39 @@ public class PostRepositoryAdapter(
         CommunityId? communityId,
         int limit)
     {
-        var postsQuery = context.Posts.Where(p => !p.IsDeleted);
+        var postsQuery = context.Posts.AsQueryable();
 
         if (communityId is not null)
         {
             var dbId = await context.Communities.Where(c => c.PublicId == communityId.Value).Select(c => c.Id).FirstOrDefaultAsync();
             if (dbId == 0) return [];
-            postsQuery = postsQuery.Where(p => p.Discussion.Space.Hub.CommunityId == dbId);
+            postsQuery = postsQuery.Where(p => p.CommunityId == dbId);
         }
 
         if (hubId is not null)
         {
             var dbId = await context.Hubs.Where(h => h.PublicId == hubId.Value).Select(h => h.Id).FirstOrDefaultAsync();
             if (dbId == 0) return [];
-            postsQuery = postsQuery.Where(p => p.Discussion.Space.HubId == dbId);
+            postsQuery = postsQuery.Where(p => p.HubId == dbId);
         }
 
         if (spaceId is not null)
         {
             var dbId = await context.Spaces.Where(s => s.PublicId == spaceId.Value).Select(s => s.Id).FirstOrDefaultAsync();
             if (dbId == 0) return [];
-            postsQuery = postsQuery.Where(p => p.Discussion.SpaceId == dbId);
+            postsQuery = postsQuery.Where(p => p.SpaceId == dbId);
         }
 
         var latestContributors = await postsQuery
-            .GroupBy(p => p.CreatedByUser.PublicId)
+            .GroupBy(p => p.CreatedByUserPublicId)
             .Select(g => new { UserId = g.Key, LastPostAt = g.Max(p => p.CreatedAt) })
             .OrderByDescending(x => x.LastPostAt)
             .Take(limit)
             .ToListAsync();
 
         return latestContributors
-            .Select(c => (UserId.From(c.UserId), c.LastPostAt))
+            .Where(c => c.UserId is not null)
+            .Select(c => (UserId.From(c.UserId!), c.LastPostAt))
             .ToList();
     }
 
@@ -466,7 +475,7 @@ public class PostRepositoryAdapter(
 
         var topSpaceData = await context.Posts
             .Where(p => p.CreatedByUserId == userDbId && !p.IsDeleted)
-            .GroupBy(p => p.Discussion.SpaceId)
+            .GroupBy(p => p.SpaceId)
             .Select(g => new { SpaceId = g.Key, PostCount = g.Count() })
             .OrderByDescending(x => x.PostCount)
             .Take(limit)
@@ -486,8 +495,8 @@ public class PostRepositoryAdapter(
                 s.Slug,
                 s.Name,
                 s.AvatarFileName,
-                HubSlug = s.Hub.Slug,
-                CommunitySlug = s.Hub.Community.Slug
+                HubSlug = s.HubSlug,
+                CommunitySlug = s.CommunitySlug
             })
             .ToListAsync();
 

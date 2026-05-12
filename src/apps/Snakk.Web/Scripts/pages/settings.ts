@@ -767,7 +767,7 @@ interface SettingsPageConfig {
 
         try {
             if (listLayoutSelect) {
-                listLayoutSelect.value = localStorage.getItem('snakk:discussion-list-layout') ?? 'full';
+                listLayoutSelect.value = localStorage.getItem('snakk:discussion-list-layout') ?? 'compact';
                 listLayoutSelect.addEventListener('change', () => {
                     const value = listLayoutSelect.value;
                     localStorage.setItem('snakk:discussion-list-layout', value);
@@ -855,10 +855,75 @@ interface SettingsPageConfig {
         });
     }
 
+    function initContentWidth(): void {
+        const openBtn   = document.getElementById('btn-content-width');
+        const modal     = document.getElementById('content-width-modal');
+        const backdrop  = document.getElementById('content-width-backdrop');
+        const slider    = document.getElementById('pref-content-width') as HTMLInputElement | null;
+        const label     = document.getElementById('pref-content-width-label');
+        const applyBtn  = document.getElementById('btn-content-width-apply');
+        const cancelBtn = document.getElementById('btn-content-width-cancel');
+        const cancelX   = document.getElementById('btn-content-width-cancel-x');
+        const resetBtn  = document.getElementById('btn-content-width-reset');
+        if (!openBtn || !modal || !slider || !label || !applyBtn || !cancelBtn || !cancelX || !resetBtn) return;
+
+        document.body.appendChild(modal);
+
+        let originalValue = 54;
+
+        function applyPreview(val: number): void {
+            slider!.value = String(val);
+            label!.textContent = val === 54 ? 'Default' : `${val} rem`;
+            if (val === 54) {
+                document.documentElement.style.removeProperty('--content-width');
+            } else {
+                document.documentElement.style.setProperty('--content-width', `${val}rem`);
+            }
+        }
+
+        function openModal(): void {
+            const stored = localStorage.getItem('snakk:content-width');
+            originalValue = stored ? parseInt(stored, 10) : 54;
+            applyPreview(originalValue);
+            modal!.classList.remove('hidden');
+            document.addEventListener('keydown', onEscape);
+        }
+
+        function closeApply(): void {
+            const val = parseInt(slider!.value, 10);
+            if (val === 54) localStorage.removeItem('snakk:content-width');
+            else localStorage.setItem('snakk:content-width', String(val));
+            closeModal();
+        }
+
+        function closeRevert(): void {
+            applyPreview(originalValue);
+            closeModal();
+        }
+
+        function closeModal(): void {
+            modal!.classList.add('hidden');
+            document.removeEventListener('keydown', onEscape);
+        }
+
+        function onEscape(e: KeyboardEvent): void {
+            if (e.key === 'Escape') closeRevert();
+        }
+
+        openBtn.addEventListener('click', openModal);
+        applyBtn.addEventListener('click', closeApply);
+        cancelBtn.addEventListener('click', closeRevert);
+        cancelX.addEventListener('click', closeRevert);
+        backdrop!.addEventListener('click', closeRevert);
+        resetBtn.addEventListener('click', () => applyPreview(54));
+        slider.addEventListener('input', () => applyPreview(parseInt(slider.value, 10)));
+    }
+
     function attachEventListeners(): void {
         initDisplayPreferences();
         initSidebarStickiness();
         initSkinTonePicker();
+        initContentWidth();
         initEmbedPreferences();
 
         const avatarForm = document.getElementById('avatar-upload-form') as HTMLFormElement | null;
@@ -1167,6 +1232,7 @@ interface SettingsPageConfig {
             initDisplayPreferences();
             initSidebarStickiness();
             initSkinTonePicker();
+            initContentWidth();
             initEmbedPreferences();
             initScrollspy();
         }

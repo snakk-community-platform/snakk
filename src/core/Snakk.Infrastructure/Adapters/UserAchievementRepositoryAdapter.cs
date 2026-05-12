@@ -15,7 +15,7 @@ public class UserAchievementRepositoryAdapter(
         var projection = await context.UserAchievements
             .Where(ua => ua.Id == id)
             .Select(ua => new UserAchievementProjection(
-                ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
+                ua.PublicId, ua.UserPublicId, ua.AchievementPublicId,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -26,7 +26,7 @@ public class UserAchievementRepositoryAdapter(
         var projection = await context.UserAchievements
             .Where(ua => ua.PublicId == publicId.Value)
             .Select(ua => new UserAchievementProjection(
-                ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
+                ua.PublicId, ua.UserPublicId, ua.AchievementPublicId,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .FirstOrDefaultAsync();
         return projection?.ToDomain();
@@ -35,9 +35,9 @@ public class UserAchievementRepositoryAdapter(
     public async Task<IEnumerable<UserAchievement>> GetByUserIdAsync(UserId userId)
     {
         var projections = await context.UserAchievements
-            .Where(ua => ua.User.PublicId == userId.Value)
+            .Where(ua => ua.UserPublicId == userId.Value)
             .Select(ua => new UserAchievementProjection(
-                ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
+                ua.PublicId, ua.UserPublicId, ua.AchievementPublicId,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .ToListAsync();
 
@@ -48,11 +48,11 @@ public class UserAchievementRepositoryAdapter(
     {
         var projections = await context.UserAchievements
             .Where(ua =>
-                ua.User.PublicId == userId.Value
+                ua.UserPublicId == userId.Value
                 && ua.IsDisplayed)
             .OrderBy(ua => ua.DisplayOrder)
             .Select(ua => new UserAchievementProjection(
-                ua.PublicId, ua.User.PublicId, ua.Achievement.PublicId,
+                ua.PublicId, ua.UserPublicId, ua.AchievementPublicId,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .ToListAsync();
 
@@ -92,7 +92,9 @@ public class UserAchievementRepositoryAdapter(
             throw new InvalidOperationException($"Achievement with PublicId '{userAchievement.AchievementId}' not found");
 
         entity.UserId = user.Id;
+        entity.UserPublicId = user.PublicId;
         entity.AchievementId = achievement.Id;
+        entity.AchievementPublicId = achievement.PublicId;
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();

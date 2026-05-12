@@ -35,9 +35,9 @@ public class DiscussionRepository(SnakkDbContext context)
             d.LastActivityAt,
             d.IsPinned,
             d.IsLocked,
-            d.Space.PublicId,
+            d.SpacePublicId,
             d.Space.Name,
-            d.CreatedByUser.PublicId,
+            d.CreatedByUserPublicId,
             d.CreatedByUser.DisplayName ?? ""))
         .FirstOrDefaultAsync();
 
@@ -97,7 +97,7 @@ public class DiscussionRepository(SnakkDbContext context)
                     d.LastActivityAt,
                     d.IsPinned,
                     d.IsLocked,
-                    d.CreatedByUser.PublicId,
+                    d.CreatedByUserPublicId,
                     d.CreatedByUser.DisplayName ?? "",
                     d.PostCount,
                     d.ReactionCount,
@@ -147,7 +147,7 @@ public class DiscussionRepository(SnakkDbContext context)
 
         // Filter by community if specified
         if (!string.IsNullOrEmpty(communityId))
-            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
+            query = query.Where(d => d.CommunityPublicId == communityId);
 
         // Apply keyset pagination if cursor provided
         var cursorData = Cursor.Decode(cursor);
@@ -182,16 +182,16 @@ public class DiscussionRepository(SnakkDbContext context)
                     d.LastActivityAt,
                     d.IsPinned,
                     d.IsLocked,
-                    d.Space.PublicId,
+                    d.SpacePublicId,
                     d.Space.Slug,
                     d.Space.Name,
-                    d.Space.Hub.PublicId,
-                    d.Space.Hub.Slug,
-                    d.Space.Hub.Name,
-                    d.Space.Hub.Community.PublicId,
-                    d.Space.Hub.Community.Slug,
-                    d.Space.Hub.Community.Name,
-                    d.CreatedByUser.PublicId,
+                    d.HubPublicId,
+                    d.Space.HubSlug,
+                    d.Space.HubName,
+                    d.CommunityPublicId,
+                    d.Space.CommunitySlug,
+                    d.Space.CommunityName,
+                    d.CreatedByUserPublicId,
                     d.CreatedByUser.DisplayName ?? "",
                     d.CreatedByUser.AvatarFileName,
                     d.PostCount,

@@ -181,6 +181,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Application.Repositories.IPasswordResetTokenRepository, Infrastructure.Database.Repositories.PasswordResetTokenRepository>();
         services.AddScoped<Application.Repositories.IPasswordResetRequestRepository, Infrastructure.Database.Repositories.PasswordResetRequestRepository>();
 
+        services.AddScoped<Application.Services.DisplayNameValidator>();
+
         // Use Cases
         services.AddScoped<CommunityUseCase>();
         services.AddScoped<HubUseCase>();

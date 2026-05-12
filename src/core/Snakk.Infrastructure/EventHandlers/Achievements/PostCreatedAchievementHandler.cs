@@ -17,8 +17,8 @@ public class PostCreatedAchievementHandler(
             .Where(d => d.PublicId == @event.DiscussionId.Value)
             .Select(d => new {
                 d.SpaceId,
-                d.Space.HubId,
-                d.Space.Hub.CommunityId })
+                d.HubId,
+                d.CommunityId })
             .FirstOrDefaultAsync();
 
         if (discussionContext is null)

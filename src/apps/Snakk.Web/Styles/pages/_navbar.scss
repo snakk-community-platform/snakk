@@ -27,7 +27,7 @@
 @media (min-width: 1316px) and (max-width: 1539.98px) {
     .sn-navbar {
         display: grid;
-        grid-template-columns: 16rem minmax(40rem, 54rem) 20rem;
+        grid-template-columns: 16rem minmax(40rem, var(--content-width, 54rem)) 20rem;
         padding: 0;
         gap: 0;
     }
@@ -36,7 +36,7 @@
 @media (min-width: 1540px) {
     .sn-navbar {
         display: grid;
-        grid-template-columns: minmax(16rem, 1fr) 54rem minmax(20rem, 1fr);
+        grid-template-columns: minmax(16rem, 1fr) var(--content-width, 54rem) minmax(20rem, 1fr);
         padding: 0;
         gap: 0;
     }
@@ -128,7 +128,7 @@
     .sn-navbar-content {
         grid-column: 2 / 4;
         padding: 0 1.5rem 0 1rem;
-        max-width: calc(54rem + 20rem);
+        max-width: calc(var(--content-width, 54rem) + 20rem);
     }
 }
 

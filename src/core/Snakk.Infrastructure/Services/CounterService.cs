@@ -67,7 +67,7 @@ public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICoun
             await using var db = await dbFactory.CreateDbContextAsync();
             var discussion = await db.Discussions
                 .Where(d => d.PublicId == discussionId.Value)
-                .Select(d => new { d.Id, d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId })
+                .Select(d => new { d.Id, d.SpaceId, d.HubId, d.CommunityId })
                 .FirstOrDefaultAsync();
             if (discussion is null) return;
             discussionDbId = discussion.Id; spaceId = discussion.SpaceId;
@@ -93,7 +93,7 @@ public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICoun
             await using var db = await dbFactory.CreateDbContextAsync();
             var discussion = await db.Discussions
                 .Where(d => d.PublicId == discussionId.Value)
-                .Select(d => new { d.Id, d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId })
+                .Select(d => new { d.Id, d.SpaceId, d.HubId, d.CommunityId })
                 .FirstOrDefaultAsync();
             if (discussion is null) return;
             discussionDbId = discussion.Id; spaceId = discussion.SpaceId;
@@ -119,7 +119,7 @@ public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICoun
             await using var db = await dbFactory.CreateDbContextAsync();
             var discussion = await db.Discussions
                 .Where(d => d.PublicId == discussionId.Value)
-                .Select(d => new { d.Id, d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId })
+                .Select(d => new { d.Id, d.SpaceId, d.HubId, d.CommunityId })
                 .FirstOrDefaultAsync();
             if (discussion is null) return;
             discussionDbId = discussion.Id; spaceId = discussion.SpaceId;
@@ -148,7 +148,7 @@ public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICoun
             await using var db = await dbFactory.CreateDbContextAsync();
             var discussion = await db.Discussions
                 .Where(d => d.PublicId == discussionId.Value)
-                .Select(d => new { d.Id, d.SpaceId, d.Space.HubId, d.Space.Hub.CommunityId })
+                .Select(d => new { d.Id, d.SpaceId, d.HubId, d.CommunityId })
                 .FirstOrDefaultAsync();
             if (discussion is null) return;
             discussionDbId = discussion.Id; spaceId = discussion.SpaceId;

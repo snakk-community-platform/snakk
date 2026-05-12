@@ -86,7 +86,7 @@ public class HttpRealtimeNotifier(
             await _httpClient.PostAsJsonAsync("/api/broadcast", new
             {
                 EventType = "reaction-updated",
-                TargetGroup = $"post:{postId.Value}",
+                TargetGroup = $"discussion:{discussionId.Value}",
                 TargetId = $"reactions-{postId.Value}",
                 PostId = postId.Value,
                 Counts = countsDict,
@@ -176,18 +176,18 @@ public class HttpRealtimeNotifier(
         }
     }
 
-    public async Task NotifyDiscussionCreatedAsync(DiscussionId discussionId, SpaceId spaceId, User author)
+    public async Task NotifyDiscussionCreatedAsync(DiscussionId discussionId, SpaceId spaceId, HubId hubId)
     {
         try
         {
-            await _httpClient.PostAsJsonAsync("/api/broadcast", new
-            {
-                EventType = "discussion-created",
-                TargetGroup = $"space:{spaceId.Value}",
-                DiscussionId = discussionId.Value,
-                AuthorId = author.PublicId.Value,
-                AuthorName = author.DisplayName
-            });
+            var id = discussionId.Value;
+            var sid = spaceId.Value;
+            var hid = hubId.Value;
+
+            await Task.WhenAll(
+                _httpClient.PostAsJsonAsync("/api/broadcast", new { EventType = "discussion-created", TargetGroup = $"space:{sid}", DiscussionId = id, SpaceId = sid, HubId = hid }),
+                _httpClient.PostAsJsonAsync("/api/broadcast", new { EventType = "discussion-created", TargetGroup = $"hub:{hid}",   DiscussionId = id, SpaceId = sid, HubId = hid })
+            );
         }
         catch (Exception ex)
         {
@@ -318,13 +318,41 @@ public class HttpRealtimeNotifier(
         }
     }
 
-    public async Task NotifyPostCountUpdatedAsync(DiscussionId discussionId, SpaceId spaceId, int delta)
+    public async Task NotifyPostCountUpdatedAsync(
+        DiscussionId discussionId, SpaceId spaceId, HubId? hubId, int delta,
+        string? lastPostExcerpt = null, string? lastReplierId = null, string? lastReplierName = null,
+        string? lastReplierAvatarUrl = null, long? lastActivityAtUnix = null)
+    {
+        try
+        {
+            var id = discussionId.Value;
+            var broadcasts = new List<Task>
+            {
+                _httpClient.PostAsJsonAsync("/api/broadcast", new { EventType = "post-count-updated", TargetGroup = $"space:{spaceId.Value}", DiscussionId = id, Delta = delta,
+                    LastPostExcerpt = lastPostExcerpt, LastReplierId = lastReplierId, LastReplierName = lastReplierName,
+                    LastReplierAvatarUrl = lastReplierAvatarUrl, LastActivityAtUnix = lastActivityAtUnix, HtmlContent = "", SwapStrategy = "" })
+            };
+
+            if (hubId is not null)
+                broadcasts.Add(_httpClient.PostAsJsonAsync("/api/broadcast", new { EventType = "post-count-updated", TargetGroup = $"hub:{hubId.Value}", DiscussionId = id, Delta = delta,
+                    LastPostExcerpt = lastPostExcerpt, LastReplierId = lastReplierId, LastReplierName = lastReplierName,
+                    LastReplierAvatarUrl = lastReplierAvatarUrl, LastActivityAtUnix = lastActivityAtUnix, HtmlContent = "", SwapStrategy = "" }));
+
+            await Task.WhenAll(broadcasts);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast post count updated: {DiscussionId}", discussionId.Value);
+        }
+    }
+
+    public async Task NotifyDiscussionReactionCountAsync(DiscussionId discussionId, SpaceId spaceId, int delta)
     {
         try
         {
             await _httpClient.PostAsJsonAsync("/api/broadcast", new
             {
-                EventType = "post-count-updated",
+                EventType = "discussion-reaction-count-updated",
                 TargetGroup = $"space:{spaceId.Value}",
                 DiscussionId = discussionId.Value,
                 Delta = delta,
@@ -334,7 +362,48 @@ public class HttpRealtimeNotifier(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to broadcast post count updated: {DiscussionId}", discussionId.Value);
+            logger.LogWarning(ex, "Failed to broadcast discussion reaction count: {DiscussionId}", discussionId.Value);
+        }
+    }
+
+    public async Task NotifyDebateUpdatedAsync(DiscussionId discussionId, IReadOnlyList<DebatePositionUpdate> positions)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "debate-updated",
+                TargetGroup = $"discussion:{discussionId.Value}",
+                DiscussionId = discussionId.Value,
+                DebatePositions = positions.Select(p => new { p.Index, p.Label, p.PostCount, p.Pct }).ToArray(),
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast debate updated: {DiscussionId}", discussionId.Value);
+        }
+    }
+
+    public async Task NotifyPollUpdatedAsync(DiscussionId discussionId, IReadOnlyList<PollOptionUpdate> options, int totalVotes)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "poll-updated",
+                TargetGroup = $"discussion:{discussionId.Value}",
+                DiscussionId = discussionId.Value,
+                PollOptions = options.Select(o => new { o.Text, o.VoteCount, o.Pct }).ToArray(),
+                TotalVotes = totalVotes,
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast poll updated: {DiscussionId}", discussionId.Value);
         }
     }
 }

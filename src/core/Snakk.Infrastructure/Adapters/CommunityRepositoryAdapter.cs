@@ -114,6 +114,9 @@ public class CommunityRepositoryAdapter(
         if (entity is null)
             throw new InvalidOperationException($"Community with PublicId '{community.PublicId}' not found");
 
+        var nameChanged = entity.Name != community.Name;
+        var slugChanged = entity.Slug != community.Slug;
+
         entity.Name = community.Name;
         entity.Slug = community.Slug;
         entity.Description = community.Description;
@@ -127,6 +130,15 @@ public class CommunityRepositoryAdapter(
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
+
+        if (nameChanged || slugChanged)
+        {
+            await context.Spaces
+                .Where(s => s.Hub.CommunityId == entity.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(sp => sp.CommunityName, entity.Name)
+                    .SetProperty(sp => sp.CommunitySlug, entity.Slug));
+        }
     }
 
     private record CommunityProjection(

@@ -26,7 +26,7 @@
 // widths; center shrinks from its 54rem ideal down to a 40rem floor.
 @media (min-width: 1316px) and (max-width: 1539.98px) {
     .sn-layout {
-        grid-template-columns: 16rem minmax(40rem, 54rem) 20rem;
+        grid-template-columns: 16rem minmax(40rem, var(--content-width, 54rem)) 20rem;
         grid-template-rows: 3.5rem auto;
     }
 }
@@ -35,7 +35,7 @@
 // very wide viewports; center stays locked at 54rem.
 @media (min-width: 1540px) {
     .sn-layout {
-        grid-template-columns: minmax(16rem, 1fr) 54rem minmax(20rem, 1fr);
+        grid-template-columns: minmax(16rem, 1fr) var(--content-width, 54rem) minmax(20rem, 1fr);
         grid-template-rows: 3.5rem auto;
     }
 }

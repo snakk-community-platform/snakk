@@ -1,0 +1,69 @@
+@inject ImageCacheService CacheService
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@if (Lazy)
+{
+    <span @ref="_el" style="display:inline-block;width:@Width;height:@Height;flex-shrink:0;">
+        @if (_resolved is null && ShowSkeleton)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Circle" Width="@Width" Height="@Height" />
+        }
+        <img src="@_src" style="@_imgStyle" />
+    </span>
+}
+else
+{
+    @if (_resolved is null && ShowSkeleton)
+    {
+        <MudSkeleton SkeletonType="SkeletonType.Circle" Width="@Width" Height="@Height" />
+    }
+    <img src="@_src" style="@_imgStyle" />
+}
+
+@code {
+    [Parameter] public string? Src { get; set; }
+    [Parameter] public string? Style { get; set; }
+    [Parameter] public bool ShowSkeleton { get; set; }
+    [Parameter] public bool Lazy { get; set; }
+    [Parameter] public string? Width { get; set; }
+    [Parameter] public string? Height { get; set; }
+
+    private string? _resolved;
+    private ElementReference _el;
+    private DotNetObjectReference<CachedImage>? _dotNetRef;
+
+    private string _src => _resolved ?? "data:,";
+    private string _imgStyle => _resolved is null ? $"{Style};display:none" : Style ?? string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Src is null) return;
+
+        if (Lazy)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("lazyImage.observe", _el, _dotNetRef);
+        }
+        else
+        {
+            _resolved = await CacheService.GetLocalUriAsync(Src);
+            StateHasChanged();
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnImageVisible()
+    {
+        if (Src is null) return;
+        _resolved = await CacheService.GetLocalUriAsync(Src);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_dotNetRef is not null)
+            try { await JS.InvokeVoidAsync("lazyImage.unobserve", _el); } catch { }
+        _dotNetRef?.Dispose();
+    }
+}

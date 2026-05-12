@@ -82,8 +82,8 @@ public class DiscussionUseCase(
         // Publish any draft media referenced in the first post
         await mediaService.PublishDraftMediaAsync(normalizedFirstPost);
 
-        // Notify space subscribers about the new discussion
-        await realtimeNotifier.NotifyDiscussionCreatedAsync(discussion.PublicId, spaceId, user);
+        // Notify space, hub, and global subscribers about the new discussion
+        await realtimeNotifier.NotifyDiscussionCreatedAsync(discussion.PublicId, spaceId, space.HubId);
 
         return Result<Discussion>.Success(discussion);
     }

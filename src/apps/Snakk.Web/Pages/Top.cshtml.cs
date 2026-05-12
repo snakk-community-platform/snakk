@@ -91,13 +91,21 @@ public class TopModel(
         {
             if (!string.IsNullOrEmpty(communityId))
             {
-                var data = await _apiClient.GetCommunityStatsAsync(communityId);
-                if (data is not null) InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
+                var result = await prefetchCache.GetOrFetchAsync(
+                    $"platform-stats:community:{communityId}",
+                    () => _apiClient.GetCommunityStatsAsync(communityId),
+                    sharedTtl: TimeSpan.FromSeconds(30));
+                if (result.Value is not null)
+                    InlinePlatformStats = new(result.Value.SpaceCount, result.Value.DiscussionCount, result.Value.ReplyCount, result.Source);
             }
             else
             {
-                var data = await _apiClient.GetPlatformStatsAsync();
-                if (data is not null) InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
+                var result = await prefetchCache.GetOrFetchAsync(
+                    "platform-stats:platform:global",
+                    () => _apiClient.GetPlatformStatsAsync(),
+                    sharedTtl: TimeSpan.FromMinutes(5));
+                if (result.Value is not null)
+                    InlinePlatformStats = new(result.Value.SpaceCount, result.Value.DiscussionCount, result.Value.ReplyCount, result.Source);
             }
         }
         catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch platform stats"); }
@@ -107,8 +115,11 @@ public class TopModel(
     {
         try
         {
-            var data = await _apiClient.GetTopSpacesByPeriodAsync(Period, communityId: communityId);
-            if (data is not null) InlineTrendingSpaces = new(data, CommunityContext, "eager", SpacesLabel);
+            var result = await prefetchCache.GetOrFetchAsync(
+                $"top-spaces:{Period}:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopSpacesByPeriodAsync(Period, communityId: communityId));
+            if (result.Value is not null)
+                InlineTrendingSpaces = new(result.Value, CommunityContext, result.Source, SpacesLabel);
         }
         catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch top spaces"); }
     }
@@ -117,8 +128,11 @@ public class TopModel(
     {
         try
         {
-            var data = await _apiClient.GetTopContributorsByPeriodAsync(Period, communityId: communityId);
-            if (data is not null) InlineTrendingContributors = new(data, CommunityContext, "eager", SpacesLabel);
+            var result = await prefetchCache.GetOrFetchAsync(
+                $"top-contributors:{Period}:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopContributorsByPeriodAsync(Period, communityId: communityId));
+            if (result.Value is not null)
+                InlineTrendingContributors = new(result.Value, CommunityContext, result.Source, SpacesLabel);
         }
         catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch top contributors"); }
     }

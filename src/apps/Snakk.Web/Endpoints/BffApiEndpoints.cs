@@ -88,6 +88,13 @@ public static class BffApiEndpoints
             .WithName("BffAddJournalEntry")
             .RequireRateLimiting("flood-post");
 
+        // IAmA
+        group.MapGet("/discussions/{discussionId}/iama", GetIamaInfoBffAsync)
+            .WithName("BffGetIamaInfo");
+        group.MapPost("/discussions/{discussionId}/iama/end", EndIamaSessionBffAsync)
+            .WithName("BffEndIamaSession")
+            .RequireRateLimiting("flood-engage");
+
         // Follow lists (for caching)
         group.MapGet("/follows/spaces", GetFollowedSpacesAsync)
             .WithName("BffGetFollowedSpaces");
@@ -1256,9 +1263,13 @@ public static class BffApiEndpoints
         string discussionId,
         [FromQuery] int offset,
         [FromQuery] int pageSize,
+        [FromQuery] string? discussionType,
         SnakkApiClient apiClient)
     {
-        var result = await apiClient.GetDiscussionPostsAsync(discussionId, offset, Math.Min(pageSize, MaxPageSize));
+        var fetchPageSize = discussionType == "Iama"
+            ? Math.Min(pageSize + 1, MaxPageSize)
+            : Math.Min(pageSize, MaxPageSize);
+        var result = await apiClient.GetDiscussionPostsAsync(discussionId, offset, fetchPageSize);
         if (result is null) return Results.NotFound();
 
         return Results.Ok(new
@@ -1882,6 +1893,38 @@ public static class BffApiEndpoints
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.AddJournalEntryAsync(discussionId, postPublicId);
+        if (result is null) return Results.StatusCode(503);
+        return result.Success
+            ? Results.Ok(new { success = true })
+            : Results.BadRequest(new { error = result.HasError ? result.Error : "Failed" });
+    }
+
+    // --- IAmA ---
+
+    private static async Task<IResult> GetIamaInfoBffAsync(string discussionId, SnakkApiClient apiClient)
+    {
+        var info = await apiClient.GetIamaInfoAsync(discussionId);
+        if (info is null) return Results.NotFound();
+        return Results.Ok(new
+        {
+            phase = info.Phase,
+            isScheduled = info.IsScheduled,
+            scheduledStartUtc = info.ScheduledStartUtc != null ? info.ScheduledStartUtc.ToDateTime().ToString("o") : null,
+            scheduledEndUtc = info.ScheduledEndUtc != null ? info.ScheduledEndUtc.ToDateTime().ToString("o") : null,
+            actualStartedAtUtc = info.ActualStartedAtUtc != null ? info.ActualStartedAtUtc.ToDateTime().ToString("o") : null,
+            actualEndedAtUtc = info.ActualEndedAtUtc != null ? info.ActualEndedAtUtc.ToDateTime().ToString("o") : null,
+            verificationNote = info.HasVerificationNote ? info.VerificationNote : null,
+            verificationNoteHtml = info.HasVerificationNoteHtml ? info.VerificationNoteHtml : null,
+            officialAnswers = info.OfficialAnswers.ToDictionary(kv => kv.Key, kv => kv.Value)
+        });
+    }
+
+    private static async Task<IResult> EndIamaSessionBffAsync(string discussionId, SnakkApiClient apiClient,
+        HttpContext httpContext)
+    {
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var result = await apiClient.TransitionIamaPhaseAsync(discussionId, 2);
         if (result is null) return Results.StatusCode(503);
         return result.Success
             ? Results.Ok(new { success = true })

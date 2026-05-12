@@ -35,7 +35,7 @@
     var replyCount = Math.Max(0, discussion.PostCount - 1);
 }
 
-<article class="sn-card h-entry"@if (Model.UnfollowId != null) {<text> data-following-item="discussion" data-id="@Model.UnfollowId"</text>}>
+<article class="sn-card h-entry" data-discussion-id="@discussion.PublicId"@if (Model.UnfollowId != null) {<text> data-following-item="discussion" data-id="@Model.UnfollowId"</text>}>
     <div class="sn-card-header">
         @if (Model.ShowUser)
         {
@@ -66,20 +66,6 @@
         {
             var (icon, label, cssClass) = GetTypeBadge(discussion.Type);
             <span class="sn-card-type-badge @cssClass">@icon @label</span>
-            @if (discussion.Type == "Poll" && pollPreview != null)
-            {
-                <span class="sn-card-type-meta">(@pollPreview.TotalVotes @T.Card.Votes)</span>
-            }
-            @if (discussion.Type == "Debate" && debatePreview != null)
-            {
-                var totalPosts = debatePreview.Positions.Sum(p => p.PostCount);
-                <span class="sn-card-type-meta">(@totalPosts @T.Card.Posts)</span>
-            }
-            @if (discussion.Type == "Iama" && iamaPreview != null)
-            {
-                var phaseLabel = iamaPreview.Phase switch { 0 => T.IamaPhase.Announced, 1 => T.IamaPhase.Live, 2 => T.IamaPhase.Closed, 3 => T.IamaPhase.Archived, _ => "" };
-                <span class="sn-card-type-meta">(@phaseLabel)</span>
-            }
         }
         <span class="sn-card-path">
             @if (Model.ShowCommunity)
@@ -107,16 +93,13 @@
         <div class="sn-card-title">
             <a href="@baseUrl" class="u-url p-name">@discussion.Title</a>
         </div>
-        @if (discussion.ReactionCount > 0)
-        {
-            <span class="sn-card-stat sn-card-reactions">
-                <span class="icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
-                @discussion.ReactionCount
-            </span>
-        }
+        <span class="sn-card-stat sn-card-reactions@(discussion.ReactionCount == 0 ? " hidden" : "")">
+            <span class="icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
+            <span data-stat="reaction-count">@discussion.ReactionCount</span>
+        </span>
         <a href="@baseUrl" class="sn-card-stat sn-card-comments">
             <span class="icon icon-chat-bubble-filled" aria-hidden="true"></span>
-            @replyCount <span class="sn-card-comments-label">@T.Card.Comments</span>
+            <span data-stat="post-count">@replyCount</span> <span class="sn-card-comments-label">@T.Card.Comments</span>
         </a>
     </div>
 
@@ -203,6 +186,7 @@
                             <div class="sn-debate-segment"
                                  style="width: @(debateEqualPct)%; background: @color; border-radius: @radius;"
                                  data-debate-width="@(pct)%"
+                                 data-position-index="@position.Index"
                                  title="@position.Label: @(totalPosts > 0 ? (int)Math.Round(100.0 * position.PostCount / totalPosts) : 0)%">
                                 @if (pct >= 15)
                                 {
@@ -218,7 +202,7 @@
                             var pct = totalPosts > 0 ? (int)Math.Round(100.0 * position.PostCount / totalPosts) : 0;
                             var color = debateColors[i % debateColors.Length];
 
-                            <span class="sn-debate-label">
+                            <span class="sn-debate-label" data-position-index="@position.Index">
                                 <span class="sn-debate-dot" style="background: @color;"></span>
                                 @position.Label @(pct)%
                             </span>
@@ -415,21 +399,14 @@
                 var iamaPhaseLabel = iamaPreview.Phase switch { 0 => T.IamaPhase.Announced, 1 => T.IamaPhase.Live, 2 => T.IamaPhase.Closed, 3 => T.IamaPhase.Archived, _ => T.IamaPhase.Unknown };
                 var iamaPhaseClass = iamaPreview.Phase switch { 0 => "sn-iama-phase--announced", 1 => "sn-iama-phase--live", 2 => "sn-iama-phase--closed", 3 => "sn-iama-phase--archived", _ => "" };
                 DateTime? countdownTarget = null;
-                string? countdownLabel = null;
                 if (iamaPreview.Phase == 0 && iamaPreview.ScheduledStartUtc != null)
-                {
                     countdownTarget = iamaPreview.ScheduledStartUtc.ToDateTime();
-                    countdownLabel = T.Card.StartsIn;
-                }
                 else if (iamaPreview.Phase == 1 && iamaPreview.ScheduledEndUtc != null)
-                {
                     countdownTarget = iamaPreview.ScheduledEndUtc.ToDateTime();
-                    countdownLabel = T.Card.EndsIn;
-                }
 
-                <div class="sn-iama-preview">
+                <div class="sn-iama-preview @iamaPhaseClass">
                     <div class="sn-iama-header">
-                        <span class="sn-iama-phase @iamaPhaseClass">@iamaPhaseLabel</span>
+                        <span class="sn-iama-phase @iamaPhaseClass">@if (iamaPreview.Phase == 1) {<span class="sn-iama-live-dot" aria-hidden="true"></span>}@iamaPhaseLabel</span>
                         @if (iamaPreview.IsVerified)
                         {
                             <span class="sn-iama-verified" title="@T.Card.Verified">
@@ -445,19 +422,18 @@
                         {
                             <span class="sn-iama-stat">@iamaPreview.BestQuestionCount @(iamaPreview.BestQuestionCount == 1 ? T.Card.BestQuestionOne : T.Card.BestQuestionOther)</span>
                         }
-                    </div>
-                    @if (countdownTarget.HasValue && countdownTarget.Value > DateTime.UtcNow)
-                    {
-                        <div class="sn-iama-countdown" data-countdown-to="@countdownTarget.Value.ToString("o")">
-                            <span class="sn-iama-countdown-label">@countdownLabel</span>
-                            <span class="countdown font-mono text-lg">
-                                <span data-unit="days" style="--value:0;" aria-live="polite">0</span>d
-                                <span data-unit="hours" style="--value:0;" aria-live="polite">0</span>h
-                                <span data-unit="minutes" style="--value:0;" aria-live="polite">0</span>m
-                                <span data-unit="seconds" style="--value:0;" aria-live="polite">0</span>s
+                        @if (countdownTarget.HasValue && countdownTarget.Value > DateTime.UtcNow)
+                        {
+                            <span class="sn-iama-countdown" data-countdown-to="@countdownTarget.Value.ToString("o")">
+                                <span class="countdown font-mono">
+                                    <span data-unit="days" style="--value:0;" aria-live="polite">0</span>d
+                                    <span data-unit="hours" style="--value:0;" aria-live="polite">0</span>h
+                                    <span data-unit="minutes" style="--value:0;" aria-live="polite">0</span>m
+                                    <span data-unit="seconds" style="--value:0;" aria-live="polite">0</span>s
+                                </span>
                             </span>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
             }
             @if (linkPreview != null)
@@ -512,6 +488,7 @@
         </div>
     }
 
+    <div data-reply-strip>
     @if (discussion.PostCount > 1 && discussion.LastReplier != null)
     {
         var isOp = discussion.LastReplier.PublicId == discussion.Author.PublicId;
@@ -545,6 +522,7 @@
             </div>
         </div>
     }
+    </div>
     @if (Model.UnfollowId != null)
     {
         <div class="sn-card-stats">

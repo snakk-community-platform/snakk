@@ -43,23 +43,24 @@ public class SpaceRepository(SnakkDbContext context)
             s.AllowAnonymousReading,
             s.RequireEmailConfirmation,
             s.CreatedAt,
-            s.Hub.PublicId,
-            s.Hub.Name))
+            s.HubPublicId,
+            s.HubName))
         .FirstOrDefaultAsync();
 
     public async Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
         await _dbSet.FirstOrDefaultAsync(s => s.PublicId == publicId);
 
     public async Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug, string hubSlug) =>
-        await _dbSet.FirstOrDefaultAsync(s => s.Slug == slug && s.Hub.Slug == hubSlug);
+        await _dbSet.FirstOrDefaultAsync(s => s.Slug == slug && s.HubSlug == hubSlug);
 
     public async Task<PagedResult<SpaceListDto>> GetFilteredForDisplayAsync(
         string hubPublicId,
         int offset,
         int pageSize)
     {
+        var hubDbId = await context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync();
         var items = await _dbSet
-            .Where(s => s.Hub.PublicId == hubPublicId)
+            .Where(s => s.HubId == hubDbId)
             .OrderBy(s => s.Name)
             .Skip(offset)
             .Take(pageSize + 1)
@@ -71,8 +72,8 @@ public class SpaceRepository(SnakkDbContext context)
                 s.AllowAnonymousReading,
                 s.RequireEmailConfirmation,
                 s.CreatedAt,
-                s.Hub.PublicId,
-                s.Hub.Name))
+                s.HubPublicId,
+                s.HubName))
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;

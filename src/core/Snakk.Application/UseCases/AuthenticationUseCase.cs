@@ -19,7 +19,8 @@ public class AuthenticationUseCase(
     IDomainEventDispatcher eventDispatcher,
     IDisplayNameHistoryRepository displayNameHistoryRepository,
     ITurnstileService turnstileService,
-    IUserSocialLinkRepository socialLinkRepository) : UseCaseBase
+    IUserSocialLinkRepository socialLinkRepository,
+    DisplayNameValidator displayNameValidator) : UseCaseBase
 {
     // Dummy BCrypt hash for timing equalization (prevents email enumeration)
     private static readonly string DummyPasswordHash = "$2a$12$LJ3m4ys3Gy2e1mGFBgHnMeZOp5xDz4MBpUmLhMYkP5K8xA2YUCIi";
@@ -54,8 +55,9 @@ public class AuthenticationUseCase(
         if (!System.Text.RegularExpressions.Regex.IsMatch(password, @"[^a-zA-Z0-9]"))
             return Result<User>.Failure("Password must contain at least one special character");
 
-        if (string.IsNullOrWhiteSpace(displayName))
-            return Result<User>.Failure("Display name is required");
+        var (dnIsValid, dnError) = await displayNameValidator.ValidateAsync(displayName?.Trim() ?? "");
+        if (!dnIsValid)
+            return Result<User>.Failure(dnError!);
 
         // Check if email already exists
         var existingUser = await userRepository.GetByEmailAsync(email);
@@ -222,8 +224,7 @@ public class AuthenticationUseCase(
     {
         var trimmed = newDisplayName?.Trim() ?? "";
 
-        // Validate format (length, characters, reserved names)
-        var (isValid, validationError) = DisplayNameValidator.Validate(trimmed);
+        var (isValid, validationError) = await displayNameValidator.ValidateAsync(trimmed);
         if (!isValid)
             return Result.Failure(validationError!);
 
@@ -285,7 +286,7 @@ public class AuthenticationUseCase(
     {
         var trimmed = newDisplayName?.Trim() ?? "";
 
-        var (isValid, validationError) = DisplayNameValidator.Validate(trimmed);
+        var (isValid, validationError) = await displayNameValidator.ValidateAsync(trimmed);
         if (!isValid)
             return Result.Failure(validationError!);
 

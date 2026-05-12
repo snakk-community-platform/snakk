@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Domain.Entities;
+using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Mappers;
 using Snakk.Shared.Enums;
@@ -45,6 +46,19 @@ public class UserRepositoryAdapter(
             .ToListAsync();
 
         return projections.Select(p => p.ToDomain(emailProtector));
+    }
+
+    public async Task<IEnumerable<UserAvatarSlim>> GetAvatarSlimByPublicIdsAsync(IEnumerable<UserId> publicIds)
+    {
+        var ids = publicIds.Select(u => u.Value).ToList();
+        if (ids.Count == 0) return [];
+
+        return await context.Users
+            .Where(u => ids.Contains(u.PublicId))
+            .Select(u => new UserAvatarSlim(
+                u.PublicId, u.DisplayName,
+                u.AvatarFileName, u.AvatarThumbnailFileName, u.AvatarMicroFileName, u.AvatarRevision))
+            .ToListAsync();
     }
 
     public async Task<User?> GetByEmailAsync(string email)
@@ -148,6 +162,20 @@ public class UserRepositoryAdapter(
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
+
+        await context.Discussions
+            .Where(d => d.CreatedByUserId == entity.Id)
+            .ExecuteUpdateAsync(d => d
+                .SetProperty(x => x.AuthorDisplayName, entity.DisplayName)
+                .SetProperty(x => x.AuthorAvatarFileName, entity.AvatarFileName)
+                .SetProperty(x => x.AuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName));
+
+        await context.Discussions
+            .Where(d => d.LastPostAuthorPublicId == entity.PublicId)
+            .ExecuteUpdateAsync(d => d
+                .SetProperty(x => x.LastPostAuthorDisplayName, entity.DisplayName)
+                .SetProperty(x => x.LastPostAuthorAvatarFileName, entity.AvatarFileName)
+                .SetProperty(x => x.LastPostAuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName));
     }
 
     private record UserProjection

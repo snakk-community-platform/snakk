@@ -19,6 +19,7 @@ public class SetupState
     public bool MultiCommunityEnabled { get; set; }
     public string Timezone { get; set; } = "UTC";
     public string Language { get; set; } = "en";
+    public List<string> AllowedDisplayNameScripts { get; set; } = ["Latin"];
 
     // Step 4: Storage
     public string AvatarStoragePath { get; set; } = OperatingSystem.IsWindows()

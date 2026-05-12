@@ -49,7 +49,8 @@ public class SetupService()
         {
             ["ConnectionStrings"] = new Dictionary<string, string>
             {
-                ["DbConnection"] = state.GetConnectionString()
+                ["DbConnection"] = state.GetConnectionString(),
+                ["AuthDbConnection"] = state.GetConnectionString()
             },
             ["Jwt"] = new Dictionary<string, object>
             {
@@ -205,7 +206,8 @@ public class SetupService()
                 ["Setup__FirstSpaceName"] = state.FirstSpaceName,
                 ["Setup__FirstSpaceSlug"] = state.FirstSpaceSlug,
                 ["Setup__CreateFirstCommunity"] = state.CreateFirstCommunity.ToString(),
-                ["Snakk__SiteTimezone"] = state.Timezone
+                ["Snakk__SiteTimezone"] = state.Timezone,
+                ["Setup__AllowedDisplayNameScripts"] = string.Join(",", state.AllowedDisplayNameScripts)
             }
         };
 
@@ -441,7 +443,9 @@ public class SetupService()
                 ["Setup__FirstHubSlug"] = state.FirstHubSlug,
                 ["Setup__FirstSpaceName"] = state.FirstSpaceName,
                 ["Setup__FirstSpaceSlug"] = state.FirstSpaceSlug,
-                ["Setup__CreateFirstCommunity"] = state.CreateFirstCommunity.ToString()
+                ["Setup__CreateFirstCommunity"] = state.CreateFirstCommunity.ToString(),
+                ["Snakk__SiteTimezone"] = state.Timezone,
+                ["Setup__AllowedDisplayNameScripts"] = string.Join(",", state.AllowedDisplayNameScripts)
             }
         };
 

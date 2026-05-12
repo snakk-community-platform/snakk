@@ -5,6 +5,7 @@ using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
+using Snakk.Shared.Enums;
 
 namespace Snakk.Application.Tests.UseCases;
 
@@ -18,16 +19,20 @@ public class AuthenticationUseCaseTests
     private readonly IDisplayNameHistoryRepository _displayNameHistoryRepository = Substitute.For<IDisplayNameHistoryRepository>();
     private readonly ITurnstileService _turnstileService = Substitute.For<ITurnstileService>();
     private readonly IUserSocialLinkRepository _socialLinkRepository = Substitute.For<IUserSocialLinkRepository>();
+    private readonly ISettingsService _settingsService = Substitute.For<ISettingsService>();
     private AuthenticationUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
         _turnstileService.VerifyAsync(Arg.Any<string>(), Arg.Any<string?>()).Returns(true);
+        _settingsService.GetAllowedDisplayNameScriptsAsync()
+            .Returns(Task.FromResult<IReadOnlyList<ScriptGroup>>([ScriptGroup.Latin]));
 
         _useCase = new AuthenticationUseCase(
             _userRepository, _passwordHasher, _emailSender, _refreshTokenRepository,
-            _eventDispatcher, _displayNameHistoryRepository, _turnstileService, _socialLinkRepository);
+            _eventDispatcher, _displayNameHistoryRepository, _turnstileService, _socialLinkRepository,
+            new DisplayNameValidator(_settingsService));
     }
 
     #region RegisterWithEmailAsync Tests

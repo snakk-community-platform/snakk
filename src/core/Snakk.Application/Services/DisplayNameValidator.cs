@@ -1,8 +1,9 @@
 namespace Snakk.Application.Services;
 
+using Snakk.Shared.Enums;
 using System.Text.RegularExpressions;
 
-public static partial class DisplayNameValidator
+public sealed partial class DisplayNameValidator(ISettingsService settings)
 {
     public const int MinLength = 3;
     public const int MaxLength = 20;
@@ -24,20 +25,13 @@ public static partial class DisplayNameValidator
         "abuse", "legal", "copyright", "dmca",
 
         // Common impersonation targets
-        "anonymous", "anonymous user", "deleted", "deleted user",
-        "unknown", "guest", "nobody", "everyone",
+        "anonymous", "deleted", "unknown", "guest", "nobody", "everyone",
     };
 
     [GeneratedRegex(@"[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]")]
     private static partial Regex InvisibleCharsRegex();
 
-    [GeneratedRegex(@"^[\w\- ]+$")]
-    private static partial Regex AllowedCharsRegex();
-
-    [GeneratedRegex(@"\s{2,}")]
-    private static partial Regex MultipleSpacesRegex();
-
-    public static (bool IsValid, string? Error) Validate(string displayName)
+    public async Task<(bool IsValid, string? Error)> ValidateAsync(string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
             return (false, "Display name cannot be empty.");
@@ -53,11 +47,23 @@ public static partial class DisplayNameValidator
         if (InvisibleCharsRegex().IsMatch(trimmed))
             return (false, "Display name contains invisible or control characters.");
 
-        if (!AllowedCharsRegex().IsMatch(trimmed))
-            return (false, "Display name can only contain letters, numbers, underscores, hyphens, and spaces.");
+        var allowedScripts = await settings.GetAllowedDisplayNameScriptsAsync();
+        var allowedCharsRegex = ScriptGroupRegistry.BuildAllowedCharsRegex(allowedScripts);
 
-        if (MultipleSpacesRegex().IsMatch(trimmed))
-            return (false, "Display name cannot contain consecutive spaces.");
+        if (!allowedCharsRegex.IsMatch(trimmed))
+            return (false, "Display name contains characters that are not allowed on this platform.");
+
+        // All letter characters must come from a single script family.
+        // Digits, hyphens, and underscores are neutral and do not count.
+        var letterScriptFamilies = trimmed
+            .Select(ScriptGroupRegistry.GetCharScriptFamily)
+            .Where(s => s.HasValue)
+            .Select(s => s!.Value)
+            .Distinct()
+            .ToList();
+
+        if (letterScriptFamilies.Count > 1)
+            return (false, "Display name must use characters from a single writing system.");
 
         if (trimmed.StartsWith('-') || trimmed.EndsWith('-')
             || trimmed.StartsWith('_') || trimmed.EndsWith('_'))
@@ -69,6 +75,5 @@ public static partial class DisplayNameValidator
         return (true, null);
     }
 
-    public static bool IsReservedName(string name)
-        => ReservedNames.Contains(name.Trim());
+    public static bool IsReservedName(string name) => ReservedNames.Contains(name.Trim());
 }

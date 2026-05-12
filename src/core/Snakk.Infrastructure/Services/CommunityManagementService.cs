@@ -186,10 +186,27 @@ public class CommunityManagementService(
         if (community is null)
             return null;
 
+        var nameChanged = community.Name != request.Name;
         community.Name = request.Name;
         community.Description = request.Description;
         community.Timezone = string.IsNullOrWhiteSpace(request.Timezone) ? null : request.Timezone;
-        community.HideAdultDiscussionsFromLists = request.HideAdultDiscussionsFromLists;
+
+        if (nameChanged)
+        {
+            await context.Spaces
+                .Where(s => s.Hub.CommunityId == community.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.CommunityName, request.Name), cancellationToken);
+        }
+
+        if (community.HideAdultDiscussionsFromLists != request.HideAdultDiscussionsFromLists)
+        {
+            community.HideAdultDiscussionsFromLists = request.HideAdultDiscussionsFromLists;
+            await context.Spaces
+                .Where(s => s.Hub.CommunityId == community.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(
+                    sp => sp.CommunityHideAdultDiscussionsFromLists,
+                    request.HideAdultDiscussionsFromLists), cancellationToken);
+        }
 
         if (request.LanguageCode is not null || community.LanguageCode is not null)
         {
@@ -422,7 +439,7 @@ public class CommunityManagementService(
         string communityId,
         CancellationToken cancellationToken = default) =>
         await context.Spaces
-            .Where(s => s.Hub.Community.PublicId == communityId)
+            .Where(s => s.CommunityPublicId == communityId)
             .Select(s => new HubSpaceItemDto
             {
                 Slug = s.Slug,

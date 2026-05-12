@@ -137,9 +137,9 @@ public class StatisticsGrpcService(
                 DisplayName = c.DisplayName,
                 PostCountToday = c.PostCountToday,
 
-                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName),
-                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarThumbnailFileName),
-                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarMicroFileName)
+                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarMicroFileName)
             });
         }
 
@@ -184,9 +184,9 @@ public class StatisticsGrpcService(
                 PublicId = c.UserId,
                 DisplayName = c.DisplayName,
                 PostCountToday = c.PostCountToday,
-                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName),
-                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarThumbnailFileName),
-                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarMicroFileName)
+                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarMicroFileName)
             });
         }
         return response;
@@ -277,9 +277,9 @@ public class StatisticsGrpcService(
                 PublicId = c.UserId,
                 DisplayName = c.DisplayName,
                 LastPostAt = c.LastPostAt.ToString("o"),
-                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName),
-                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarThumbnailFileName),
-                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, 0, c.AvatarFileName, c.AvatarMicroFileName)
+                AvatarUrl = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarMicroFileName)
             });
         }
         return response;

@@ -41,6 +41,17 @@ public class SpaceDatabaseEntity
     public string? HubLanguageCode { get; set; }
     public string? CommunityLanguageCode { get; set; }
 
+    // Community settings denormalization
+    public bool CommunityHideAdultDiscussionsFromLists { get; set; }
+
+    // Hub + Community breadcrumb denormalization (eliminates Hub→Community joins from hot read paths)
+    public string? HubPublicId { get; set; }
+    public string? HubSlug { get; set; }
+    public string? HubName { get; set; }
+    public string? CommunityPublicId { get; set; }
+    public string? CommunitySlug { get; set; }
+    public string? CommunityName { get; set; }
+
     // Rules denormalization
     public bool HasRules { get; set; }
     public string? RulesRevision { get; set; }

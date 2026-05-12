@@ -23,9 +23,9 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
         {
             var q = scopeType switch
             {
-                "Community" => db.Discussions.Where(d => d.Space.Hub.Community.PublicId == scopePublicId),
-                "Hub"       => db.Discussions.Where(d => d.Space.Hub.PublicId == scopePublicId),
-                "Space"     => db.Discussions.Where(d => d.Space.PublicId == scopePublicId),
+                "Community" => db.Discussions.Where(d => d.CommunityPublicId == scopePublicId),
+                "Hub"       => db.Discussions.Where(d => d.HubPublicId == scopePublicId),
+                "Space"     => db.Discussions.Where(d => d.SpacePublicId == scopePublicId),
                 _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
             };
             return q.Where(d => !d.IsDeleted && d.CreatedAt >= since)
@@ -38,9 +38,9 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
         {
             var q = scopeType switch
             {
-                "Community" => db.Posts.Where(p => p.Discussion.Space.Hub.Community.PublicId == scopePublicId),
-                "Hub"       => db.Posts.Where(p => p.Discussion.Space.Hub.PublicId == scopePublicId),
-                "Space"     => db.Posts.Where(p => p.Discussion.Space.PublicId == scopePublicId),
+                "Community" => db.Posts.Where(p => p.CommunityPublicId == scopePublicId),
+                "Hub"       => db.Posts.Where(p => p.HubPublicId == scopePublicId),
+                "Space"     => db.Posts.Where(p => p.SpacePublicId == scopePublicId),
                 _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
             };
             return q.Where(p => !p.IsDeleted && p.CreatedAt >= since)
@@ -75,7 +75,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
             var q = scopeType switch
             {
                 "Community" => db.Reports.Where(r => r.Community != null && r.Community.PublicId == scopePublicId),
-                "Hub"       => db.Reports.Where(r => (r.Hub != null && r.Hub.PublicId == scopePublicId) || (r.Space != null && r.Space.Hub.PublicId == scopePublicId)),
+                "Hub"       => db.Reports.Where(r => (r.Hub != null && r.Hub.PublicId == scopePublicId) || (r.Space != null && r.Space.HubPublicId == scopePublicId)),
                 "Space"     => db.Reports.Where(r => r.Space != null && r.Space.PublicId == scopePublicId),
                 _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
             };
@@ -90,7 +90,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
             var q = scopeType switch
             {
                 "Community" => db.Reports.Where(r => r.Community != null && r.Community.PublicId == scopePublicId),
-                "Hub"       => db.Reports.Where(r => (r.Hub != null && r.Hub.PublicId == scopePublicId) || (r.Space != null && r.Space.Hub.PublicId == scopePublicId)),
+                "Hub"       => db.Reports.Where(r => (r.Hub != null && r.Hub.PublicId == scopePublicId) || (r.Space != null && r.Space.HubPublicId == scopePublicId)),
                 "Space"     => db.Reports.Where(r => r.Space != null && r.Space.PublicId == scopePublicId),
                 _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
             };
@@ -133,11 +133,11 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
         var query = scopeType switch
         {
             "Community" => _context.PostReactions
-                .Where(r => r.Post.Discussion.Space.Hub.Community.PublicId == scopePublicId),
+                .Where(r => r.Post.CommunityPublicId == scopePublicId),
             "Hub" => _context.PostReactions
-                .Where(r => r.Post.Discussion.Space.Hub.PublicId == scopePublicId),
+                .Where(r => r.Post.HubPublicId == scopePublicId),
             "Space" => _context.PostReactions
-                .Where(r => r.Post.Discussion.Space.PublicId == scopePublicId),
+                .Where(r => r.Post.SpacePublicId == scopePublicId),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };
 
@@ -163,11 +163,11 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
         var query = scopeType switch
         {
             "Community" => _context.Discussions
-                .Where(d => d.Space.Hub.Community.PublicId == scopePublicId),
+                .Where(d => d.CommunityPublicId == scopePublicId),
             "Hub" => _context.Discussions
-                .Where(d => d.Space.Hub.PublicId == scopePublicId),
+                .Where(d => d.HubPublicId == scopePublicId),
             "Space" => _context.Discussions
-                .Where(d => d.Space.PublicId == scopePublicId),
+                .Where(d => d.SpacePublicId == scopePublicId),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };
 
@@ -193,11 +193,11 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
         var query = scopeType switch
         {
             "Community" => _context.PostReactions
-                .Where(r => r.Post.Discussion.Space.Hub.Community.PublicId == scopePublicId),
+                .Where(r => r.Post.CommunityPublicId == scopePublicId),
             "Hub" => _context.PostReactions
-                .Where(r => r.Post.Discussion.Space.Hub.PublicId == scopePublicId),
+                .Where(r => r.Post.HubPublicId == scopePublicId),
             "Space" => _context.PostReactions
-                .Where(r => r.Post.Discussion.Space.PublicId == scopePublicId),
+                .Where(r => r.Post.SpacePublicId == scopePublicId),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };
 
@@ -226,11 +226,11 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
         var query = scopeType switch
         {
             "Community" => _context.Discussions
-                .Where(d => d.Space.Hub.Community.PublicId == scopePublicId),
+                .Where(d => d.CommunityPublicId == scopePublicId),
             "Hub" => _context.Discussions
-                .Where(d => d.Space.Hub.PublicId == scopePublicId),
+                .Where(d => d.HubPublicId == scopePublicId),
             "Space" => _context.Discussions
-                .Where(d => d.Space.PublicId == scopePublicId),
+                .Where(d => d.SpacePublicId == scopePublicId),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };
 

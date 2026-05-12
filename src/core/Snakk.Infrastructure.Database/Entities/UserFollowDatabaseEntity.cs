@@ -9,6 +9,7 @@ public class UserFollowDatabaseEntity
     public required string PublicId { get; set; }
 
     public int UserId { get; set; }
+    public string? UserPublicId { get; set; }
     public virtual UserDatabaseEntity User { get; set; } = null!;
 
     public int TargetTypeId { get; set; } // Maps to FollowTargetTypeEnum
@@ -20,12 +21,15 @@ public class UserFollowDatabaseEntity
     public int LevelId { get; set; } // Maps to FollowLevelEnum
 
     public int? DiscussionId { get; set; }
+    public string? DiscussionPublicId { get; set; }
     public virtual DiscussionDatabaseEntity? Discussion { get; set; }
 
     public int? SpaceId { get; set; }
+    public string? SpacePublicId { get; set; }
     public virtual SpaceDatabaseEntity? Space { get; set; }
 
     public int? FollowedUserId { get; set; }
+    public string? FollowedUserPublicId { get; set; }
     public virtual UserDatabaseEntity? FollowedUser { get; set; }
 
     public required DateTime CreatedAt { get; set; }

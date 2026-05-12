@@ -23,9 +23,9 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
 
         RuleFor(x => x.DisplayName)
             .NotEmpty().WithMessage("Display name is required")
-            .MinimumLength(2).WithMessage("Display name must be at least 2 characters")
-            .MaximumLength(50).WithMessage("Display name too long")
-            .Matches(@"^[a-zA-Z0-9_-]+$").WithMessage("Display name can only contain letters, numbers, underscores, and hyphens");
+            .MinimumLength(3).WithMessage("Display name must be at least 3 characters")
+            .MaximumLength(20).WithMessage("Display name must be at most 20 characters")
+            .Must(n => !n.Contains(' ')).WithMessage("Display name cannot contain spaces");
     }
 }
 

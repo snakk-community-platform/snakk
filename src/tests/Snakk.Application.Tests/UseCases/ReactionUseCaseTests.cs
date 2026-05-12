@@ -11,6 +11,7 @@ public class ReactionUseCaseTests
 {
     private readonly IReactionRepository _reactionRepository = Substitute.For<IReactionRepository>();
     private readonly IPostRepository _postRepository = Substitute.For<IPostRepository>();
+    private readonly IDiscussionRepository _discussionRepository = Substitute.For<IDiscussionRepository>();
     private readonly IRealtimeNotifier _realtimeNotifier = Substitute.For<IRealtimeNotifier>();
     private readonly ICounterService _counterService = Substitute.For<ICounterService>();
     private ReactionUseCase _useCase = null!;
@@ -18,7 +19,7 @@ public class ReactionUseCaseTests
     [Before(Test)]
     public void Setup()
     {
-        _useCase = new ReactionUseCase(_reactionRepository, _postRepository, _realtimeNotifier, _counterService);
+        _useCase = new ReactionUseCase(_reactionRepository, _postRepository, _discussionRepository, _realtimeNotifier, _counterService);
     }
 
     #region ToggleReactionAsync Tests

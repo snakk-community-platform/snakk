@@ -33,7 +33,7 @@ public class RegisterModel(
     public class InputModel
     {
         [Required]
-        [StringLength(50, MinimumLength = 3)]
+        [StringLength(20, MinimumLength = 3)]
         [Display(Name = "Display Name")]
         public string DisplayName { get; set; } = "";
 

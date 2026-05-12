@@ -18,7 +18,7 @@ namespace Snakk.Infrastructure.Database.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.3")
+                .HasAnnotation("ProductVersion", "10.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -521,17 +521,41 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AuthorAvatarFileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AuthorAvatarThumbnailFileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("AuthorDisplayName")
+                        .HasColumnType("text");
+
+                    b.Property<int>("CommunityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CommunityPublicId")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("CreatedByUserPublicId")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("FollowerCount")
                         .HasColumnType("integer");
+
+                    b.Property<int>("HubId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HubPublicId")
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsAdultOnly")
                         .HasColumnType("boolean");
@@ -550,6 +574,22 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<DateTime?>("LastModifiedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastPostAuthorAvatarFileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastPostAuthorAvatarThumbnailFileName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastPostAuthorDisplayName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastPostAuthorPublicId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastPostPlainTextExcerpt")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("PostCount")
                         .HasColumnType("integer");
@@ -573,6 +613,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<int>("SpaceId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SpacePublicId")
+                        .HasColumnType("text");
 
                     b.Property<string>("Tags")
                         .HasColumnType("text");
@@ -615,7 +658,8 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasIndex("LastActivityAt", "Id")
                         .IsDescending()
-                        .HasDatabaseName("IX_Discussion_LastActivityAt_Id_Desc");
+                        .HasDatabaseName("IX_Discussion_LastActivityAt_Id_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
 
                     b.HasIndex("SpaceId", "CreatedAt")
                         .IsDescending(false, true)
@@ -624,9 +668,24 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("SpaceId", "Type")
                         .HasDatabaseName("IX_Discussion_SpaceId_Type");
 
+                    b.HasIndex("CommunityId", "LastActivityAt", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("IX_Discussion_CommunityId_LastActivityAt_Id_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
                     b.HasIndex("CreatedByUserId", "CreatedAt", "Id")
                         .IsDescending(false, true, true)
                         .HasDatabaseName("IX_Discussion_CreatedByUserId_CreatedAt_Id_Desc");
+
+                    b.HasIndex("HubId", "LastActivityAt", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("IX_Discussion_HubId_LastActivityAt_Id_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.HasIndex("SpaceId", "LastActivityAt", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("IX_Discussion_SpaceId_LastActivityAt_Id_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
 
                     b.HasIndex("SpaceId", "IsPinned", "LastActivityAt", "Id")
                         .IsDescending(false, true, true, true)
@@ -774,11 +833,23 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("ActualEndedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ActualStartedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("BestQuestionCount")
+                        .HasColumnType("integer");
+
                     b.Property<int>("DiscussionId")
                         .HasColumnType("integer");
 
                     b.Property<bool>("IsScheduled")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("OfficialAnswerCount")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Phase")
                         .HasColumnType("integer");
@@ -792,6 +863,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("VerificationNote")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("VerificationNoteHtml")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1284,6 +1358,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
+                    b.Property<string>("CommunityPublicId")
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1698,6 +1775,12 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CommunityId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CommunityPublicId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Content")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1708,17 +1791,29 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("CreatedByUserPublicId")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("DiscussionId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("DiscussionPublicId")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("EditedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("HasCodeBlock")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("HubId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("HubPublicId")
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
@@ -1771,6 +1866,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("tsvector")
                         .HasComputedColumnSql("to_tsvector('english', coalesce(\"Content\", ''))", true);
 
+                    b.Property<int>("SpaceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SpacePublicId")
+                        .HasColumnType("text");
+
                     b.Property<bool>("WasNormalized")
                         .HasColumnType("boolean");
 
@@ -1789,6 +1890,31 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasDatabaseName("IX_Post_SearchVector_Gin");
 
                     NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("SearchVector"), "GIN");
+
+                    b.HasIndex("CommunityId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Post_CommunityId_CreatedAt_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.HasIndex("CreatedAt", "CreatedByUserId")
+                        .IsDescending(true, false)
+                        .HasDatabaseName("IX_Post_CreatedAt_CreatedByUserId_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.HasIndex("CreatedAt", "CreatedByUserPublicId")
+                        .IsDescending(true, false)
+                        .HasDatabaseName("IX_Post_CreatedAt_CreatedByUserPublicId_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.HasIndex("HubId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Post_HubId_CreatedAt_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.HasIndex("SpaceId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Post_SpaceId_CreatedAt_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
 
                     b.HasIndex("CreatedAt", "DiscussionId", "IsDeleted")
                         .IsDescending(true, false, false)
@@ -1833,8 +1959,14 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("MentionedUserId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("MentionedUserPublicId")
+                        .HasColumnType("text");
+
                     b.Property<int>("PostId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("PostPublicId")
+                        .HasColumnType("text");
 
                     b.Property<string>("PublicId")
                         .IsRequired()
@@ -1867,6 +1999,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("PostId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("PostPublicId")
+                        .HasColumnType("text");
+
                     b.Property<string>("PublicId")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1876,6 +2011,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("UserPublicId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -2312,9 +2450,21 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("AvatarThumbnailFileName")
                         .HasColumnType("text");
 
+                    b.Property<bool>("CommunityHideAdultDiscussionsFromLists")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("CommunityLanguageCode")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<string>("CommunityName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CommunityPublicId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CommunitySlug")
+                        .HasColumnType("text");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -2349,6 +2499,15 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("HubLanguageCode")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<string>("HubName")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HubPublicId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("HubSlug")
+                        .HasColumnType("text");
 
                     b.Property<bool>("IsAdultOnly")
                         .HasColumnType("boolean");
@@ -2400,6 +2559,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("text");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CommunityPublicId")
+                        .HasDatabaseName("IX_Space_CommunityPublicId_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
 
                     b.HasIndex("PublicId")
                         .IsUnique();
@@ -2645,6 +2808,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("AchievementId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AchievementPublicId")
+                        .HasColumnType("text");
+
                     b.Property<int>("DisplayOrder")
                         .HasColumnType("integer");
 
@@ -2663,6 +2829,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("UserPublicId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -2695,6 +2864,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("AchievementId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("AchievementPublicId")
+                        .HasColumnType("text");
+
                     b.Property<int>("CurrentValue")
                         .HasColumnType("integer");
 
@@ -2709,6 +2881,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("UserPublicId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -3030,8 +3205,14 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int?>("DiscussionId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("DiscussionPublicId")
+                        .HasColumnType("text");
+
                     b.Property<int?>("FollowedUserId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("FollowedUserPublicId")
+                        .HasColumnType("text");
 
                     b.Property<int>("LevelId")
                         .HasColumnType("integer");
@@ -3043,11 +3224,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int?>("SpaceId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SpacePublicId")
+                        .HasColumnType("text");
+
                     b.Property<int>("TargetTypeId")
                         .HasColumnType("integer");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("UserPublicId")
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -3108,6 +3295,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int?>("ActorUserId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("ActorUserPublicId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Body")
                         .HasColumnType("text");
 
@@ -3127,14 +3317,26 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("RecipientUserId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("RecipientUserPublicId")
+                        .HasColumnType("text");
+
                     b.Property<int?>("SourceDiscussionId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SourceDiscussionPublicId")
+                        .HasColumnType("text");
 
                     b.Property<int?>("SourcePostId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("SourcePostPublicId")
+                        .HasColumnType("text");
+
                     b.Property<int?>("SourceSpaceId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("SourceSpacePublicId")
+                        .HasColumnType("text");
 
                     b.Property<string>("Title")
                         .IsRequired()

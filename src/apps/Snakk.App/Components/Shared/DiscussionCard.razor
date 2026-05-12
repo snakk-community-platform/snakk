@@ -1,0 +1,96 @@
+@{
+    var spaceHue = Discussion.Space?.Id is { Length: > 0 } sid ? sid.Sum(c => (int)c) % 360 : 200;
+    var replyCount = Discussion.PostCount - 1;
+}
+
+<MudPaper Class="pa-3 mb-2" Elevation="1">
+
+    @* Row 1: avatar · author · time ········ hub › space *@
+    <div style="display:flex;align-items:center;gap:6px;min-width:0;">
+        @{ var authorAvatar = Discussion.Author?.AvatarMicroUrl ?? Discussion.Author?.AvatarUrl; }
+        @if (authorAvatar is not null)
+        {
+            <CachedImage Src="@authorAvatar" Width="20px" Height="20px" ShowSkeleton="true" Lazy="true"
+                         Style="width:20px;height:20px;border-radius:50%;flex-shrink:0;object-fit:cover;" />
+        }
+        <MudText Typo="Typo.caption" Style="flex-shrink:0;font-weight:500;">@(Discussion.Author?.DisplayName ?? "Unknown")</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="flex-shrink:0;">@Discussion.CreatedAt.Humanize()</MudText>
+        <div style="flex:1;min-width:0;"></div>
+        @if (Discussion.Space is not null || Discussion.Hub is not null)
+        {
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;max-width:45%;overflow:hidden;">
+                @if (Discussion.Hub is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary"
+                             Style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@Discussion.Hub.Name</MudText>
+                    @if (Discussion.Space is not null)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Style="flex-shrink:0;">›</MudText>
+                    }
+                }
+                @if (Discussion.Space is not null)
+                {
+                    <MudText Typo="Typo.caption"
+                             Style="@($"color:hsl({spaceHue},60%,55%);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;")">@Discussion.Space.Name</MudText>
+                }
+            </div>
+        }
+    </div>
+
+    @* Row 2: title ········ reactions · replies *@
+    <div style="display:flex;align-items:flex-start;gap:8px;margin-top:4px;">
+        <MudText Typo="Typo.body1" Style="font-weight:600;flex:1;min-width:0;">@Discussion.Title</MudText>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;padding-top:2px;">
+            @if (Discussion.ReactionCount > 0)
+            {
+                <div style="display:flex;align-items:center;gap:2px;">
+                    <MudIcon Icon="@Icons.Material.Outlined.Favorite" Size="Size.Small" Style="font-size:14px;" />
+                    <MudText Typo="Typo.caption">@Discussion.ReactionCount</MudText>
+                </div>
+            }
+            @if (replyCount > 0)
+            {
+                <div style="display:flex;align-items:center;gap:2px;">
+                    <MudIcon Icon="@Icons.Material.Outlined.ChatBubbleOutline" Size="Size.Small" Style="font-size:14px;" />
+                    <MudText Typo="Typo.caption">@replyCount</MudText>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* Row 3: preview pane (images, poll, etc.) *@
+    <DiscussionPreviewPane Type="@Discussion.Type" Images="@Discussion.Images" Poll="@Discussion.Poll" />
+
+    @* Row 4: reply strip — last reply excerpt + replier *@
+    @if (replyCount > 0 && Discussion.LastReplier is not null)
+    {
+        <div style="display:flex;align-items:center;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--mud-palette-divider);min-width:0;">
+            <MudIcon Icon="@Icons.Material.Outlined.Reply" Size="Size.Small" Style="font-size:14px;flex-shrink:0;opacity:.5;" />
+            @if (Discussion.LastPostExcerpt is not null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary"
+                         Style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">@Discussion.LastPostExcerpt</MudText>
+            }
+            else
+            {
+                <div style="flex:1;"></div>
+            }
+            @if (Discussion.LastActivityAt is { } lastAt)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Tertiary" Style="flex-shrink:0;">@lastAt.Humanize()</MudText>
+            }
+            @{ var replierAvatar = Discussion.LastReplier.AvatarMicroUrl ?? Discussion.LastReplier.AvatarUrl; }
+            @if (replierAvatar is not null)
+            {
+                <CachedImage Src="@replierAvatar" Width="18px" Height="18px" ShowSkeleton="true" Lazy="true"
+                             Style="width:18px;height:18px;border-radius:50%;flex-shrink:0;object-fit:cover;" />
+            }
+            <MudText Typo="Typo.caption" Style="flex-shrink:0;font-weight:500;">@Discussion.LastReplier.DisplayName</MudText>
+        </div>
+    }
+
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public DiscussionListItem Discussion { get; set; } = null!;
+}

@@ -20,7 +20,7 @@ public class DiscussionRepositoryAdapter(
         var projection = await context.Discussions
             .Where(d => d.Id == id)
             .Select(d => new DiscussionProjection(
-                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .FirstOrDefaultAsync();
@@ -32,7 +32,7 @@ public class DiscussionRepositoryAdapter(
         var projection = await context.Discussions
             .Where(d => d.PublicId == publicId.Value)
             .Select(d => new DiscussionProjection(
-                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .FirstOrDefaultAsync();
@@ -44,7 +44,7 @@ public class DiscussionRepositoryAdapter(
         var projection = await context.Discussions
             .Where(d => d.Slug == slug)
             .Select(d => new DiscussionProjection(
-                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .FirstOrDefaultAsync();
@@ -65,7 +65,7 @@ public class DiscussionRepositoryAdapter(
             .OrderByDescending(d => d.IsPinned)
             .ThenByDescending(d => d.LastActivityAt)
             .Select(d => new DiscussionProjection(
-                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .ToListAsync();
@@ -127,7 +127,7 @@ public class DiscussionRepositoryAdapter(
             .OrderByDescending(d => d.LastActivityAt)
             .Take(count)
             .Select(d => new DiscussionProjection(
-                d.PublicId, d.Space.PublicId, d.CreatedByUser.PublicId,
+                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .ToListAsync();
@@ -143,7 +143,7 @@ public class DiscussionRepositoryAdapter(
             .Where(d => ids.Contains(d.PublicId))
             .Select(d => new Domain.Repositories.DiscussionSummary(
                 d.PublicId, d.Title, d.Slug,
-                d.Space.PublicId,
+                d.SpacePublicId,
                 d.CreatedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.Type, d.PostCount))
             .ToListAsync();
@@ -155,7 +155,10 @@ public class DiscussionRepositoryAdapter(
         var entity = discussion.ToPersistence();
 
         // Resolve foreign keys from PublicIds
-        var space = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == discussion.SpaceId.Value);
+        var space = await context.Spaces
+            .Where(s => s.PublicId == discussion.SpaceId.Value)
+            .Select(s => new { s.Id, s.PublicId, s.HubId, s.HubPublicId, s.CommunityPublicId, CommunityId = s.Hub.CommunityId })
+            .FirstOrDefaultAsync();
 
         if (space is null)
             throw new InvalidOperationException($"Space with PublicId '{discussion.SpaceId}' not found");
@@ -166,7 +169,16 @@ public class DiscussionRepositoryAdapter(
             throw new InvalidOperationException($"User with PublicId '{discussion.CreatedByUserId}' not found");
 
         entity.SpaceId = space.Id;
+        entity.SpacePublicId = space.PublicId;
+        entity.HubId = space.HubId;
+        entity.HubPublicId = space.HubPublicId;
+        entity.CommunityId = space.CommunityId;
+        entity.CommunityPublicId = space.CommunityPublicId;
         entity.CreatedByUserId = user.Id;
+        entity.CreatedByUserPublicId = user.PublicId;
+        entity.AuthorDisplayName = user.DisplayName;
+        entity.AuthorAvatarFileName = user.AvatarFileName;
+        entity.AuthorAvatarThumbnailFileName = user.AvatarThumbnailFileName;
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();
@@ -208,7 +220,7 @@ public class DiscussionRepositoryAdapter(
         if (!viewerAllowsAdult)
         {
             postsQuery = postsQuery.Where(p =>
-                !(p.Discussion.IsAdultOnly && p.Discussion.Space.Hub.Community.HideAdultDiscussionsFromLists));
+                !(p.Discussion.IsAdultOnly && p.Discussion.Space.CommunityHideAdultDiscussionsFromLists));
         }
 
         // Resolve public IDs to internal IDs once, outside the query
@@ -263,18 +275,18 @@ public class DiscussionRepositoryAdapter(
                 p.Discussion.PublicId,
                 p.Discussion.Title,
                 p.Discussion.Slug,
-                AuthorPublicId = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.PublicId : "",
-                AuthorDisplayName = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.DisplayName ?? "" : "",
-                AuthorAvatarFileName = p.Discussion.CreatedByUser != null ? p.Discussion.CreatedByUser.AvatarFileName : (string?)null,
+                AuthorPublicId = p.Discussion.CreatedByUserPublicId ?? "",
+                AuthorDisplayName = p.Discussion.AuthorDisplayName ?? "",
+                AuthorAvatarFileName = p.Discussion.AuthorAvatarFileName,
                 p.Discussion.Space.Hub.CommunityId,
 
-                SpacePublicId = p.Discussion.Space.PublicId,
+                SpacePublicId = p.SpacePublicId,
                 SpaceSlug = p.Discussion.Space.Slug,
                 SpaceName = p.Discussion.Space.Name,
-                HubPublicId = p.Discussion.Space.Hub.PublicId,
-                HubSlug = p.Discussion.Space.Hub.Slug,
-                HubName = p.Discussion.Space.Hub.Name,
-                CommunitySlug = p.Discussion.Space.Hub.Community.Slug })
+                HubPublicId = p.HubPublicId,
+                HubSlug = p.Discussion.Space.HubSlug,
+                HubName = p.Discussion.Space.HubName,
+                CommunitySlug = p.Discussion.Space.CommunitySlug })
             .Select(g => new {
                 g.Key.PublicId,
                 g.Key.Title,
@@ -363,11 +375,52 @@ public class DiscussionRepositoryAdapter(
                 d.CreatedAt,
                 d.Space.Slug,
                 d.Space.Name,
-                d.Space.Hub.Slug,
-                d.Space.Hub.Name,
-                d.Space.Hub.Community.Slug,
-                d.Space.Hub.Community.Name))
+                d.Space.HubSlug,
+                d.Space.HubName,
+                d.Space.CommunitySlug,
+                d.Space.CommunityName))
             .ToListAsync();
+    }
+
+    public async Task SetLastPostAsync(
+        DiscussionId discussionId,
+        string? authorPublicId, string? displayName,
+        string? avatarFile, string? thumbFile, string? excerpt,
+        CancellationToken ct = default)
+    {
+        await context.Discussions
+            .Where(d => d.PublicId == discussionId.Value)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(d => d.LastPostAuthorPublicId, authorPublicId)
+                .SetProperty(d => d.LastPostAuthorDisplayName, displayName)
+                .SetProperty(d => d.LastPostAuthorAvatarFileName, avatarFile)
+                .SetProperty(d => d.LastPostAuthorAvatarThumbnailFileName, thumbFile)
+                .SetProperty(d => d.LastPostPlainTextExcerpt, excerpt), ct);
+    }
+
+    public async Task RecalculateLastPostAsync(DiscussionId discussionId, CancellationToken ct = default)
+    {
+        var latest = await context.Posts
+            .Where(p => p.Discussion.PublicId == discussionId.Value && !p.IsDeleted && !p.IsFirstPost)
+            .OrderByDescending(p => p.CreatedAt)
+            .Select(p => new
+            {
+                p.CreatedByUser.PublicId,
+                p.CreatedByUser.DisplayName,
+                p.CreatedByUser.AvatarFileName,
+                p.CreatedByUser.AvatarThumbnailFileName,
+                p.PlainTextExcerpt
+            })
+            .FirstOrDefaultAsync(ct);
+
+        await context.Discussions
+            .Where(d => d.PublicId == discussionId.Value)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(d => d.LastPostAuthorPublicId, latest == null ? null : latest.PublicId)
+                .SetProperty(d => d.LastPostAuthorDisplayName, latest == null ? null : latest.DisplayName)
+                .SetProperty(d => d.LastPostAuthorAvatarFileName, latest == null ? null : latest.AvatarFileName)
+                .SetProperty(d => d.LastPostAuthorAvatarThumbnailFileName, latest == null ? null : latest.AvatarThumbnailFileName)
+                .SetProperty(d => d.LastPostPlainTextExcerpt, latest == null ? null : latest.PlainTextExcerpt), ct);
     }
 
     private record DiscussionProjection(

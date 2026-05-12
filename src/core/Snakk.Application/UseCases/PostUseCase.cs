@@ -5,6 +5,7 @@ using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Shared.Models;
+using Snakk.Shared.Helpers;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 
@@ -99,7 +100,29 @@ public class PostUseCase(
 
         // Send realtime notification
         await realtimeNotifier.NotifyPostCreatedAsync(post, user, discussion);
-        await realtimeNotifier.NotifyPostCountUpdatedAsync(discussion.PublicId, discussion.SpaceId, 1);
+        var plainExcerpt = markupParser.ToPlainText(post.Content);
+        if (plainExcerpt.Length > 150) plainExcerpt = plainExcerpt[..150];
+
+        // Update denormalized last-reply preview on Discussion
+        if (!post.IsFirstPost)
+            await discussionRepository.SetLastPostAsync(
+                discussion.PublicId,
+                user.PublicId.Value,
+                user.DisplayName,
+                user.AvatarFileName,
+                user.AvatarThumbnailFileName,
+                plainExcerpt);
+
+        var replierAvatarUrl = AvatarHelper.GetAvatarMicroUrl(
+            user.PublicId.Value, AvatarEntityType.User,
+            user.AvatarRevision, user.AvatarFileName, user.AvatarMicroFileName);
+        await realtimeNotifier.NotifyPostCountUpdatedAsync(
+            discussion.PublicId, discussion.SpaceId, space?.HubId, 1,
+            lastPostExcerpt: plainExcerpt,
+            lastReplierId: user.PublicId.Value,
+            lastReplierName: user.DisplayName,
+            lastReplierAvatarUrl: replierAvatarUrl,
+            lastActivityAtUnix: DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
         // Link any uploaded media to this post
         await mediaService.LinkMediaToPostAsync(post.PublicId.Value, normalizedContent);
@@ -222,7 +245,10 @@ public class PostUseCase(
             await counterService.DecrementPostCountAsync(discussionId);
 
             if (!post.IsFirstPost)
+            {
                 await counterService.DecrementUserReplyCountAsync(post.CreatedByUserId);
+                await discussionRepository.RecalculateLastPostAsync(discussionId);
+            }
 
             // Send realtime notification
             await realtimeNotifier.NotifyPostDeletedAsync(postId, discussionId, isHardDelete);

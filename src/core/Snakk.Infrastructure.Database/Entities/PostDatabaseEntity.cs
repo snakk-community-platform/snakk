@@ -36,9 +36,17 @@ public class PostDatabaseEntity
 
     // Many-to-one relationships
     public int DiscussionId { get; set; }
+    public string? DiscussionPublicId { get; set; }
+    public int SpaceId { get; set; }
+    public string? SpacePublicId { get; set; }
+    public int HubId { get; set; }
+    public string? HubPublicId { get; set; }
+    public int CommunityId { get; set; }
+    public string? CommunityPublicId { get; set; }
     public virtual DiscussionDatabaseEntity Discussion { get; set; } = null!;
 
     public int CreatedByUserId { get; set; }
+    public string? CreatedByUserPublicId { get; set; }
     public virtual UserDatabaseEntity CreatedByUser { get; set; } = null!;
 
     // Pre-stripped plain-text excerpt for display in discussion lists (max 200 chars)

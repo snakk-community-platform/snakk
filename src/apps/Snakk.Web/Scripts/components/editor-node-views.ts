@@ -122,6 +122,9 @@ const LANG_LABELS: Record<string, string> = {
     html: 'HTML', css: 'CSS', sql: 'SQL', json: 'JSON',
     bash: 'Bash', python: 'Python', markdown: 'Markdown',
     yaml: 'YAML', xml: 'XML', markup: 'HTML',
+    c: 'C', cpp: 'C++', java: 'Java', lua: 'Lua',
+    perl: 'Perl', php: 'PHP', powershell: 'PowerShell',
+    r: 'R', ruby: 'Ruby', rust: 'Rust',
 };
 
 // Inline SVGs

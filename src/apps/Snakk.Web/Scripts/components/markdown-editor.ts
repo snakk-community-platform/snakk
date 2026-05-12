@@ -60,6 +60,16 @@ const CODE_LANGUAGES: { value: string; label: string }[] = [
     { value: 'markdown', label: 'Markdown' },
     { value: 'yaml', label: 'YAML' },
     { value: 'xml', label: 'XML' },
+    { value: 'c', label: 'C' },
+    { value: 'cpp', label: 'C++' },
+    { value: 'java', label: 'Java' },
+    { value: 'lua', label: 'Lua' },
+    { value: 'perl', label: 'Perl' },
+    { value: 'php', label: 'PHP' },
+    { value: 'powershell', label: 'PowerShell' },
+    { value: 'r', label: 'R' },
+    { value: 'ruby', label: 'Ruby' },
+    { value: 'rust', label: 'Rust' },
     { value: 'chart', label: 'Chart' },
 ];
 
@@ -84,7 +94,10 @@ interface SnakkEditorOptions {
     height?: string;
     onChange?: (markdown: string) => void;
     onUploadStateChange?: (uploading: boolean) => void;
-    hideImageButton?: boolean;
+    // When set, only toolbar items whose feature tag is in this list are shown.
+    // Omit for the default full toolbar. Block adder is hidden when no block
+    // features (image, code, table, blockquote, list, heading) are included.
+    allowedFeatures?: string[];
 }
 
 interface SnakkEditorAPI {
@@ -94,6 +107,7 @@ interface SnakkEditorAPI {
 }
 
 interface ToolbarItem {
+    feature?: string;
     icon: string;
     title: string;
     action: (editor: Editor) => void;
@@ -109,6 +123,7 @@ interface ToolbarSeparator {
 }
 
 interface ToolbarGroup {
+    feature?: string;
     groupIcon: string;
     groupTitle: string;
     groupClassName?: string;
@@ -402,23 +417,28 @@ const pasteSanitize = $prose(() => new Plugin({
 function buildToolbarItems(): ToolbarEntry[] {
     return [
         {
+            feature: 'emoji',
             icon: '😀', title: 'Emoji', className: 'toolbar-emoji', allowInBlock: true, hasDropdown: true,
             action: (e) => showEmojiPicker(e),
         },
         { separator: true },
         {
+            feature: 'bold',
             icon: 'B', title: 'Bold (Ctrl+B)', className: 'toolbar-bold', allowInBlock: true,
             action: (e) => e.action(callCommand(toggleStrongCommand.key)),
         },
         {
+            feature: 'italic',
             icon: 'I', title: 'Italic (Ctrl+I)', className: 'toolbar-italic', allowInBlock: true,
             action: (e) => e.action(callCommand(toggleEmphasisCommand.key)),
         },
         {
+            feature: 'underline',
             icon: 'U', title: 'Underline (Ctrl+U)', className: 'toolbar-underline', allowInBlock: true,
             action: (e) => e.action(callCommand(toggleInsertedCommand.key)),
         },
         {
+            feature: 'text-effects',
             groupIcon: 'Aₓ', groupTitle: 'Text Effects', groupClassName: 'toolbar-group-extras',
             children: [
                 {
@@ -437,19 +457,23 @@ function buildToolbarItems(): ToolbarEntry[] {
         },
         { separator: true },
         {
+            feature: 'highlight',
             icon: '🖌', title: 'Highlight', className: 'toolbar-marked', allowInBlock: true,
             action: (e) => e.action(callCommand(toggleMarkedCommand.key)),
         },
         {
+            feature: 'inline-code',
             icon: '⟨⟩', title: 'Inline Code',
             action: (e) => e.action(callCommand(toggleInlineCodeCommand.key)),
         },
         {
+            feature: 'spoiler',
             icon: '👁', title: 'Spoiler', className: 'toolbar-spoiler', allowInBlock: true,
             action: (e) => e.action(callCommand(toggleSpoilerCommand.key)),
         },
         { separator: true },
         {
+            feature: 'link',
             icon: '🔗', title: 'Link', className: 'toolbar-link', allowInBlock: true, opensDialog: true,
             action: (e) => showLinkDialog(e),
         },
@@ -3701,20 +3725,33 @@ interface ToolbarButtonRef {
     allowInBlock: boolean;
 }
 
-function createToolbarDOM(editor: Editor, options?: { hideImageButton?: boolean }): { toolbar: HTMLElement; buttons: ToolbarButtonRef[] } {
+function createToolbarDOM(editor: Editor, options?: { allowedFeatures?: string[] }): { toolbar: HTMLElement; buttons: ToolbarButtonRef[] } {
     const toolbar = document.createElement('div');
     toolbar.className = 'milkdown-toolbar';
     const buttons: ToolbarButtonRef[] = [];
 
+    function isAllowed(feature?: string): boolean {
+        return !options?.allowedFeatures || !feature || options.allowedFeatures.includes(feature);
+    }
+
+    // Collect pending separator so we can suppress leading/consecutive ones
+    let pendingSep = false;
+
     for (const item of buildToolbarItems()) {
-        // Skip image button if hideImageButton is set
-        if (options?.hideImageButton && 'title' in item && item.title === 'Image') continue;
         if ('separator' in item && item.separator) {
+            pendingSep = true;
+            continue;
+        }
+
+        const feature = 'feature' in item ? item.feature : undefined;
+        if (!isAllowed(feature)) continue;
+
+        if (pendingSep && toolbar.children.length > 0) {
             const sep = document.createElement('span');
             sep.className = 'milkdown-toolbar-separator';
             toolbar.appendChild(sep);
-            continue;
         }
+        pendingSep = false;
 
         if ('groupIcon' in item) {
             const btn = document.createElement('button');
@@ -4179,7 +4216,7 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
     const instances = new Map<HTMLElement, { editor: Editor; wrapper: EditorInstance }>();
 
     async function init(options: SnakkEditorOptions): Promise<EditorInstance | null> {
-        const { container, textarea, placeholder, initialValue, height, onChange, onUploadStateChange, hideImageButton } = options;
+        const { container, textarea, placeholder, initialValue, height, onChange, onUploadStateChange, allowedFeatures } = options;
 
         // Already initialized for this container
         const existing = instances.get(container);
@@ -4303,7 +4340,7 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
             });
 
             // Build toolbar, footer and assemble the editor
-            const { toolbar, buttons: toolbarButtons } = createToolbarDOM(editor, { hideImageButton });
+            const { toolbar, buttons: toolbarButtons } = createToolbarDOM(editor, { allowedFeatures });
             const footer = document.createElement('div');
             footer.className = 'milkdown-footer';
 
@@ -4518,7 +4555,9 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
             editorWrapper.appendChild(sourceTextarea);
             editorWrapper.appendChild(footer);
 
-            createBlockAdder(editor, editorRoot);
+            const blockFeatures = ['image', 'code', 'table', 'blockquote', 'list', 'heading', 'callout'];
+            const hasBlockFeature = !allowedFeatures || allowedFeatures.some(f => blockFeatures.includes(f));
+            if (hasBlockFeature) createBlockAdder(editor, editorRoot);
 
             // Update toolbar button states on selection changes (e.g. disable block items in tables)
             const pm = editorRoot.querySelector('.ProseMirror');

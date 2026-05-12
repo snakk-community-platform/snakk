@@ -29,6 +29,12 @@ var auth = builder.AddProject<Projects.Snakk_Auth>("snakk-auth")
     .WithEnvironment("ApiBaseUrl", api.GetEndpoint("https"))
     .WaitFor(api);
 
+var publicApi = builder.AddProject<Projects.Snakk_PublicApi>("snakk-public-api")
+    .WithEndpoint("https", e => { e.Port = 17114; })
+    .WithEnvironment("ApiBaseUrl", api.GetEndpoint("https"))
+    .WaitFor(api)
+    .WaitFor(auth);
+
 var admin = builder.AddProject<Projects.Snakk_Admin>("snakk-admin")
     .WithEndpoint("https", e => { e.Port = 17112; })
     .WithEnvironment("SnakkApi__BaseUrl", api.GetEndpoint("https"))
@@ -48,9 +54,11 @@ var gateway = builder.AddProject<Projects.Snakk_Gateway>("snakk-gateway")
     .WithEnvironment("ReverseProxy__Clusters__auth-cluster__Destinations__auth__Address", auth.GetEndpoint("https"))
     .WithEnvironment("ReverseProxy__Clusters__realtime-cluster__Destinations__realtime__Address", realtime.GetEndpoint("https"))
     .WithEnvironment("ReverseProxy__Clusters__setup-cluster__Destinations__setup__Address", setup.GetEndpoint("https"))
+    .WithEnvironment("ReverseProxy__Clusters__public-api-cluster__Destinations__public-api__Address", publicApi.GetEndpoint("https"))
     .WaitFor(web)
     .WaitFor(admin)
     .WaitFor(auth)
-    .WaitFor(realtime);
+    .WaitFor(realtime)
+    .WaitFor(publicApi);
 
 builder.Build().Run();

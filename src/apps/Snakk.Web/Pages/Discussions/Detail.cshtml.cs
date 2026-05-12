@@ -34,6 +34,7 @@ public class DetailModel(
     public string SpaceSlug { get; set; } = string.Empty;
     public string SlugWithId { get; set; } = string.Empty;
     public string PublicId { get; set; } = string.Empty;
+    public string Sort { get; set; } = string.Empty;
 
     // Current authenticated user info
     public bool IsAuthenticated { get; set; }
@@ -61,6 +62,7 @@ public class DetailModel(
     public string? ImagesLayout { get; set; }
     public List<Snakk.Protos.Discussion.ImagesImageProto> ImagesItems { get; set; } = [];
     public bool ImagesIsSpoiler { get; set; }
+    public Snakk.Protos.Discussion.IamaInfoResponse? IamaInfo { get; set; }
 
     [BindProperty]
     public string PostContent { get; set; } = string.Empty;
@@ -100,11 +102,13 @@ public class DetailModel(
         string spaceSlug,
         string slugWithId,
         int offset = 0,
-        bool gotoUnread = false)
+        bool gotoUnread = false,
+        string sort = "")
     {
         HubSlug = hubSlug;
         SpaceSlug = spaceSlug;
         SlugWithId = slugWithId;
+        Sort = sort;
 
         // Parse slug~publicId format
         var parts = slugWithId.Split('~');
@@ -210,7 +214,11 @@ public class DetailModel(
             // Await space stats (started earlier in parallel)
             SpaceStats = await spaceStatsTask;
 
-            Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, offset, 20);
+            var postFetchPageSize = sort == "qa" && Discussion.Type == "Iama"
+                ? Math.Min(Discussion.PostCount + 1, 500)
+                : Discussion.Type == "Iama" ? 21 : 20;
+            var postFetchOffset = sort == "qa" && Discussion.Type == "Iama" ? 0 : offset;
+            Posts = await _apiClient.GetDiscussionPostsAsync(PublicId, postFetchOffset, postFetchPageSize);
             HasCodeBlocks = Posts?.HasCodeBlocks ?? false;
 
             // Load type-specific data
@@ -221,6 +229,9 @@ public class DetailModel(
                     break;
                 case "Debate":
                     DebateInfo = await _apiClient.GetDebateInfoAsync(PublicId);
+                    break;
+                case "Iama":
+                    IamaInfo = await _apiClient.GetIamaInfoAsync(PublicId);
                     break;
                 case "Link":
                     LinkInfo = await _apiClient.GetDiscussionLinkAsync(PublicId);
@@ -345,6 +356,11 @@ public class DetailModel(
                     newPostPublicId,
                     DebatePositionId.Value);
             }
+
+            // IAmA: auto-link OP reply as official answer. gRPC enforces host-only check;
+            // failures are non-critical (non-OP replies, duplicate links are silently ignored).
+            if (discussionForType?.Type == "Iama" && !string.IsNullOrEmpty(ReplyToPostId) && !string.IsNullOrEmpty(newPostPublicId))
+                await _apiClient.MarkIamaOfficialAnswerAsync(PublicId, ReplyToPostId, newPostPublicId);
 
             // Navigate to the last page so the new post is visible
             var discussion = await _apiClient.GetDiscussionAsync(PublicId);

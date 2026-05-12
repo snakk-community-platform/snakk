@@ -68,13 +68,21 @@ public class TrendingModel(
         {
             if (!string.IsNullOrEmpty(communityId))
             {
-                var data = await _apiClient.GetCommunityStatsAsync(communityId);
-                if (data is not null) InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
+                var result = await prefetchCache.GetOrFetchAsync(
+                    $"platform-stats:community:{communityId}",
+                    () => _apiClient.GetCommunityStatsAsync(communityId),
+                    sharedTtl: TimeSpan.FromSeconds(30));
+                if (result.Value is not null)
+                    InlinePlatformStats = new(result.Value.SpaceCount, result.Value.DiscussionCount, result.Value.ReplyCount, result.Source);
             }
             else
             {
-                var data = await _apiClient.GetPlatformStatsAsync();
-                if (data is not null) InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "eager");
+                var result = await prefetchCache.GetOrFetchAsync(
+                    "platform-stats:platform:global",
+                    () => _apiClient.GetPlatformStatsAsync(),
+                    sharedTtl: TimeSpan.FromMinutes(5));
+                if (result.Value is not null)
+                    InlinePlatformStats = new(result.Value.SpaceCount, result.Value.DiscussionCount, result.Value.ReplyCount, result.Source);
             }
         }
         catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch platform stats"); }
@@ -84,8 +92,11 @@ public class TrendingModel(
     {
         try
         {
-            var data = await _apiClient.GetTrendingSpacesAsync(communityId: communityId);
-            if (data is not null) InlineTrendingSpaces = new(data, CommunityContext, "eager", "posts this week");
+            var result = await prefetchCache.GetOrFetchAsync(
+                $"trending-spaces-7d:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTrendingSpacesAsync(communityId: communityId));
+            if (result.Value is not null)
+                InlineTrendingSpaces = new(result.Value, CommunityContext, result.Source, "posts this week");
         }
         catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending spaces"); }
     }
@@ -94,8 +105,11 @@ public class TrendingModel(
     {
         try
         {
-            var data = await _apiClient.GetTrendingContributorsAsync(communityId: communityId);
-            if (data is not null) InlineTrendingContributors = new(data, CommunityContext, "eager", "posts this week");
+            var result = await prefetchCache.GetOrFetchAsync(
+                $"trending-contributors-7d:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTrendingContributorsAsync(communityId: communityId));
+            if (result.Value is not null)
+                InlineTrendingContributors = new(result.Value, CommunityContext, result.Source, "posts this week");
         }
         catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending contributors"); }
     }

@@ -33,9 +33,9 @@ public class PostRepository(SnakkDbContext context)
             p.CreatedAt,
             p.EditedAt,
             p.IsFirstPost,
-            p.Discussion.PublicId,
+            p.DiscussionPublicId,
             p.Discussion.Title,
-            p.CreatedByUser.PublicId,
+            p.CreatedByUserPublicId,
             p.CreatedByUser.DisplayName ?? "",
             p.ReplyToPost != null ? p.ReplyToPost.PublicId : null))
         .FirstOrDefaultAsync();
@@ -65,7 +65,7 @@ public class PostRepository(SnakkDbContext context)
                 p.CreatedAt,
                 p.EditedAt,
                 p.IsFirstPost,
-                p.CreatedByUser.PublicId,
+                p.CreatedByUserPublicId,
                 p.CreatedByUser.DisplayName ?? ""))
             .ToListAsync();
 

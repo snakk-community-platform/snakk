@@ -110,15 +110,18 @@
         let current = 0;
 
         function goTo(idx: number): void {
-            current = ((idx % slides.length) + slides.length) % slides.length;
+            current = Math.max(0, Math.min(slides.length - 1, idx));
             track!.style.transform = `translateX(-${current * 100}%)`;
             if (counter) counter.textContent = `${current + 1} / ${slides.length}`;
+            if (prevBtn) prevBtn.style.visibility = current === 0 ? 'hidden' : '';
+            if (nextBtn) nextBtn.style.visibility = current === slides.length - 1 ? 'hidden' : '';
         }
 
         applyBlurBackgrounds(container);
 
         if (prevBtn) prevBtn.addEventListener('click', e => { e.stopPropagation(); goTo(current - 1); });
         if (nextBtn) nextBtn.addEventListener('click', e => { e.stopPropagation(); goTo(current + 1); });
+        goTo(0);
 
         slides.forEach((slide, idx) => {
             slide.style.cursor = 'zoom-in';

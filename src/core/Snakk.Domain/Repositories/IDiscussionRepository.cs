@@ -42,6 +42,20 @@ public interface IDiscussionRepository
     /// Gets a user's top discussions ranked by engagement (post count + reaction count).
     /// </summary>
     Task<List<TopDiscussionByUser>> GetTopDiscussionsByUserAsync(UserId userId, int limit);
+
+    /// <summary>
+    /// Writes the last-reply preview fields directly. Call on post create with the known values.
+    /// </summary>
+    Task SetLastPostAsync(DiscussionId discussionId,
+        string? authorPublicId, string? displayName,
+        string? avatarFile, string? thumbFile, string? excerpt,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Re-queries the DB for the current latest reply and updates the preview fields.
+    /// Call on post delete to fall back to the previous reply (or null if none remain).
+    /// </summary>
+    Task RecalculateLastPostAsync(DiscussionId discussionId, CancellationToken ct = default);
 }
 
 /// <summary>

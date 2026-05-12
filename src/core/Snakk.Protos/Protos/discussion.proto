@@ -518,6 +518,9 @@ message IamaInfoResponse {
   // Map of question_post_public_id → answer_post_public_id
   map<string, string> official_answers = 6;
   repeated string best_question_post_public_ids = 7;
+  optional google.protobuf.Timestamp actual_started_at_utc = 8;
+  optional google.protobuf.Timestamp actual_ended_at_utc = 9;
+  optional string verification_note_html = 10;
 }
 
 message MarkIamaOfficialAnswerRequest {

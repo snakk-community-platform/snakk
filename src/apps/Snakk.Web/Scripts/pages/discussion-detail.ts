@@ -67,6 +67,8 @@ interface DiscussionConfig {
     hasCodeBlocks: boolean;
     postCount: number;
     displayName: string;
+    officialAnswers?: Record<string, string>;
+    sort?: string;
 }
 
 interface ReportReason {
@@ -89,6 +91,8 @@ interface CurrentSelection {
     'use strict';
 
 let discussionConfig: DiscussionConfig | null = null;
+let iamaOfficialAnswers: Record<string, string> = {};
+let iamaAnswerToQuestion: Record<string, string> = {};
 
 // ===== Editor Functions =====
 
@@ -197,13 +201,8 @@ function initReplyEditor(): Promise<void> {
                 submitBtn.classList.remove('hidden');
             }
 
-            // Typing indicator: notify on keystrokes in editor
-            container.addEventListener('keydown', (e) => {
-                const target = e.target as HTMLElement;
-                if (target.closest('.milkdown-editor, .ProseMirror')) {
-                    notifyTyping();
-                }
-            });
+            // Typing indicator: fire when content actually changes (not on arrow/modifier keys)
+            textarea.addEventListener('input', onReplyContentChanged);
         }
 
         // Intercept form submit: upload any deferred blob-URL images, then re-submit
@@ -214,6 +213,7 @@ function initReplyEditor(): Promise<void> {
             let deferredSubmitReady = false;
 
             form.addEventListener('submit', async (e) => {
+                clearComposingState();
                 // Second pass: uploads done — let the event proceed
                 if (deferredSubmitReady) {
                     deferredSubmitReady = false;
@@ -1170,23 +1170,41 @@ function applyHiddenUsers(): void {
 }
 
 // ===== Typing Indicator =====
-let typingTimeout: ReturnType<typeof setTimeout> | null = null;
-let isTyping = false;
+// State-based: indicator is shown while the reply field has content.
+// 3-minute inactivity guard clears it if the user walks away mid-composition.
+let composingReply = false;
+let composingInactivityTimeout: ReturnType<typeof setTimeout> | null = null;
+const COMPOSING_INACTIVITY_MS = 3 * 60 * 1000;
 
-function notifyTyping(): void {
+function onReplyContentChanged(): void {
     const realtime = (window as any).SnakkRealtime;
     if (!realtime || !discussionConfig?.discussionId) return;
+    const textarea = document.getElementById('post-content-input') as HTMLTextAreaElement | null;
+    const hasContent = (textarea?.value ?? '').trim().length > 0;
 
-    if (!isTyping) {
-        isTyping = true;
-        realtime.startTyping(discussionConfig.discussionId);
+    if (hasContent) {
+        if (!composingReply) {
+            composingReply = true;
+            realtime.startTyping(discussionConfig.discussionId);
+        }
+        if (composingInactivityTimeout) clearTimeout(composingInactivityTimeout);
+        composingInactivityTimeout = setTimeout(() => {
+            composingReply = false;
+            composingInactivityTimeout = null;
+            realtime.stopTyping(discussionConfig!.discussionId);
+        }, COMPOSING_INACTIVITY_MS);
+    } else {
+        clearComposingState();
     }
+}
 
-    if (typingTimeout) clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-        isTyping = false;
-        realtime.stopTyping(discussionConfig!.discussionId);
-    }, 2000);
+function clearComposingState(): void {
+    if (composingInactivityTimeout) { clearTimeout(composingInactivityTimeout); composingInactivityTimeout = null; }
+    if (!composingReply) return;
+    composingReply = false;
+    const realtime = (window as any).SnakkRealtime;
+    if (realtime && discussionConfig?.discussionId)
+        realtime.stopTyping(discussionConfig.discussionId);
 }
 
 // ===== Keyboard Navigation =====
@@ -1302,6 +1320,29 @@ function showToast(message: string, type: 'error' | 'success' | 'info' = 'error'
     }, duration);
 }
 
+// ===== IAmA Q&A post insertion =====
+// For IAmA discussions, insert a post adjacent to its paired partner (if known)
+// rather than simply appending before the sentinel.
+function insertIamaPost(article: HTMLElement, container: HTMLElement, sentinel: HTMLElement): void {
+    const publicId = article.dataset.publicId ?? '';
+    const questionId = iamaAnswerToQuestion[publicId];
+    if (questionId) {
+        const questionEl = container.querySelector<HTMLElement>(`article[data-public-id="${questionId}"]`);
+        if (questionEl) {
+            questionEl.insertAdjacentElement('afterend', article);
+            return;
+        }
+    }
+    sentinel.before(article);
+    const answerId = iamaOfficialAnswers[publicId];
+    if (answerId) {
+        const answerEl = container.querySelector<HTMLElement>(`article[data-public-id="${answerId}"]`);
+        if (answerEl) {
+            article.insertAdjacentElement('afterend', answerEl);
+        }
+    }
+}
+
 // ===== Endless Scroll for Posts =====
 let postsCurrentOffset = 0;
 let postsHasMoreItems = false;
@@ -1357,7 +1398,7 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
 
     try {
         const response = await fetch(
-            `/bff/discussions/${discussionId}/posts?offset=${postsCurrentOffset}&pageSize=${postsPageSize}`,
+            `/bff/discussions/${discussionId}/posts?offset=${postsCurrentOffset}&pageSize=${postsPageSize}&discussionType=${encodeURIComponent(discussionConfig?.discussionType ?? '')}`,
             { credentials: 'include' }
         );
 
@@ -1386,7 +1427,11 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
                 const isSameAuthor = previousAuthorId === post.author.publicId;
                 const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
                 const postElement = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast);
-                container.insertBefore(postElement, sentinel);
+                if (discussionConfig?.discussionType === 'Iama') {
+                    insertIamaPost(postElement, container, sentinel);
+                } else {
+                    container.insertBefore(postElement, sentinel);
+                }
                 previousAuthorId = post.author.publicId;
                 previousCreatedAt = post.createdAt;
 
@@ -1512,6 +1557,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     article.className = `post-item post-article post-layout group ${post.isFirstPost ? 'first-post' : ''} ${authorClass}`;
     article.dataset.authorId = post.author.publicId;
     article.dataset.postId = post.publicId;
+    article.dataset.publicId = post.publicId;
     article.dataset.postNumber = String(post.postNumber);
 
     const isOP = post.isFirstPost;
@@ -1937,7 +1983,7 @@ async function handleFragmentEntry(
 
     try {
         const response = await fetch(
-            `/bff/discussions/${discussionId}/posts?offset=${targetOffset}&pageSize=${postsPageSize}`,
+            `/bff/discussions/${discussionId}/posts?offset=${targetOffset}&pageSize=${postsPageSize}&discussionType=${encodeURIComponent(discussionConfig?.discussionType ?? '')}`,
             { credentials: 'include' }
         );
         if (!response.ok) throw new Error('Failed to load posts for fragment');
@@ -1954,7 +2000,11 @@ async function handleFragmentEntry(
                 const isSameAuthor = previousAuthorId === post.author.publicId;
                 const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
                 const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast);
-                container.insertBefore(el, scrollSentinel);
+                if (discussionConfig?.discussionType === 'Iama') {
+                    insertIamaPost(el, container, scrollSentinel);
+                } else {
+                    container.insertBefore(el, scrollSentinel);
+                }
                 previousAuthorId = post.author.publicId;
                 previousCreatedAt = post.createdAt;
             });
@@ -2035,7 +2085,7 @@ async function loadEarlierPosts(
 
     try {
         const response = await fetch(
-            `/bff/discussions/${discussionId}/posts?offset=${loadOffset}&pageSize=${postsPageSize}`,
+            `/bff/discussions/${discussionId}/posts?offset=${loadOffset}&pageSize=${postsPageSize}&discussionType=${encodeURIComponent(discussionConfig?.discussionType ?? '')}`,
             { credentials: 'include' }
         );
         if (!response.ok) throw new Error('Failed to load earlier posts');
@@ -2302,6 +2352,13 @@ function initDiscussionPage(config: DiscussionConfig): void {
     // Store discussionId for deferred editor init
     activeDiscussionId = config.discussionId || null;
 
+    // IAmA: build official-answer lookup tables
+    iamaOfficialAnswers = config.officialAnswers ?? {};
+    iamaAnswerToQuestion = {};
+    for (const [q, a] of Object.entries(iamaOfficialAnswers)) {
+        iamaAnswerToQuestion[a] = q;
+    }
+
     // Lazy-load markdown editor when scrolled into view
     const editorContainer = document.getElementById('editor-container');
     if (editorContainer) {
@@ -2351,6 +2408,8 @@ function initDiscussionPage(config: DiscussionConfig): void {
 function setupEventListeners(): void {
     if ((window as any).__discussionDetailListenersRegistered) return;
     (window as any).__discussionDetailListenersRegistered = true;
+
+    window.addEventListener('beforeunload', clearComposingState);
 
     // Check selection on mouseup anywhere in document
     document.addEventListener('mouseup', () => {

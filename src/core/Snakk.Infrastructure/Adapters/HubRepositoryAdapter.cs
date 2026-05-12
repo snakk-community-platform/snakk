@@ -16,7 +16,7 @@ public class HubRepositoryAdapter(
         var projection = await context.Hubs
             .Where(h => h.Id == id)
             .Select(h => new HubProjection(
-                h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
+                h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
                 h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
@@ -29,7 +29,7 @@ public class HubRepositoryAdapter(
         var projection = await context.Hubs
             .Where(h => h.PublicId == publicId.Value)
             .Select(h => new HubProjection(
-                h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
+                h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
                 h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
@@ -42,7 +42,7 @@ public class HubRepositoryAdapter(
         var projection = await context.Hubs
             .Where(h => h.Slug == slug && h.Community.Slug == communitySlug)
             .Select(h => new HubProjection(
-                h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
+                h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
                 h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
@@ -54,7 +54,7 @@ public class HubRepositoryAdapter(
     {
         var projections = await context.Hubs
             .Select(h => new HubProjection(
-                h.PublicId, h.Community.PublicId, h.Name, h.Slug, h.Description,
+                h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
                 h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
@@ -136,6 +136,7 @@ public class HubRepositoryAdapter(
             throw new InvalidOperationException($"Community with PublicId '{hub.CommunityId}' not found");
 
         var entity = hub.ToPersistence(communityDbId.Value);
+        entity.CommunityPublicId = hub.CommunityId.Value;
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();
     }
@@ -147,6 +148,9 @@ public class HubRepositoryAdapter(
 
         if (entity is null)
             throw new InvalidOperationException($"Hub with PublicId '{hub.PublicId}' not found");
+
+        var nameChanged = entity.Name != hub.Name;
+        var slugChanged = entity.Slug != hub.Slug;
 
         entity.Name = hub.Name;
         entity.Slug = hub.Slug;
@@ -161,6 +165,15 @@ public class HubRepositoryAdapter(
 
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
+
+        if (nameChanged || slugChanged)
+        {
+            await context.Spaces
+                .Where(s => s.HubId == entity.Id)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(sp => sp.HubName, entity.Name)
+                    .SetProperty(sp => sp.HubSlug, entity.Slug));
+        }
     }
 
     private record HubProjection(

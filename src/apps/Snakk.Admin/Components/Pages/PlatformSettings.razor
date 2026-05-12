@@ -1,7 +1,11 @@
 @page "/platform/settings"
 @attribute [Authorize]
 @using Snakk.Protos.Manage
+@using System.Net.Http.Headers
+@using System.Text.Json
 @inject ManageService.ManageServiceClient ManageClient
+@inject IHttpClientFactory HttpClientFactory
+@inject CircuitTokenProvider TokenProvider
 <PageTitle>Platform Settings - Snakk Admin</PageTitle>
 
 <MudStack Spacing="6">
@@ -81,6 +85,21 @@
                                   OnAdornmentClick="@(() => _showInviteCode = !_showInviteCode)" />
                 }
 
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle1">Display Name — Allowed Writing Systems</MudText>
+                <MudText Typo="Typo.body2" Class="text-secondary">
+                    Which writing systems users may use in their display names.
+                    Names must use a single system — mixing is blocked to prevent impersonation attacks.
+                </MudText>
+
+                @foreach (var script in _allScripts)
+                {
+                    <MudCheckBox T="bool"
+                                 Value="@_allowedScripts.Contains(script.Key)"
+                                 ValueChanged="@(v => ToggleScript(script.Key, v))"
+                                 Label="@($"{script.Key} — {script.Value}")" />
+                }
+
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveSettings"
                            Disabled="@_saving">
                     @if (_saving) { <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" /> }
@@ -113,6 +132,40 @@
     private string? _loadError;
     private string? _saveError;
 
+    private HashSet<string> _allowedScripts = ["Latin"];
+
+    // Full content settings stored for round-tripping on save (avoids overwriting other fields)
+    private int _postMaxLength = 50000;
+    private int _discussionTitleMaxLength = 300;
+    private bool _allowMarkdown = true;
+    private bool _allowHtml = false;
+    private bool _requireModeration = false;
+
+    private static readonly IReadOnlyDictionary<string, string> _allScripts =
+        new Dictionary<string, string>
+        {
+            ["Latin"]      = "A–Z, a–z, æ ø å é ü ñ",
+            ["Cyrillic"]   = "А Б В а б в (Ru/Ua/Bg)",
+            ["Greek"]      = "Α Β Γ α β γ",
+            ["Arabic"]     = "ا ب ت ث",
+            ["Hebrew"]     = "א ב ג ד",
+            ["Devanagari"] = "क ख ग घ (Hi)",
+            ["CjkUnified"] = "一 二 三 中",
+            ["Hiragana"]   = "あ い う え お",
+            ["Katakana"]   = "ア イ ウ エ オ",
+            ["Hangul"]     = "가 나 다 라",
+            ["Thai"]       = "ก ข ค ง",
+            ["Armenian"]   = "Ա Բ Գ Դ",
+            ["Georgian"]   = "ა ბ გ დ",
+        };
+
+    private void ToggleScript(string script, bool enabled)
+    {
+        if (enabled) _allowedScripts.Add(script);
+        else _allowedScripts.Remove(script);
+        if (_allowedScripts.Count == 0) _allowedScripts.Add("Latin");
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
@@ -125,6 +178,36 @@
             var regResponse = await ManageClient.GetRegistrationSettingsAsync(new GetRegistrationSettingsRequest());
             _registrationMode = string.IsNullOrEmpty(regResponse.Mode) ? "Open" : regResponse.Mode;
             _inviteCode = regResponse.InviteCode;
+
+            // Load content settings (scripts + other fields for round-tripping) via REST
+            var client = HttpClientFactory.CreateClient("SnakkApi");
+            using var req = new HttpRequestMessage(HttpMethod.Get, "/admin/settings/content");
+            var token = TokenProvider.Token;
+            if (!string.IsNullOrEmpty(token))
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            var resp = await client.SendAsync(req);
+            if (resp.IsSuccessStatusCode)
+            {
+                var json = await resp.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("postMaxLength", out var p)) _postMaxLength = p.GetInt32();
+                if (root.TryGetProperty("discussionTitleMaxLength", out var d)) _discussionTitleMaxLength = d.GetInt32();
+                if (root.TryGetProperty("allowMarkdown", out var md)) _allowMarkdown = md.GetBoolean();
+                if (root.TryGetProperty("allowHtml", out var html)) _allowHtml = html.GetBoolean();
+                if (root.TryGetProperty("requireModeration", out var mod)) _requireModeration = mod.GetBoolean();
+
+                if (root.TryGetProperty("allowedDisplayNameScripts", out var scriptsProp)
+                    && scriptsProp.ValueKind == JsonValueKind.Array)
+                {
+                    _allowedScripts = [.. scriptsProp.EnumerateArray()
+                        .Select(e => e.GetString())
+                        .Where(s => s is not null)
+                        .Select(s => s!)];
+                    if (_allowedScripts.Count == 0) _allowedScripts = ["Latin"];
+                }
+            }
         }
         catch
         {
@@ -165,10 +248,34 @@
             };
 
             var regResponse = await ManageClient.UpdateRegistrationSettingsAsync(regRequest);
-            if (regResponse.Success)
+            if (!regResponse.Success)
+            {
+                _saveError = regResponse.HasErrorMessage ? regResponse.ErrorMessage : "Failed to save registration settings.";
+                return;
+            }
+
+            // Save content settings via REST (round-trip all fields to avoid overwriting with defaults)
+            var scripts = _allowedScripts.Count > 0 ? _allowedScripts : new HashSet<string> { "Latin" };
+            var contentPayload = JsonSerializer.Serialize(new
+            {
+                postMaxLength = _postMaxLength,
+                discussionTitleMaxLength = _discussionTitleMaxLength,
+                allowMarkdown = _allowMarkdown,
+                allowHtml = _allowHtml,
+                requireModeration = _requireModeration,
+                allowedDisplayNameScripts = scripts.ToArray()
+            });
+            var client = HttpClientFactory.CreateClient("SnakkApi");
+            using var contentReq = new HttpRequestMessage(HttpMethod.Put, "/admin/settings/content");
+            var token = TokenProvider.Token;
+            if (!string.IsNullOrEmpty(token))
+                contentReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            contentReq.Content = new StringContent(contentPayload, System.Text.Encoding.UTF8, "application/json");
+            var contentResp = await client.SendAsync(contentReq);
+            if (contentResp.IsSuccessStatusCode)
                 _saved = true;
             else
-                _saveError = regResponse.HasErrorMessage ? regResponse.ErrorMessage : "Failed to save registration settings.";
+                _saveError = "Failed to save display name script settings.";
         }
         catch
         {

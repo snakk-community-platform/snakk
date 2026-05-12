@@ -3,7 +3,7 @@
         const listLayout = localStorage.getItem('snakk:discussion-list-layout');
         if (listLayout === 'none') {
             document.documentElement.classList.add('no-discussion-previews');
-        } else if (listLayout === 'compact') {
+        } else if (listLayout !== 'full') {
             document.documentElement.classList.add('discussion-list-compact');
         }
         if (localStorage.getItem('snakk:disable-animations') === 'true') {
@@ -19,6 +19,10 @@
             // no class — both sidebars stick
         } else {
             document.documentElement.classList.add('sticky-left-only');
+        }
+        const contentWidth = localStorage.getItem('snakk:content-width');
+        if (contentWidth) {
+            document.documentElement.style.setProperty('--content-width', `${contentWidth}rem`);
         }
     } catch { /* localStorage unavailable */ }
 })();

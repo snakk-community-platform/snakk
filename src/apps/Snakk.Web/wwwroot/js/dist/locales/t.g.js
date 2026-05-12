@@ -100,11 +100,28 @@ export const T = Object.freeze({
     footer: {
         poweredBy: "Powered by Snakk"
     },
+    iama: {
+        answered: "Answered",
+        answerTo: "Answer to",
+        endConfirmBtn: "Yes, end it",
+        ended: "Ended",
+        ends: "Ends",
+        endSession: "End session",
+        sortChronological: "Chronological",
+        sortQa: "Q&A view",
+        started: "Started",
+        starts: "Starts",
+        verification: "Verification"
+    },
     iamaPhase: {
         announced: "Announced",
+        announcedDesc: "This AMA hasn't started yet. Submit your questions while the host prepares.",
         archived: "Archived",
+        archivedDesc: "This AMA is archived.",
         closed: "Closed",
+        closedDesc: "This AMA has ended. The host is no longer taking questions.",
         live: "Live",
+        liveDesc: "The host is live and taking questions right now.",
         unknown: "Unknown"
     },
     mobileNav: {
@@ -998,6 +1015,12 @@ export const T = Object.freeze({
         browserAnimationsHelp: "Enable transitions and animations throughout the interface.",
         browserAnimationsTitle: "Animations",
         browserBehaviorTitle: "Behavior",
+        browserContentWidthApply: "Apply",
+        browserContentWidthButton: "Set content width",
+        browserContentWidthCancel: "Cancel",
+        browserContentWidthHelp: "Sets the maximum width of the center column on wide screens.",
+        browserContentWidthReset: "Reset to default",
+        browserContentWidthTitle: "Content width",
         browserDeviceOnly: "These settings are saved in this browser only and won't sync across your devices.",
         browserEmbedAllow: "Always allow",
         browserEmbedAsk: "Ask each time",
@@ -1031,7 +1054,7 @@ export const T = Object.freeze({
         browserStickyLeftOnly: "Only left sticks",
         browserStickyNone: "Neither sticks",
         browserStickyTitle: "Sticky Sidebars",
-        displayNameHelp: "3-20 characters. Letters, numbers, spaces, hyphens, underscores.",
+        displayNameHelp: "3-20 characters. Letters, numbers, hyphens, underscores. No spaces.",
         displayNamePlaceholder: "Your display name",
         displayNamePwdHelp: "Required to change your display name",
         displayNamePwdPlaceholder: "Current password",

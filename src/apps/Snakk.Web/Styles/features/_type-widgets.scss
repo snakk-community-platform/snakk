@@ -56,19 +56,30 @@
 
 .debate-distribution {
     display: flex;
-    border-radius: 0.25rem;
-    overflow: hidden;
-    gap: 2px;
     margin-bottom: 0.5rem;
-    background: var(--bg-primary);
+    border-radius: 999px;
+    background: hsla(0, 0%, 100%, 0.65);
     padding: 1px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .debate-position-bar {
     min-width: 4px;
     height: 1rem;
-    border-radius: 0.25rem;
+    border-radius: 0;
     transition: width 0.3s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(0, 0, 0, 0.05) 100%);
+}
+
+.debate-distribution > .debate-position-bar:first-child {
+    border-top-left-radius: 999px;
+    border-bottom-left-radius: 999px;
+}
+
+.debate-distribution > .debate-position-bar:last-child {
+    border-top-right-radius: 999px;
+    border-bottom-right-radius: 999px;
 }
 
 .debate-legend {
@@ -89,6 +100,8 @@
     width: 0.625rem;
     height: 0.625rem;
     border-radius: 2px;
+    border: 1px solid hsla(0, 0%, 100%, 0.65);
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(0, 0, 0, 0.05) 100%);
 }
 
 .debate-position-badge {
@@ -104,7 +117,6 @@
     letter-spacing: 0.04em;
     padding: 0.1875rem 0.625rem;
     border-radius: 0.375rem;
-    margin-left: 0.5rem;
     background-color: var(--badge-color, var(--link-primary));
     color: #fff;
     border: 1px solid var(--badge-color, var(--link-primary));
@@ -123,9 +135,11 @@
     > li {
         grid-template-columns: calc(150px - 0.5rem) auto 1fr;
     }
+
     .timeline-middle svg, .timeline-middle .icon {
         color: oklch(0.7 0.16 70); // amber
     }
+
     .timeline-end {
         place-self: center stretch; // override DaisyUI flex-start so element fills its grid column
         color: oklch(0.7 0.16 70);
@@ -134,6 +148,7 @@
         align-items: center;
         gap: 0.75rem;
         padding-right: 1rem;
+
         &::after {
             content: '';
             flex: 1;
@@ -141,6 +156,7 @@
             background: oklch(0.7 0.16 70 / 0.5);
         }
     }
+
     hr {
         width: 1px;
         background: oklch(0.7 0.16 70 / 0.4);
@@ -179,6 +195,7 @@
     .link-preview-card {
         flex-direction: row;
     }
+
     .link-preview-banner {
         width: 200px;
         min-height: 120px;
@@ -190,7 +207,11 @@
             max-height: none;
             height: 100%;
         }
-        .sn-images-slide-wrapper { height: 100%; }
+
+        .sn-images-slide-wrapper {
+            height: 100%;
+        }
+
         .sn-images-slide {
             object-fit: cover;
             width: 100%;
@@ -389,8 +410,13 @@
     font-weight: 500;
     transition: all 0.15s;
 
-    &:hover { opacity: 0.8; }
-    &.debate-position-active { color: white; }
+    &:hover {
+        opacity: 0.8;
+    }
+
+    &.debate-position-active {
+        color: white;
+    }
 }
 
 // --- Images ---
@@ -513,8 +539,13 @@
     cursor: pointer;
     transition: border-color 0.15s;
 
-    &.images-layout-active { border-color: var(--link-primary); }
-    &:hover { border-color: var(--text-tertiary); }
+    &.images-layout-active {
+        border-color: var(--link-primary);
+    }
+
+    &:hover {
+        border-color: var(--text-tertiary);
+    }
 }
 
 .images-layout-preview {
@@ -530,8 +561,17 @@
     width: 100%;
     height: 100%;
 
-    div { background: var(--nav-bg); border-radius: 2px; opacity: 0.7; }
-    span { font-size: 0.5rem; color: var(--text-tertiary); line-height: 1; }
+    div {
+        background: var(--nav-bg);
+        border-radius: 2px;
+        opacity: 0.7;
+    }
+
+    span {
+        font-size: 0.5rem;
+        color: var(--text-tertiary);
+        line-height: 1;
+    }
 }
 
 .glp-grid {
@@ -545,16 +585,31 @@
     gap: 2px;
     align-items: stretch;
 
-    div { flex: 1; }
+    div {
+        flex: 1;
+    }
 }
 
 .glp-masonry {
     display: flex;
     gap: 2px;
 
-    div:nth-child(1) { flex: 1; height: 100%; }
-    div:nth-child(2) { flex: 1; height: 70%; align-self: flex-start; }
-    div:nth-child(3) { flex: 1; height: 85%; align-self: flex-end; }
+    div:nth-child(1) {
+        flex: 1;
+        height: 100%;
+    }
+
+    div:nth-child(2) {
+        flex: 1;
+        height: 70%;
+        align-self: flex-start;
+    }
+
+    div:nth-child(3) {
+        flex: 1;
+        height: 85%;
+        align-self: flex-end;
+    }
 }
 
 .glp-justified {
@@ -562,16 +617,40 @@
     flex-wrap: wrap;
     gap: 2px;
 
-    div:nth-child(1) { width: 45%; height: 45%; }
-    div:nth-child(2) { flex: 1; height: 45%; }
-    div:nth-child(3) { width: 100%; height: 45%; }
+    div:nth-child(1) {
+        width: 45%;
+        height: 45%;
+    }
+
+    div:nth-child(2) {
+        flex: 1;
+        height: 45%;
+    }
+
+    div:nth-child(3) {
+        width: 100%;
+        height: 45%;
+    }
 }
 
 .glp-stack {
     position: relative;
 
-    div { width: 75%; height: 75%; position: absolute; top: 0; left: 0; }
-    span { position: absolute; bottom: 2px; right: 4px; font-weight: 700; font-size: 0.625rem; }
+    div {
+        width: 75%;
+        height: 75%;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    span {
+        position: absolute;
+        bottom: 2px;
+        right: 4px;
+        font-weight: 700;
+        font-size: 0.625rem;
+    }
 }
 
 .glp-carousel {
@@ -580,8 +659,15 @@
     justify-content: center;
     gap: 3px;
 
-    div { width: 55%; height: 80%; }
-    span { font-size: 0.625rem; color: var(--text-tertiary); }
+    div {
+        width: 55%;
+        height: 80%;
+    }
+
+    span {
+        font-size: 0.625rem;
+        color: var(--text-tertiary);
+    }
 }
 
 .glp-hero {
@@ -590,13 +676,18 @@
     gap: 2px;
     height: 100%;
 
-    .glp-hero-big { flex: 2; }
+    .glp-hero-big {
+        flex: 2;
+    }
+
     .glp-hero-row {
         display: flex;
         gap: 2px;
         flex: 1;
 
-        div { flex: 1; }
+        div {
+            flex: 1;
+        }
     }
 }
 
@@ -652,14 +743,12 @@
     margin-bottom: 1rem;
     border-radius: 0.5rem;
     overflow: hidden;
-
     // Clicking any image opens the lightbox — signal that with zoom-in.
     // The compare (reveal) layout overrides this to ew-resize via .gup-compare
     // below, since dragging the slider is the primary interaction there.
     .images-upload-item {
         cursor: zoom-in;
     }
-
 }
 
 // Expand/zoom button for non-compare layouts (top-right of .images-display)
@@ -682,8 +771,13 @@
     opacity: 0;
     transition: opacity 0.15s, background 0.15s;
 
-    .images-display:hover & { opacity: 1; }
-    &:hover { background: rgba(0, 0, 0, 0.7); }
+    .images-display:hover & {
+        opacity: 1;
+    }
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.7);
+    }
 }
 
 // Spoiler overlay for images
@@ -767,12 +861,10 @@
     position: relative;
     border-radius: 0.5rem;
     overflow: hidden;
-
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-
     // Backdrop: blurred cover of the first image's blur-data-uri
     &::before {
         content: '';
@@ -785,7 +877,6 @@
         transform: scale(1.2);
         z-index: 0;
     }
-
     // Direct children (the layout container with inline aspect-ratio/max-width)
     // sit above the backdrop.
     > * {
@@ -863,14 +954,24 @@
     padding-bottom: 0.5rem;
     scroll-behavior: smooth;
 
-    .images-upload-item { flex: 0 0 auto; width: 180px; scroll-snap-align: center; aspect-ratio: auto; height: 140px; }
+    .images-upload-item {
+        flex: 0 0 auto;
+        width: 180px;
+        scroll-snap-align: center;
+        aspect-ratio: auto;
+        height: 140px;
+    }
 }
 
 .gup-masonry {
     column-count: 3;
     column-gap: 0.5rem;
 
-    .images-upload-item { break-inside: avoid; margin-bottom: 0.5rem; aspect-ratio: auto; }
+    .images-upload-item {
+        break-inside: avoid;
+        margin-bottom: 0.5rem;
+        aspect-ratio: auto;
+    }
 }
 
 .gup-justified {
@@ -910,7 +1011,9 @@
     position: relative;
     max-width: 500px;
 
-    > .images-upload-item { aspect-ratio: 16/9; }
+    > .images-upload-item {
+        aspect-ratio: 16/9;
+    }
 }
 
 .gup-carousel {
@@ -973,11 +1076,18 @@
     z-index: 2;
     transition: background 0.15s;
 
-    &:hover { background: rgba(0, 0, 0, 0.6); }
+    &:hover {
+        background: rgba(0, 0, 0, 0.6);
+    }
 }
 
-.gup-carousel-prev { left: 0.5rem; }
-.gup-carousel-next { right: 0.5rem; }
+.gup-carousel-prev {
+    left: 0.5rem;
+}
+
+.gup-carousel-next {
+    right: 0.5rem;
+}
 
 .gup-carousel-counter {
     position: absolute;
@@ -990,14 +1100,16 @@
     padding: 0.125rem 0.5rem;
     border-radius: 0.25rem;
     z-index: 2;
-    &:hover:not(.gup-carousel-dot-active) { background: var(--text-tertiary); }
+
+    &:hover:not(.gup-carousel-dot-active) {
+        background: var(--text-tertiary);
+    }
 }
 
 .gup-hero {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-
     // The first (main) image is wrapped in .images-display-framed.gup-hero-main
     // which handles its own sizing via the inline frame pattern. The secondary
     // grid below uses the per-cell image-upload-item pattern.
@@ -1067,11 +1179,9 @@
     cursor: ew-resize;
     user-select: none;
     -webkit-user-select: none;
-
     // When rendered inside a framed wrapper, the inline aspect-ratio on the
     // .gup-compare element itself wins over the base rule above (inline beats
     // stylesheet). Nothing more needed here — this comment is just breadcrumb.
-
     // Override shared .images-upload-item rules — must be scoped here for specificity
     .gup-compare-after,
     .gup-compare-before {
@@ -1085,7 +1195,6 @@
         background-position: center;
         filter: none !important;
         transform: none !important;
-
         // Blur bleed background behind contain-fit images
         &[style*="background-image"]::before {
             content: '';
@@ -1130,8 +1239,13 @@
     letter-spacing: 0.05em;
 }
 
-.gup-compare-label-before { left: 0.75rem; }
-.gup-compare-label-after { right: 0.75rem; }
+.gup-compare-label-before {
+    left: 0.75rem;
+}
+
+.gup-compare-label-after {
+    right: 0.75rem;
+}
 
 .gup-compare-slider {
     position: absolute;
@@ -1197,8 +1311,13 @@
     opacity: 0;
     transition: opacity 0.15s, background 0.15s;
 
-    .gup-compare:hover & { opacity: 1; }
-    &:hover { background: rgba(0, 0, 0, 0.7); }
+    .gup-compare:hover & {
+        opacity: 1;
+    }
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.7);
+    }
 }
 
 // Fullscreen compare overlay
@@ -1246,7 +1365,9 @@
     transition: background 0.15s;
     z-index: 10;
 
-    &:hover { background: rgba(255, 255, 255, 0.2); }
+    &:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
 }
 
 // Layout picker preview for compare
@@ -1264,8 +1385,13 @@
         border-radius: 0.125rem;
     }
 
-    > div:first-child { margin-right: 1px; }
-    > div:last-child { margin-left: 1px; }
+    > div:first-child {
+        margin-right: 1px;
+    }
+
+    > div:last-child {
+        margin-left: 1px;
+    }
 
     .glp-compare-line {
         width: 2px;
@@ -1337,8 +1463,9 @@
     opacity: 0;
     transition: opacity 50ms ease;
 
-    &.images-loaded { opacity: 1; }
-
+    &.images-loaded {
+        opacity: 1;
+    }
 }
 
 // Drag-n-drop reorder states
@@ -1366,7 +1493,9 @@
     border-radius: 0.5rem;
     transition: background 0.15s;
 
-    &:hover { background: rgba(0, 0, 0, 0.65); }
+    &:hover {
+        background: rgba(0, 0, 0, 0.65);
+    }
 }
 
 .gup-stack-expanded {
@@ -1456,6 +1585,228 @@
     }
 }
 
+// --- IAmA: Detail widget ---
+
+.sn-iama-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.sn-iama-widget .sn-iama-phase--announced,
+.sn-iama-widget .sn-iama-phase--live,
+.sn-iama-widget .sn-iama-phase--closed,
+.sn-iama-widget .sn-iama-phase--archived {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #fff;
+    font-size: inherit;
+    font-weight: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.sn-iama-phase-header {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.sn-iama-phase-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.sn-iama-phase-desc {
+    margin: 0;
+    font-size: 0.8125rem;
+    opacity: 0.85;
+}
+
+.sn-iama-live-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: oklch(0.55 0.18 155);
+    animation: iama-live-pulse 2s ease-in-out infinite;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+@keyframes iama-live-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.35;
+    }
+}
+
+.sn-iama-widget .sn-iama-phase--announced {
+    background: color-mix(in srgb, var(--accent-warning-strong) 25%, transparent);
+
+    .sn-iama-phase-label {
+        background: var(--accent-warning-strong);
+        color: black;
+    }
+}
+
+.sn-iama-widget .sn-iama-phase--live {
+    background: color-mix(in srgb, var(--accent-success) 25%, transparent);
+
+    .sn-iama-phase-label {
+        background: var(--accent-success);
+        color: white;
+    }
+}
+
+.sn-iama-widget .sn-iama-phase--closed {
+    background: color-mix(in srgb, #222222 20%, transparent);
+
+    .sn-iama-phase-label {
+        background: var(--text-secondary);
+        color: white;
+    }
+}
+
+.sn-iama-widget .sn-iama-phase--archived {
+    background: color-mix(in srgb, #222222 20%, transparent);
+
+    .sn-iama-phase-label {
+        background: var(--text-tertiary);
+        color: white;
+    }
+}
+
+.sn-iama-widget-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sn-iama-countdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #fff;
+
+    span {
+        color: inherit;
+    }
+}
+
+.sn-iama-date-row-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sn-iama-date-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: #fff;
+}
+
+.sn-iama-date-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
+}
+
+.sn-iama-end-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-shrink: 0;
+}
+
+.sn-iama-verification {
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
+    background: hsla(0, 0%, 100%, .12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.sn-iama-verification-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 0.25rem;
+}
+
+.sn-iama-verification-text {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #fff;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+// --- IAmA: Q&A pairing badges ---
+
+.iama-answered-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    background: oklch(0.92 0.06 150);
+    color: oklch(0.35 0.15 150);
+}
+
+[data-theme="dark"] .iama-answered-badge {
+    background: oklch(0.25 0.06 150);
+    color: oklch(0.75 0.1 150);
+}
+
+.iama-answer-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+    text-decoration: underline;
+}
+
+// --- IAmA: sort toggle ---
+
+.iama-sort-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8125rem;
+    margin-bottom: 1rem;
+}
+
+.iama-sort-active {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.iama-sort-link {
+    color: var(--link-primary);
+    text-decoration: underline;
+}
+
 // --- Flash highlight for accepted answer jump ---
 
 .highlight-flash {
@@ -1463,13 +1814,23 @@
 }
 
 @keyframes highlight-pulse {
-    0% { background: oklch(0.9 0.08 80); }
-    100% { background: transparent; }
+    0% {
+        background: oklch(0.9 0.08 80);
+    }
+
+    100% {
+        background: transparent;
+    }
 }
 
 [data-theme="dark"] {
     @keyframes highlight-pulse {
-        0% { background: oklch(0.25 0.06 80); }
-        100% { background: transparent; }
+        0% {
+            background: oklch(0.25 0.06 80);
+        }
+
+        100% {
+            background: transparent;
+        }
     }
 }

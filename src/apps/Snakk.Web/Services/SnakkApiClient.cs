@@ -722,6 +722,26 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
+    // ==================== IAmA ====================
+
+    public virtual async Task<IamaInfoResponse?> GetIamaInfoAsync(string discussionId)
+    {
+        try { return await discussionClient.GetIamaInfoAsync(new GetIamaInfoRequest { DiscussionId = discussionId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<TransitionIamaPhaseResponse?> TransitionIamaPhaseAsync(string discussionId, int newPhase)
+    {
+        try { return await discussionClient.TransitionIamaPhaseAsync(new TransitionIamaPhaseRequest { DiscussionId = discussionId, NewPhase = newPhase }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<MarkIamaOfficialAnswerResponse?> MarkIamaOfficialAnswerAsync(string discussionId, string questionPostPublicId, string answerPostPublicId)
+    {
+        try { return await discussionClient.MarkIamaOfficialAnswerAsync(new MarkIamaOfficialAnswerRequest { DiscussionId = discussionId, QuestionPostPublicId = questionPostPublicId, AnswerPostPublicId = answerPostPublicId }); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
     // Entity stats aliases
     public virtual Task<HubStats?> GetHubStatsForPopupAsync(string publicId) => GetHubStatsAsync(publicId);
     public virtual Task<SpaceStats?> GetSpaceStatsForPopupAsync(string publicId) => GetSpaceStatsAsync(publicId);

@@ -37,13 +37,10 @@ public class ActivitySnapshotRepository(SnakkDbContext context) : IActivitySnaps
         var yesterday = today.AddDays(-1);
         var cutoffUtc = yesterday.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
-        // ── Space-level post counts (Post → Discussion to get SpaceId) ─────────
+        // ── Space-level post counts ───────────────────────────────────────────
         var spacePosts = await context.Posts
             .Where(p => !p.IsDeleted && p.CreatedAt >= cutoffUtc)
-            .Join(context.Discussions.Where(d => !d.IsDeleted),
-                  p => p.DiscussionId, d => d.Id,
-                  (p, d) => new { p.CreatedAt, d.SpaceId })
-            .GroupBy(x => new { DateVal = x.CreatedAt.Date, x.SpaceId })
+            .GroupBy(p => new { DateVal = p.CreatedAt.Date, p.SpaceId })
             .Select(g => new { g.Key.DateVal, g.Key.SpaceId, Count = g.Count() })
             .ToListAsync(ct);
 
