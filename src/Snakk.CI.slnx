@@ -1,0 +1,42 @@
+<Solution>
+  <Folder Name="/aspire/">
+    <Project Path="aspire/Snakk.AppHost/Snakk.AppHost.csproj" />
+    <Project Path="aspire/Snakk.ServiceDefaults/Snakk.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/core/">
+    <Project Path="core/Snakk.Application/Snakk.Application.csproj" />
+    <Project Path="core/Snakk.Domain/Snakk.Domain.csproj" />
+    <Project Path="core/Snakk.Infrastructure.Database/Snakk.Infrastructure.Database.csproj" />
+    <Project Path="core/Snakk.Infrastructure/Snakk.Infrastructure.csproj" />
+    <Project Path="core/Snakk.Protos/Snakk.Protos.csproj" />
+    <Project Path="core/Snakk.Shared/Snakk.Shared.csproj" />
+  </Folder>
+  <Folder Name="/services/">
+    <Project Path="services/Snakk.Api/Snakk.Api.csproj" />
+    <Project Path="services/Snakk.Gateway/Snakk.Gateway.csproj" />
+    <Project Path="services/Snakk.PublicApi/Snakk.PublicApi.csproj" />
+    <Project Path="services/Snakk.Realtime/Snakk.Realtime.csproj" />
+    <Project Path="services/Snakk.Worker/Snakk.Worker.csproj" />
+  </Folder>
+  <Folder Name="/apps/">
+    <Project Path="apps/Snakk.Admin/Snakk.Admin.csproj" />
+    <Project Path="apps/Snakk.Auth/Snakk.Auth.csproj" />
+    <Project Path="apps/Snakk.Setup/Snakk.Setup.csproj" />
+    <Project Path="apps/Snakk.Web/Snakk.Web.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Snakk.Application.Tests/Snakk.Application.Tests.csproj" />
+    <Project Path="tests/Snakk.Domain.Tests/Snakk.Domain.Tests.csproj" />
+    <Project Path="tests/Snakk.Infrastructure.Tests/Snakk.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Snakk.Realtime.Tests/Snakk.Realtime.Tests.csproj" />
+    <Project Path="tests/Snakk.Shared.Tests/Snakk.Shared.Tests.csproj" />
+    <Project Path="tests/Snakk.Api.Tests/Snakk.Api.Tests.csproj" />
+    <Project Path="tests/Snakk.Web.Tests/Snakk.Web.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj" />
+    <Project Path="tools/Snakk.VBulletinImporter/Snakk.VBulletinImporter.csproj" />
+  </Folder>
+
+</Solution>

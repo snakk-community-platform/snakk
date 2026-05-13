@@ -20,7 +20,7 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Restore
-        run: dotnet restore Snakk.slnx
+        run: dotnet restore Snakk.CI.slnx
         working-directory: src
 
       - name: Generate locale strings (T.g.cs)
@@ -28,11 +28,11 @@ jobs:
         working-directory: src/apps/Snakk.Web
 
       - name: Build
-        run: dotnet build Snakk.slnx --no-restore -p:SkipFrontendBuild=true
+        run: dotnet build Snakk.CI.slnx --no-restore -p:SkipFrontendBuild=true
         working-directory: src
 
       - name: Test
-        run: dotnet test --solution Snakk.slnx --no-build --verbosity normal
+        run: dotnet test --solution Snakk.CI.slnx --no-build --verbosity normal
         working-directory: src
 
   build-and-push:
