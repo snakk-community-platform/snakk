@@ -62,7 +62,7 @@
         <meta name="twitter:description" content="@description" />
         @if (!contentIsAdult && !string.IsNullOrEmpty(authorAvatar))
         {
-            <meta name="twitter:image" content="@($"{baseUrl}{authorAvatar}")" />
+            <meta name="twitter:image" content="@($"{siteBase}{authorAvatar}")" />
         }
 
         <!-- JSON-LD Structured Data -->
@@ -104,25 +104,25 @@
             "@@type": "ListItem",
             "position": 1,
             "name": "@T.Pages.DiscBreadcrumbHome",
-            "item": "@($"{baseUrl}/")"
+            "item": "@($"{siteBase}/")"
             },
             {
             "@@type": "ListItem",
             "position": 2,
             "name": "@T.Pages.DiscBreadcrumbHubs",
-            "item": "@($"{baseUrl}/hubs")"
+            "item": "@($"{siteBase}/hubs")"
             },
             {
             "@@type": "ListItem",
             "position": 3,
             "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Hub?.Name ?? Model.HubSlug)),
-            "item": "@($"{baseUrl}{SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)}")"
+            "item": "@($"{siteBase}{SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)}")"
             },
             {
             "@@type": "ListItem",
             "position": 4,
             "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Space?.Name ?? Model.SpaceSlug)),
-            "item": "@($"{baseUrl}{SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)}")"
+            "item": "@($"{siteBase}{SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)}")"
             },
             {
             "@@type": "ListItem",
