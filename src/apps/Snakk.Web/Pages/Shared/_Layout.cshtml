@@ -23,12 +23,14 @@
     <link rel="manifest" href="/img/favicon/site.webmanifest" />
 
     @{
+        var siteBase = Configuration["WebBaseUrl"]?.TrimEnd('/')
+            ?? $"{Context.Request.Scheme}://{Context.Request.Host}";
+        ViewData["SiteBase"] = siteBase;
         var canonicalUrl = ViewData["CanonicalUrl"] as string
-            ?? $"{Context.Request.Scheme}://{Context.Request.Host}{Context.Request.Path}";
+            ?? $"{siteBase}{Context.Request.Path}";
         var ogTitle = ViewData["OgTitle"] as string ?? ViewData["Title"] as string ?? "Snakk";
         var ogDescription = ViewData["OgDescription"] as string ?? ViewData["Description"] as string;
-        var ogImage = ViewData["OgImage"] as string
-            ?? $"{Context.Request.Scheme}://{Context.Request.Host}/img/logo-square.webp";
+        var ogImage = ViewData["OgImage"] as string ?? $"{siteBase}/img/logo-square.webp";
         var ogType = ViewData["OgType"] as string ?? "website";
     }
     <meta property="og:site_name" content="Snakk" />
@@ -51,7 +53,7 @@
     }
 
     <link rel="alternate" type="application/json+oembed"
-          href="@($"{Context.Request.Scheme}://{Context.Request.Host}/oembed?url={Uri.EscapeDataString(canonicalUrl)}")"
+          href="@($"{siteBase}/oembed?url={Uri.EscapeDataString(canonicalUrl)}")"
           title="@ogTitle" />
 
     @await RenderSectionAsync("Meta", required: false)

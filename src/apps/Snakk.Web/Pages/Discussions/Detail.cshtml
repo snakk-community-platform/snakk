@@ -21,8 +21,8 @@
 @section Meta {
     @if (Model.Discussion != null && Model.Space is not { IsRestricted: true })
     {
-        var scheme = ViewContext.HttpContext.Request.Scheme;
-        var host = ViewContext.HttpContext.Request.Host.ToString();
+        var siteBase = ViewData["SiteBase"] as string
+            ?? $"{ViewContext.HttpContext.Request.Scheme}://{ViewContext.HttpContext.Request.Host}";
         var path = ViewContext.HttpContext.Request.Path.ToString();
 
         var firstPost = Model.Posts?.Items?.FirstOrDefault();
@@ -32,9 +32,8 @@
             : firstPost != null
                 ? (firstPost.Content.Length > 160 ? firstPost.Content.Substring(0, 157) + "..." : firstPost.Content)
                 : Model.Discussion.Title;
-        var url = $"{scheme}://{host}{path}";
+        var url = $"{siteBase}{path}";
         var authorAvatar = firstPost?.Author?.AvatarUrl;
-        var baseUrl = $"{scheme}://{host}";
         var authorName = firstPost?.Author?.DisplayName ?? T.Pages.DiscAnonymous;
         ViewData["CanonicalUrl"] = url;
 
@@ -47,7 +46,7 @@
         <meta property="og:url" content="@url" />
         @if (!contentIsAdult && !string.IsNullOrEmpty(authorAvatar))
         {
-            <meta property="og:image" content="@($"{baseUrl}{authorAvatar}")" />
+            <meta property="og:image" content="@($"{siteBase}{authorAvatar}")" />
             <meta property="og:image:alt" content="@authorName" />
         }
         <meta property="article:published_time" content="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")" />

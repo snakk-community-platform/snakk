@@ -105,6 +105,9 @@ interface Subscriptions {
 (function(): void {
     'use strict';
 
+    const realtimeUrl = document.querySelector<HTMLMetaElement>('meta[name="realtime-service-url"]')?.content
+        || 'https://localhost:17103/realtime';
+
     const _dp = (window as unknown as { DOMPurify?: { sanitize: (html: string, cfg?: object) => string } }).DOMPurify;
     function sanitizeHtml(html: string): string {
         if (!html) return '';
@@ -705,8 +708,7 @@ interface Subscriptions {
             worker.port.start();
 
             // Send init with the realtime URL and SignalR script URL
-            const realtimeUrl = (window as any).realtimeServiceUrl || 'https://localhost:17103/realtime';
-            worker.port.postMessage({ type: 'init', realtimeUrl, signalrSrc: meta.content });
+        worker.port.postMessage({ type: 'init', realtimeUrl, signalrSrc: meta.content });
 
             worker.port.onmessage = (e: MessageEvent) => {
                 const msg = e.data;
@@ -783,8 +785,6 @@ interface Subscriptions {
     }
 
     function startDirectConnection(): void {
-        const realtimeUrl = (window as any).realtimeServiceUrl || 'https://localhost:17103/realtime';
-
         loadSignalR()
             .then(async () => {
                 const token = await fetchToken();

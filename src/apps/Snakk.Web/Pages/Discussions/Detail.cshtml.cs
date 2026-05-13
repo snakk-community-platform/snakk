@@ -196,7 +196,7 @@ public class DetailModel(
                 return discussionResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
             Discussion = discussionResult.Value!;
-            CanonicalUrl = $"{Request.Scheme}://{Request.Host}{Request.Path}";
+            CanonicalUrl = $"{Configuration["WebBaseUrl"]?.TrimEnd('/') ?? $"{Request.Scheme}://{Request.Host}"}{Request.Path}";
 
             // Adult-content gating — short-circuit before loading posts/type-specific data
             var contentIsAdult = Discussion.IsAdult || Space?.IsAdultOnly == true;

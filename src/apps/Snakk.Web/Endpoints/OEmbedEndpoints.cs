@@ -29,7 +29,7 @@ public static class OEmbedEndpoints
             return Results.NotFound();
 
         var path = uri.AbsolutePath.TrimEnd('/');
-        var providerUrl = $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
+        var providerUrl = configuration["WebBaseUrl"]?.TrimEnd('/') ?? $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
         var defaultCommunitySlug = configuration["Snakk:DefaultCommunitySlug"] ?? "main";
 
         // Try each entity type in order of specificity (most segments first)

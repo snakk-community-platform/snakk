@@ -11,10 +11,10 @@
 @section Meta {
     @if (Model.Profile != null)
     {
-        var scheme = ViewContext.HttpContext.Request.Scheme;
-        var host = ViewContext.HttpContext.Request.Host.ToString();
+        var siteBase = ViewData["SiteBase"] as string
+            ?? $"{ViewContext.HttpContext.Request.Scheme}://{ViewContext.HttpContext.Request.Host}";
         var path = ViewContext.HttpContext.Request.Path.ToString();
-        var url = $"{scheme}://{host}{path}";
+        var url = $"{siteBase}{path}";
 
         <link rel="alternate" type="application/json+oembed"
               href="/oembed?url=@Uri.EscapeDataString(url)"
