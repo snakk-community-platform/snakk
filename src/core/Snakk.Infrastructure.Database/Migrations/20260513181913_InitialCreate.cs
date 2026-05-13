@@ -41,6 +41,23 @@ namespace Snakk.Infrastructure.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "ActivityDailySnapshot",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Date = table.Column<DateOnly>(type: "date", nullable: false),
+                    EntityType = table.Column<int>(type: "integer", nullable: false),
+                    EntityId = table.Column<int>(type: "integer", nullable: false),
+                    PostCount = table.Column<int>(type: "integer", nullable: false),
+                    DiscussionCount = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ActivityDailySnapshot", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Community",
                 columns: table => new
                 {
@@ -54,6 +71,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     VisibilityId = table.Column<int>(type: "integer", nullable: false),
                     ExposeToPlatformFeed = table.Column<bool>(type: "boolean", nullable: false),
                     IsAdultOnly = table.Column<bool>(type: "boolean", nullable: false),
+                    HideAdultDiscussionsFromLists = table.Column<bool>(type: "boolean", nullable: false),
                     LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
                     DeletedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -175,7 +193,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     Timezone = table.Column<string>(type: "text", nullable: true),
                     Bio = table.Column<string>(type: "text", nullable: true),
                     FeedToken = table.Column<string>(type: "text", nullable: true),
-                    AllowAdultContent = table.Column<bool>(type: "boolean", nullable: false),
+                    AllowAdultContent = table.Column<bool>(type: "boolean", nullable: true),
+                    AdultPreviewImageMode = table.Column<int>(type: "integer", nullable: false),
+                    HidePresence = table.Column<bool>(type: "boolean", nullable: false),
                     DiscussionCount = table.Column<int>(type: "integer", nullable: false),
                     ReplyCount = table.Column<int>(type: "integer", nullable: false),
                     FollowerCount = table.Column<int>(type: "integer", nullable: false),
@@ -187,7 +207,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                     LockoutEnd = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     TwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     TwoFactorSecret = table.Column<string>(type: "text", nullable: true),
-                    TwoFactorEnabledAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    TwoFactorEnabledAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DiscordUserId = table.Column<string>(type: "text", nullable: true),
+                    DiscordUsername = table.Column<string>(type: "text", nullable: true),
+                    DiscordAvatarHash = table.Column<string>(type: "text", nullable: true),
+                    DiscordLinkToken = table.Column<string>(type: "text", nullable: true),
+                    DiscordLinkTokenExpiry = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -273,6 +298,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     PublicId = table.Column<string>(type: "text", nullable: false),
                     Slug = table.Column<string>(type: "text", nullable: false),
                     CommunityId = table.Column<int>(type: "integer", nullable: false),
+                    CommunityPublicId = table.Column<string>(type: "text", nullable: true),
                     Name = table.Column<string>(type: "text", nullable: false),
                     Description = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -407,7 +433,8 @@ namespace Snakk.Infrastructure.Database.Migrations
                     SortOrder = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    CreatedByUserId = table.Column<int>(type: "integer", nullable: false)
+                    CreatedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedByUserPublicId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -662,7 +689,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     DisplayOrder = table.Column<int>(type: "integer", nullable: false),
                     NotificationSent = table.Column<bool>(type: "boolean", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
-                    AchievementId = table.Column<int>(type: "integer", nullable: false)
+                    UserPublicId = table.Column<string>(type: "text", nullable: true),
+                    AchievementId = table.Column<int>(type: "integer", nullable: false),
+                    AchievementPublicId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -692,7 +721,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     LastUpdated = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ProgressData = table.Column<string>(type: "text", nullable: true),
                     UserId = table.Column<int>(type: "integer", nullable: false),
-                    AchievementId = table.Column<int>(type: "integer", nullable: false)
+                    UserPublicId = table.Column<string>(type: "text", nullable: true),
+                    AchievementId = table.Column<int>(type: "integer", nullable: false),
+                    AchievementPublicId = table.Column<string>(type: "text", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -727,6 +758,28 @@ namespace Snakk.Infrastructure.Database.Migrations
                     table.PrimaryKey("PK_UserMetric", x => new { x.UserId, x.MetricType, x.Scope, x.ScopeId });
                     table.ForeignKey(
                         name: "FK_UserMetric_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserSocialLink",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    UserPublicId = table.Column<string>(type: "text", nullable: true),
+                    Platform = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Username = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserSocialLink", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserSocialLink_User_UserId",
                         column: x => x.UserId,
                         principalTable: "User",
                         principalColumn: "Id",
@@ -827,6 +880,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     RequireEmailConfirmation = table.Column<bool>(type: "boolean", nullable: false),
                     IsRestricted = table.Column<bool>(type: "boolean", nullable: false),
                     IsAdultOnly = table.Column<bool>(type: "boolean", nullable: false),
+                    AllowsAdultContent = table.Column<bool>(type: "boolean", nullable: false),
                     AutoParagraphEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     LastModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     IsDeleted = table.Column<bool>(type: "boolean", nullable: false),
@@ -838,11 +892,21 @@ namespace Snakk.Infrastructure.Database.Migrations
                     LanguageCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
                     HubLanguageCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
                     CommunityLanguageCode = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
+                    CommunityHideAdultDiscussionsFromLists = table.Column<bool>(type: "boolean", nullable: false),
+                    HubPublicId = table.Column<string>(type: "text", nullable: true),
+                    HubSlug = table.Column<string>(type: "text", nullable: true),
+                    HubName = table.Column<string>(type: "text", nullable: true),
+                    CommunityPublicId = table.Column<string>(type: "text", nullable: true),
+                    CommunitySlug = table.Column<string>(type: "text", nullable: true),
+                    CommunityName = table.Column<string>(type: "text", nullable: true),
                     HasRules = table.Column<bool>(type: "boolean", nullable: false),
                     RulesRevision = table.Column<string>(type: "text", nullable: true),
                     ParentHubHasRules = table.Column<bool>(type: "boolean", nullable: false),
                     ParentCommunityHasRules = table.Column<bool>(type: "boolean", nullable: false),
                     TeamRevision = table.Column<string>(type: "text", nullable: true),
+                    DiscordWebhookUrl = table.Column<string>(type: "text", nullable: true),
+                    DiscordChannelName = table.Column<string>(type: "text", nullable: true),
+                    DiscordInviteUrl = table.Column<string>(type: "text", nullable: true),
                     DiscussionCount = table.Column<int>(type: "integer", nullable: false),
                     PostCount = table.Column<int>(type: "integer", nullable: false),
                     ReactionCount = table.Column<int>(type: "integer", nullable: false),
@@ -935,13 +999,29 @@ namespace Snakk.Infrastructure.Database.Migrations
                     IsPinned = table.Column<bool>(type: "boolean", nullable: false),
                     IsLocked = table.Column<bool>(type: "boolean", nullable: false),
                     IsAdultOnly = table.Column<bool>(type: "boolean", nullable: false),
+                    WasNormalized = table.Column<bool>(type: "boolean", nullable: false),
                     PostCount = table.Column<int>(type: "integer", nullable: false),
                     ReactionCount = table.Column<int>(type: "integer", nullable: false),
                     FollowerCount = table.Column<int>(type: "integer", nullable: false),
                     TrendScore = table.Column<double>(type: "double precision", nullable: false),
+                    EngagementScore = table.Column<int>(type: "integer", nullable: false),
+                    AuthorDisplayName = table.Column<string>(type: "text", nullable: true),
+                    AuthorAvatarFileName = table.Column<string>(type: "text", nullable: true),
+                    AuthorAvatarThumbnailFileName = table.Column<string>(type: "text", nullable: true),
+                    LastPostAuthorPublicId = table.Column<string>(type: "text", nullable: true),
+                    LastPostAuthorDisplayName = table.Column<string>(type: "text", nullable: true),
+                    LastPostAuthorAvatarFileName = table.Column<string>(type: "text", nullable: true),
+                    LastPostAuthorAvatarThumbnailFileName = table.Column<string>(type: "text", nullable: true),
+                    LastPostPlainTextExcerpt = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     Tags = table.Column<string>(type: "text", nullable: true),
                     SpaceId = table.Column<int>(type: "integer", nullable: false),
+                    SpacePublicId = table.Column<string>(type: "text", nullable: true),
+                    HubId = table.Column<int>(type: "integer", nullable: false),
+                    HubPublicId = table.Column<string>(type: "text", nullable: true),
+                    CommunityId = table.Column<int>(type: "integer", nullable: false),
+                    CommunityPublicId = table.Column<string>(type: "text", nullable: true),
                     CreatedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedByUserPublicId = table.Column<string>(type: "text", nullable: true),
                     SearchVector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: false, computedColumnSql: "to_tsvector('english', coalesce(\"Title\", ''))", stored: true)
                 },
                 constraints: table =>
@@ -1260,7 +1340,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                     IsScheduled = table.Column<bool>(type: "boolean", nullable: false),
                     ScheduledStartUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ScheduledEndUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    VerificationNote = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true)
+                    VerificationNote = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    VerificationNoteHtml = table.Column<string>(type: "text", nullable: true),
+                    ActualStartedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ActualEndedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    OfficialAnswerCount = table.Column<int>(type: "integer", nullable: false),
+                    BestQuestionCount = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1329,6 +1414,8 @@ namespace Snakk.Infrastructure.Database.Migrations
                     ImagePath = table.Column<string>(type: "text", nullable: true),
                     ImageThumbnailPath = table.Column<string>(type: "text", nullable: true),
                     ImageBlurDataUri = table.Column<string>(type: "text", nullable: true),
+                    ImageWidth = table.Column<int>(type: "integer", nullable: true),
+                    ImageHeight = table.Column<int>(type: "integer", nullable: true),
                     IsInternal = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
@@ -1377,11 +1464,15 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PublicId = table.Column<string>(type: "text", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
+                    UserPublicId = table.Column<string>(type: "text", nullable: true),
                     TargetTypeId = table.Column<int>(type: "integer", nullable: false),
                     LevelId = table.Column<int>(type: "integer", nullable: false),
                     DiscussionId = table.Column<int>(type: "integer", nullable: true),
+                    DiscussionPublicId = table.Column<string>(type: "text", nullable: true),
                     SpaceId = table.Column<int>(type: "integer", nullable: true),
+                    SpacePublicId = table.Column<string>(type: "text", nullable: true),
                     FollowedUserId = table.Column<int>(type: "integer", nullable: true),
+                    FollowedUserPublicId = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -1433,8 +1524,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     IsOp = table.Column<bool>(type: "boolean", nullable: false),
                     IsNecro = table.Column<bool>(type: "boolean", nullable: false),
                     IsMilestone = table.Column<bool>(type: "boolean", nullable: false),
+                    WasNormalized = table.Column<bool>(type: "boolean", nullable: false),
                     DiscussionId = table.Column<int>(type: "integer", nullable: false),
+                    DiscussionPublicId = table.Column<string>(type: "text", nullable: true),
+                    SpaceId = table.Column<int>(type: "integer", nullable: false),
+                    SpacePublicId = table.Column<string>(type: "text", nullable: true),
+                    HubId = table.Column<int>(type: "integer", nullable: false),
+                    HubPublicId = table.Column<string>(type: "text", nullable: true),
+                    CommunityId = table.Column<int>(type: "integer", nullable: false),
+                    CommunityPublicId = table.Column<string>(type: "text", nullable: true),
                     CreatedByUserId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedByUserPublicId = table.Column<string>(type: "text", nullable: true),
                     PlainTextExcerpt = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     SearchVector = table.Column<NpgsqlTsVector>(type: "tsvector", nullable: false, computedColumnSql: "to_tsvector('english', coalesce(\"Content\", ''))", stored: true),
                     ReplyToPostId = table.Column<int>(type: "integer", nullable: true)
@@ -1681,7 +1781,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PublicId = table.Column<string>(type: "text", nullable: false),
                     PostId = table.Column<int>(type: "integer", nullable: false),
+                    PostPublicId = table.Column<string>(type: "text", nullable: true),
                     MentionedUserId = table.Column<int>(type: "integer", nullable: false),
+                    MentionedUserPublicId = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
                 constraints: table =>
@@ -1708,13 +1810,18 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PublicId = table.Column<string>(type: "text", nullable: false),
                     RecipientUserId = table.Column<int>(type: "integer", nullable: false),
+                    RecipientUserPublicId = table.Column<string>(type: "text", nullable: true),
                     TypeId = table.Column<int>(type: "integer", nullable: false),
                     Title = table.Column<string>(type: "text", nullable: false),
                     Body = table.Column<string>(type: "text", nullable: true),
                     SourcePostId = table.Column<int>(type: "integer", nullable: true),
+                    SourcePostPublicId = table.Column<string>(type: "text", nullable: true),
                     SourceDiscussionId = table.Column<int>(type: "integer", nullable: true),
+                    SourceDiscussionPublicId = table.Column<string>(type: "text", nullable: true),
                     SourceSpaceId = table.Column<int>(type: "integer", nullable: true),
+                    SourceSpacePublicId = table.Column<string>(type: "text", nullable: true),
                     ActorUserId = table.Column<int>(type: "integer", nullable: true),
+                    ActorUserPublicId = table.Column<string>(type: "text", nullable: true),
                     IsRead = table.Column<bool>(type: "boolean", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     ReadAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
@@ -1812,7 +1919,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     PublicId = table.Column<string>(type: "text", nullable: false),
                     PostId = table.Column<int>(type: "integer", nullable: false),
+                    PostPublicId = table.Column<string>(type: "text", nullable: true),
                     UserId = table.Column<int>(type: "integer", nullable: false),
+                    UserPublicId = table.Column<string>(type: "text", nullable: true),
                     TypeId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -2114,6 +2223,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_ActivityDailySnapshot_Date_EntityType_EntityId",
+                table: "ActivityDailySnapshot",
+                columns: new[] { "Date", "EntityType", "EntityId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ActivityDailySnapshot_EntityType_EntityId_Date",
+                table: "ActivityDailySnapshot",
+                columns: new[] { "EntityType", "EntityId", "Date" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AuditLog_Action_Success_CreatedAt_Desc",
                 table: "AuditLog",
                 columns: new[] { "Action", "Success", "CreatedAt" },
@@ -2176,6 +2296,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                 columns: new[] { "ScopeId", "ScopeEntityId" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Community_IsRestricted_True",
+                table: "Community",
+                column: "Id",
+                filter: "\"IsRestricted\" = TRUE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Community_PublicId",
                 table: "Community",
                 column: "PublicId",
@@ -2217,6 +2343,13 @@ namespace Snakk.Infrastructure.Database.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Discussion_CommunityId_LastActivityAt_Id_NotDeleted",
+                table: "Discussion",
+                columns: new[] { "CommunityId", "LastActivityAt", "Id" },
+                descending: new[] { false, true, true },
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Discussion_CreatedAt_IsDeleted_Desc",
                 table: "Discussion",
                 columns: new[] { "CreatedAt", "IsDeleted" },
@@ -2229,15 +2362,37 @@ namespace Snakk.Infrastructure.Database.Migrations
                 descending: new[] { false, true, true });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Discussion_CreatedByUserPublicId_LastActivityAt_Id_NotDeleted",
+                table: "Discussion",
+                columns: new[] { "CreatedByUserPublicId", "LastActivityAt", "Id" },
+                descending: new[] { false, true, true },
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_EngagementScore_Id_NotDeleted",
+                table: "Discussion",
+                columns: new[] { "EngagementScore", "Id" },
+                descending: new bool[0],
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_HubId_LastActivityAt_Id_NotDeleted",
+                table: "Discussion",
+                columns: new[] { "HubId", "LastActivityAt", "Id" },
+                descending: new[] { false, true, true },
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Discussion_IsDeleted",
                 table: "Discussion",
                 column: "IsDeleted");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Discussion_LastActivityAt_Id_Desc",
+                name: "IX_Discussion_LastActivityAt_Id_NotDeleted",
                 table: "Discussion",
                 columns: new[] { "LastActivityAt", "Id" },
-                descending: new bool[0]);
+                descending: new bool[0],
+                filter: "\"IsDeleted\" = FALSE");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Discussion_PublicId",
@@ -2263,6 +2418,13 @@ namespace Snakk.Infrastructure.Database.Migrations
                 descending: new[] { false, true });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Discussion_SpaceId_LastActivityAt_Id_NotDeleted",
+                table: "Discussion",
+                columns: new[] { "SpaceId", "LastActivityAt", "Id" },
+                descending: new[] { false, true, true },
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Discussion_SpaceId_Pinned_LastActivityAt_Id",
                 table: "Discussion",
                 columns: new[] { "SpaceId", "IsPinned", "LastActivityAt", "Id" },
@@ -2272,6 +2434,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                 name: "IX_Discussion_SpaceId_Type",
                 table: "Discussion",
                 columns: new[] { "SpaceId", "Type" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Discussion_TrendScore_Desc",
+                table: "Discussion",
+                column: "TrendScore",
+                descending: new bool[0]);
 
             migrationBuilder.CreateIndex(
                 name: "IX_DiscussionTypeDebate_DiscussionId",
@@ -2513,6 +2681,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Hub_IsRestricted_True",
+                table: "Hub",
+                column: "Id",
+                filter: "\"IsRestricted\" = TRUE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Hub_PublicId",
                 table: "Hub",
                 column: "PublicId",
@@ -2574,9 +2748,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                 descending: new[] { false, true });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ModerationLog_HubId",
+                name: "IX_ModerationLog_HubId_CreatedAt_Desc",
                 table: "ModerationLog",
-                column: "HubId");
+                columns: new[] { "HubId", "CreatedAt" },
+                descending: new[] { false, true });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ModerationLog_PublicId",
@@ -2585,9 +2760,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_ModerationLog_SpaceId",
+                name: "IX_ModerationLog_SpaceId_CreatedAt_Desc",
                 table: "ModerationLog",
-                column: "SpaceId");
+                columns: new[] { "SpaceId", "CreatedAt" },
+                descending: new[] { false, true });
 
             migrationBuilder.CreateIndex(
                 name: "IX_ModerationLog_TargetDiscussionId",
@@ -2629,6 +2805,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                 table: "Notification",
                 column: "PublicId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Notification_RecipientUserId_CreatedAt_Desc",
+                table: "Notification",
+                columns: new[] { "RecipientUserId", "CreatedAt" },
+                descending: new[] { false, true });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Notification_RecipientUserId_IsRead_CreatedAt",
@@ -2695,6 +2877,27 @@ namespace Snakk.Infrastructure.Database.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Post_CommunityId_CreatedAt_NotDeleted",
+                table: "Post",
+                columns: new[] { "CommunityId", "CreatedAt" },
+                descending: new[] { false, true },
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_CreatedAt_CreatedByUserId_NotDeleted",
+                table: "Post",
+                columns: new[] { "CreatedAt", "CreatedByUserId" },
+                descending: new[] { true, false },
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_CreatedAt_CreatedByUserPublicId_NotDeleted",
+                table: "Post",
+                columns: new[] { "CreatedAt", "CreatedByUserPublicId" },
+                descending: new[] { true, false },
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Post_CreatedAt_DiscussionId_IsDeleted",
                 table: "Post",
                 columns: new[] { "CreatedAt", "DiscussionId", "IsDeleted" },
@@ -2707,9 +2910,23 @@ namespace Snakk.Infrastructure.Database.Migrations
                 descending: new[] { false, true, true });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Post_CreatedByUserPublicId_CreatedAt_NotDeleted",
+                table: "Post",
+                columns: new[] { "CreatedByUserPublicId", "CreatedAt" },
+                descending: new[] { false, true },
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Post_DiscussionId_CreatedAt_Id",
                 table: "Post",
                 columns: new[] { "DiscussionId", "CreatedAt", "Id" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_HubId_CreatedAt_NotDeleted",
+                table: "Post",
+                columns: new[] { "HubId", "CreatedAt" },
+                descending: new[] { false, true },
+                filter: "\"IsDeleted\" = FALSE");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Post_IsDeleted",
@@ -2732,6 +2949,13 @@ namespace Snakk.Infrastructure.Database.Migrations
                 table: "Post",
                 column: "SearchVector")
                 .Annotation("Npgsql:IndexMethod", "GIN");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Post_SpaceId_CreatedAt_NotDeleted",
+                table: "Post",
+                columns: new[] { "SpaceId", "CreatedAt" },
+                descending: new[] { false, true },
+                filter: "\"IsDeleted\" = FALSE");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PostImage_ImageId",
@@ -2955,10 +3179,22 @@ namespace Snakk.Infrastructure.Database.Migrations
                 filter: "\"DiscussionId\" IS NOT NULL OR \"PostId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Space_CommunityPublicId_NotDeleted",
+                table: "Space",
+                column: "CommunityPublicId",
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Space_HubId_Slug",
                 table: "Space",
                 columns: new[] { "HubId", "Slug" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Space_IsRestricted_True",
+                table: "Space",
+                column: "Id",
+                filter: "\"IsRestricted\" = TRUE");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Space_PublicId",
@@ -3037,6 +3273,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                 column: "DisplayName");
 
             migrationBuilder.CreateIndex(
+                name: "IX_User_Email",
+                table: "User",
+                column: "Email",
+                filter: "\"Email\" IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_User_EmailHash",
                 table: "User",
                 column: "EmailHash",
@@ -3047,6 +3289,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                 name: "IX_User_IsDeleted",
                 table: "User",
                 column: "IsDeleted");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_User_OAuthProviderId",
+                table: "User",
+                column: "OAuthProviderId",
+                filter: "\"OAuthProviderId\" IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_User_PublicId",
@@ -3187,6 +3435,22 @@ namespace Snakk.Infrastructure.Database.Migrations
                 columns: new[] { "UserId", "RoleId", "RevokedAt" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserSocialLink_UserId",
+                table: "UserSocialLink",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserSocialLink_UserId_Platform",
+                table: "UserSocialLink",
+                columns: new[] { "UserId", "Platform" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserSocialLink_UserPublicId",
+                table: "UserSocialLink",
+                column: "UserPublicId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_WebhookDeliveryLog_EventType",
                 table: "WebhookDeliveryLogs",
                 column: "EventType");
@@ -3234,6 +3498,9 @@ namespace Snakk.Infrastructure.Database.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "ActivityDailySnapshot");
+
             migrationBuilder.DropTable(
                 name: "AuditLog");
 
@@ -3356,6 +3623,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserMetric");
+
+            migrationBuilder.DropTable(
+                name: "UserSocialLink");
 
             migrationBuilder.DropTable(
                 name: "WebhookDeliveryLogs");

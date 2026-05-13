@@ -3108,6 +3108,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("FollowerCount")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("HidePresence")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("boolean");
 
