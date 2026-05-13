@@ -283,6 +283,10 @@
         "privConfirmPwdPlaceholder": "Confirm new password",
         "privChangePwdBtn":       "Change Password",
 
+        "privPresenceTitle":      "Presence & Visibility",
+        "privPresenceLabel":      "Hide me from viewer and typing presence lists",
+        "privPresenceHelp":       "When enabled, you appear as an anonymous user to others in the 'who's reading' and 'is typing' indicators on discussions. Takes effect within an hour of saving.",
+
         "socialIntro":            "Add links to your profiles on other platforms. Others will see these on your public profile. Maximum 10 links. Choose from the supported platforms below.",
         "socialLoading":          "Loading…",
         "socialPlatform":         "Platform",

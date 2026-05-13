@@ -167,9 +167,13 @@ public class HubManagementService(
 
         if (nameChanged)
         {
-            await context.Spaces
-                .Where(s => s.HubId == hub.Id)
-                .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.HubName, request.Name), cancellationToken);
+            try
+            {
+                await context.Spaces
+                    .Where(s => s.HubId == hub.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.HubName, request.Name), cancellationToken);
+            }
+            catch (InvalidOperationException) { }
         }
 
         if (request.LanguageCode is not null || hub.LanguageCode is not null)
@@ -179,10 +183,14 @@ public class HubManagementService(
             {
                 hub.LanguageCode = newLanguageCode;
 
-                // Cascade to all child spaces
-                await context.Spaces
-                    .Where(s => s.HubId == hub.Id)
-                    .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.HubLanguageCode, newLanguageCode), cancellationToken);
+                try
+                {
+                    // Cascade to all child spaces
+                    await context.Spaces
+                        .Where(s => s.HubId == hub.Id)
+                        .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.HubLanguageCode, newLanguageCode), cancellationToken);
+                }
+                catch (InvalidOperationException) { }
             }
         }
 

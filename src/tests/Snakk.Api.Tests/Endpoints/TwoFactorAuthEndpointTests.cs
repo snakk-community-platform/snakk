@@ -36,7 +36,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         {
             email = "setup2fa@example.com",
             password = "StrongP@ssw0rd!",
-            displayName = "Setup 2FA User"
+            displayName = "Setup2FAUser"
         };
         var registerResponse = await client.PostAsJsonAsync("/auth/register", registerRequest);
         await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -47,7 +47,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
 
         var authClient = _server.CreateAuthenticatedClient(
             userId: userId,
-            displayName: "Setup 2FA User",
+            displayName: "Setup2FAUser",
             email: "setup2fa@example.com");
 
         // Act
@@ -91,7 +91,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         {
             email = "enable2fa@example.com",
             password = "StrongP@ssw0rd!",
-            displayName = "Enable 2FA User"
+            displayName = "Enable2FAUser"
         };
         var registerResponse = await client.PostAsJsonAsync("/auth/register", registerRequest);
         await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -102,7 +102,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
 
         var authClient = _server.CreateAuthenticatedClient(
             userId: userId,
-            displayName: "Enable 2FA User",
+            displayName: "Enable2FAUser",
             email: "enable2fa@example.com");
 
         // Set up 2FA so a secret exists
@@ -143,7 +143,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         {
             email = "disable2fa@example.com",
             password = "StrongP@ssw0rd!",
-            displayName = "Disable 2FA User"
+            displayName = "Disable2FAUser"
         };
         var registerResponse = await client.PostAsJsonAsync("/auth/register", registerRequest);
         await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -154,7 +154,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
 
         var authClient = _server.CreateAuthenticatedClient(
             userId: userId,
-            displayName: "Disable 2FA User",
+            displayName: "Disable2FAUser",
             email: "disable2fa@example.com");
 
         // Act — try disabling 2FA when it was never enabled
@@ -209,7 +209,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         {
             email = "backupcodes@example.com",
             password = "StrongP@ssw0rd!",
-            displayName = "Backup Codes User"
+            displayName = "BackupCodesUser"
         };
         var registerResponse = await client.PostAsJsonAsync("/auth/register", registerRequest);
         await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -220,7 +220,7 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
 
         var authClient = _server.CreateAuthenticatedClient(
             userId: userId,
-            displayName: "Backup Codes User",
+            displayName: "BackupCodesUser",
             email: "backupcodes@example.com");
 
         // Act

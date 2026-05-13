@@ -841,7 +841,7 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<bool> UpdatePreferencesAsync(bool? autoFollowOnReply = null, string? timezone = null, string? bio = null, bool? allowAdultContent = null, bool clearAllowAdultContent = false, int? adultPreviewImageMode = null)
+    public virtual async Task<bool> UpdatePreferencesAsync(bool? autoFollowOnReply = null, string? timezone = null, string? bio = null, bool? allowAdultContent = null, bool clearAllowAdultContent = false, int? adultPreviewImageMode = null, bool? hidePresence = null)
     {
         try
         {
@@ -852,6 +852,7 @@ public class SnakkApiClient(
             if (allowAdultContent.HasValue) request.AllowAdultContent = allowAdultContent.Value;
             request.ResetAdultContentToAsk = clearAllowAdultContent;
             if (adultPreviewImageMode.HasValue) request.AdultPreviewImageMode = adultPreviewImageMode.Value;
+            if (hidePresence.HasValue) request.HidePresence = hidePresence.Value;
             await authClient.UpdatePreferencesAsync(request);
 
             return true;
@@ -1113,6 +1114,17 @@ public class SnakkApiClient(
                 PublicId   = publicId ?? "",
                 Days       = days
             });
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<SparklineBatchResponse?> GetActivitySparklinesBatchAsync(IEnumerable<string> publicIds, int days = 7)
+    {
+        try
+        {
+            var request = new SparklineBatchRequest { Days = days };
+            request.PublicIds.AddRange(publicIds);
+            return await statisticsClient.GetActivitySparklinesBatchAsync(request);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }

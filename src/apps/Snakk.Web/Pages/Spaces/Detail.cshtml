@@ -1,4 +1,4 @@
-@page "/c/{communitySlug}/h/{hubSlug}/{slug}"
+﻿@page "/c/{communitySlug}/h/{hubSlug}/{slug}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
@@ -6,7 +6,6 @@
 @using static Snakk.Web.Helpers.DiscussionTypeHelper
 @model Snakk.Web.Pages.Spaces.DetailModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = Model.Space?.Name ?? T.Pages.SpaceDetailFallbackTitle;
     ViewData["Description"] = Model.Space is { IsRestricted: false }
         ? string.Format(T.Pages.SpaceDetailDescPattern, Model.Space.Name)

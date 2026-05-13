@@ -33,6 +33,7 @@ public class PostUseCaseTests
         _reactionUseCase = Substitute.For<ReactionUseCase>(
             Substitute.For<IReactionRepository>(),
             Substitute.For<IPostRepository>(),
+            Substitute.For<IDiscussionRepository>(),
             Substitute.For<IRealtimeNotifier>(),
             Substitute.For<ICounterService>());
 

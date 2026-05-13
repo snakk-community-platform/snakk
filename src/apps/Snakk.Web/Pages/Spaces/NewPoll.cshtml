@@ -1,10 +1,9 @@
-@page "/new/poll"
+﻿@page "/new/poll"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewPollModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = string.Format(T.Pages.SpacesNewPollTitlePattern, Model.Space?.Name);
 }
 

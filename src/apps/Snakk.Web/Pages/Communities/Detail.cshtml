@@ -1,11 +1,10 @@
-@page "/c/{slug}"
+﻿@page "/c/{slug}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Communities.DetailModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = Model.CommunityDetail?.Name ?? T.Pages.CommDetailFallbackTitle;
     ViewData["Description"] = Model.CommunityDetail is { IsRestricted: false }
         ? $"{Model.CommunityDetail.Name} — {(Model.CommunityDetail.Description ?? T.Pages.CommDetailAboutFallback)}"

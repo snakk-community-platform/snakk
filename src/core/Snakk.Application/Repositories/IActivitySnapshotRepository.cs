@@ -14,6 +14,12 @@ public interface IActivitySnapshotRepository
         CancellationToken ct = default);
 
     /// <summary>
+    /// Returns sparkline data for multiple spaces in two queries instead of 2N.
+    /// </summary>
+    Task<Dictionary<string, List<ActivitySparklineDayDto>>> GetSparklinesForSpacesAsync(
+        IEnumerable<string> publicIds, int days, CancellationToken ct = default);
+
+    /// <summary>
     /// Recomputes today's and yesterday's activity counts for all active entities
     /// and upserts them into the snapshot table. Called by ActivitySnapshotWorker.
     /// </summary>

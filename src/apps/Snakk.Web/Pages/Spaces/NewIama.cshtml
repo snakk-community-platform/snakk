@@ -1,10 +1,9 @@
-@page "/new/iama"
+﻿@page "/new/iama"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewIamaModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = string.Format(T.Pages.SpacesNewIamaTitlePattern, Model.Space?.Name);
 }
 

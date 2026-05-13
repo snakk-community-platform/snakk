@@ -57,7 +57,8 @@ public class UserProfileUseCaseTests
             replyCount: 120,
             followerCount: 8);
         var publicId = user.PublicId.Value;
-        _userRepository.GetByPublicIdAsync(user.PublicId).Returns(user);
+        _userRepository.GetProfileSlimByPublicIdAsync(user.PublicId).Returns(
+            new UserProfileSlim(publicId, "TestUser", "avatar.png", null, user.CreatedAt, user.LastSeenAt, 15, 8, 120, null));
 
         var result = await _useCase.GetUserProfileAsync(publicId);
 
@@ -76,7 +77,7 @@ public class UserProfileUseCaseTests
     public async Task GetUserProfileAsync_WithNonExistentUser_ReturnsNull()
     {
         var userId = UserId.New();
-        _userRepository.GetByPublicIdAsync(userId).Returns((User?)null);
+        _userRepository.GetProfileSlimByPublicIdAsync(userId).Returns((UserProfileSlim?)null);
 
         var result = await _useCase.GetUserProfileAsync(userId.Value);
 
@@ -88,7 +89,8 @@ public class UserProfileUseCaseTests
     {
         var user = User.CreateWithEmail("NoAvatarUser", "no-avatar@test.com", "hash", "token");
         var publicId = user.PublicId.Value;
-        _userRepository.GetByPublicIdAsync(user.PublicId).Returns(user);
+        _userRepository.GetProfileSlimByPublicIdAsync(user.PublicId).Returns(
+            new UserProfileSlim(publicId, "NoAvatarUser", null, null, user.CreatedAt, null, 0, 0, 0, null));
 
         var result = await _useCase.GetUserProfileAsync(publicId);
 
@@ -101,7 +103,8 @@ public class UserProfileUseCaseTests
     {
         var user = User.CreateWithEmail("NewUser", "new@test.com", "hash", "token");
         var publicId = user.PublicId.Value;
-        _userRepository.GetByPublicIdAsync(user.PublicId).Returns(user);
+        _userRepository.GetProfileSlimByPublicIdAsync(user.PublicId).Returns(
+            new UserProfileSlim(publicId, "NewUser", null, null, user.CreatedAt, null, 0, 0, 0, null));
 
         var result = await _useCase.GetUserProfileAsync(publicId);
 
@@ -120,7 +123,8 @@ public class UserProfileUseCaseTests
             DateTime.UtcNow.AddDays(-30),
             lastSeenAt: null);
         var publicId = user.PublicId.Value;
-        _userRepository.GetByPublicIdAsync(user.PublicId).Returns(user);
+        _userRepository.GetProfileSlimByPublicIdAsync(user.PublicId).Returns(
+            new UserProfileSlim(publicId, "TestUser", null, null, user.CreatedAt, null, 0, 0, 0, null));
 
         var result = await _useCase.GetUserProfileAsync(publicId);
 

@@ -1,10 +1,9 @@
-@page "/new/gallery"
+﻿@page "/new/gallery"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewGalleryModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = string.Format(T.Pages.SpacesNewGalleryTitlePattern, Model.Space?.Name);
 }
 

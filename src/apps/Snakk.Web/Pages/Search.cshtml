@@ -1,9 +1,8 @@
-@page
+﻿@page
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @model SearchModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = string.IsNullOrEmpty(Model.Q) ? T.Pages.SearchTitle : $"{T.Pages.SearchTitlePrefix}{Model.Q}";
     var hasQuery = !string.IsNullOrEmpty(Model.Q);
     var hasAuthorFilter = !string.IsNullOrEmpty(Model.AuthorPublicId);

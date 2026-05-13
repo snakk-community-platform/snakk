@@ -1,10 +1,9 @@
-@page "/moderators"
+﻿@page "/moderators"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.ModeratorsModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = T.Pages.ModeratorsTitle;
     ViewData["Description"] = "Global administrators and moderators for the platform.";
 }

@@ -1,9 +1,8 @@
-@page "/c/{communitySlug}/h/{slug}/moderators"
+﻿@page "/c/{communitySlug}/h/{slug}/moderators"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @model Snakk.Web.Pages.Hubs.ModeratorsModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = string.Format(T.Pages.HubModsTitlePattern, Model.Hub?.Name);
     ViewData["Description"] = string.Format(T.Pages.HubModsDescPattern, Model.Hub?.Name);
 }

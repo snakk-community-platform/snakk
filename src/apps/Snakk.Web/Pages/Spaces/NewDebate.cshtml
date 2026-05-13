@@ -1,10 +1,9 @@
-@page "/new/debate"
+﻿@page "/new/debate"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewDebateModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = string.Format(T.Pages.SpacesNewDebateTitlePattern, Model.Space?.Name);
 }
 

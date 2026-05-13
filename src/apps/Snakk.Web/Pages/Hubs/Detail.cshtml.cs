@@ -75,14 +75,15 @@ public class DetailModel(
         if (Spaces?.Items is { Count: > 0 } spaceItems)
         {
             var spaceIds = spaceItems.Select(s => s.PublicId).ToList();
-            var sparklineTasks = spaceIds.Select(id => _apiClient.GetActivitySparklineAsync("space", id, 7)).ToList();
-            var sparklineResults = await Task.WhenAll(sparklineTasks);
-            for (var i = 0; i < spaceIds.Count; i++)
+            var batchResult = await _apiClient.GetActivitySparklinesBatchAsync(spaceIds, 7);
+            if (batchResult != null)
             {
-                var result = sparklineResults[i];
-                if (result?.Days.Count > 0)
-                    SpaceSparklineJson[spaceIds[i]] = System.Text.Json.JsonSerializer.Serialize(
-                        result.Days.Select(d => new { date = d.Date, postCount = d.PostCount, discussionCount = d.DiscussionCount }));
+                foreach (var entry in batchResult.Entries)
+                {
+                    if (entry.Days.Count > 0)
+                        SpaceSparklineJson[entry.PublicId] = System.Text.Json.JsonSerializer.Serialize(
+                            entry.Days.Select(d => new { date = d.Date, postCount = d.PostCount, discussionCount = d.DiscussionCount }));
+                }
             }
         }
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;

@@ -122,9 +122,9 @@ public class StatisticsUseCase(
             days = 30;
 
         var userId = UserId.From(publicId);
-        var user = await userRepo.GetByPublicIdAsync(userId);
+        var userExists = (await userRepo.GetAvatarSlimByPublicIdsAsync([userId])).Any();
 
-        if (user is null)
+        if (!userExists)
             return Result<UserActivityHistoryResult>.Failure("User not found");
 
         var startDate = DateTime.UtcNow.Date.AddDays(-days);

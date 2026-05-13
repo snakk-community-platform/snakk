@@ -76,7 +76,9 @@ public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICoun
 
         await Task.WhenAll(
             RunUpdateAsync(db => db.Discussions.Where(d => d.Id == discussionDbId)
-                .ExecuteUpdateAsync(d => d.SetProperty(x => x.PostCount, x => x.PostCount + 1))),
+                .ExecuteUpdateAsync(d => d
+                    .SetProperty(x => x.PostCount, x => x.PostCount + 1)
+                    .SetProperty(x => x.EngagementScore, x => x.EngagementScore + 1))),
             RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceId)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.PostCount, x => x.PostCount + 1))),
             RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)
@@ -102,7 +104,9 @@ public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICoun
 
         await Task.WhenAll(
             RunUpdateAsync(db => db.Discussions.Where(d => d.Id == discussionDbId)
-                .ExecuteUpdateAsync(d => d.SetProperty(x => x.PostCount, x => x.PostCount - 1))),
+                .ExecuteUpdateAsync(d => d
+                    .SetProperty(x => x.PostCount, x => x.PostCount - 1)
+                    .SetProperty(x => x.EngagementScore, x => x.EngagementScore - 1))),
             RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceId)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.PostCount, x => x.PostCount - 1))),
             RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)
@@ -131,7 +135,9 @@ public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICoun
             RunUpdateAsync(db => db.Posts.Where(p => p.PublicId == postPublicId)
                 .ExecuteUpdateAsync(p => p.SetProperty(x => x.ReactionCount, x => x.ReactionCount + 1))),
             RunUpdateAsync(db => db.Discussions.Where(d => d.Id == discussionDbId)
-                .ExecuteUpdateAsync(d => d.SetProperty(x => x.ReactionCount, x => x.ReactionCount + 1))),
+                .ExecuteUpdateAsync(d => d
+                    .SetProperty(x => x.ReactionCount, x => x.ReactionCount + 1)
+                    .SetProperty(x => x.EngagementScore, x => x.EngagementScore + 1))),
             RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceId)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.ReactionCount, x => x.ReactionCount + 1))),
             RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)
@@ -160,7 +166,9 @@ public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICoun
             RunUpdateAsync(db => db.Posts.Where(p => p.PublicId == postPublicId)
                 .ExecuteUpdateAsync(p => p.SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1))),
             RunUpdateAsync(db => db.Discussions.Where(d => d.Id == discussionDbId)
-                .ExecuteUpdateAsync(d => d.SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1))),
+                .ExecuteUpdateAsync(d => d
+                    .SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1)
+                    .SetProperty(x => x.EngagementScore, x => x.EngagementScore - 1))),
             RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceId)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1))),
             RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)

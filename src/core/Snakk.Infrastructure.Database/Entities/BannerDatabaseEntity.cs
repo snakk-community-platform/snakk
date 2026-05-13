@@ -22,5 +22,6 @@ public class BannerDatabaseEntity
 
     // Many-to-one relationships
     public int CreatedByUserId { get; set; }
+    public string? CreatedByUserPublicId { get; set; }
     public virtual UserDatabaseEntity CreatedByUser { get; set; } = null!;
 }

@@ -283,6 +283,10 @@
         "privConfirmPwdPlaceholder": "Bekreft nytt passord",
         "privChangePwdBtn":       "Endre passord",
 
+        "privPresenceTitle":      "Tilstedeværelse og synlighet",
+        "privPresenceLabel":      "Skjul meg fra lister over hvem som leser og skriver",
+        "privPresenceHelp":       "Når aktivert, vises du som anonym bruker for andre i 'hvem leser'-indikatoren og skriveindikatoren i diskusjoner. Trer i kraft innen en time etter lagring.",
+
         "socialIntro":            "Legg til lenker til profilene dine på andre plattformer. Andre vil se disse på den offentlige profilen din. Maksimum 10 lenker. Velg blant de støttede plattformene nedenfor.",
         "socialLoading":          "Laster…",
         "socialPlatform":         "Plattform",

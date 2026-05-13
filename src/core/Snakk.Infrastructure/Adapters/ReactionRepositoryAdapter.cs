@@ -217,6 +217,61 @@ public class ReactionRepositoryAdapter(
         return result;
     }
 
+    public async Task<ReactionBatchData> GetReactionDataAsync(IEnumerable<PostId> postIds, UserId? userId)
+    {
+        var publicIds = postIds.Select(p => p.Value).ToList();
+
+        var posts = await context.Posts
+            .Where(p => publicIds.Contains(p.PublicId))
+            .Select(p => new { p.Id, p.PublicId })
+            .ToListAsync();
+
+        var postIdMap = posts.ToDictionary(p => p.Id, p => p.PublicId);
+        var internalIds = posts.Select(p => p.Id).ToList();
+
+        var reactions = await context.PostReactions
+            .Where(r => internalIds.Contains(r.PostId))
+            .GroupBy(r => new { r.PostId, r.TypeId })
+            .Select(g => new { g.Key.PostId, g.Key.TypeId, Count = g.Count() })
+            .ToListAsync();
+
+        var counts = new Dictionary<string, Dictionary<ReactionType, int>>();
+        foreach (var publicId in publicIds)
+            counts[publicId] = new Dictionary<ReactionType, int>();
+        foreach (var r in reactions)
+            if (postIdMap.TryGetValue(r.PostId, out var countPublicId))
+                counts[countPublicId][((ReactionTypeEnum)r.TypeId).ToDomain()] = r.Count;
+
+        var userReactions = new Dictionary<string, List<ReactionType>>();
+        if (userId is not null)
+        {
+            var userDbId = await context.Users
+                .Where(u => u.PublicId == userId.Value)
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync();
+
+            if (userDbId != 0)
+            {
+                var rawUserReactions = await context.PostReactions
+                    .Where(r => r.UserId == userDbId && internalIds.Contains(r.PostId))
+                    .Select(r => new { r.PostId, r.TypeId })
+                    .ToListAsync();
+
+                foreach (var r in rawUserReactions)
+                {
+                    if (postIdMap.TryGetValue(r.PostId, out var urPublicId))
+                    {
+                        if (!userReactions.ContainsKey(urPublicId))
+                            userReactions[urPublicId] = [];
+                        userReactions[urPublicId].Add(((ReactionTypeEnum)r.TypeId).ToDomain());
+                    }
+                }
+            }
+        }
+
+        return new ReactionBatchData(counts, userReactions);
+    }
+
     public async Task<int> GetTotalReactionsReceivedByUserAsync(UserId userId)
     {
         return await context.PostReactions

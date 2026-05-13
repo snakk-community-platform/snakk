@@ -1,6 +1,42 @@
-@* Partial layout for HTMX boosted requests - no full HTML, just content *@
-<div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
-@RenderBody()
+@* Partial layout for HTMX boosted requests — replaces #main-content only, no full page shell.
+   No <head> here: head-support would strip existing CSS not present in the response head.
+   Page-specific styles are rendered inside #main-content so they load with the swap. *@
+@{ IgnoreSection("LeftColumn"); }
 @await RenderSectionAsync("Meta", required: false)
-@await RenderSectionAsync("Styles", required: false)
-@await RenderSectionAsync("Scripts", required: false)
+<div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
+<div id="main-content" class="sn-main-body">
+    @await RenderSectionAsync("Styles", required: false)
+    <div class="sn-center-header">
+        <div class="sn-search-wrap" id="sn-search-wrap">
+            <span class="icon icon-search sn-search-icon" aria-hidden="true"></span>
+            <input type="search" class="sn-search-input" id="sn-search-input"
+                   placeholder="@T.Common.SearchPlaceholder" autocomplete="off" spellcheck="false"
+                   aria-label="@T.Common.SearchPlaceholder" />
+            <div class="sn-search-popup" id="sn-search-popup" hidden>
+                <div class="sn-search-popup-row">
+                    <span class="sn-search-popup-label">@T.Pages.SearchTypeLabel</span>
+                    <div class="join flex-wrap">
+                        <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="post" aria-label="@T.Pages.SearchTypePost" />
+                        <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="discussion" aria-label="@T.Pages.SearchTypeDiscussion" />
+                        <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="space" aria-label="@T.Pages.SearchTypeSpace" />
+                        <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="user" aria-label="@T.Pages.SearchTypeUser" />
+                    </div>
+                </div>
+                <div class="sn-search-popup-row">
+                    <span class="sn-search-popup-label">@T.Pages.SearchDateLabel</span>
+                    <div class="join flex-wrap">
+                        <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="past hour" aria-label="@T.Pages.SearchDatePastHour" />
+                        <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="today" aria-label="@T.Pages.SearchDateToday" />
+                        <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="past week" aria-label="@T.Pages.SearchDatePastWeek" />
+                        <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="past month" aria-label="@T.Pages.SearchDatePastMonth" />
+                        <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="all time" aria-label="@T.Pages.SearchDateAllTime" checked />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    @{ IgnoreSection("CenterHeader"); }
+    @RenderBody()
+    @await RenderSectionAsync("Scripts", required: false)
+    <script src="@SnakkUrlHelper.Js("core/spoiler-restore")" asp-append-version="true"></script>
+</div>

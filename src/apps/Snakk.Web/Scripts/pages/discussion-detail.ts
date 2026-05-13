@@ -165,7 +165,13 @@ function initReplyEditor(): Promise<void> {
 
         function updateReplyBtn(): void {
             const btn = document.getElementById('reply-submit-btn') as HTMLButtonElement | null;
-            if (btn) btn.disabled = !hasTextContent(replyMd) || replyUploading;
+            if (!btn) return;
+            const form = btn.closest('form') ?? document.getElementById('reply-form');
+            const hasPicker = !!form?.querySelector('.debate-position-picker');
+            const hasPosition = !!form?.querySelector('input[name="DebatePositionId"]');
+            const positionOk = !hasPicker || hasPosition;
+            btn.disabled = !hasTextContent(replyMd) || replyUploading || !positionOk;
+            btn.title = hasPicker && !hasPosition ? 'Pick a position before replying' : '';
         }
 
         const editor = await (window as any).SnakkEditor.init({
@@ -203,6 +209,18 @@ function initReplyEditor(): Promise<void> {
 
             // Typing indicator: fire when content actually changes (not on arrow/modifier keys)
             textarea.addEventListener('input', onReplyContentChanged);
+
+            // Re-evaluate submit button when a debate position is selected.
+            const replyForm = textarea.closest('form') ?? document.getElementById('reply-form');
+            replyForm?.addEventListener('snakk:debate:position-changed', () => updateReplyBtn());
+
+            // If the debate picker was inserted before the editor finished initializing
+            // (fetch resolved before SnakkEditor.init), move it into the message area now.
+            const messageArea = container.querySelector('.milkdown-message-area');
+            const earlyPicker = replyForm?.querySelector('.debate-position-picker');
+            if (messageArea && earlyPicker && !messageArea.contains(earlyPicker)) {
+                messageArea.appendChild(earlyPicker);
+            }
         }
 
         // Intercept form submit: upload any deferred blob-URL images, then re-submit

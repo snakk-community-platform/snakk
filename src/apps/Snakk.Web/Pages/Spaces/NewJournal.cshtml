@@ -1,10 +1,9 @@
-@page "/new/journal"
+﻿@page "/new/journal"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewJournalModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = string.Format(T.Pages.SpacesNewJournalTitlePattern, Model.Space?.Name);
 }
 

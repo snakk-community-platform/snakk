@@ -5,6 +5,7 @@ using Snakk.Api.Services;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
+using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Protos.Auth;
@@ -23,7 +24,8 @@ public class AuthGrpcService(
     IUserGrantsCacheService grantsCache,
     IDisplayNameHistoryRepository displayNameHistoryRepository,
     ITurnstileService turnstileService,
-    IConsentService consentService) : AuthService.AuthServiceBase
+    IConsentService consentService,
+    IUserRepository userRepository) : AuthService.AuthServiceBase
 {
     public override async Task<AuthTokenResponse> Register(RegisterRequest request, ServerCallContext context)
     {
@@ -211,17 +213,15 @@ public class AuthGrpcService(
             return new CurrentUserResponse();
 
         var userId = UserId.From(userIdValue);
-        var result = await authUseCase.GetUserByIdAsync(userId);
+        var user = await userRepository.GetCurrentUserSlimAsync(userId);
 
-        if (!result.IsSuccess)
+        if (user is null)
             return new CurrentUserResponse();
-
-        var user = result.Value!;
 
         var response = new CurrentUserResponse
         {
             IsAuthenticated = true,
-            PublicId = user.PublicId.Value,
+            PublicId = user.PublicId,
             DisplayName = user.DisplayName,
             Email = user.Email,
             EmailVerified = user.EmailVerified,
@@ -229,9 +229,10 @@ public class AuthGrpcService(
             AutoFollowOnReply = user.AutoFollowOnReply,
             Timezone = user.Timezone ?? "",
             IsDisplayNameLocked = user.IsDisplayNameLocked,
-            HasPassword = user.PasswordHash is not null,
-            AvatarUrl = AvatarHelper.GetAvatarUrl(user.PublicId.Value, AvatarEntityType.User, 0, user.AvatarFileName),
-            AdultPreviewImageMode = (int)user.AdultPreviewImageMode,
+            HasPassword = user.HasPassword,
+            AvatarUrl = AvatarHelper.GetAvatarUrl(user.PublicId, AvatarEntityType.User, 0, user.AvatarFileName),
+            AdultPreviewImageMode = user.AdultPreviewImageMode,
+            HidePresence = user.HidePresence,
         };
 
         if (user.AllowAdultContent.HasValue)
@@ -317,6 +318,7 @@ public class AuthGrpcService(
         AdultPreviewImageModeEnum? adultPreviewImageMode = request.HasAdultPreviewImageMode
             ? (AdultPreviewImageModeEnum)request.AdultPreviewImageMode
             : null;
+        bool? hidePresence = request.HasHidePresence ? request.HidePresence : null;
 
         var result = await authUseCase.UpdatePreferencesAsync(
             userId,
@@ -325,7 +327,8 @@ public class AuthGrpcService(
             bio,
             allowAdultContent,
             request.ResetAdultContentToAsk,
-            adultPreviewImageMode);
+            adultPreviewImageMode,
+            hidePresence);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Update failed"));

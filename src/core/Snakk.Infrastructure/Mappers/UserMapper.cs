@@ -49,7 +49,8 @@ public static class UserMapper
             entity.IsDisplayNameLocked,
             entity.FailedLoginAttempts,
             entity.LockoutEnd,
-            adultPreviewImageMode: (AdultPreviewImageModeEnum)entity.AdultPreviewImageMode);
+            adultPreviewImageMode: (AdultPreviewImageModeEnum)entity.AdultPreviewImageMode,
+            hidePresence: entity.HidePresence);
     }
 
     public static UserDatabaseEntity ToPersistence(this User user) =>
@@ -70,6 +71,7 @@ public static class UserMapper
             AutoFollowOnReply = user.AutoFollowOnReply,
             AllowAdultContent = user.AllowAdultContent,
             AdultPreviewImageMode = (int)user.AdultPreviewImageMode,
+            HidePresence = user.HidePresence,
             Timezone = user.Timezone,
             Bio = user.Bio,
             FeedToken = user.FeedToken,

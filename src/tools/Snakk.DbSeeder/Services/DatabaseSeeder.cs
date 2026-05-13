@@ -1097,6 +1097,7 @@ public class DatabaseSeeder(
             discussion.LastActivityAt = lastActivityAt;
             discussion.PostCount = 1 + replyCount;
             discussion.ReactionCount = 0;
+            discussion.EngagementScore = discussion.PostCount;
         }
 
         _context.Posts.AddRange(posts);
@@ -1704,6 +1705,7 @@ public class DatabaseSeeder(
             discussion.LastActivityAt = lastActivityAt;
             discussion.PostCount = postCount;
             discussion.ReactionCount = 0;
+            discussion.EngagementScore = discussion.PostCount;
 
             _context.Posts.AddRange(posts);
             await _context.SaveChangesAsync();
@@ -1873,6 +1875,7 @@ public class DatabaseSeeder(
             discussion.LastActivityAt = necroDate;
             discussion.PostCount = postNumber;
             discussion.ReactionCount = 0;
+            discussion.EngagementScore = discussion.PostCount;
 
             _context.Posts.AddRange(posts);
             await _context.SaveChangesAsync();
@@ -1978,7 +1981,10 @@ public class DatabaseSeeder(
             .ToListAsync();
 
         foreach (var discussion in discussionsToUpdate)
+        {
             discussion.ReactionCount = discussionReactionCounts.GetValueOrDefault(discussion.Id);
+            discussion.EngagementScore = discussion.PostCount + discussion.ReactionCount;
+        }
 
         await _context.SaveChangesAsync();
 

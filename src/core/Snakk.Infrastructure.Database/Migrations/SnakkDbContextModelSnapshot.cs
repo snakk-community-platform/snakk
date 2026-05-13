@@ -231,6 +231,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("CreatedByUserId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("CreatedByUserPublicId")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsDismissible")
                         .HasColumnType("boolean");
 
@@ -387,6 +390,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Id")
+                        .HasDatabaseName("IX_Community_IsRestricted_True")
+                        .HasFilter("\"IsRestricted\" = TRUE");
 
                     b.HasIndex("PublicId")
                         .IsUnique();
@@ -548,6 +555,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("EngagementScore")
+                        .HasColumnType("integer");
+
                     b.Property<int>("FollowerCount")
                         .HasColumnType("integer");
 
@@ -656,6 +666,11 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsDescending(true, false)
                         .HasDatabaseName("IX_Discussion_CreatedAt_IsDeleted_Desc");
 
+                    b.HasIndex("EngagementScore", "Id")
+                        .IsDescending()
+                        .HasDatabaseName("IX_Discussion_EngagementScore_Id_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
                     b.HasIndex("LastActivityAt", "Id")
                         .IsDescending()
                         .HasDatabaseName("IX_Discussion_LastActivityAt_Id_NotDeleted")
@@ -676,6 +691,11 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("CreatedByUserId", "CreatedAt", "Id")
                         .IsDescending(false, true, true)
                         .HasDatabaseName("IX_Discussion_CreatedByUserId_CreatedAt_Id_Desc");
+
+                    b.HasIndex("CreatedByUserPublicId", "LastActivityAt", "Id")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("IX_Discussion_CreatedByUserPublicId_LastActivityAt_Id_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
 
                     b.HasIndex("HubId", "LastActivityAt", "Id")
                         .IsDescending(false, true, true)
@@ -1427,6 +1447,10 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Id")
+                        .HasDatabaseName("IX_Hub_IsRestricted_True")
+                        .HasFilter("\"IsRestricted\" = TRUE");
+
                     b.HasIndex("PublicId")
                         .IsUnique();
 
@@ -1904,6 +1928,11 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("CreatedAt", "CreatedByUserPublicId")
                         .IsDescending(true, false)
                         .HasDatabaseName("IX_Post_CreatedAt_CreatedByUserPublicId_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.HasIndex("CreatedByUserPublicId", "CreatedAt")
+                        .IsDescending(false, true)
+                        .HasDatabaseName("IX_Post_CreatedByUserPublicId_CreatedAt_NotDeleted")
                         .HasFilter("\"IsDeleted\" = FALSE");
 
                     b.HasIndex("HubId", "CreatedAt")
@@ -2563,6 +2592,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasIndex("CommunityPublicId")
                         .HasDatabaseName("IX_Space_CommunityPublicId_NotDeleted")
                         .HasFilter("\"IsDeleted\" = FALSE");
+
+                    b.HasIndex("Id")
+                        .HasDatabaseName("IX_Space_IsRestricted_True")
+                        .HasFilter("\"IsRestricted\" = TRUE");
 
                     b.HasIndex("PublicId")
                         .IsUnique();
@@ -3490,6 +3523,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("UserPublicId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -3498,6 +3534,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserPublicId")
+                        .HasDatabaseName("IX_UserSocialLink_UserPublicId");
 
                     b.HasIndex("UserId", "Platform")
                         .IsUnique();

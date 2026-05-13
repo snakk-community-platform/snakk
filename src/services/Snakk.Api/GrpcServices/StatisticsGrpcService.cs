@@ -368,4 +368,27 @@ public class StatisticsGrpcService(
         }
         return response;
     }
+
+    public override async Task<SparklineBatchResponse> GetActivitySparklinesBatch(
+        SparklineBatchRequest request, ServerCallContext context)
+    {
+        var days = Math.Clamp(request.Days, 1, 90);
+        var data = await activitySnapshotRepository.GetSparklinesForSpacesAsync(
+            request.PublicIds, days, context.CancellationToken);
+
+        var response = new SparklineBatchResponse();
+        foreach (var (publicId, sparkline) in data)
+        {
+            var entry = new SpaceSparklineEntry { PublicId = publicId };
+            foreach (var d in sparkline)
+                entry.Days.Add(new SparklineDay
+                {
+                    Date            = d.Date.ToString("yyyy-MM-dd"),
+                    PostCount       = d.PostCount,
+                    DiscussionCount = d.DiscussionCount
+                });
+            response.Entries.Add(entry);
+        }
+        return response;
+    }
 }

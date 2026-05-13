@@ -862,7 +862,8 @@ public static class BffApiEndpoints
             bio = apiResult.HasBio ? apiResult.Bio : null,
             feedToken = apiResult.HasFeedToken ? apiResult.FeedToken : null,
             allowAdultContent = apiResult.AllowAdultContent,
-            adultPreviewImageMode = apiResult.AdultPreviewImageMode
+            adultPreviewImageMode = apiResult.AdultPreviewImageMode,
+            hidePresence = apiResult.HidePresence
         });
     }
 
@@ -914,7 +915,7 @@ public static class BffApiEndpoints
     {
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
-        var success = await apiClient.UpdatePreferencesAsync(request.AutoFollowOnReply, request.Timezone, request.Bio, request.AllowAdultContent, request.ClearAllowAdultContent, request.AdultPreviewImageMode);
+        var success = await apiClient.UpdatePreferencesAsync(request.AutoFollowOnReply, request.Timezone, request.Bio, request.AllowAdultContent, request.ClearAllowAdultContent, request.AdultPreviewImageMode, request.HidePresence);
         if (!success) return Results.BadRequest(new { error = "Failed to update preferences" });
 
         // Update timezone cookie
@@ -2364,4 +2365,4 @@ public record ReadStateUpdate(string DiscussionId, string PostId);
 public record BatchUpdateReadStatesRequest(List<ReadStateUpdate> Updates);
 public record UpdateProfileRequestDto(string DisplayName, string? Password = null, string? TurnstileToken = null);
 public record ValidateHistoryIdsRequest(IReadOnlyList<string>? Ids);
-public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null, bool ClearAllowAdultContent = false, int? AdultPreviewImageMode = null);
+public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null, bool ClearAllowAdultContent = false, int? AdultPreviewImageMode = null, bool? HidePresence = null);

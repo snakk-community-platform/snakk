@@ -129,10 +129,15 @@ public class PermissionEdgeCasesTests : IDisposable
 
     private async Task<DiscussionDatabaseEntity> CreateDiscussion(int spaceId, int userId, string publicId)
     {
+        var space = await _context.Spaces.FindAsync(spaceId);
+        var hub = await _context.Hubs.FindAsync(space!.HubId);
+        var community = await _context.Communities.FindAsync(hub!.CommunityId);
         var discussion = new DiscussionDatabaseEntity
         {
             PublicId = publicId,
             SpaceId = spaceId,
+            HubId = hub.Id,
+            CommunityId = community!.Id,
             CreatedByUserId = userId,
             Title = $"Discussion {publicId}",
             Slug = publicId,

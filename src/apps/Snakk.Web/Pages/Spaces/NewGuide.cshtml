@@ -1,10 +1,9 @@
-@page "/new/guide"
+﻿@page "/new/guide"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewGuideModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = string.Format(T.Pages.SpacesNewGuideTitlePattern, Model.Space?.Name);
 }
 

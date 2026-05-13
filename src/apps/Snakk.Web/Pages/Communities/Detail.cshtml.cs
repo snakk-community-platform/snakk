@@ -86,29 +86,29 @@ public class DetailModel(
         if (stats is not null)
             InlineCommunityStats = new(stats.SpaceCount, stats.DiscussionCount, stats.ReplyCount, "fresh");
 
-        // Fetch spaces for each hub (sequential to avoid DbContext concurrency)
+        // Fetch spaces for all hubs in parallel (each gRPC call has its own DbContext scope)
         if (Hubs?.Items != null)
         {
-            foreach (var hub in Hubs.Items)
-            {
-                var spaces = await _apiClient.GetSpacesByHubAsync(hub.PublicId, 0, 50);
+            var spaceTasks = Hubs.Items.Select(async hub =>
+                (hub.PublicId, spaces: await _apiClient.GetSpacesByHubAsync(hub.PublicId, 0, 50)));
+            foreach (var (hubPublicId, spaces) in await Task.WhenAll(spaceTasks))
                 if (spaces != null)
-                    SpacesByHub[hub.PublicId] = spaces;
-            }
+                    SpacesByHub[hubPublicId] = spaces;
         }
 
-        // Fetch sparklines for all spaces in parallel (gRPC, safe to parallelize)
+        // Fetch sparklines for all spaces in a single batch gRPC call (2 DB queries total)
         var allSpaceIds = SpacesByHub.Values.SelectMany(s => s.Items).Select(s => s.PublicId).ToList();
         if (allSpaceIds.Count > 0)
         {
-            var sparklineTasks = allSpaceIds.Select(id => _apiClient.GetActivitySparklineAsync("space", id, 7)).ToList();
-            var sparklineResults = await Task.WhenAll(sparklineTasks);
-            for (var i = 0; i < allSpaceIds.Count; i++)
+            var batchResult = await _apiClient.GetActivitySparklinesBatchAsync(allSpaceIds, 7);
+            if (batchResult != null)
             {
-                var result = sparklineResults[i];
-                if (result?.Days.Count > 0)
-                    SpaceSparklineJson[allSpaceIds[i]] = System.Text.Json.JsonSerializer.Serialize(
-                        result.Days.Select(d => new { date = d.Date, postCount = d.PostCount, discussionCount = d.DiscussionCount }));
+                foreach (var entry in batchResult.Entries)
+                {
+                    if (entry.Days.Count > 0)
+                        SpaceSparklineJson[entry.PublicId] = System.Text.Json.JsonSerializer.Serialize(
+                            entry.Days.Select(d => new { date = d.Date, postCount = d.PostCount, discussionCount = d.DiscussionCount }));
+                }
             }
         }
 

@@ -25,6 +25,7 @@ public class User
     public string? FeedToken { get; private set; }
     public bool? AllowAdultContent { get; private set; }
     public AdultPreviewImageModeEnum AdultPreviewImageMode { get; private set; } = AdultPreviewImageModeEnum.Show;
+    public bool HidePresence { get; private set; } = false;
     public bool NeedsProfileSetup { get; private set; } // OAuth users need to choose a display name
     public DateTime? DisplayNameChangedAt { get; private set; }
     public bool IsDisplayNameLocked { get; private set; }
@@ -78,7 +79,8 @@ public class User
         bool isDisplayNameLocked = false,
         int failedLoginAttempts = 0,
         DateTime? lockoutEnd = null,
-        AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show)
+        AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show,
+        bool hidePresence = false)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -99,6 +101,7 @@ public class User
         FeedToken = feedToken;
         AllowAdultContent = allowAdultContent;
         AdultPreviewImageMode = adultPreviewImageMode;
+        HidePresence = hidePresence;
         NeedsProfileSetup = needsProfileSetup;
         DiscussionCount = discussionCount;
         ReplyCount = replyCount;
@@ -243,7 +246,8 @@ public class User
         bool isDisplayNameLocked = false,
         int failedLoginAttempts = 0,
         DateTime? lockoutEnd = null,
-        AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show) =>
+        AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show,
+        bool hidePresence = false) =>
         new User(
             publicId,
             displayName,
@@ -275,7 +279,8 @@ public class User
             isDisplayNameLocked,
             failedLoginAttempts,
             lockoutEnd,
-            adultPreviewImageMode);
+            adultPreviewImageMode,
+            hidePresence);
 
     public void UpdateDisplayName(string displayName)
     {
@@ -398,6 +403,12 @@ public class User
     public void SetAdultPreviewImageMode(AdultPreviewImageModeEnum mode)
     {
         AdultPreviewImageMode = mode;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetHidePresence(bool hide)
+    {
+        HidePresence = hide;
         LastModifiedAt = DateTime.UtcNow;
     }
 

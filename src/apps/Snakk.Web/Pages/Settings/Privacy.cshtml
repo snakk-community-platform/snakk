@@ -1,8 +1,7 @@
-@page "/settings/privacy"
+﻿@page "/settings/privacy"
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Settings.PrivacyModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = T.Settings.TitlePrivacy;
     ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
 }
@@ -70,6 +69,19 @@
                     </div>
                 </form>
             </div>
+            <!-- Presence & Visibility -->
+            <div id="section-presence" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.PrivPresenceTitle</h3>
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" id="hide-presence-toggle" class="checkbox checkbox-sm mt-0.5 shrink-0"
+                           @(Model.HidePresence ? "checked" : "") />
+                    <span class="flex flex-col gap-1">
+                        <span class="font-medium text-sm">@T.Settings.PrivPresenceLabel</span>
+                        <span class="text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivPresenceHelp</span>
+                    </span>
+                </label>
+            </div>
+
         </div>
         } @* end IsAuthenticated *@
     </div>
@@ -81,3 +93,17 @@
 </aside>
 
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>
+<script>
+(function() {
+    var toggle = document.getElementById('hide-presence-toggle');
+    if (!toggle) return;
+    toggle.addEventListener('change', function() {
+        fetch('/bff/me/preferences', {
+            method: 'PUT',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ hidePresence: toggle.checked })
+        });
+    });
+})();
+</script>

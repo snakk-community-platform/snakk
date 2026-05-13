@@ -79,4 +79,7 @@ public class ReactionUseCase(
 
     public async Task<Dictionary<string, List<ReactionType>>> GetUserReactionsBatchAsync(UserId userId, IEnumerable<PostId> postIds) =>
         await reactionRepository.GetUserReactionsForPostsAsync(userId, postIds);
+
+    public async Task<ReactionBatchData> GetReactionDataAsync(IEnumerable<PostId> postIds, UserId? userId) =>
+        await reactionRepository.GetReactionDataAsync(postIds, userId);
 }

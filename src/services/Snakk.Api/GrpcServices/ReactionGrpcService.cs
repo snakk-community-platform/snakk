@@ -89,7 +89,7 @@ public class ReactionGrpcService(
             CommunitySlug        = p.CommunitySlug,
             AuthorPublicId       = p.AuthorPublicId,
             AuthorDisplayName    = p.AuthorDisplayName,
-            AuthorAvatarFileName = p.AuthorAvatarFileName,
+            AuthorAvatarFileName = p.AuthorAvatarFileName ?? "",
             ReactedAt            = Timestamp.FromDateTime(DateTime.SpecifyKind(p.ReactedAt, DateTimeKind.Utc)),
             ReactionType         = p.ReactionType
         }));
@@ -125,7 +125,7 @@ public class ReactionGrpcService(
             CommunitySlug        = p.CommunitySlug,
             AuthorPublicId       = p.AuthorPublicId,
             AuthorDisplayName    = p.AuthorDisplayName,
-            AuthorAvatarFileName = p.AuthorAvatarFileName,
+            AuthorAvatarFileName = p.AuthorAvatarFileName ?? "",
             ReactedAt            = Timestamp.FromDateTime(DateTime.SpecifyKind(p.ReactedAt, DateTimeKind.Utc)),
             ReactionType         = p.ReactionType
         }));

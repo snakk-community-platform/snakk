@@ -42,6 +42,7 @@ public class UserDatabaseEntity
     public string? FeedToken { get; set; }
     public bool? AllowAdultContent { get; set; }
     public int AdultPreviewImageMode { get; set; } // 0=Show, 1=Blur, 2=Hide
+    public bool HidePresence { get; set; } = false;
 
     // Denormalized counters (maintained by CounterService)
     public int DiscussionCount { get; set; }

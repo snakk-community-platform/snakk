@@ -121,4 +121,31 @@ public class UserGrantsCacheService(
 
     public void InvalidateRestrictedCount() =>
         cache.Remove(RestrictedEntitiesKey);
+
+    // ── Adult-hiding space set ────────────────────────────────────────────────
+
+    private const string AdultHidingSpacesKey = "adult-hiding-spaces";
+
+    public async Task<HashSet<int>> GetAdultHidingSpaceIdsAsync()
+    {
+        if (cache.TryGetValue(AdultHidingSpacesKey, out HashSet<int>? cached) && cached is not null)
+            return cached;
+
+        var spaceIds = await context.Spaces
+            .Where(s => s.CommunityHideAdultDiscussionsFromLists)
+            .Select(s => s.Id)
+            .ToListAsync();
+
+        HashSet<int> result = [.. spaceIds];
+
+        cache.Set(AdultHidingSpacesKey, result, new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = _platformCountTtl
+        });
+
+        return result;
+    }
+
+    public void InvalidateAdultHidingSpaces() =>
+        cache.Remove(AdultHidingSpacesKey);
 }

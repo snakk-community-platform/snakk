@@ -522,37 +522,37 @@ public class ModerationGrpcService(
 
         if (request.ScopeType == "Space")
         {
-            var space = await dbContext.Spaces
-                .Include(s => s.Hub).ThenInclude(h => h.Community)
+            var spaceData = await dbContext.Spaces
                 .Where(s => s.PublicId == request.ScopePublicId)
+                .Select(s => new { s.Id, s.Name, s.HubId, HubName = s.HubName, CommunityId = s.Hub.CommunityId, CommunityName = s.CommunityName })
                 .FirstOrDefaultAsync();
 
-            if (space is null)
+            if (spaceData is null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
-            hubId = space.HubId;
-            hubName = space.Hub.Name;
-            communityId = space.Hub.CommunityId;
-            communityName = space.Hub.Community.Name;
+            hubId = spaceData.HubId;
+            hubName = spaceData.HubName;
+            communityId = spaceData.CommunityId;
+            communityName = spaceData.CommunityName;
 
-            var spaceMods = await GetActiveRolesAsync(spaceId: space.Id);
+            var spaceMods = await GetActiveRolesAsync(spaceId: spaceData.Id);
             if (spaceMods.Count > 0)
-                groups.Add(new ModeratorGroup { Level = "Space Moderators", ScopeName = space.Name, Moderators = { spaceMods } });
+                groups.Add(new ModeratorGroup { Level = "Space Moderators", ScopeName = spaceData.Name, Moderators = { spaceMods } });
         }
         else if (request.ScopeType == "Hub")
         {
-            var hub = await dbContext.Hubs
-                .Include(h => h.Community)
+            var hubData = await dbContext.Hubs
                 .Where(h => h.PublicId == request.ScopePublicId)
+                .Select(h => new { h.Id, h.Name, h.CommunityId, CommunityName = h.Community.Name })
                 .FirstOrDefaultAsync();
 
-            if (hub is null)
+            if (hubData is null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
-            hubId = hub.Id;
-            hubName = hub.Name;
-            communityId = hub.CommunityId;
-            communityName = hub.Community.Name;
+            hubId = hubData.Id;
+            hubName = hubData.Name;
+            communityId = hubData.CommunityId;
+            communityName = hubData.CommunityName;
         }
         else if (request.ScopeType == "Community")
         {

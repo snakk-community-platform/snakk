@@ -19,7 +19,7 @@ public class AuthEndpointTests : IAsyncDisposable
         {
             email = "newuser@example.com",
             password = "StrongP@ssw0rd!",
-            displayName = "New User"
+            displayName = "NewUser"
         };
 
         // Act
@@ -45,7 +45,7 @@ public class AuthEndpointTests : IAsyncDisposable
         {
             email = "",
             password = "StrongP@ssw0rd!",
-            displayName = "New User"
+            displayName = "NewUser"
         };
 
         // Act
@@ -85,7 +85,7 @@ public class AuthEndpointTests : IAsyncDisposable
         {
             email = "logintest@example.com",
             password = "StrongP@ssw0rd!",
-            displayName = "Login Test User"
+            displayName = "LoginTestUser"
         };
         var registerResponse = await client.PostAsJsonAsync("/auth/register", registerRequest);
         await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -174,7 +174,7 @@ public class AuthEndpointTests : IAsyncDisposable
         {
             email = "metest@example.com",
             password = "StrongP@ssw0rd!",
-            displayName = "Me Test User"
+            displayName = "MeTestUser"
         };
         var registerResponse = await client.PostAsJsonAsync("/auth/register", registerRequest);
         await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
@@ -187,7 +187,7 @@ public class AuthEndpointTests : IAsyncDisposable
         // Create an authenticated client with the user's actual ID
         var authenticatedClient = _server.CreateAuthenticatedClient(
             userId: userId,
-            displayName: "Me Test User",
+            displayName: "MeTestUser",
             email: "metest@example.com");
 
         // Act
@@ -199,7 +199,7 @@ public class AuthEndpointTests : IAsyncDisposable
         var content = await response.Content.ReadAsStringAsync();
         var json = JsonDocument.Parse(content);
 
-        await Assert.That(json.RootElement.GetProperty("displayName").GetString()).IsEqualTo("Me Test User");
+        await Assert.That(json.RootElement.GetProperty("displayName").GetString()).IsEqualTo("MeTestUser");
         await Assert.That(json.RootElement.GetProperty("email").GetString()).IsEqualTo("metest@example.com");
     }
 

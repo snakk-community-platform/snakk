@@ -1,11 +1,10 @@
-@page
+﻿@page
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.TopModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = $"{T.Pages.TopHeading} — {Model.PeriodLabel}";
     ViewData["Description"] = "The most popular discussions on Snakk, ranked by reactions and replies.";
 }

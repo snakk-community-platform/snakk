@@ -332,7 +332,8 @@ public class AuthenticationUseCase(
         string? bio = null,
         bool? allowAdultContent = null,
         bool clearAllowAdultContent = false,
-        AdultPreviewImageModeEnum? adultPreviewImageMode = null)
+        AdultPreviewImageModeEnum? adultPreviewImageMode = null,
+        bool? hidePresence = null)
     {
         var user = await userRepository.GetByPublicIdAsync(userId);
 
@@ -355,6 +356,9 @@ public class AuthenticationUseCase(
 
         if (adultPreviewImageMode.HasValue)
             user.SetAdultPreviewImageMode(adultPreviewImageMode.Value);
+
+        if (hidePresence.HasValue)
+            user.SetHidePresence(hidePresence.Value);
 
         await userRepository.UpdateAsync(user);
 

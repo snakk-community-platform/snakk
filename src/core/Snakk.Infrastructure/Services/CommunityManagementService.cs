@@ -9,7 +9,8 @@ namespace Snakk.Infrastructure.Services;
 
 public class CommunityManagementService(
     SnakkDbContext context,
-    IDbContextFactory<SnakkDbContext> dbFactory) : ICommunityManagementService
+    IDbContextFactory<SnakkDbContext> dbFactory,
+    IUserGrantsCacheService grantsCache) : ICommunityManagementService
 {
     private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
     {
@@ -193,19 +194,28 @@ public class CommunityManagementService(
 
         if (nameChanged)
         {
-            await context.Spaces
-                .Where(s => s.Hub.CommunityId == community.Id)
-                .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.CommunityName, request.Name), cancellationToken);
+            try
+            {
+                await context.Spaces
+                    .Where(s => s.Hub.CommunityId == community.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.CommunityName, request.Name), cancellationToken);
+            }
+            catch (InvalidOperationException) { }
         }
 
         if (community.HideAdultDiscussionsFromLists != request.HideAdultDiscussionsFromLists)
         {
             community.HideAdultDiscussionsFromLists = request.HideAdultDiscussionsFromLists;
-            await context.Spaces
-                .Where(s => s.Hub.CommunityId == community.Id)
-                .ExecuteUpdateAsync(s => s.SetProperty(
-                    sp => sp.CommunityHideAdultDiscussionsFromLists,
-                    request.HideAdultDiscussionsFromLists), cancellationToken);
+            try
+            {
+                await context.Spaces
+                    .Where(s => s.Hub.CommunityId == community.Id)
+                    .ExecuteUpdateAsync(s => s.SetProperty(
+                        sp => sp.CommunityHideAdultDiscussionsFromLists,
+                        request.HideAdultDiscussionsFromLists), cancellationToken);
+            }
+            catch (InvalidOperationException) { }
+            grantsCache.InvalidateAdultHidingSpaces();
         }
 
         if (request.LanguageCode is not null || community.LanguageCode is not null)
@@ -215,14 +225,18 @@ public class CommunityManagementService(
             {
                 community.LanguageCode = newLanguageCode;
 
-                // Cascade to all child hubs and spaces
-                await context.Hubs
-                    .Where(h => h.CommunityId == community.Id)
-                    .ExecuteUpdateAsync(s => s.SetProperty(h => h.CommunityLanguageCode, newLanguageCode), cancellationToken);
+                try
+                {
+                    // Cascade to all child hubs and spaces
+                    await context.Hubs
+                        .Where(h => h.CommunityId == community.Id)
+                        .ExecuteUpdateAsync(s => s.SetProperty(h => h.CommunityLanguageCode, newLanguageCode), cancellationToken);
 
-                await context.Spaces
-                    .Where(s => s.Hub.CommunityId == community.Id)
-                    .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.CommunityLanguageCode, newLanguageCode), cancellationToken);
+                    await context.Spaces
+                        .Where(s => s.Hub.CommunityId == community.Id)
+                        .ExecuteUpdateAsync(s => s.SetProperty(sp => sp.CommunityLanguageCode, newLanguageCode), cancellationToken);
+                }
+                catch (InvalidOperationException) { }
             }
         }
 

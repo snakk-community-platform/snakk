@@ -33,6 +33,7 @@ service StatisticsService {
 
   // Activity sparklines (pre-aggregated daily snapshots)
   rpc GetActivitySparkline (SparklineRequest) returns (SparklineResponse);
+  rpc GetActivitySparklinesBatch (SparklineBatchRequest) returns (SparklineBatchResponse);
 }
 
 // --- Requests ---
@@ -216,6 +217,20 @@ message SparklineRequest {
   string entity_type = 1; // "platform" | "community" | "hub" | "space" | "discussion"
   string public_id   = 2; // empty for platform
   int32  days        = 3;
+}
+
+message SparklineBatchRequest {
+  repeated string public_ids = 1; // space PublicIds
+  int32 days = 2;
+}
+
+message SpaceSparklineEntry {
+  string public_id = 1;
+  repeated SparklineDay days = 2;
+}
+
+message SparklineBatchResponse {
+  repeated SpaceSparklineEntry entries = 1;
 }
 
 message SparklineDay {

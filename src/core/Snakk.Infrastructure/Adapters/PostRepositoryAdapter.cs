@@ -103,9 +103,12 @@ public class PostRepositoryAdapter(
         int offset,
         int pageSize)
     {
-        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
+        var discussionDbId = await context.Discussions
+            .Where(d => d.PublicId == discussionId.Value)
+            .Select(d => d.Id)
+            .FirstOrDefaultAsync();
 
-        if (discussion is null)
+        if (discussionDbId == 0)
             return new PagedResult<Post>
             {
                 Items = [],
@@ -115,7 +118,7 @@ public class PostRepositoryAdapter(
             };
 
         var projections = await context.Posts
-            .Where(p => p.DiscussionId == discussion.Id)
+            .Where(p => p.DiscussionId == discussionDbId)
             .OrderBy(p => p.CreatedAt)
             .Skip(offset)
             .Take(pageSize + 1)
@@ -474,7 +477,7 @@ public class PostRepositoryAdapter(
             return [];
 
         var topSpaceData = await context.Posts
-            .Where(p => p.CreatedByUserId == userDbId && !p.IsDeleted)
+            .Where(p => p.CreatedByUserId == userDbId)
             .GroupBy(p => p.SpaceId)
             .Select(g => new { SpaceId = g.Key, PostCount = g.Count() })
             .OrderByDescending(x => x.PostCount)

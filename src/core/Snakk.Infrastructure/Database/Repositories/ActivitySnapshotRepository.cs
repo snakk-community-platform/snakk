@@ -29,6 +29,42 @@ public class ActivitySnapshotRepository(SnakkDbContext context) : IActivitySnaps
             .ToListAsync(ct);
     }
 
+    public async Task<Dictionary<string, List<ActivitySparklineDayDto>>> GetSparklinesForSpacesAsync(
+        IEnumerable<string> publicIds, int days, CancellationToken ct = default)
+    {
+        var ids = publicIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+
+        var since = DateOnly.FromDateTime(DateTime.UtcNow.Date.AddDays(-(days - 1)));
+
+        var spaceMap = await context.Spaces
+            .Where(s => ids.Contains(s.PublicId))
+            .Select(s => new { s.Id, s.PublicId })
+            .ToDictionaryAsync(s => s.Id, s => s.PublicId, ct);
+
+        if (spaceMap.Count == 0) return ids.ToDictionary(id => id, _ => new List<ActivitySparklineDayDto>());
+
+        var entityIds = spaceMap.Keys.ToList();
+        var entityType = ActivityEntityTypeEnum.Space;
+
+        var rows = await context.ActivityDailySnapshots
+            .Where(s => s.EntityType == entityType && entityIds.Contains(s.EntityId) && s.Date >= since)
+            .Select(s => new { s.EntityId, s.Date, s.PostCount, s.DiscussionCount })
+            .ToListAsync(ct);
+
+        var result = ids.ToDictionary(id => id, _ => new List<ActivitySparklineDayDto>());
+        foreach (var row in rows)
+        {
+            if (spaceMap.TryGetValue(row.EntityId, out var publicId) && result.TryGetValue(publicId, out var list))
+                list.Add(new ActivitySparklineDayDto(row.Date, row.PostCount, row.DiscussionCount));
+        }
+
+        foreach (var list in result.Values)
+            list.Sort((a, b) => a.Date.CompareTo(b.Date));
+
+        return result;
+    }
+
     // ── Refresh (called by worker) ────────────────────────────────────────────
 
     public async Task RefreshSnapshotsAsync(CancellationToken ct = default)

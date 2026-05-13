@@ -10,7 +10,7 @@ public class UserSocialLinkRepository(SnakkDbContext context) : IUserSocialLinkR
     public async Task<List<(string Platform, string Username)>> GetByUserPublicIdAsync(string publicId)
     {
         return await context.UserSocialLinks
-            .Where(l => l.User.PublicId == publicId && !l.User.IsDeleted)
+            .Where(l => l.UserPublicId == publicId)
             .OrderBy(l => l.Platform)
             .Select(l => ValueTuple.Create(l.Platform, l.Username))
             .ToListAsync();
@@ -33,11 +33,17 @@ public class UserSocialLinkRepository(SnakkDbContext context) : IUserSocialLinkR
 
         context.UserSocialLinks.RemoveRange(existing);
 
+        var userPublicId = await context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => u.PublicId)
+            .FirstOrDefaultAsync();
+
         foreach (var (platform, username) in links)
         {
             context.UserSocialLinks.Add(new UserSocialLinkDatabaseEntity
             {
                 UserId = userId,
+                UserPublicId = userPublicId,
                 Platform = platform,
                 Username = username,
             });

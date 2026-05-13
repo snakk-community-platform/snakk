@@ -4,6 +4,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Snakk.Web.Services;
 
 public static class RealtimeTokenEndpoints
 {
@@ -13,7 +14,7 @@ public static class RealtimeTokenEndpoints
             .RequireAuthorization();
     }
 
-    private static IResult GetRealtimeToken(HttpContext context, IConfiguration configuration)
+    private static async Task<IResult> GetRealtimeToken(HttpContext context, IConfiguration configuration, SnakkApiClient apiClient)
     {
         var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -30,13 +31,21 @@ public static class RealtimeTokenEndpoints
 
         const int expiresInSeconds = 3600;
 
+        var currentUser = await apiClient.GetCurrentUserAsync();
+        var hidePresence = currentUser?.HidePresence ?? false;
+
+        var claims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, userId),
+            new Claim(ClaimTypes.Name, displayName)
+        };
+        if (hidePresence)
+            claims.Add(new Claim("presence_hidden", "true"));
+
         var token = new JwtSecurityToken(
             issuer: "Snakk",
             audience: "Snakk-Realtime",
-            claims: [
-                new Claim(JwtRegisteredClaimNames.Sub, userId),
-                new Claim(ClaimTypes.Name, displayName)
-            ],
+            claims: claims,
             expires: DateTime.UtcNow.AddSeconds(expiresInSeconds),
             signingCredentials: credentials);
 

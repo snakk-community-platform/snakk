@@ -8,6 +8,7 @@ public class UserSocialLinkDatabaseEntity
 {
     public int Id { get; set; }
     public int UserId { get; set; }
+    public string? UserPublicId { get; set; }
 
     [MaxLength(50)]
     public required string Platform { get; set; }

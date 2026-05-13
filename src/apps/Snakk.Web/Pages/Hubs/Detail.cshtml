@@ -1,11 +1,10 @@
-@page "/c/{communitySlug}/h/{slug}"
+﻿@page "/c/{communitySlug}/h/{slug}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Hubs.DetailModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = Model.Hub?.Name ?? T.Pages.HubDetailFallbackTitle;
     ViewData["Description"] = Model.Hub is { IsRestricted: false }
         ? string.Format(T.Pages.HubDetailDescPattern, Model.Hub.Name)

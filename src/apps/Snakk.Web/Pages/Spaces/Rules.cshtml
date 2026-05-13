@@ -1,9 +1,8 @@
-@page "/c/{communitySlug}/h/{hubSlug}/{slug}/rules"
+﻿@page "/c/{communitySlug}/h/{hubSlug}/{slug}/rules"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @model Snakk.Web.Pages.Spaces.RulesModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = string.Format(T.Pages.SpaceRulesTitlePattern, Model.Space?.Name);
     ViewData["Description"] = string.Format(T.Pages.SpaceRulesDescPattern, Model.Space?.Name);
 }

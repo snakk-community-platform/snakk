@@ -1,4 +1,4 @@
-@page "/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/{slugWithId}"
+﻿@page "/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/{slugWithId}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
@@ -6,7 +6,6 @@
 @model Snakk.Web.Pages.Discussions.DetailModel
 
 @{
-    Layout = "_Layout";
     ViewData["Title"] = Model.Discussion?.Title ?? T.Pages.DiscTitleFallback;
 }
 
@@ -242,7 +241,7 @@
                         {
                             <span class="badge badge-warning badge-xs">@T.Pages.DiscBadgeLocked</span>
                         }
-                        <span id="viewer-count" class="badge badge-ghost badge-xs hidden"></span>
+                        <div id="viewer-presence" class="hidden flex items-center gap-0.5"></div>
 
                         <!-- Actions — pushed right -->
                         <div class="flex items-center gap-1 ml-auto">
@@ -1417,6 +1416,9 @@
             }
             else
             {
+                <!-- Typing indicator — below posts, above reply form -->
+                <div id="typing-indicator" class="hidden flex items-center gap-0.5 mt-4 mb-2"></div>
+
                 <div id="reply-form-container" class="mt-8">
                     <!-- Reply context indicator -->
                     <div id="reply-context" class="hidden mb-3 p-3 bg-subtle border border-subtle rounded-lg flex items-center justify-between">
@@ -1426,11 +1428,6 @@
                         <button type="button" data-action="clear-reply-context" class="subtle-btn">
                             @T.Pages.DiscCancel
                         </button>
-                    </div>
-
-                    <!-- Typing indicator -->
-                    <div id="typing-indicator" class="hidden text-sm text-base-content/50 mb-2">
-                        <span id="typing-users"></span>
                     </div>
 
                     <div class="composer-area">

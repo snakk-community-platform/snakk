@@ -30,6 +30,7 @@ public class NotificationMapperTests
             CreatedAt = new DateTime(2024, 6, 15, 10, 0, 0, DateTimeKind.Utc),
             ReadAt = readAt,
             RecipientUserId = 1,
+            RecipientUserPublicId = recipientPublicId,
             RecipientUser = new UserDatabaseEntity
             {
                 PublicId = recipientPublicId,
@@ -38,6 +39,7 @@ public class NotificationMapperTests
                 CreatedAt = DateTime.UtcNow
             },
             ActorUserId = 2,
+            ActorUserPublicId = actorPublicId,
             ActorUser = new UserDatabaseEntity
             {
                 PublicId = actorPublicId,
@@ -46,6 +48,7 @@ public class NotificationMapperTests
                 CreatedAt = DateTime.UtcNow
             },
             SourcePostId = 1,
+            SourcePostPublicId = postPublicId,
             SourcePost = new PostDatabaseEntity
             {
                 PublicId = postPublicId,
@@ -54,6 +57,7 @@ public class NotificationMapperTests
                 LastModifiedAt = DateTime.UtcNow
             },
             SourceDiscussionId = 1,
+            SourceDiscussionPublicId = discussionPublicId,
             SourceDiscussion = new DiscussionDatabaseEntity
             {
                 PublicId = discussionPublicId,
@@ -62,6 +66,7 @@ public class NotificationMapperTests
                 CreatedAt = DateTime.UtcNow
             },
             SourceSpaceId = 1,
+            SourceSpacePublicId = spacePublicId,
             SourceSpace = new SpaceDatabaseEntity
             {
                 PublicId = spacePublicId,
@@ -103,6 +108,7 @@ public class NotificationMapperTests
             Body = null,
             IsRead = false,
             CreatedAt = DateTime.UtcNow,
+            RecipientUserPublicId = "r1",
             RecipientUser = new UserDatabaseEntity
             {
                 PublicId = "r1",
@@ -135,6 +141,7 @@ public class NotificationMapperTests
             Title = "New Post",
             IsRead = false,
             CreatedAt = DateTime.UtcNow,
+            RecipientUserPublicId = "r2",
             RecipientUser = new UserDatabaseEntity
             {
                 PublicId = "r2",

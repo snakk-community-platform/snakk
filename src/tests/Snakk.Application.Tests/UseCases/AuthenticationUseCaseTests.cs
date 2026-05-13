@@ -126,7 +126,7 @@ public class AuthenticationUseCaseTests
         var result = await _useCase.RegisterWithEmailAsync("test@example.com", "Password123!", "", "https://example.com");
 
         await Assert.That(result.IsSuccess).IsFalse();
-        await Assert.That(result.Error).Contains("Display name is required");
+        await Assert.That(result.Error).Contains("Display name cannot be empty");
     }
 
     [Test]

@@ -14,10 +14,10 @@ namespace Snakk.Realtime.Hubs;
 [Authorize]
 public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> logger) : Hub
 {
-    // Viewer count tracking: discussionId → count
-    private static readonly ConcurrentDictionary<string, int> ViewerCounts = new();
+    // Connection → (userId, displayName, isAnon) for viewer presence
+    private static readonly ConcurrentDictionary<string, (string UserId, string DisplayName, bool IsAnon)> ConnectionViewers = new();
 
-    // Connection → discussion mapping for viewer count cleanup on disconnect
+    // Connection → discussion mapping for viewer cleanup on disconnect
     private static readonly ConcurrentDictionary<string, string> ConnectionDiscussions = new();
 
     // Connection → discussionId for typing cleanup on disconnect
@@ -27,19 +27,18 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
     public static int ActiveConnectionCount => ConnectionDiscussions.Count;
 
     /// <summary>
-    /// Periodic cleanup: removes viewer count entries that have dropped to zero.
-    /// Called by ViewerCountCleanupService to prevent unbounded dictionary growth
+    /// Periodic cleanup: removes ConnectionViewers entries whose connection is no longer
+    /// in any discussion. Called by ViewerCountCleanupService to prevent unbounded growth
     /// from connections that disconnected without triggering OnDisconnectedAsync.
     /// </summary>
     public static int CleanupStaleEntries()
     {
         var removed = 0;
-        foreach (var kvp in ViewerCounts)
+        foreach (var connId in ConnectionViewers.Keys)
         {
-            if (kvp.Value <= 0 && ViewerCounts.TryRemove(kvp.Key, out _))
+            if (!ConnectionDiscussions.ContainsKey(connId) && ConnectionViewers.TryRemove(connId, out _))
                 removed++;
         }
-
         return removed;
     }
 
@@ -47,7 +46,6 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
 
     public override async Task OnConnectedAsync()
     {
-        // Auto-subscribe to personal notification group — server-controlled, can't be spoofed
         var userId = Context.UserIdentifier;
         if (userId is not null)
             await Groups.AddToGroupAsync(Context.ConnectionId, $"user:{userId}");
@@ -58,19 +56,19 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        // Clean up viewer count for this connection's discussion
         if (ConnectionDiscussions.TryRemove(Context.ConnectionId, out var discussionId))
         {
-            DecrementViewerCount(discussionId);
-            await BroadcastViewerCount(discussionId);
+            ConnectionViewers.TryRemove(Context.ConnectionId, out _);
+            await BroadcastViewers(discussionId);
         }
 
-        // Clean up typing state — broadcast stop so other clients clear the indicator immediately
         if (TypingConnections.TryRemove(Context.ConnectionId, out var typingDiscussionId))
         {
+            var userId = Context.UserIdentifier ?? "";
             var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
+            var isAnon = Context.User?.FindFirst("presence_hidden")?.Value == "true";
             await Clients.OthersInGroup($"discussion:{typingDiscussionId}")
-                .SendAsync("ReceiveTyping", new { displayName, isTyping = false, group = $"discussion:{typingDiscussionId}" });
+                .SendAsync("ReceiveTyping", new { userId, displayName, isTyping = false, isAnon, group = $"discussion:{typingDiscussionId}" });
         }
 
         if (exception is not null)
@@ -96,6 +94,8 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
     public async Task SubscribeToDiscussion(string discussionId)
     {
         var userId = Context.UserIdentifier!;
+        var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        var isAnon = Context.User?.FindFirst("presence_hidden")?.Value == "true";
 
         if (!await accessVerifier.VerifyDiscussionAccessAsync(userId, discussionId))
         {
@@ -108,15 +108,15 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
             && previousId != discussionId)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"discussion:{previousId}");
-            DecrementViewerCount(previousId);
-            await BroadcastViewerCount(previousId);
+            ConnectionViewers.TryRemove(Context.ConnectionId, out _);
+            await BroadcastViewers(previousId);
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"discussion:{discussionId}");
         ConnectionDiscussions[Context.ConnectionId] = discussionId;
+        ConnectionViewers[Context.ConnectionId] = (userId, displayName, isAnon);
 
-        IncrementViewerCount(discussionId);
-        await BroadcastViewerCount(discussionId);
+        await BroadcastViewers(discussionId);
 
         logger.LogInformation(
             "Client {ConnectionId} subscribed to discussion {DiscussionId}",
@@ -128,9 +128,9 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"discussion:{discussionId}");
         ConnectionDiscussions.TryRemove(Context.ConnectionId, out _);
+        ConnectionViewers.TryRemove(Context.ConnectionId, out _);
 
-        DecrementViewerCount(discussionId);
-        await BroadcastViewerCount(discussionId);
+        await BroadcastViewers(discussionId);
 
         logger.LogInformation(
             "Client {ConnectionId} unsubscribed from discussion {DiscussionId}",
@@ -198,33 +198,39 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
     /// <summary>Notify others that this user is composing a reply in a discussion</summary>
     public async Task StartTyping(string discussionId)
     {
+        var userId = Context.UserIdentifier!;
         var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        var isAnon = Context.User?.FindFirst("presence_hidden")?.Value == "true";
         TypingConnections[Context.ConnectionId] = discussionId;
         await Clients.OthersInGroup($"discussion:{discussionId}")
-            .SendAsync("ReceiveTyping", new { displayName, isTyping = true, group = $"discussion:{discussionId}" });
+            .SendAsync("ReceiveTyping", new { userId, displayName, isTyping = true, isAnon, group = $"discussion:{discussionId}" });
     }
 
     /// <summary>Notify others that this user stopped composing a reply</summary>
     public async Task StopTyping(string discussionId)
     {
+        var userId = Context.UserIdentifier!;
         var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        var isAnon = Context.User?.FindFirst("presence_hidden")?.Value == "true";
         TypingConnections.TryRemove(Context.ConnectionId, out _);
         await Clients.OthersInGroup($"discussion:{discussionId}")
-            .SendAsync("ReceiveTyping", new { displayName, isTyping = false, group = $"discussion:{discussionId}" });
+            .SendAsync("ReceiveTyping", new { userId, displayName, isTyping = false, isAnon, group = $"discussion:{discussionId}" });
     }
 
-    // ==================== Viewer Count Helpers ====================
+    // ==================== Viewer Presence ====================
 
-    private static void IncrementViewerCount(string discussionId) =>
-        ViewerCounts.AddOrUpdate(discussionId, 1, (_, count) => count + 1);
-
-    private static void DecrementViewerCount(string discussionId) =>
-        ViewerCounts.AddOrUpdate(discussionId, 0, (_, count) => Math.Max(0, count - 1));
-
-    private async Task BroadcastViewerCount(string discussionId)
+    private async Task BroadcastViewers(string discussionId)
     {
-        var count = ViewerCounts.GetValueOrDefault(discussionId, 0);
+        // Collect distinct users (deduplicate by userId — multiple tabs = one entry)
+        var viewers = ConnectionDiscussions
+            .Where(kvp => kvp.Value == discussionId)
+            .Select(kvp => ConnectionViewers.TryGetValue(kvp.Key, out var v) ? ((string UserId, string DisplayName, bool IsAnon)?)v : null)
+            .Where(v => v.HasValue)
+            .GroupBy(v => v!.Value.UserId)
+            .Select(g => new { userId = g.Key, displayName = g.First()!.Value.DisplayName, isAnon = g.First()!.Value.IsAnon })
+            .ToList();
+
         await Clients.Group($"discussion:{discussionId}")
-            .SendAsync("ReceiveViewerCount", new { count, group = $"discussion:{discussionId}" });
+            .SendAsync("ReceiveViewerCount", new { count = viewers.Count, viewers, group = $"discussion:{discussionId}" });
     }
 }

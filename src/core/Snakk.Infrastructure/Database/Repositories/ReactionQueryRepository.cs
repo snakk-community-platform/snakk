@@ -24,16 +24,13 @@ public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRep
         string userId, int offset, int pageSize, bool firstPost)
     {
         var raw = await context.PostReactions
-            .Where(r => r.User.PublicId == userId && !r.Post.IsDeleted && r.Post.IsFirstPost == firstPost)
+            .Where(r => r.UserPublicId == userId && r.Post.IsFirstPost == firstPost)
             .OrderByDescending(r => r.CreatedAt)
             .Skip(offset)
             .Take(pageSize + 1)
             .Select(r => new
             {
                 r.Post.PublicId,
-                // Mirror SaveRepository: use sanitized RenderedContent (HTML), truncated to 300
-                // chars so list cards don't render huge bodies. Markdig output is sanitized
-                // server-side, so it's safe to render via Html.Raw on the client.
                 ContentExcerpt = r.Post.RenderedContent != null
                     ? (r.Post.RenderedContent.Length > 300
                         ? r.Post.RenderedContent.Substring(0, 300)
@@ -49,17 +46,31 @@ public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRep
                 HubName = r.Post.Discussion.Space.HubName,
                 CommunitySlug = r.Post.Discussion.Space.CommunitySlug,
                 AuthorPublicId = r.Post.CreatedByUserPublicId,
-                AuthorDisplayName = r.Post.CreatedByUser.DisplayName ?? "",
-                AuthorAvatarFileName = r.Post.CreatedByUser.AvatarFileName,
                 ReactedAt = r.CreatedAt,
                 r.TypeId
             })
             .ToListAsync();
 
         var hasMore = raw.Count > pageSize;
-        var items = raw
-            .Take(pageSize)
-            .Select(r => new ReactedPostDto(
+        var page = raw.Take(pageSize).ToList();
+
+        var authorIds = page
+            .Select(r => r.AuthorPublicId)
+            .OfType<string>()
+            .Distinct()
+            .ToList();
+
+        var authorMap = authorIds.Count == 0
+            ? []
+            : await context.Users
+                .Where(u => authorIds.Contains(u.PublicId))
+                .Select(u => new { u.PublicId, u.DisplayName, u.AvatarFileName })
+                .ToDictionaryAsync(u => u.PublicId!, u => (u.DisplayName, u.AvatarFileName));
+
+        var items = page.Select(r =>
+        {
+            authorMap.TryGetValue(r.AuthorPublicId ?? "", out var author);
+            return new ReactedPostDto(
                 r.PublicId,
                 r.ContentExcerpt,
                 r.PostCreatedAt,
@@ -71,12 +82,12 @@ public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRep
                 r.HubSlug,
                 r.HubName ?? "",
                 r.CommunitySlug,
-                r.AuthorPublicId,
-                r.AuthorDisplayName,
-                r.AuthorAvatarFileName,
+                r.AuthorPublicId ?? "",
+                author.DisplayName ?? "",
+                author.AvatarFileName,
                 r.ReactedAt,
-                ((ReactionTypeEnum)r.TypeId).ToString()))
-            .ToList();
+                ((ReactionTypeEnum)r.TypeId).ToString());
+        }).ToList();
 
         return new PagedResult<ReactedPostDto>
         {

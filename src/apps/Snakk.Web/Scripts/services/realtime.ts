@@ -57,14 +57,23 @@ interface ReactionCounts {
     [key: string]: number | undefined;
 }
 
+interface ViewerInfo {
+    userId: string;
+    displayName: string;
+    isAnon?: boolean;
+}
+
 interface ViewerCountData {
     count: number;
+    viewers?: ViewerInfo[];
     group?: string;
 }
 
 interface TypingData {
+    userId: string;
     displayName: string;
     isTyping: boolean;
+    isAnon?: boolean;
     group?: string;
 }
 
@@ -465,59 +474,117 @@ interface Subscriptions {
         } catch { /* silently ignore fetch failures */ }
     }
 
+    function viewerHue(userId: string): number {
+        let h = 0;
+        for (let i = 0; i < userId.length; i++) h = (Math.imul(31, h) + userId.charCodeAt(i)) | 0;
+        return Math.abs(h) % 360;
+    }
+
     function handleViewerCount(data: ViewerCountData): void {
-        const el = document.getElementById('viewer-count');
+        const el = document.getElementById('viewer-presence');
         if (!el) return;
-        if (data.count > 1) {
-            el.textContent = `${data.count} viewing`;
-            el.classList.remove('hidden');
-        } else {
-            el.classList.add('hidden');
-        }
+        const myId = document.querySelector<HTMLMetaElement>('meta[name="current-user-id"]')?.content ?? '';
+        const others = (data.viewers ?? []).filter(v => v.userId !== myId);
+        renderPresenceBubbles(el, others);
     }
 
     const seenDiscussionIds = new Set<string>();
     let newDiscussionCount = 0;
 
+    function shuffle<T>(arr: T[]): T[] {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j]!, arr[i]!];
+        }
+        return arr;
+    }
+
+    function sortPresence(users: ViewerInfo[]): ViewerInfo[] {
+        const named = shuffle(users.filter(v => !v.isAnon));
+        const anon  = shuffle(users.filter(v =>  v.isAnon));
+        return [...named, ...anon];
+    }
+
+    function renderPresenceBubbles(el: HTMLElement, users: ViewerInfo[]): void {
+        if (users.length === 0) {
+            el.classList.add('hidden');
+            el.innerHTML = '';
+            return;
+        }
+
+        const MAX_SHOW = 5;
+        const sorted   = sortPresence(users);
+        const shown    = sorted.slice(0, MAX_SHOW);
+        const overflow = sorted.length - MAX_SHOW;
+
+        el.innerHTML = '';
+        shown.forEach(v => {
+            const wrap = document.createElement('div');
+            wrap.className = 'tooltip tooltip-bottom';
+            wrap.setAttribute('data-tip', v.isAnon ? '?' : v.displayName);
+
+            const bubble = document.createElement('div');
+            bubble.className = 'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold leading-none select-none cursor-default';
+
+            if (v.isAnon) {
+                bubble.classList.add('bg-base-300', 'text-base-content/50');
+                const icon = document.createElement('span');
+                icon.className = 'icon icon-user';
+                icon.style.cssText = 'width:0.875rem;height:0.875rem';
+                icon.setAttribute('aria-hidden', 'true');
+                bubble.appendChild(icon);
+            } else {
+                bubble.classList.add('text-white');
+                bubble.style.background = `oklch(0.55 0.15 ${viewerHue(v.userId)})`;
+                bubble.textContent = (v.displayName.trim().charAt(0) || '?').toUpperCase();
+            }
+
+            wrap.appendChild(bubble);
+            el.appendChild(wrap);
+        });
+
+        if (overflow > 0) {
+            const more = document.createElement('div');
+            more.className = 'w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium leading-none select-none cursor-default bg-base-300 text-base-content/70';
+            more.textContent = `+${overflow}`;
+            el.appendChild(more);
+        }
+
+        el.classList.remove('hidden');
+    }
+
     // Fallback timeout: 5 min safety net for missed StopTyping (crash/network drop).
     // Normal stop comes via StopTyping hub call or 3-min client inactivity timeout.
     const TYPING_FALLBACK_MS = 5 * 60 * 1000;
-    const typingUsers = new Map<string, ReturnType<typeof setTimeout>>();
+    const typingUsers = new Map<string, { displayName: string; isAnon: boolean; timeout: ReturnType<typeof setTimeout> }>();
 
     function handleTypingIndicator(data: TypingData): void {
+        if (!data.userId) return;
         if (data.isTyping) {
-            const existing = typingUsers.get(data.displayName);
-            if (existing) clearTimeout(existing);
-            typingUsers.set(data.displayName, setTimeout(() => {
-                typingUsers.delete(data.displayName);
-                renderTypingIndicator();
-            }, TYPING_FALLBACK_MS));
+            const existing = typingUsers.get(data.userId);
+            if (existing) clearTimeout(existing.timeout);
+            typingUsers.set(data.userId, {
+                displayName: data.displayName,
+                isAnon: data.isAnon ?? false,
+                timeout: setTimeout(() => {
+                    typingUsers.delete(data.userId);
+                    renderTypingIndicator();
+                }, TYPING_FALLBACK_MS)
+            });
         } else {
-            const existing = typingUsers.get(data.displayName);
-            if (existing) clearTimeout(existing);
-            typingUsers.delete(data.displayName);
+            const existing = typingUsers.get(data.userId);
+            if (existing) clearTimeout(existing.timeout);
+            typingUsers.delete(data.userId);
         }
         renderTypingIndicator();
     }
 
     function renderTypingIndicator(): void {
         const el = document.getElementById('typing-indicator');
-        const usersEl = document.getElementById('typing-users');
-        if (!el || !usersEl) return;
-
-        const names = Array.from(typingUsers.keys());
-        if (names.length === 0) {
-            el.classList.add('hidden');
-        } else if (names.length === 1) {
-            usersEl.textContent = `${names[0]} is composing a reply…`;
-            el.classList.remove('hidden');
-        } else if (names.length === 2) {
-            usersEl.textContent = `${names[0]} and ${names[1]} are composing a reply…`;
-            el.classList.remove('hidden');
-        } else {
-            usersEl.textContent = `${names.length} people are composing a reply…`;
-            el.classList.remove('hidden');
-        }
+        if (!el) return;
+        const users: ViewerInfo[] = Array.from(typingUsers.entries())
+            .map(([userId, v]) => ({ userId, displayName: v.displayName, isAnon: v.isAnon }));
+        renderPresenceBubbles(el, users);
     }
 
     function handleReceiveUpdate(message: RealtimeMessage): void {

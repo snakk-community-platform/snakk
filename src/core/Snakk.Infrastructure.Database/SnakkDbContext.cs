@@ -119,6 +119,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
             entity.HasIndex(l => new { l.UserId, l.Platform }).IsUnique();
             entity.HasIndex(l => l.UserId);
+            entity.HasIndex(l => l.UserPublicId).HasDatabaseName("IX_UserSocialLink_UserPublicId");
         });
 
         // Global query filters for soft delete
@@ -999,6 +1000,13 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasFilter("\"IsDeleted\" = FALSE")
             .HasDatabaseName("IX_Post_CreatedAt_CreatedByUserPublicId_NotDeleted");
 
+        // profile page posts tab: posts by a specific author ordered by date
+        modelBuilder.Entity<PostDatabaseEntity>()
+            .HasIndex(p => new { p.CreatedByUserPublicId, p.CreatedAt })
+            .IsDescending(false, true)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Post_CreatedByUserPublicId_CreatedAt_NotDeleted");
+
         // Post reply-to index (for fetching reply chains)
         modelBuilder.Entity<PostDatabaseEntity>()
             .HasIndex(p => p.ReplyToPostId)
@@ -1800,6 +1808,20 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasFilter("\"IsDeleted\" = FALSE")
             .HasDatabaseName("IX_Discussion_CommunityId_LastActivityAt_Id_NotDeleted");
 
+        // /top feed: order by denormalized EngagementScore (PostCount + ReactionCount)
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .HasIndex(d => new { d.EngagementScore, d.Id })
+            .IsDescending(true, true)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Discussion_EngagementScore_Id_NotDeleted");
+
+        // profile page: discussions by author ordered by LastActivityAt
+        modelBuilder.Entity<DiscussionDatabaseEntity>()
+            .HasIndex(d => new { d.CreatedByUserPublicId, d.LastActivityAt, d.Id })
+            .IsDescending(false, true, true)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_Discussion_CreatedByUserPublicId_LastActivityAt_Id_NotDeleted");
+
         // Space listing by community public ID (Space has no CommunityId FK, string column only)
         modelBuilder.Entity<SpaceDatabaseEntity>()
             .HasIndex(s => s.CommunityPublicId)
@@ -1822,5 +1844,22 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(ml => new { ml.SpaceId, ml.CreatedAt })
             .IsDescending(false, true)
             .HasDatabaseName("IX_ModerationLog_SpaceId_CreatedAt_Desc");
+
+        // Restricted-entity lookup (UserGrantsCacheService.GetRestrictedEntitiesAsync)
+        // Partial indexes covering only the rare IsRestricted=true rows → index-only scan
+        modelBuilder.Entity<SpaceDatabaseEntity>()
+            .HasIndex(s => s.Id)
+            .HasFilter("\"IsRestricted\" = TRUE")
+            .HasDatabaseName("IX_Space_IsRestricted_True");
+
+        modelBuilder.Entity<HubDatabaseEntity>()
+            .HasIndex(h => h.Id)
+            .HasFilter("\"IsRestricted\" = TRUE")
+            .HasDatabaseName("IX_Hub_IsRestricted_True");
+
+        modelBuilder.Entity<CommunityDatabaseEntity>()
+            .HasIndex(c => c.Id)
+            .HasFilter("\"IsRestricted\" = TRUE")
+            .HasDatabaseName("IX_Community_IsRestricted_True");
     }
 }

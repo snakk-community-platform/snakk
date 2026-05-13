@@ -215,12 +215,14 @@ public class DiscussionRepositoryAdapter(
         bool viewerAllowsAdult = false)
     {
         var postsQuery = context.Posts
-            .Where(p => !p.IsDeleted && p.CreatedAt >= since);
+            .Where(p => p.CreatedAt >= since);
 
         if (!viewerAllowsAdult)
         {
-            postsQuery = postsQuery.Where(p =>
-                !(p.Discussion.IsAdultOnly && p.Discussion.Space.CommunityHideAdultDiscussionsFromLists));
+            var adultSpaceIds = await grantsCache.GetAdultHidingSpaceIdsAsync();
+            if (adultSpaceIds.Count > 0)
+                postsQuery = postsQuery.Where(p =>
+                    !(p.Discussion.IsAdultOnly && adultSpaceIds.Contains(p.Discussion.SpaceId)));
         }
 
         // Resolve public IDs to internal IDs once, outside the query
@@ -228,14 +230,14 @@ public class DiscussionRepositoryAdapter(
         {
             var dbId = await context.Communities.Where(c => c.PublicId == communityId.Value).Select(c => c.Id).FirstOrDefaultAsync();
             if (dbId == 0) return [];
-            postsQuery = postsQuery.Where(p => p.Discussion.Space.Hub.CommunityId == dbId);
+            postsQuery = postsQuery.Where(p => p.Discussion.CommunityId == dbId);
         }
 
         if (hubId is not null)
         {
             var dbId = await context.Hubs.Where(h => h.PublicId == hubId.Value).Select(h => h.Id).FirstOrDefaultAsync();
             if (dbId == 0) return [];
-            postsQuery = postsQuery.Where(p => p.Discussion.Space.HubId == dbId);
+            postsQuery = postsQuery.Where(p => p.Discussion.HubId == dbId);
         }
 
         if (spaceId is not null)
@@ -278,50 +280,46 @@ public class DiscussionRepositoryAdapter(
                 AuthorPublicId = p.Discussion.CreatedByUserPublicId ?? "",
                 AuthorDisplayName = p.Discussion.AuthorDisplayName ?? "",
                 AuthorAvatarFileName = p.Discussion.AuthorAvatarFileName,
-                p.Discussion.Space.Hub.CommunityId,
-
+                SpaceId = p.Discussion.SpaceId,
                 SpacePublicId = p.SpacePublicId,
-                SpaceSlug = p.Discussion.Space.Slug,
-                SpaceName = p.Discussion.Space.Name,
-                HubPublicId = p.HubPublicId,
-                HubSlug = p.Discussion.Space.HubSlug,
-                HubName = p.Discussion.Space.HubName,
-                CommunitySlug = p.Discussion.Space.CommunitySlug })
+                HubPublicId = p.HubPublicId })
             .Select(g => new {
                 g.Key.PublicId,
                 g.Key.Title,
                 g.Key.Slug,
                 PostCount = g.Count(),
+                g.Key.SpaceId,
                 g.Key.SpacePublicId,
-                g.Key.SpaceSlug,
-                g.Key.SpaceName,
                 g.Key.HubPublicId,
-                g.Key.HubSlug,
-                g.Key.HubName,
                 g.Key.AuthorPublicId,
                 g.Key.AuthorDisplayName,
-                g.Key.AuthorAvatarFileName,
-                g.Key.CommunitySlug })
+                g.Key.AuthorAvatarFileName })
             .OrderByDescending(x => x.PostCount)
             .Take(limit)
             .ToListAsync();
 
+        var spaceDisplay = await FetchSpaceDisplayAsync(topDiscussions.Select(x => x.SpaceId));
+
         return topDiscussions
-            .Select(d => new Domain.Repositories.TopActiveDiscussion(
-                DiscussionId.From(d.PublicId),
-                d.Title,
-                d.Slug,
-                d.PostCount,
-                d.SpacePublicId,
-                d.SpaceSlug,
-                d.SpaceName,
-                d.HubPublicId,
-                d.HubSlug,
-                d.HubName,
-                d.AuthorPublicId,
-                d.AuthorDisplayName,
-                d.CommunitySlug,
-                d.AuthorAvatarFileName))
+            .Select(d =>
+            {
+                spaceDisplay.TryGetValue(d.SpaceId, out var space);
+                return new Domain.Repositories.TopActiveDiscussion(
+                    DiscussionId.From(d.PublicId),
+                    d.Title,
+                    d.Slug,
+                    d.PostCount,
+                    d.SpacePublicId,
+                    space?.Slug ?? "",
+                    space?.Name ?? "",
+                    d.HubPublicId,
+                    space?.HubSlug,
+                    space?.HubName,
+                    d.AuthorPublicId,
+                    d.AuthorDisplayName,
+                    space?.CommunitySlug,
+                    d.AuthorAvatarFileName);
+            })
             .ToList();
     }
 
@@ -362,8 +360,8 @@ public class DiscussionRepositoryAdapter(
             return [];
 
         return await context.Discussions
-            .Where(d => d.CreatedByUserId == userDbId && !d.IsDeleted)
-            .OrderByDescending(d => d.ReactionCount + d.PostCount)
+            .Where(d => d.CreatedByUserId == userDbId)
+            .OrderByDescending(d => d.EngagementScore)
             .ThenByDescending(d => d.CreatedAt)
             .Take(limit)
             .Select(d => new Domain.Repositories.TopDiscussionByUser(
@@ -421,6 +419,23 @@ public class DiscussionRepositoryAdapter(
                 .SetProperty(d => d.LastPostAuthorAvatarFileName, latest == null ? null : latest.AvatarFileName)
                 .SetProperty(d => d.LastPostAuthorAvatarThumbnailFileName, latest == null ? null : latest.AvatarThumbnailFileName)
                 .SetProperty(d => d.LastPostPlainTextExcerpt, latest == null ? null : latest.PlainTextExcerpt), ct);
+    }
+
+    private sealed record SpaceDisplay(
+        string Slug, string Name,
+        string? HubSlug, string? HubName,
+        string? CommunitySlug, string? CommunityName);
+
+    private async Task<Dictionary<int, SpaceDisplay>> FetchSpaceDisplayAsync(IEnumerable<int> spaceIds)
+    {
+        var ids = spaceIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+        return await context.Spaces
+            .Where(s => ids.Contains(s.Id))
+            .Select(s => new { s.Id, s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName })
+            .ToDictionaryAsync(
+                s => s.Id,
+                s => new SpaceDisplay(s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName));
     }
 
     private record DiscussionProjection(

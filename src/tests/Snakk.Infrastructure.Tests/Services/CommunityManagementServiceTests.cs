@@ -5,6 +5,7 @@ using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Services;
 using Snakk.Application.DTOs.Management;
+using Snakk.Application.Services;
 using Snakk.Shared.Enums;
 
 namespace Snakk.Infrastructure.Tests.Services;
@@ -21,7 +22,8 @@ public class CommunityManagementServiceTests : IDisposable
             .Options;
         _context = new SnakkDbContext(options);
         var factory = new InMemoryDbContextFactory(options);
-        _service = new CommunityManagementService(_context, factory);
+        var grantsCache = Substitute.For<IUserGrantsCacheService>();
+        _service = new CommunityManagementService(_context, factory, grantsCache);
     }
 
     public void Dispose()
@@ -39,12 +41,12 @@ public class CommunityManagementServiceTests : IDisposable
         _context.Communities.Add(community);
         await _context.SaveChangesAsync();
 
-        var hub = new HubDatabaseEntity { PublicId = "hub-001", CommunityId = community.Id, Name = "Test Hub", Slug = "test-hub", CreatedAt = DateTime.UtcNow };
+        var hub = new HubDatabaseEntity { PublicId = "hub-001", CommunityId = community.Id, CommunityPublicId = community.PublicId, Name = "Test Hub", Slug = "test-hub", CreatedAt = DateTime.UtcNow };
         _context.Hubs.Add(hub);
         community.HubCount++;
         await _context.SaveChangesAsync();
 
-        var space = new SpaceDatabaseEntity { PublicId = "space-001", HubId = hub.Id, Name = "Test Space", Slug = "test-space", CreatedAt = DateTime.UtcNow };
+        var space = new SpaceDatabaseEntity { PublicId = "space-001", HubId = hub.Id, HubPublicId = hub.PublicId, HubSlug = hub.Slug, HubName = hub.Name, CommunityPublicId = community.PublicId, CommunitySlug = community.Slug, CommunityName = community.Name, Name = "Test Space", Slug = "test-space", CreatedAt = DateTime.UtcNow };
         _context.Spaces.Add(space);
         hub.SpaceCount++;
         community.SpaceCount++;

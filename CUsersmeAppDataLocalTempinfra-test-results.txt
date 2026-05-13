@@ -1,0 +1,251 @@
+c:\Snakk\src\core\Snakk.Application\UseCases\AuthenticationUseCase.cs(74,71): warning CS8604: Possible null reference argument for parameter 'displayName' in 'Task<string> AuthenticationUseCase.EnsureUniqueDisplayNameAsync(string displayName)'. [c:\Snakk\src\core\Snakk.Application\Snakk.Application.csproj]
+
+████████╗██╗   ██╗███╗   ██╗██╗████████╗
+╚══██╔══╝██║   ██║████╗  ██║██║╚══██╔══╝
+   ██║   ██║   ██║██╔██╗ ██║██║   ██║
+   ██║   ██║   ██║██║╚██╗██║██║   ██║
+   ██║   ╚██████╔╝██║ ╚████║██║   ██║
+   ╚═╝    ╚═════╝ ╚═╝  ╚═══╝╚═╝   ╚═╝
+
+   TUnit v1.19.0.0 | 64-bit | Microsoft Windows 10.0.26200 | win-x64 | .NET 10.0.8 | Microsoft Testing Platform v2.1.0
+
+   Engine Mode: SourceGenerated
+
+failed GetRecentAsync_MultipleDiscussions_ReturnsRecentItems (1s 356ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: SpaceId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.SpaceId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\SpaceId.cs:10
+    at Snakk.Domain.ValueObjects.SpaceId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\SpaceId.cs:15
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.DiscussionProjection.ToDomain() in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:456
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.<>c.<GetRecentAsync>b__10_0(DiscussionProjection p) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:135
+    at System.Linq.Enumerable.ListSelectIterator`2.Fill(ReadOnlySpan`1 source, Span`1 destination, Func`2 func)
+    at System.Linq.Enumerable.ListSelectIterator`2.ToList()
+    at Snakk.Infrastructure.Tests.Adapters.DiscussionRepositoryAdapterTests.GetRecentAsync_MultipleDiscussions_ReturnsRecentItems() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Adapters\DiscussionRepositoryAdapterTests.cs:174
+failed GetPagedBySpaceIdAsync_MultipleDiscussions_ReturnsPagedResultWithHasMoreItems (1s 361ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: UserId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.UserId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\UserId.cs:10
+    at Snakk.Domain.ValueObjects.UserId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\UserId.cs:15
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.<>c__DisplayClass9_0.<GetPagedBySpaceIdAsync>b__1(DiscussionListDto dto) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:106
+    at System.Linq.Enumerable.ListSelectIterator`2.Fill(ReadOnlySpan`1 source, Span`1 destination, Func`2 func)
+    at System.Linq.Enumerable.ListSelectIterator`2.ToList()
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.GetPagedBySpaceIdAsync(SpaceId spaceId, Int32 offset, Int32 pageSize) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:103
+    at Snakk.Infrastructure.Tests.Adapters.DiscussionRepositoryAdapterTests.GetPagedBySpaceIdAsync_MultipleDiscussions_ReturnsPagedResultWithHasMoreItems() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Adapters\DiscussionRepositoryAdapterTests.cs:90
+failed GetByPublicIdAsync_ExistingPost_ReturnsMappedDomainEntity (453ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: DiscussionId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.DiscussionId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\DiscussionId.cs:10
+    at Snakk.Domain.ValueObjects.DiscussionId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\DiscussionId.cs:15
+    at Snakk.Infrastructure.Adapters.PostRepositoryAdapter.PostProjection.ToDomain() in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\PostRepositoryAdapter.cs:566
+    at Snakk.Infrastructure.Adapters.PostRepositoryAdapter.GetByPublicIdAsync(PostId publicId) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\PostRepositoryAdapter.cs:44
+    at Snakk.Infrastructure.Tests.Adapters.PostRepositoryAdapterTests.GetByPublicIdAsync_ExistingPost_ReturnsMappedDomainEntity() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Adapters\PostRepositoryAdapterTests.cs:41
+failed GetByDiscussionIdAsync_ExistingDiscussion_ResolvesPublicIdAndReturnsPosts (412ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: DiscussionId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.DiscussionId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\DiscussionId.cs:10
+    at Snakk.Domain.ValueObjects.DiscussionId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\DiscussionId.cs:15
+    at Snakk.Infrastructure.Adapters.PostRepositoryAdapter.PostProjection.ToDomain() in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\PostRepositoryAdapter.cs:566
+    at Snakk.Infrastructure.Adapters.PostRepositoryAdapter.<>c.<GetByDiscussionIdAsync>b__7_0(PostProjection p) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\PostRepositoryAdapter.cs:98
+    at System.Linq.Enumerable.ListSelectIterator`2.Fill(ReadOnlySpan`1 source, Span`1 destination, Func`2 func)
+    at System.Linq.Enumerable.ListSelectIterator`2.ToList()
+    at Snakk.Infrastructure.Tests.Adapters.PostRepositoryAdapterTests.GetByDiscussionIdAsync_ExistingDiscussion_ResolvesPublicIdAndReturnsPosts() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Adapters\PostRepositoryAdapterTests.cs:63
+failed GetBySpaceIdAsync_ExistingSpace_ResolvesPublicIdAndReturnsDiscussions (1s 505ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: SpaceId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.SpaceId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\SpaceId.cs:10
+    at Snakk.Domain.ValueObjects.SpaceId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\SpaceId.cs:15
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.DiscussionProjection.ToDomain() in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:456
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.<>c.<GetBySpaceIdAsync>b__7_0(DiscussionProjection p) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:73
+    at System.Linq.Enumerable.ListSelectIterator`2.Fill(ReadOnlySpan`1 source, Span`1 destination, Func`2 func)
+    at System.Linq.Enumerable.ListSelectIterator`2.ToList()
+    at Snakk.Infrastructure.Tests.Adapters.DiscussionRepositoryAdapterTests.GetBySpaceIdAsync_ExistingSpace_ResolvesPublicIdAndReturnsDiscussions() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Adapters\DiscussionRepositoryAdapterTests.cs:58
+failed GetPagedByDiscussionIdAsync_MultiplePosts_ReturnsPagedResults (463ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: DiscussionId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.DiscussionId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\DiscussionId.cs:10
+    at Snakk.Domain.ValueObjects.DiscussionId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\DiscussionId.cs:15
+    at Snakk.Infrastructure.Adapters.PostRepositoryAdapter.PostProjection.ToDomain() in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\PostRepositoryAdapter.cs:566
+    at Snakk.Infrastructure.Adapters.PostRepositoryAdapter.<>c.<GetPagedByDiscussionIdAsync>b__8_0(PostProjection p) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\PostRepositoryAdapter.cs:151
+    at System.Linq.Enumerable.IListSkipTakeSelectIterator`2.GetCount(Boolean onlyIfCheap)
+    at Snakk.Infrastructure.Tests.Adapters.PostRepositoryAdapterTests.GetPagedByDiscussionIdAsync_MultiplePosts_ReturnsPagedResults() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Adapters\PostRepositoryAdapterTests.cs:94
+failed UpdateAsync_ExistingDiscussion_PatchesFieldsCorrectly (1s 525ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: SpaceId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.SpaceId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\SpaceId.cs:10
+    at Snakk.Domain.ValueObjects.SpaceId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\SpaceId.cs:15
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.DiscussionProjection.ToDomain() in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:456
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.GetByPublicIdAsync(DiscussionId publicId) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:39
+    at Snakk.Infrastructure.Tests.Adapters.DiscussionRepositoryAdapterTests.UpdateAsync_ExistingDiscussion_PatchesFieldsCorrectly() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Adapters\DiscussionRepositoryAdapterTests.cs:139
+failed GetByPublicIdAsync_ExistingDiscussion_ReturnsMappedDomainEntity (1s 524ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: SpaceId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.SpaceId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\SpaceId.cs:10
+    at Snakk.Domain.ValueObjects.SpaceId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\SpaceId.cs:15
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.DiscussionProjection.ToDomain() in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:456
+    at Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter.GetByPublicIdAsync(DiscussionId publicId) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\DiscussionRepositoryAdapter.cs:39
+    at Snakk.Infrastructure.Tests.Adapters.DiscussionRepositoryAdapterTests.GetByPublicIdAsync_ExistingDiscussion_ReturnsMappedDomainEntity() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Adapters\DiscussionRepositoryAdapterTests.cs:37
+failed GetFirstPostByDiscussionIdAsync_ExistingDiscussion_ReturnsFirstPost (416ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: DiscussionId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.DiscussionId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\DiscussionId.cs:10
+    at Snakk.Domain.ValueObjects.DiscussionId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\DiscussionId.cs:15
+    at Snakk.Infrastructure.Adapters.PostRepositoryAdapter.PostProjection.ToDomain() in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\PostRepositoryAdapter.cs:566
+    at Snakk.Infrastructure.Adapters.PostRepositoryAdapter.GetFirstPostByDiscussionIdAsync(DiscussionId discussionId) in c:\Snakk\src\core\Snakk.Infrastructure\Adapters\PostRepositoryAdapter.cs:352
+    at Snakk.Infrastructure.Tests.Adapters.PostRepositoryAdapterTests.GetFirstPostByDiscussionIdAsync_ExistingDiscussion_ReturnsFirstPost() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Adapters\PostRepositoryAdapterTests.cs:140
+failed GetByPostIdAsync_ValidPostWithMentions_ReturnsMappedDomainEntities (439ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be 2
+  but found 0
+  
+  at Assert.That(result.Count).IsEqualTo(2)
+failed DeleteByPostIdAsync_ExistingMentions_RemovesAllMentionsForPost (492ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be 2
+  but found 0
+  
+  at Assert.That(beforeDelete.Count).IsEqualTo(2)
+failed FromPersistence_MapsAllProperties_WithAllSources (8ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: UserId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.UserId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\UserId.cs:10
+    at Snakk.Domain.ValueObjects.UserId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\UserId.cs:15
+    at Snakk.Infrastructure.Mappers.NotificationMapper.FromPersistence(UserNotificationDatabaseEntity entity) in c:\Snakk\src\core\Snakk.Infrastructure\Mappers\NotificationMapper.cs:12
+    at Snakk.Infrastructure.Tests.Mappers.NotificationMapperTests.FromPersistence_MapsAllProperties_WithAllSources() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Mappers\NotificationMapperTests.cs:76
+failed FromPersistence_WithNullSources_MapsNulls (4ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: UserId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.UserId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\UserId.cs:10
+    at Snakk.Domain.ValueObjects.UserId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\UserId.cs:15
+    at Snakk.Infrastructure.Mappers.NotificationMapper.FromPersistence(UserNotificationDatabaseEntity entity) in c:\Snakk\src\core\Snakk.Infrastructure\Mappers\NotificationMapper.cs:12
+    at Snakk.Infrastructure.Tests.Mappers.NotificationMapperTests.FromPersistence_WithNullSources_MapsNulls() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Mappers\NotificationMapperTests.cs:119
+failed FromPersistence_MapsNotificationType (13ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] ArgumentException: UserId cannot be empty (Parameter 'value')
+    at Snakk.Domain.ValueObjects.UserId..ctor(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\UserId.cs:10
+    at Snakk.Domain.ValueObjects.UserId.From(String value) in c:\Snakk\src\core\Snakk.Domain\ValueObjects\UserId.cs:15
+    at Snakk.Infrastructure.Mappers.NotificationMapper.FromPersistence(UserNotificationDatabaseEntity entity) in c:\Snakk\src\core\Snakk.Infrastructure\Mappers\NotificationMapper.cs:12
+    at Snakk.Infrastructure.Tests.Mappers.NotificationMapperTests.FromPersistence_MapsNotificationType() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Mappers\NotificationMapperTests.cs:147
+failed GetForDisplayAsync_ExistingDiscussion_ReturnsDtoWithCorrectFields (108ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be equal to "space_4_84cb09f2bff84d8eaa6a0a2869c7ef90"
+  but received ""
+  
+  at Assert.That(result.SpacePublicId).IsEqualTo(space.PublicId)
+failed GetForDisplayAsync_ExistingHub_ReturnsDtoWithCorrectFields (29ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be equal to "comm_1_2519431e327449c4a0d0193119517e2c"
+  but received ""
+  
+  at Assert.That(result.CommunityPublicId).IsEqualTo(community.PublicId)
+failed GetByCommunityAsync_OnlyReturnsHubsForSpecifiedCommunity (14ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be equal to "comm_1_0defcee87a534e58b20d9c30900f3cb2"
+  but received ""
+  
+  at Assert.That(items[0].CommunityPublicId).IsEqualTo(community1.PublicId)
+failed GetForDisplayAsync_ExistingPost_ReturnsDtoWithCorrectFields (62ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be equal to "disc_5_0d514cf01f90494ab88ee797fc25c9f5"
+  but received ""
+  
+  at Assert.That(result.DiscussionPublicId).IsEqualTo(discussion.PublicId)
+failed GetDiscussionsBySpaceAsync_PinnedDiscussionsAppearFirst (71ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] NullReferenceException: Object reference not set to an instance of an object.
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.WithAdultFilterAsync(IQueryable`1 query, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:590
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.GetDiscussionsBySpaceAsync(String spacePublicId, Int32 offset, Int32 pageSize, Nullable`1 typeFilter, String userId, String cursor, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:258
+    at Snakk.Infrastructure.Tests.Repositories.SearchRepositoryIntegrationTests.GetDiscussionsBySpaceAsync_PinnedDiscussionsAppearFirst() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Repositories\SearchRepositoryIntegrationTests.cs:218
+failed GetDiscussionsBySpaceAsync_NullTypeFilter_ReturnsAllTypes (42ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] NullReferenceException: Object reference not set to an instance of an object.
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.WithAdultFilterAsync(IQueryable`1 query, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:590
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.GetDiscussionsBySpaceAsync(String spacePublicId, Int32 offset, Int32 pageSize, Nullable`1 typeFilter, String userId, String cursor, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:258
+    at Snakk.Infrastructure.Tests.Repositories.SearchRepositoryIntegrationTests.GetDiscussionsBySpaceAsync_NullTypeFilter_ReturnsAllTypes() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Repositories\SearchRepositoryIntegrationTests.cs:277
+failed GetSitemapDiscussionsAsync_IncludesSlugHierarchy (40ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be equal to "hub-3_b2925ef3ebc24b09b6be6bc3b631c05e"
+  but received ""
+  
+  at Assert.That(item.HubSlug).IsEqualTo(hub.Slug)
+failed GetDiscussionsBySpaceAsync_TypeFilter_ReturnsOnlyMatchingType (64ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] NullReferenceException: Object reference not set to an instance of an object.
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.WithAdultFilterAsync(IQueryable`1 query, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:590
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.GetDiscussionsBySpaceAsync(String spacePublicId, Int32 offset, Int32 pageSize, Nullable`1 typeFilter, String userId, String cursor, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:258
+    at Snakk.Infrastructure.Tests.Repositories.SearchRepositoryIntegrationTests.GetDiscussionsBySpaceAsync_TypeFilter_ReturnsOnlyMatchingType() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Repositories\SearchRepositoryIntegrationTests.cs:251
+failed GetDiscussionsBySpaceAsync_EmptySpace_ReturnsEmptyResult (10ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] NullReferenceException: Object reference not set to an instance of an object.
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.WithAdultFilterAsync(IQueryable`1 query, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:590
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.GetDiscussionsBySpaceAsync(String spacePublicId, Int32 offset, Int32 pageSize, Nullable`1 typeFilter, String userId, String cursor, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:258
+    at Snakk.Infrastructure.Tests.Repositories.SearchRepositoryIntegrationTests.GetDiscussionsBySpaceAsync_EmptySpace_ReturnsEmptyResult() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Repositories\SearchRepositoryIntegrationTests.cs:192
+failed GetDiscussionsBySpaceAsync_RespectsPageSize (60ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] NullReferenceException: Object reference not set to an instance of an object.
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.WithAdultFilterAsync(IQueryable`1 query, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:590
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.GetDiscussionsBySpaceAsync(String spacePublicId, Int32 offset, Int32 pageSize, Nullable`1 typeFilter, String userId, String cursor, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:258
+    at Snakk.Infrastructure.Tests.Repositories.SearchRepositoryIntegrationTests.GetDiscussionsBySpaceAsync_RespectsPageSize() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Repositories\SearchRepositoryIntegrationTests.cs:175
+failed GetDiscussionsBySpaceAsync_ReturnsDiscussionsInSpace (57ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] NullReferenceException: Object reference not set to an instance of an object.
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.WithAdultFilterAsync(IQueryable`1 query, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:590
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.GetDiscussionsBySpaceAsync(String spacePublicId, Int32 offset, Int32 pageSize, Nullable`1 typeFilter, String userId, String cursor, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:258
+    at Snakk.Infrastructure.Tests.Repositories.SearchRepositoryIntegrationTests.GetDiscussionsBySpaceAsync_ReturnsDiscussionsInSpace() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Repositories\SearchRepositoryIntegrationTests.cs:132
+failed GetDiscussionsBySpaceAsync_ExcludesDeletedDiscussions (62ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] NullReferenceException: Object reference not set to an instance of an object.
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.WithAdultFilterAsync(IQueryable`1 query, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:590
+    at Snakk.Infrastructure.Database.Repositories.SearchRepository.GetDiscussionsBySpaceAsync(String spacePublicId, Int32 offset, Int32 pageSize, Nullable`1 typeFilter, String userId, String cursor, Boolean viewerAllowsAdult) in c:\Snakk\src\core\Snakk.Infrastructure\Database\Repositories\SearchRepository.cs:258
+    at Snakk.Infrastructure.Tests.Repositories.SearchRepositoryIntegrationTests.GetDiscussionsBySpaceAsync_ExcludesDeletedDiscussions() in c:\Snakk\src\tests\Snakk.Infrastructure.Tests\Repositories\SearchRepositoryIntegrationTests.cs:151
+failed GetBySlugAsync_ExistingSlug_ReturnsEntityWithHub (129ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to not be null
+  but received null
+  
+  at Assert.That(result).IsNotNull()
+failed GetForDisplayAsync_ExistingSpace_ReturnsDtoWithCorrectFields (39ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be equal to "hub_3_83a0733c7ab644abb54306f344f68167"
+  but received ""
+  
+  at Assert.That(result.HubPublicId).IsEqualTo(hub.PublicId)
+failed GetFilteredForDisplayAsync_ReturnsOnlySpacesForSpecifiedHub ()
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be equal to "hub_2_19d2ddb17005458b9dbda295bc12f0d9"
+  but received ""
+  
+  at Assert.That(result.Items.First().HubPublicId).IsEqualTo(hub1.PublicId)
+failed GetTopActiveSpacesSinceAsync_WithRecentPosts_ReturnsActiveSpaces (91ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be 1
+  but found 0
+  
+  at Assert.That(topSpaces.Count).IsEqualTo(1)
+failed GetTopActiveSpacesSinceAsync_RespectsLimitParameter (271ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be 2
+  but found 0
+  
+  at Assert.That(topSpaces.Count).IsEqualTo(2)
+failed GetSpaces_ReturnsPaginated (94ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be equal to "test-hub"
+  but received ""
+  
+  at Assert.That(result.Items[0].HubSlug).IsEqualTo("test-hub")
+failed GetCommunitySpacesAsync_ReturnsSpacesWithCounts (26ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be 1
+  but found 0
+  
+  at Assert.That(result.Count).IsEqualTo(1)
+failed CommunityAdmin_HasAccessToDiscussionInCommunity (322ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be true
+  but found False
+  
+  at Assert.That(result).IsTrue()
+failed CommunityAdmin_HasAccessToPostViaFullChain (65ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be true
+  but found False
+  
+  at Assert.That(result).IsTrue()
+failed HubMod_HasAccessToPostViaFullChain (29ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be true
+  but found False
+  
+  at Assert.That(result).IsTrue()
+failed CommunityMod_HasSameHierarchicalAccess (74ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be true
+  but found False
+  
+  at Assert.That(discussionAccess).IsTrue()
+failed HubMod_HasAccessToDiscussionInSpace (37ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be true
+  but found False
+  
+  at Assert.That(result).IsTrue()
+failed CommunityAdmin_HasAccessToDiscussion (22ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be true
+  but found False
+  
+  at Assert.That(result).IsTrue()
+failed SpaceMod_HasAccessToPostViaFullChain (24ms)
+  TUnit.Engine.Exceptions.TestFailedException: [Test Failure] AssertionException: Expected to be true
+  but found False
+  
+  at Assert.That(result).IsTrue()
+
+Test run summary: Failed! - c:\Snakk\src\tests\Snakk.Infrastructure.Tests\bin\Debug\net10.0\Snakk.Infrastructure.Tests.dll (net10.0|x64)
+  total: 917
+  failed: 40
+  succeeded: 877
+  skipped: 0
+  duration: 40s 633ms
+HTML test report written to: c:\Snakk\TestResults\Snakk.Infrastructure.Tests-windows-net10.0-report.html

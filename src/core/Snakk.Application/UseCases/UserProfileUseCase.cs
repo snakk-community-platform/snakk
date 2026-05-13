@@ -43,7 +43,7 @@ public class UserProfileUseCase(
     public async Task<UserProfileDto?> GetUserProfileAsync(string publicId)
     {
         var userId = UserId.From(publicId);
-        var user = await userRepository.GetByPublicIdAsync(userId);
+        var user = await userRepository.GetProfileSlimByPublicIdAsync(userId);
 
         if (user is null)
             return null;
@@ -78,7 +78,7 @@ public class UserProfileUseCase(
             .ToList();
 
         return new UserProfileDto(
-            user.PublicId.Value,
+            user.PublicId,
             user.DisplayName ?? "",
             user.AvatarFileName,
             user.CreatedAt,

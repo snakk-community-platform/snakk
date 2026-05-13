@@ -32,6 +32,7 @@ public class DiscussionDatabaseEntity
     public int ReactionCount { get; set; } // Total reactions across all posts in discussion
     public int FollowerCount { get; set; }
     public double TrendScore { get; set; }
+    public int EngagementScore { get; set; } // PostCount + ReactionCount, maintained by CounterService
 
     // Denormalized OP author display fields (cascaded on user rename/avatar change)
     public string? AuthorDisplayName { get; set; }

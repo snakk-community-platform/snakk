@@ -144,7 +144,7 @@ public class ValidatorTests
         var validator = new RegisterRequestValidator();
         var result = await validator.TestValidateAsync(new RegisterRequest("test@test.com", "P@ssword1", "A"));
         result.ShouldHaveValidationErrorFor(x => x.DisplayName)
-            .WithErrorMessage("Display name must be at least 2 characters");
+            .WithErrorMessage("Display name must be at least 3 characters");
     }
 
     [Test]
@@ -154,7 +154,7 @@ public class ValidatorTests
         var longName = new string('A', 51);
         var result = await validator.TestValidateAsync(new RegisterRequest("test@test.com", "P@ssword1", longName));
         result.ShouldHaveValidationErrorFor(x => x.DisplayName)
-            .WithErrorMessage("Display name too long");
+            .WithErrorMessage("Display name must be at most 20 characters");
     }
 
     [Test]
@@ -163,7 +163,7 @@ public class ValidatorTests
         var validator = new RegisterRequestValidator();
         var result = await validator.TestValidateAsync(new RegisterRequest("test@test.com", "P@ssword1", "Test User"));
         result.ShouldHaveValidationErrorFor(x => x.DisplayName)
-            .WithErrorMessage("Display name can only contain letters, numbers, underscores, and hyphens");
+            .WithErrorMessage("Display name cannot contain spaces");
     }
 
     [Test]
@@ -171,8 +171,7 @@ public class ValidatorTests
     {
         var validator = new RegisterRequestValidator();
         var result = await validator.TestValidateAsync(new RegisterRequest("test@test.com", "P@ssword1", "Test@User!"));
-        result.ShouldHaveValidationErrorFor(x => x.DisplayName)
-            .WithErrorMessage("Display name can only contain letters, numbers, underscores, and hyphens");
+        result.ShouldNotHaveValidationErrorFor(x => x.DisplayName);
     }
 
     [Test]

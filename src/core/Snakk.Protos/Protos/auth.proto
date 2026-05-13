@@ -97,6 +97,8 @@ message UpdatePreferencesRequest {
   bool reset_adult_content_to_ask = 6;
   // 0=Show, 1=Blur, 2=Hide
   optional int32 adult_preview_image_mode = 7;
+  // When true, user appears anonymous in viewer/typing presence lists
+  optional bool hide_presence = 8;
 }
 
 message OAuthCallbackRequest {
@@ -153,6 +155,7 @@ message CurrentUserResponse {
   optional string feed_token = 15;
   optional bool allow_adult_content = 16;
   int32 adult_preview_image_mode = 17; // 0=Show, 1=Blur, 2=Hide
+  bool hide_presence = 18;
 }
 
 message UpdateProfileResponse {

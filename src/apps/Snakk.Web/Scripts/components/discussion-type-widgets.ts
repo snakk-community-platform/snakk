@@ -141,17 +141,13 @@
         const picker = document.createElement('div');
         picker.className = 'debate-position-picker';
         picker.innerHTML =
-            '<div class="text-sm font-medium mb-1">Choose your position</div>' +
+            '<div class="text-sm font-medium mb-1">⚖ Choose your position</div>' +
             '<p class="text-xs text-base-content/50 mb-3">' +
                 'This is a debate. Every reply must declare a position so readers ' +
                 'can follow who stands where. Pick the position that best represents ' +
                 'your reply — it will be shown as a label on your post. You can change ' +
-                'it on a later post if your view shifts. ' +
-                'Only people who reply participate in the debate; readers don\u2019t need to pick a side.' +
+                'it on a later post if your view shifts.' +
             '</p>';
-
-        const btnContainer = document.createElement('div');
-        btnContainer.className = 'flex flex-wrap gap-2';
 
         // Disable the reply submit button until a position is chosen. A debate
         // reply without a position is not allowed, so there's no point letting
@@ -164,33 +160,37 @@
             submitBtn.title = hasPosition ? '' : 'Pick a position before replying';
         };
 
-        // Store the color per button so we can reapply it on activate without
-        // re-resolving from the positions array each click.
-        const buttonColors = new WeakMap<HTMLButtonElement, string>();
+        const cardContainer = document.createElement('div');
+        cardContainer.className = 'debate-position-cards';
 
         positions.forEach((p: any, i: number) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'debate-position-picker-btn';
-            btn.dataset.positionId = p.id.toString();
             const color = (colors[i] || colors[0]) as string;
-            buttonColors.set(btn, color);
-            btn.style.borderColor = color;
-            btn.textContent = p.label;
-            btn.addEventListener('click', () => {
-                // Clear state on all other buttons — including their inline
-                // background-color and color. Leaving the inline styles behind
-                // was the bug that made deselected buttons still look active.
-                btnContainer.querySelectorAll<HTMLButtonElement>('.debate-position-picker-btn').forEach(b => {
-                    if (b === btn) return;
-                    b.classList.remove('debate-position-active');
-                    b.style.backgroundColor = '';
-                    b.style.color = '';
-                });
 
-                btn.classList.add('debate-position-active');
-                btn.style.backgroundColor = color;
-                btn.style.color = 'white';
+            const card = document.createElement('label');
+            card.className = 'debate-position-card';
+            card.dataset.positionId = p.id.toString();
+            card.style.setProperty('--position-color', color);
+
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = 'debate-position-visual';
+            radio.value = p.id.toString();
+            radio.className = 'debate-position-radio';
+
+            const indicator = document.createElement('span');
+            indicator.className = 'debate-position-card-indicator';
+
+            const labelText = document.createElement('span');
+            labelText.textContent = p.label;
+
+            card.appendChild(radio);
+            card.appendChild(indicator);
+            card.appendChild(labelText);
+
+            radio.addEventListener('change', () => {
+                cardContainer.querySelectorAll<HTMLLabelElement>('.debate-position-card').forEach(c => {
+                    c.classList.toggle('debate-position-card-selected', c === card);
+                });
 
                 let input = replyForm.querySelector('input[name="DebatePositionId"]') as HTMLInputElement;
                 if (!input) {
@@ -200,18 +200,25 @@
                     replyForm.appendChild(input);
                 }
                 input.value = p.id.toString();
-                updateSubmitState();
+                replyForm.dispatchEvent(new CustomEvent('snakk:debate:position-changed', { bubbles: true }));
             });
-            btnContainer.appendChild(btn);
+
+            cardContainer.appendChild(card);
         });
 
-        picker.appendChild(btnContainer);
+        picker.appendChild(cardContainer);
 
-        const editor = replyForm.querySelector('#editor-container, .composer-area');
-        if (editor) {
-            editor.parentNode?.insertBefore(picker, editor);
+        const messageArea = replyForm.querySelector('.milkdown-message-area');
+        if (messageArea) {
+            messageArea.appendChild(picker);
         } else {
-            replyForm.prepend(picker);
+            // Fallback: above editor if no message area (non-Milkdown paths)
+            const editorEl = replyForm.querySelector('#editor-container, .composer-area');
+            if (editorEl) {
+                editorEl.parentNode?.insertBefore(picker, editorEl);
+            } else {
+                replyForm.prepend(picker);
+            }
         }
 
         // Lock submit until a position is picked.

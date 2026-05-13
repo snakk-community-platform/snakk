@@ -20,7 +20,7 @@ public static class BannerMapper
             entity.VisibleUntil,
             entity.IsDismissible,
             entity.SortOrder,
-            UserId.From(entity.CreatedByUser.PublicId),
+            UserId.From(entity.CreatedByUserPublicId ?? entity.CreatedByUser?.PublicId ?? ""),
             entity.CreatedAt,
             entity.LastModifiedAt);
 

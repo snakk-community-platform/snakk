@@ -1,11 +1,10 @@
-@page "/u/{publicId}"
+﻿@page "/u/{publicId}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Shared.Helpers
 @using static Snakk.Web.Helpers.DisplayHelper
 @model ProfileModel
 @{
-    Layout = "_Layout";
     ViewData["Title"] = Model.Profile?.DisplayName ?? "User Profile";
 }
 

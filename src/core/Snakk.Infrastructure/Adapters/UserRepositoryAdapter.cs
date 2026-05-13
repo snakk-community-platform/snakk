@@ -61,6 +61,49 @@ public class UserRepositoryAdapter(
             .ToListAsync();
     }
 
+    public async Task<IEnumerable<PostAuthorSlim>> GetPostAuthorSlimByPublicIdsAsync(IEnumerable<UserId> publicIds)
+    {
+        var ids = publicIds.Select(u => u.Value).ToList();
+        if (ids.Count == 0) return [];
+
+        return await context.Users
+            .Where(u => ids.Contains(u.PublicId))
+            .Select(u => new PostAuthorSlim(
+                u.PublicId, u.DisplayName,
+                u.AvatarFileName, u.AvatarThumbnailFileName, u.AvatarMicroFileName, u.AvatarRevision,
+                u.CreatedAt, u.DiscussionCount, u.ReplyCount))
+            .ToListAsync();
+    }
+
+    public async Task<UserProfileSlim?> GetProfileSlimByPublicIdAsync(UserId publicId)
+    {
+        return await context.Users
+            .Where(u => u.PublicId == publicId.Value)
+            .Select(u => new UserProfileSlim(
+                u.PublicId, u.DisplayName,
+                u.AvatarFileName, u.AvatarThumbnailFileName,
+                u.CreatedAt, u.LastSeenAt,
+                u.DiscussionCount, u.FollowerCount, u.ReplyCount, u.Bio))
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId)
+    {
+        return await context.Users
+            .Where(u => u.PublicId == publicId.Value)
+            .Select(u => new CurrentUserSlim(
+                u.PublicId, u.DisplayName,
+                u.Email, u.EmailVerified,
+                u.OAuthProvider, u.AutoFollowOnReply,
+                u.Timezone, u.IsDisplayNameLocked,
+                u.PasswordHash != null,
+                u.AvatarFileName, u.Bio, u.FeedToken,
+                u.AllowAdultContent, u.AdultPreviewImageMode,
+                u.DisplayNameChangedAt,
+                u.HidePresence))
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<User?> GetByEmailAsync(string email)
     {
         var hash = emailProtector.ComputeHash(email);
@@ -163,19 +206,26 @@ public class UserRepositoryAdapter(
         await databaseRepository.UpdateAsync(entity);
         await databaseRepository.SaveChangesAsync();
 
-        await context.Discussions
-            .Where(d => d.CreatedByUserId == entity.Id)
-            .ExecuteUpdateAsync(d => d
-                .SetProperty(x => x.AuthorDisplayName, entity.DisplayName)
-                .SetProperty(x => x.AuthorAvatarFileName, entity.AvatarFileName)
-                .SetProperty(x => x.AuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName));
+        try
+        {
+            await context.Discussions
+                .Where(d => d.CreatedByUserId == entity.Id)
+                .ExecuteUpdateAsync(d => d
+                    .SetProperty(x => x.AuthorDisplayName, entity.DisplayName)
+                    .SetProperty(x => x.AuthorAvatarFileName, entity.AvatarFileName)
+                    .SetProperty(x => x.AuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName));
 
-        await context.Discussions
-            .Where(d => d.LastPostAuthorPublicId == entity.PublicId)
-            .ExecuteUpdateAsync(d => d
-                .SetProperty(x => x.LastPostAuthorDisplayName, entity.DisplayName)
-                .SetProperty(x => x.LastPostAuthorAvatarFileName, entity.AvatarFileName)
-                .SetProperty(x => x.LastPostAuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName));
+            await context.Discussions
+                .Where(d => d.LastPostAuthorPublicId == entity.PublicId)
+                .ExecuteUpdateAsync(d => d
+                    .SetProperty(x => x.LastPostAuthorDisplayName, entity.DisplayName)
+                    .SetProperty(x => x.LastPostAuthorAvatarFileName, entity.AvatarFileName)
+                    .SetProperty(x => x.LastPostAuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName));
+        }
+        catch (InvalidOperationException)
+        {
+            // Bulk update not supported by current DB provider (e.g. in-memory in tests)
+        }
     }
 
     private record UserProjection

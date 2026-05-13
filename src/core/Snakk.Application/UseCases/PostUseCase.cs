@@ -303,17 +303,14 @@ public class PostUseCase(
 
         // 3. Fetch authors, reply-to posts, reactions, and user reactions sequentially
         //    (EF Core DbContext does not support concurrent operations)
-        var authors_raw = await userRepository.GetByPublicIdsAsync(authorIds);
+        var authors_raw = await userRepository.GetPostAuthorSlimByPublicIdsAsync(authorIds);
         var replyToPosts = replyToIds.Count > 0
             ? await GetPostsByPublicIdsAsync(replyToIds)
             : Enumerable.Empty<Post>();
-        var reactionCountsResult = await reactionUseCase.GetReactionCountsBatchAsync(postIds);
-        var userReactionsResult = currentUserId is not null
-            ? await reactionUseCase.GetUserReactionsBatchAsync(currentUserId, postIds)
-            : new Dictionary<string, List<ReactionType>>();
+        var reactionData = await reactionUseCase.GetReactionDataAsync(postIds, currentUserId);
 
         // 4. Build authors dictionary
-        var authorsDict = authors_raw.ToDictionary(u => u.PublicId.Value);
+        var authorsDict = authors_raw.ToDictionary(u => u.PublicId);
         var authors = new Dictionary<string, AuthorInfo>();
 
         foreach (var authorId in authorIds)
@@ -322,7 +319,7 @@ public class PostUseCase(
             {
                 authors[authorId.Value] = new AuthorInfo(
                     user.DisplayName ?? "",
-                    user.Role,
+                    null,
                     user.AvatarFileName,
                     user.AvatarThumbnailFileName,
                     user.AvatarMicroFileName,
@@ -354,9 +351,9 @@ public class PostUseCase(
 
             if (missingReplyAuthorIds.Count > 0)
             {
-                var extraAuthors = await userRepository.GetByPublicIdsAsync(missingReplyAuthorIds);
+                var extraAuthors = await userRepository.GetPostAuthorSlimByPublicIdsAsync(missingReplyAuthorIds);
                 foreach (var a in extraAuthors)
-                    authorsDict[a.PublicId.Value] = a;
+                    authorsDict[a.PublicId] = a;
             }
 
             foreach (var replyPost in replyPostsList)
@@ -373,8 +370,8 @@ public class PostUseCase(
             }
         }
 
-        var reactionCounts = reactionCountsResult;
-        var userReactions = userReactionsResult;
+        var reactionCounts = reactionData.Counts;
+        var userReactions = reactionData.UserReactions;
 
         // 6. Build enriched result
         var enrichedPosts = visiblePosts

@@ -30,11 +30,12 @@ public class StatisticsUseCaseTests
         var userId1 = UserId.New();
         var userId2 = UserId.New();
         var topContributors = new List<(UserId UserId, int PostCount)> { (userId1, 10), (userId2, 5) };
-        var user1 = User.Rehydrate(userId1, "TopUser1", "user1@test.com", null, true, null, null, null, null, "avatar1.png", null, null, 0, true, DateTime.UtcNow);
-        var user2 = User.Rehydrate(userId2, "TopUser2", "user2@test.com", null, true, null, null, null, null, null, null, null, 0, true, DateTime.UtcNow);
 
         _postRepo.GetTopContributorsSinceAsync(Arg.Any<DateTime>(), null, null, null, 5).Returns(topContributors);
-        _userRepo.GetByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([user1, user2]);
+        _userRepo.GetAvatarSlimByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([
+            new UserAvatarSlim(userId1.Value, "TopUser1", "avatar1.png", null, null, 0),
+            new UserAvatarSlim(userId2.Value, "TopUser2", null, null, null, 0)
+        ]);
 
         var result = await _useCase.GetTopContributorsTodayAsync(DateTime.UtcNow.AddHours(-24));
 
@@ -57,7 +58,7 @@ public class StatisticsUseCaseTests
         var topContributors = new List<(UserId UserId, int PostCount)> { (userId, 3) };
 
         _postRepo.GetTopContributorsSinceAsync(Arg.Any<DateTime>(), null, null, null, 5).Returns(topContributors);
-        _userRepo.GetByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([]);
+        _userRepo.GetAvatarSlimByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([]);
 
         var result = await _useCase.GetTopContributorsTodayAsync(DateTime.UtcNow.AddHours(-24));
 
@@ -71,7 +72,7 @@ public class StatisticsUseCaseTests
     {
         const string hubId = "hub-123";
         _postRepo.GetTopContributorsSinceAsync(Arg.Any<DateTime>(), HubId.From(hubId), null, null, 5).Returns([]);
-        _userRepo.GetByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([]);
+        _userRepo.GetAvatarSlimByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([]);
 
         await _useCase.GetTopContributorsTodayAsync(DateTime.UtcNow.AddHours(-24), hubId: hubId);
 
@@ -82,7 +83,7 @@ public class StatisticsUseCaseTests
     public async Task GetTopContributorsTodayAsync_WithCustomLimit_PassesLimit()
     {
         _postRepo.GetTopContributorsSinceAsync(Arg.Any<DateTime>(), null, null, null, 10).Returns([]);
-        _userRepo.GetByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([]);
+        _userRepo.GetAvatarSlimByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([]);
 
         await _useCase.GetTopContributorsTodayAsync(DateTime.UtcNow.AddHours(-24), limit: 10);
 
@@ -133,7 +134,7 @@ public class StatisticsUseCaseTests
     {
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
         var userId = user.PublicId;
-        _userRepo.GetByPublicIdAsync(userId).Returns(user);
+        _userRepo.GetAvatarSlimByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([new UserAvatarSlim(userId.Value, "TestUser", null, null, null, 0)]);
 
         var today = DateTime.UtcNow.Date;
         var discussionActivity = new List<(DateTime Date, int Count)> { (today, 2), (today.AddDays(-1), 1) };
@@ -160,7 +161,7 @@ public class StatisticsUseCaseTests
     public async Task GetUserActivityHistoryAsync_WithNonExistentUser_ReturnsFailure()
     {
         var userId = UserId.New();
-        _userRepo.GetByPublicIdAsync(userId).Returns((User?)null);
+        _userRepo.GetAvatarSlimByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([]);
 
         var result = await _useCase.GetUserActivityHistoryAsync(userId.Value);
 
@@ -172,7 +173,7 @@ public class StatisticsUseCaseTests
     public async Task GetUserActivityHistoryAsync_WithInvalidDays_DefaultsTo30()
     {
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
-        _userRepo.GetByPublicIdAsync(user.PublicId).Returns(user);
+        _userRepo.GetAvatarSlimByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([new UserAvatarSlim(user.PublicId.Value, "TestUser", null, null, null, 0)]);
         _discussionRepo.GetActivityByDateAsync(user.PublicId, Arg.Any<DateTime>()).Returns([]);
         _postRepo.GetActivityByDateAsync(user.PublicId, Arg.Any<DateTime>()).Returns([]);
 
@@ -186,7 +187,7 @@ public class StatisticsUseCaseTests
     public async Task GetUserActivityHistoryAsync_WithOver90Days_DefaultsTo30()
     {
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
-        _userRepo.GetByPublicIdAsync(user.PublicId).Returns(user);
+        _userRepo.GetAvatarSlimByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([new UserAvatarSlim(user.PublicId.Value, "TestUser", null, null, null, 0)]);
         _discussionRepo.GetActivityByDateAsync(user.PublicId, Arg.Any<DateTime>()).Returns([]);
         _postRepo.GetActivityByDateAsync(user.PublicId, Arg.Any<DateTime>()).Returns([]);
 
@@ -200,7 +201,7 @@ public class StatisticsUseCaseTests
     public async Task GetUserActivityHistoryAsync_DataIsSortedByDate()
     {
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
-        _userRepo.GetByPublicIdAsync(user.PublicId).Returns(user);
+        _userRepo.GetAvatarSlimByPublicIdsAsync(Arg.Any<IEnumerable<UserId>>()).Returns([new UserAvatarSlim(user.PublicId.Value, "TestUser", null, null, null, 0)]);
         _discussionRepo.GetActivityByDateAsync(user.PublicId, Arg.Any<DateTime>()).Returns([]);
         _postRepo.GetActivityByDateAsync(user.PublicId, Arg.Any<DateTime>()).Returns([]);
 

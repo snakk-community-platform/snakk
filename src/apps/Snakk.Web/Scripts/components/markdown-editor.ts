@@ -4549,10 +4549,14 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
             footerLeft.appendChild(helpLink);
             footer.appendChild(footerLeft);
 
+            const messageArea = document.createElement('div');
+            messageArea.className = 'milkdown-message-area';
+
             editorWrapper.appendChild(toolbar);
             editorBody.appendChild(editorRoot);
             editorWrapper.appendChild(editorBody);
             editorWrapper.appendChild(sourceTextarea);
+            editorWrapper.appendChild(messageArea);
             editorWrapper.appendChild(footer);
 
             const blockFeatures = ['image', 'code', 'table', 'blockquote', 'list', 'heading', 'callout'];

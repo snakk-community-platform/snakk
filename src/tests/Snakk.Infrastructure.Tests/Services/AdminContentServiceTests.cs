@@ -82,6 +82,7 @@ public class AdminContentServiceTests : IDisposable
         {
             PublicId = "hub-001",
             CommunityId = community.Id,
+            CommunityPublicId = community.PublicId,
             Name = "Test Hub",
             Slug = "test-hub",
             CreatedAt = DateTime.UtcNow
@@ -93,6 +94,12 @@ public class AdminContentServiceTests : IDisposable
         {
             PublicId = "space-001",
             HubId = hub.Id,
+            HubPublicId = hub.PublicId,
+            HubSlug = hub.Slug,
+            HubName = hub.Name,
+            CommunityPublicId = community.PublicId,
+            CommunitySlug = community.Slug,
+            CommunityName = community.Name,
             Name = "Test Space",
             Slug = "test-space",
             CreatedAt = DateTime.UtcNow
@@ -104,7 +111,13 @@ public class AdminContentServiceTests : IDisposable
         {
             PublicId = "disc-001",
             SpaceId = space.Id,
+            SpacePublicId = space.PublicId,
+            HubId = hub.Id,
+            HubPublicId = hub.PublicId,
+            CommunityId = community.Id,
+            CommunityPublicId = community.PublicId,
             CreatedByUserId = user.Id,
+            CreatedByUserPublicId = user.PublicId,
             Title = "Test Discussion",
             Slug = "test-discussion",
             CreatedAt = DateTime.UtcNow,
@@ -117,7 +130,15 @@ public class AdminContentServiceTests : IDisposable
         {
             PublicId = "post-001",
             DiscussionId = discussion.Id,
+            DiscussionPublicId = discussion.PublicId,
+            SpaceId = space.Id,
+            SpacePublicId = space.PublicId,
+            HubId = hub.Id,
+            HubPublicId = hub.PublicId,
+            CommunityId = community.Id,
+            CommunityPublicId = community.PublicId,
             CreatedByUserId = user.Id,
+            CreatedByUserPublicId = user.PublicId,
             Content = "Test post content",
             CreatedAt = DateTime.UtcNow,
             IsFirstPost = true

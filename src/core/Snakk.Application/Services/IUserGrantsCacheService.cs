@@ -32,6 +32,15 @@ public interface IUserGrantsCacheService
 
     /// <summary>Evicts the restricted-entity set cache (e.g. when IsRestricted changes on any entity).</summary>
     void InvalidateRestrictedCount();
+
+    /// <summary>
+    /// Returns the set of Space IDs whose community has HideAdultDiscussionsFromLists = true.
+    /// Cached with a short TTL; invalidated whenever that community setting changes.
+    /// </summary>
+    Task<HashSet<int>> GetAdultHidingSpaceIdsAsync();
+
+    /// <summary>Evicts the adult-hiding-spaces cache (e.g. when a community's HideAdultDiscussionsFromLists changes).</summary>
+    void InvalidateAdultHidingSpaces();
 }
 
 /// <summary>

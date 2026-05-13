@@ -393,29 +393,67 @@
 // --- Debate: Position picker ---
 
 .debate-position-picker {
-    margin: 0.75rem 0;
     padding: 0.75rem;
-    border: 1px solid var(--border-primary);
-    border-radius: 0.5rem;
-    background: var(--bg-secondary);
+    border-left: 0.6rem solid var(--accent-info);
+    background: var(--accent-info-bg);
 }
 
-.debate-position-picker-btn {
-    padding: 0.375rem 0.75rem;
+.debate-position-cards {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.debate-position-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
     border: 2px solid var(--border-primary);
-    border-radius: 0.375rem;
-    background: transparent;
+    border-radius: 0.5rem;
     cursor: pointer;
     font-size: 0.8125rem;
     font-weight: 500;
-    transition: all 0.15s;
+    transition: border-color 0.15s, background-color 0.15s;
+    user-select: none;
 
-    &:hover {
-        opacity: 0.8;
+    &:hover:not(.debate-position-card-selected) {
+        border-color: var(--text-tertiary);
     }
 
-    &.debate-position-active {
-        color: white;
+    &.debate-position-card-selected {
+        border-color: var(--position-color);
+        background-color: color-mix(in srgb, var(--position-color) 10%, transparent);
+    }
+}
+
+.debate-position-radio {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.debate-position-card-indicator {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 2px solid var(--border-primary);
+    transition: border-color 0.15s;
+    position: relative;
+
+    .debate-position-card-selected & {
+        border-color: var(--position-color);
+
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border-radius: 50%;
+            background: var(--position-color);
+        }
     }
 }
 

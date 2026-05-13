@@ -51,19 +51,19 @@ public class TestDataBuilder
     public async Task<HubDatabaseEntity> CreateHubAsync(int communityId, string? name = null, string? slug = null)
     {
         var id = NextId();
+        var community = await _context.Communities.FindAsync(communityId);
         var hub = new HubDatabaseEntity
         {
             PublicId = $"hub_{id}",
             CommunityId = communityId,
+            CommunityPublicId = community!.PublicId,
             Name = name ?? $"Hub {id}",
             Slug = slug ?? $"hub-{id}",
             CreatedAt = DateTime.UtcNow
         };
         _context.Hubs.Add(hub);
 
-        // Increment denormalized counter on parent community
-        var community = await _context.Communities.FindAsync(communityId);
-        community!.HubCount++;
+        community.HubCount++;
 
         await _context.SaveChangesAsync();
 
@@ -73,21 +73,26 @@ public class TestDataBuilder
     public async Task<SpaceDatabaseEntity> CreateSpaceAsync(int hubId, string? name = null, string? slug = null)
     {
         var id = NextId();
+        var hub = await _context.Hubs.FindAsync(hubId);
+        var community = await _context.Communities.FindAsync(hub!.CommunityId);
         var space = new SpaceDatabaseEntity
         {
             PublicId = $"space_{id}",
             HubId = hubId,
+            HubPublicId = hub.PublicId,
+            HubSlug = hub.Slug,
+            HubName = hub.Name,
+            CommunityPublicId = community!.PublicId,
+            CommunitySlug = community.Slug,
+            CommunityName = community.Name,
             Name = name ?? $"Space {id}",
             Slug = slug ?? $"space-{id}",
             CreatedAt = DateTime.UtcNow
         };
         _context.Spaces.Add(space);
 
-        // Increment denormalized counters on parent hub and community
-        var hub = await _context.Hubs.FindAsync(hubId);
-        hub!.SpaceCount++;
-        var community = await _context.Communities.FindAsync(hub.CommunityId);
-        community!.SpaceCount++;
+        hub.SpaceCount++;
+        community.SpaceCount++;
 
         await _context.SaveChangesAsync();
 
@@ -97,11 +102,21 @@ public class TestDataBuilder
     public async Task<DiscussionDatabaseEntity> CreateDiscussionAsync(int spaceId, int createdByUserId, string? title = null, string? slug = null)
     {
         var id = NextId();
+        var space = await _context.Spaces.FindAsync(spaceId);
+        var hub = await _context.Hubs.FindAsync(space!.HubId);
+        var community = await _context.Communities.FindAsync(hub!.CommunityId);
+        var user = await _context.Users.FindAsync(createdByUserId);
         var discussion = new DiscussionDatabaseEntity
         {
             PublicId = $"disc_{id}",
             SpaceId = spaceId,
+            SpacePublicId = space.PublicId,
+            HubId = hub.Id,
+            HubPublicId = hub.PublicId,
+            CommunityId = community!.Id,
+            CommunityPublicId = community.PublicId,
             CreatedByUserId = createdByUserId,
+            CreatedByUserPublicId = user!.PublicId,
             Title = title ?? $"Discussion {id}",
             Slug = slug ?? $"discussion-{id}",
             CreatedAt = DateTime.UtcNow,
@@ -109,15 +124,10 @@ public class TestDataBuilder
         };
         _context.Discussions.Add(discussion);
 
-        // Increment denormalized counters up the hierarchy
-        var space = await _context.Spaces.FindAsync(spaceId);
-        space!.DiscussionCount++;
-        var hub = await _context.Hubs.FindAsync(space.HubId);
-        hub!.DiscussionCount++;
-        var community = await _context.Communities.FindAsync(hub.CommunityId);
-        community!.DiscussionCount++;
-        var user = await _context.Users.FindAsync(createdByUserId);
-        user!.DiscussionCount++;
+        space.DiscussionCount++;
+        hub.DiscussionCount++;
+        community.DiscussionCount++;
+        user.DiscussionCount++;
 
         await _context.SaveChangesAsync();
 
@@ -127,31 +137,36 @@ public class TestDataBuilder
     public async Task<PostDatabaseEntity> CreatePostAsync(int discussionId, int createdByUserId, string? content = null, bool isFirstPost = false)
     {
         var id = NextId();
+        var discussion = await _context.Discussions.FindAsync(discussionId);
+        var space = await _context.Spaces.FindAsync(discussion!.SpaceId);
+        var hub = await _context.Hubs.FindAsync(space!.HubId);
+        var community = await _context.Communities.FindAsync(hub!.CommunityId);
+        var user = await _context.Users.FindAsync(createdByUserId);
         var post = new PostDatabaseEntity
         {
             PublicId = $"post_{id}",
             DiscussionId = discussionId,
+            DiscussionPublicId = discussion.PublicId,
+            SpaceId = discussion.SpaceId,
+            SpacePublicId = space.PublicId,
+            HubId = hub.Id,
+            HubPublicId = hub.PublicId,
+            CommunityId = community!.Id,
+            CommunityPublicId = community.PublicId,
             CreatedByUserId = createdByUserId,
+            CreatedByUserPublicId = user!.PublicId,
             Content = content ?? $"Post content {id}",
             CreatedAt = DateTime.UtcNow,
             IsFirstPost = isFirstPost
         };
         _context.Posts.Add(post);
 
-        // Increment denormalized counters up the hierarchy
-        var discussion = await _context.Discussions.FindAsync(discussionId);
-        discussion!.PostCount++;
-        var space = await _context.Spaces.FindAsync(discussion.SpaceId);
-        space!.PostCount++;
-        var hub = await _context.Hubs.FindAsync(space.HubId);
-        hub!.PostCount++;
-        var community = await _context.Communities.FindAsync(hub.CommunityId);
-        community!.PostCount++;
+        discussion.PostCount++;
+        space.PostCount++;
+        hub.PostCount++;
+        community.PostCount++;
         if (!isFirstPost)
-        {
-            var user = await _context.Users.FindAsync(createdByUserId);
-            user!.ReplyCount++;
-        }
+            user.ReplyCount++;
 
         await _context.SaveChangesAsync();
 
@@ -435,11 +450,15 @@ public class TestDataBuilder
     public async Task<PostMentionDatabaseEntity> CreateMentionAsync(int postId, int mentionedUserId)
     {
         var id = NextId();
+        var post = await _context.Posts.FindAsync(postId);
+        var user = await _context.Users.FindAsync(mentionedUserId);
         var mention = new PostMentionDatabaseEntity
         {
             PublicId = $"men_{id}",
             PostId = postId,
+            PostPublicId = post!.PublicId,
             MentionedUserId = mentionedUserId,
+            MentionedUserPublicId = user!.PublicId,
             CreatedAt = DateTime.UtcNow
         };
         _context.PostMentions.Add(mention);

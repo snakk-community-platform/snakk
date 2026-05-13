@@ -641,6 +641,16 @@
     background: var(--bg-primary);
 }
 
+.milkdown-message-area {
+    display: none;
+
+    &:not(:empty) {
+        display: block;
+        border-top: 1px solid var(--border-secondary);
+        background: var(--bg-secondary);
+    }
+}
+
 .md-footer-left {
     display: flex;
     align-items: center;

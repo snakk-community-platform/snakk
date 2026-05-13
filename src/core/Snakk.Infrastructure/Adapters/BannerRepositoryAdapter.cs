@@ -22,7 +22,6 @@ public class BannerRepositoryAdapter(
         string scopeEntityId)
     {
         var entities = await context.Banners
-            .Include(a => a.CreatedByUser)
             .Where(a =>
                 a.ScopeId == (int)scope
                 && a.ScopeEntityId == scopeEntityId)
@@ -38,7 +37,6 @@ public class BannerRepositoryAdapter(
         var now = DateTime.UtcNow;
 
         var entities = await context.Banners
-            .Include(a => a.CreatedByUser)
             .Where(a =>
                 a.ScopeId == (int)BannerScopeEnum.Community
                 && a.ScopeEntityId == communityId.Value
@@ -68,7 +66,6 @@ public class BannerRepositoryAdapter(
         var communityScope = (int)BannerScopeEnum.Community;
 
         var entities = await context.Banners
-            .Include(a => a.CreatedByUser)
             .Where(a =>
                 ((a.ScopeId == hubScope && a.ScopeEntityId == hub.PublicId)
                 || (a.ScopeId == communityScope && a.ScopeEntityId == hub.CommunityPublicId))
@@ -104,7 +101,6 @@ public class BannerRepositoryAdapter(
         var communityScope = (int)BannerScopeEnum.Community;
 
         var entities = await context.Banners
-            .Include(a => a.CreatedByUser)
             .Where(a =>
                 ((a.ScopeId == spaceScope && a.ScopeEntityId == space.PublicId)
                 || (a.ScopeId == hubScope && a.ScopeEntityId == space.HubPublicId)
@@ -128,6 +124,7 @@ public class BannerRepositoryAdapter(
             throw new InvalidOperationException($"User with PublicId '{banner.CreatedByUserId}' not found");
 
         entity.CreatedByUserId = user.Id;
+        entity.CreatedByUserPublicId = banner.CreatedByUserId.Value;
 
         await databaseRepository.AddAsync(entity);
         await databaseRepository.SaveChangesAsync();

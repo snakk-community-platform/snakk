@@ -70,72 +70,118 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
 
     public async Task<List<string>> GetSavedDiscussionIdsAsync(string userId)
     {
+        var userDbId = await ResolveUserIdAsync(userId);
+        if (userDbId == 0) return [];
+
         return await context.UserSaves
-            .Where(s => s.User.PublicId == userId && s.DiscussionId != null)
+            .Where(s => s.UserId == userDbId && s.DiscussionId != null)
             .Select(s => s.Discussion!.PublicId)
             .ToListAsync();
     }
 
     public async Task<List<string>> GetSavedPostIdsAsync(string userId)
     {
+        var userDbId = await ResolveUserIdAsync(userId);
+        if (userDbId == 0) return [];
+
         return await context.UserSaves
-            .Where(s => s.User.PublicId == userId && s.PostId != null)
+            .Where(s => s.UserId == userDbId && s.PostId != null)
             .Select(s => s.Post!.PublicId)
             .ToListAsync();
     }
 
     public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetSavedDiscussionsAsync(string userId, int offset, int pageSize)
     {
-        var items = await context.UserSaves
-            .Where(s => s.User.PublicId == userId && s.DiscussionId != null && !s.Discussion!.IsDeleted)
+        var userDbId = await ResolveUserIdAsync(userId);
+        if (userDbId == 0)
+            return new PagedResult<Application.Repositories.RecentDiscussionDto>
+            {
+                Items = [],
+                Offset = offset,
+                PageSize = pageSize,
+                HasMoreItems = false
+            };
+
+        var rawItems = await context.UserSaves
+            .Where(s => s.UserId == userDbId && s.DiscussionId != null && !s.Discussion!.IsDeleted)
             .OrderByDescending(s => s.CreatedAt)
             .Skip(offset)
             .Take(pageSize + 1)
             .Select(s => new
             {
                 s.Id,
-                Dto = new Application.Repositories.RecentDiscussionDto(
-                    s.Discussion!.PublicId,
-                    s.Discussion.Title,
-                    s.Discussion.Slug,
-                    s.Discussion.Type,
-                    s.Discussion.CreatedAt,
-                    s.Discussion.LastActivityAt,
-                    s.Discussion.IsPinned,
-                    s.Discussion.IsLocked,
-                    s.Discussion.SpacePublicId,
-                    s.Discussion.Space.Slug,
-                    s.Discussion.Space.Name,
-                    s.Discussion.HubPublicId,
-                    s.Discussion.Space.HubSlug,
-                    s.Discussion.Space.HubName,
-                    s.Discussion.CommunityPublicId,
-                    s.Discussion.Space.CommunitySlug,
-                    s.Discussion.Space.CommunityName,
-                    s.Discussion.CreatedByUserPublicId,
-                    s.Discussion.CreatedByUser.DisplayName ?? "",
-                    s.Discussion.CreatedByUser.AvatarFileName,
-                    s.Discussion.CreatedByUser.AvatarThumbnailFileName,
-                    s.Discussion.PostCount,
-                    s.Discussion.ReactionCount,
-                    string.IsNullOrEmpty(s.Discussion.Tags)
-                        ? Array.Empty<string>()
-                        : s.Discussion.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
-                    LastReplierPublicId: s.Discussion!.LastPostAuthorPublicId,
-                    LastReplierDisplayName: s.Discussion!.LastPostAuthorDisplayName,
-                    LastReplierAvatarFileName: s.Discussion!.LastPostAuthorAvatarFileName,
-                    LastReplierAvatarThumbnailFileName: s.Discussion!.LastPostAuthorAvatarThumbnailFileName,
-                    LastPostExcerpt: s.Discussion!.LastPostPlainTextExcerpt,
-                    IsAdult: s.Discussion.IsAdultOnly)
+                PublicId = s.Discussion!.PublicId,
+                s.Discussion.Title,
+                s.Discussion.Slug,
+                s.Discussion.Type,
+                s.Discussion.CreatedAt,
+                s.Discussion.LastActivityAt,
+                s.Discussion.IsPinned,
+                s.Discussion.IsLocked,
+                SpaceId = s.Discussion.SpaceId,
+                s.Discussion.SpacePublicId,
+                s.Discussion.HubPublicId,
+                s.Discussion.CommunityPublicId,
+                s.Discussion.CreatedByUserPublicId,
+                s.Discussion.AuthorDisplayName,
+                s.Discussion.AuthorAvatarFileName,
+                s.Discussion.AuthorAvatarThumbnailFileName,
+                s.Discussion.PostCount,
+                s.Discussion.ReactionCount,
+                s.Discussion.Tags,
+                s.Discussion.LastPostAuthorPublicId,
+                s.Discussion.LastPostAuthorDisplayName,
+                s.Discussion.LastPostAuthorAvatarFileName,
+                s.Discussion.LastPostAuthorAvatarThumbnailFileName,
+                s.Discussion.LastPostPlainTextExcerpt,
+                s.Discussion.IsAdultOnly
             })
             .ToListAsync();
 
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
+        var hasMoreItems = rawItems.Count > pageSize;
+        var page = hasMoreItems ? rawItems.Take(pageSize).ToList() : rawItems;
+
+        var spaceDisplay = await FetchSpaceDisplayAsync(page.Select(x => x.SpaceId));
 
         return new PagedResult<Application.Repositories.RecentDiscussionDto>
         {
-            Items = resultItems.Select(x => x.Dto).ToList(),
+            Items = page.Select(d =>
+            {
+                spaceDisplay.TryGetValue(d.SpaceId, out var space);
+                return new Application.Repositories.RecentDiscussionDto(
+                    d.PublicId,
+                    d.Title,
+                    d.Slug,
+                    d.Type,
+                    d.CreatedAt,
+                    d.LastActivityAt,
+                    d.IsPinned,
+                    d.IsLocked,
+                    d.SpacePublicId,
+                    space?.Slug ?? "",
+                    space?.Name ?? "",
+                    d.HubPublicId,
+                    space?.HubSlug,
+                    space?.HubName,
+                    d.CommunityPublicId,
+                    space?.CommunitySlug,
+                    space?.CommunityName,
+                    d.CreatedByUserPublicId,
+                    d.AuthorDisplayName ?? "",
+                    d.AuthorAvatarFileName,
+                    d.AuthorAvatarThumbnailFileName,
+                    d.PostCount,
+                    d.ReactionCount,
+                    string.IsNullOrEmpty(d.Tags)
+                        ? Array.Empty<string>()
+                        : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                    LastReplierPublicId: d.LastPostAuthorPublicId,
+                    LastReplierDisplayName: d.LastPostAuthorDisplayName,
+                    LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
+                    LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
+                    LastPostExcerpt: d.LastPostPlainTextExcerpt,
+                    IsAdult: d.IsAdultOnly);
+            }).ToList(),
             Offset = offset,
             PageSize = pageSize,
             HasMoreItems = hasMoreItems
@@ -144,8 +190,18 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
 
     public async Task<PagedResult<SavedPostDto>> GetSavedPostsAsync(string userId, int offset, int pageSize)
     {
+        var userDbId = await ResolveUserIdAsync(userId);
+        if (userDbId == 0)
+            return new PagedResult<SavedPostDto>
+            {
+                Items = [],
+                Offset = offset,
+                PageSize = pageSize,
+                HasMoreItems = false
+            };
+
         var items = await context.UserSaves
-            .Where(s => s.User.PublicId == userId && s.PostId != null && !s.Post!.IsDeleted)
+            .Where(s => s.UserId == userDbId && s.PostId != null && !s.Post!.IsDeleted)
             .OrderByDescending(s => s.CreatedAt)
             .Skip(offset)
             .Take(pageSize + 1)
@@ -172,11 +228,10 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
             .ToListAsync();
 
         var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
 
         return new PagedResult<SavedPostDto>
         {
-            Items = resultItems,
+            Items = hasMoreItems ? items.Take(pageSize).ToList() : items,
             Offset = offset,
             PageSize = pageSize,
             HasMoreItems = hasMoreItems
@@ -185,14 +240,40 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
 
     public async Task<(int DiscussionCount, int PostCount)> GetSaveCountsAsync(string userId)
     {
+        var userDbId = await ResolveUserIdAsync(userId);
+        if (userDbId == 0) return (0, 0);
+
         var discussionCount = await context.UserSaves
-            .Where(s => s.User.PublicId == userId && s.DiscussionId != null)
+            .Where(s => s.UserId == userDbId && s.DiscussionId != null)
             .CountAsync();
 
         var postCount = await context.UserSaves
-            .Where(s => s.User.PublicId == userId && s.PostId != null)
+            .Where(s => s.UserId == userDbId && s.PostId != null)
             .CountAsync();
 
         return (discussionCount, postCount);
+    }
+
+    private Task<int> ResolveUserIdAsync(string userId) =>
+        context.Users
+            .Where(u => u.PublicId == userId)
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync();
+
+    private sealed record SpaceDisplay(
+        string Slug, string Name,
+        string? HubSlug, string? HubName,
+        string? CommunitySlug, string? CommunityName);
+
+    private async Task<Dictionary<int, SpaceDisplay>> FetchSpaceDisplayAsync(IEnumerable<int> spaceIds)
+    {
+        var ids = spaceIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+        return await context.Spaces
+            .Where(s => ids.Contains(s.Id))
+            .Select(s => new { s.Id, s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName })
+            .ToDictionaryAsync(
+                s => s.Id,
+                s => new SpaceDisplay(s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName));
     }
 }
