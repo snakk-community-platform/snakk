@@ -288,24 +288,31 @@ public static class BffApiEndpoints
             .WithName("BffGetModerationReportReasons");
 
         // Media upload + delete
+        // DisableAntiforgery: multipart/form-data uploads can't use the antiforgery token header.
+        // CSRF is mitigated by SameSite=Strict on the auth cookie + the mutation guard middleware.
         group.MapPost("/media/upload", UploadMediaAsync)
             .WithName("BffUploadMedia")
+            .RequireAuthorization()
             .RequireRateLimiting("flood-upload")
             .DisableAntiforgery();
         group.MapDelete("/media/draft", DeleteDraftMediaBffAsync)
             .WithName("BffDeleteDraftMedia");
 
         // Avatar upload + delete (proxy to internal API)
+        // DisableAntiforgery: same rationale as /media/upload above.
         group.MapPost("/avatars/upload", UploadAvatarBffAsync)
             .WithName("BffUploadAvatar")
+            .RequireAuthorization()
             .RequireRateLimiting("flood-upload")
             .DisableAntiforgery();
         group.MapDelete("/avatars", DeleteAvatarBffAsync)
             .WithName("BffDeleteAvatar");
 
         // Entity avatar upload + delete (proxy to internal API)
+        // DisableAntiforgery: same rationale as /media/upload above.
         group.MapPost("/avatars/upload/{entityType}/{entityId}", UploadEntityAvatarBffAsync)
             .WithName("BffUploadEntityAvatar")
+            .RequireAuthorization()
             .DisableAntiforgery();
         group.MapDelete("/avatars/{entityType}/{entityId}", DeleteEntityAvatarBffAsync)
             .WithName("BffDeleteEntityAvatar");

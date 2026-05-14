@@ -15,7 +15,7 @@ public static class MediaEndpoints
             .WithName("UploadMedia")
             .RequireAuthorization()
             .RequireRateLimiting("api")
-            .DisableAntiforgery(); // File uploads via fetch() — CSRF mitigated by JWT auth
+            .DisableAntiforgery(); // Internal service — browsers never call this directly; BFF injects Bearer token
 
         group.MapDelete("/draft", DeleteDraftMediaAsync)
             .WithName("DeleteDraftMedia")
