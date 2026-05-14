@@ -202,6 +202,10 @@ public class AuthenticationUseCase(
         if (user is null)
             return Result.Failure("Invalid or expired verification token");
 
+        if (user.EmailVerificationTokenCreatedAt.HasValue &&
+            DateTime.UtcNow - user.EmailVerificationTokenCreatedAt.Value > TimeSpan.FromHours(48))
+            return Result.Failure("Verification link has expired. Please request a new one.");
+
         if (user.EmailVerified)
             return Result.Failure("Email is already verified");
 

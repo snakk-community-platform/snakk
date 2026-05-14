@@ -50,7 +50,8 @@ public static class UserMapper
             entity.FailedLoginAttempts,
             entity.LockoutEnd,
             adultPreviewImageMode: (AdultPreviewImageModeEnum)entity.AdultPreviewImageMode,
-            hidePresence: entity.HidePresence);
+            hidePresence: entity.HidePresence,
+            emailVerificationTokenCreatedAt: entity.EmailVerificationTokenCreatedAt);
     }
 
     public static UserDatabaseEntity ToPersistence(this User user) =>
@@ -64,6 +65,7 @@ public static class UserMapper
             PasswordHash = user.PasswordHash,
             EmailVerified = user.EmailVerified,
             EmailVerificationToken = user.EmailVerificationToken,
+            EmailVerificationTokenCreatedAt = user.EmailVerificationTokenCreatedAt,
             OAuthProvider = user.OAuthProvider,
             OAuthProviderId = user.OAuthProviderId,
             AvatarFileName = user.AvatarFileName,

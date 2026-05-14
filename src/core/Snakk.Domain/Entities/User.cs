@@ -12,6 +12,7 @@ public class User
     public string? PasswordHash { get; private set; }
     public bool EmailVerified { get; private set; }
     public string? EmailVerificationToken { get; private set; }
+    public DateTime? EmailVerificationTokenCreatedAt { get; private set; }
     public string? OAuthProvider { get; private set; }
     public string? OAuthProviderId { get; private set; }
     public string? Role { get; private set; } // "admin", "mod", or null for regular users
@@ -80,7 +81,8 @@ public class User
         int failedLoginAttempts = 0,
         DateTime? lockoutEnd = null,
         AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show,
-        bool hidePresence = false)
+        bool hidePresence = false,
+        DateTime? emailVerificationTokenCreatedAt = null)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -110,6 +112,7 @@ public class User
         IsDisplayNameLocked = isDisplayNameLocked;
         FailedLoginAttempts = failedLoginAttempts;
         LockoutEnd = lockoutEnd;
+        EmailVerificationTokenCreatedAt = emailVerificationTokenCreatedAt;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         LastSeenAt = lastSeenAt;
@@ -147,7 +150,8 @@ public class User
             autoFollowOnReply: true,
             DateTime.UtcNow,
             lastSeenAt: DateTime.UtcNow,
-            allowAdultContent: allowAdultContent);
+            allowAdultContent: allowAdultContent,
+            emailVerificationTokenCreatedAt: DateTime.UtcNow);
 
         user.AddDomainEvent(new UserCreatedEvent(user.PublicId));
 
@@ -247,7 +251,8 @@ public class User
         int failedLoginAttempts = 0,
         DateTime? lockoutEnd = null,
         AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show,
-        bool hidePresence = false) =>
+        bool hidePresence = false,
+        DateTime? emailVerificationTokenCreatedAt = null) =>
         new User(
             publicId,
             displayName,
@@ -280,7 +285,8 @@ public class User
             failedLoginAttempts,
             lockoutEnd,
             adultPreviewImageMode,
-            hidePresence);
+            hidePresence,
+            emailVerificationTokenCreatedAt);
 
     public void UpdateDisplayName(string displayName)
     {
@@ -338,6 +344,7 @@ public class User
     {
         EmailVerified = true;
         EmailVerificationToken = null;
+        EmailVerificationTokenCreatedAt = null;
         LastModifiedAt = DateTime.UtcNow;
     }
 
@@ -361,6 +368,7 @@ public class User
     public void GenerateEmailVerificationToken()
     {
         EmailVerificationToken = Guid.NewGuid().ToString("N");
+        EmailVerificationTokenCreatedAt = DateTime.UtcNow;
         LastModifiedAt = DateTime.UtcNow;
     }
 

@@ -200,6 +200,9 @@ public class UserRepositoryAdapter(
         entity.LastModifiedAt = user.LastModifiedAt;
         entity.LastSeenAt = user.LastSeenAt;
         entity.LastLoginAt = user.LastLoginAt;
+        entity.EmailVerified = user.EmailVerified;
+        entity.EmailVerificationToken = user.EmailVerificationToken;
+        entity.EmailVerificationTokenCreatedAt = user.EmailVerificationTokenCreatedAt;
         entity.FailedLoginAttempts = user.FailedLoginAttempts;
         entity.LockoutEnd = user.LockoutEnd;
 
@@ -236,6 +239,7 @@ public class UserRepositoryAdapter(
         public string? PasswordHash { get; init; }
         public bool EmailVerified { get; init; }
         public string? EmailVerificationToken { get; init; }
+        public DateTime? EmailVerificationTokenCreatedAt { get; init; }
         public string? OAuthProvider { get; init; }
         public string? OAuthProviderId { get; init; }
         public bool HasGlobalAdminRole { get; init; }
@@ -266,6 +270,7 @@ public class UserRepositoryAdapter(
             PasswordHash = u.PasswordHash;
             EmailVerified = u.EmailVerified;
             EmailVerificationToken = u.EmailVerificationToken;
+            EmailVerificationTokenCreatedAt = u.EmailVerificationTokenCreatedAt;
             OAuthProvider = u.OAuthProvider;
             OAuthProviderId = u.OAuthProviderId;
             HasGlobalAdminRole = u.Roles.Any(r =>
@@ -316,7 +321,8 @@ public class UserRepositoryAdapter(
                 discussionCount: DiscussionCount,
                 replyCount: ReplyCount,
                 failedLoginAttempts: FailedLoginAttempts,
-                lockoutEnd: LockoutEnd);
+                lockoutEnd: LockoutEnd,
+                emailVerificationTokenCreatedAt: EmailVerificationTokenCreatedAt);
         }
     }
 }

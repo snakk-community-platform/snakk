@@ -16,6 +16,7 @@ public class UserDatabaseEntity
     public string? PasswordHash { get; set; }
     public bool EmailVerified { get; set; }
     public string? EmailVerificationToken { get; set; }
+    public DateTime? EmailVerificationTokenCreatedAt { get; set; }
     public string? OAuthProvider { get; set; }
     public string? OAuthProviderId { get; set; }
     public required DateTime CreatedAt { get; set; }
