@@ -18,6 +18,8 @@ public class LocalFileStorage : IFileStorage
         _basePath = configuration["FileStorage:BasePath"]
             ?? throw new InvalidOperationException("FileStorage:BasePath is not configured");
         _resolvedBasePath = Path.GetFullPath(_basePath);
+        if (!_resolvedBasePath.EndsWith(Path.DirectorySeparatorChar))
+            _resolvedBasePath += Path.DirectorySeparatorChar;
         _publicUrlBase = configuration["FileStorage:PublicUrlBase"] ?? "";
 
         // Ensure the base directory exists
