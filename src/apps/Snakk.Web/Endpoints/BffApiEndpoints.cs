@@ -988,7 +988,8 @@ public static class BffApiEndpoints
     }
 
     private static string SafeReturnUrl(string? returnUrl) =>
-        !string.IsNullOrWhiteSpace(returnUrl) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//")
+        !string.IsNullOrWhiteSpace(returnUrl) && returnUrl.StartsWith('/')
+            && !returnUrl.StartsWith("//") && !returnUrl.StartsWith("/\\")
             ? returnUrl
             : "/";
 

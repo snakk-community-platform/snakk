@@ -679,7 +679,7 @@ app.MapPost("/bff/adult-confirm", (HttpContext ctx) =>
     });
 
     var returnUrl = ctx.Request.Form["returnUrl"].FirstOrDefault() ?? "/";
-    if (!returnUrl.StartsWith("/") || returnUrl.StartsWith("//")) returnUrl = "/";
+    if (!returnUrl.StartsWith("/") || returnUrl.StartsWith("//") || returnUrl.StartsWith("/\\")) returnUrl = "/";
     return Results.Redirect(returnUrl);
 }).DisableAntiforgery();
 
