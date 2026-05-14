@@ -76,6 +76,7 @@ public class TemporaryRoleExpirationWorker(
 
                 // Invalidate user's permission cache
                 await cache.RemoveAsync($"user_permissions_{elevation.User!.PublicId}");
+                await cache.RemoveByTagAsync($"manage_perms_user_{elevation.User!.PublicId}");
 
                 _logger.LogInformation(
                     "Expired temporary role elevation {ElevationId} for user {UserId} ({RoleType} in {Scope}:{ScopeId})",

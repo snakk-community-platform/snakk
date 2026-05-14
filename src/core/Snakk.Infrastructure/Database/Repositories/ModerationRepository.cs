@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Database.Repositories;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Domain.Extensions;
@@ -9,10 +10,11 @@ using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
-public class ModerationRepository(SnakkDbContext context, IDbContextFactory<SnakkDbContext> dbFactory) : IModerationRepository
+public class ModerationRepository(SnakkDbContext context, IDbContextFactory<SnakkDbContext> dbFactory, HybridCache cache) : IModerationRepository
 {
     private readonly SnakkDbContext _context = context;
     private readonly IDbContextFactory<SnakkDbContext> _dbFactory = dbFactory;
+    private readonly HybridCache _cache = cache;
 
     private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
     {
@@ -198,6 +200,7 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
 
         _context.UserRoles.Add(role);
         await _context.SaveChangesAsync();
+        await _cache.RemoveByTagAsync($"manage_perms_user_{targetUserPublicId}");
 
         // Bump TeamRevision on affected scope
         await BumpTeamRevisionAsync(communityPublicId, hubPublicId, spacePublicId);
@@ -250,6 +253,7 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
         role.RevokedByUserId = revokerId;
 
         await _context.SaveChangesAsync();
+        await _cache.RemoveByTagAsync($"manage_perms_user_{role.User.PublicId}");
 
         // Bump TeamRevision on affected scope
         await BumpTeamRevisionAsync(role.Community?.PublicId, role.Hub?.PublicId, role.Space?.PublicId);

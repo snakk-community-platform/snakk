@@ -31,7 +31,8 @@ public class ManagePermissionService(
         var cached = await cache.GetOrCreateAsync(
             cacheKey,
             async cancel => await ComputePermissionsAsync(userId, scopeType, scopePublicId),
-            CacheOptions);
+            CacheOptions,
+            tags: [$"manage_perms_user_{userId}"]);
 
         return cached ?? ManagePermissionSet.None;
     }

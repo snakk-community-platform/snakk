@@ -457,6 +457,7 @@ public class PermissionService(
 
         // Invalidate user's permission cache
         await cache.RemoveAsync($"user_permissions_{userId}");
+        await cache.RemoveByTagAsync($"manage_perms_user_{userId}");
 
         // Log audit event
         await securityService.LogAuditAsync(
@@ -514,6 +515,7 @@ public class PermissionService(
 
         // Invalidate user's permission cache
         await cache.RemoveAsync($"user_permissions_{elevation.User!.PublicId}");
+        await cache.RemoveByTagAsync($"manage_perms_user_{elevation.User!.PublicId}");
 
         // Log audit event
         await securityService.LogAuditAsync(
@@ -663,6 +665,7 @@ public class PermissionService(
         foreach (var userId in userIds)
         {
             await cache.RemoveAsync($"user_permissions_{userId}");
+            await cache.RemoveByTagAsync($"manage_perms_user_{userId}");
         }
     }
 }

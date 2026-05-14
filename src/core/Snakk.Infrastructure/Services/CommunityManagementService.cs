@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
@@ -10,7 +11,8 @@ namespace Snakk.Infrastructure.Services;
 public class CommunityManagementService(
     SnakkDbContext context,
     IDbContextFactory<SnakkDbContext> dbFactory,
-    IUserGrantsCacheService grantsCache) : ICommunityManagementService
+    IUserGrantsCacheService grantsCache,
+    HybridCache cache) : ICommunityManagementService
 {
     private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
     {
@@ -445,6 +447,7 @@ public class CommunityManagementService(
         }
 
         await context.SaveChangesAsync(cancellationToken);
+        await cache.RemoveByTagAsync($"manage_perms_user_{userId}");
 
         return true;
     }
