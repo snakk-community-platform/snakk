@@ -42,8 +42,8 @@
                             {
                                 @if (!string.IsNullOrEmpty(consent.LinkUrl))
                                 {
-                                    @Html.Raw(consent.ShortLabel
-                                        .Replace("{link}", $"<a href=\"{consent.LinkUrl}\" target=\"_blank\" class=\"auth-link\">")
+                                    @Html.Raw(Html.Encode(consent.ShortLabel)
+                                        .Replace("{link}", $"<a href=\"{Html.Encode(consent.LinkUrl)}\" target=\"_blank\" class=\"auth-link\">")
                                         .Replace("{/link}", "</a>"))
                                 }
                                 else
