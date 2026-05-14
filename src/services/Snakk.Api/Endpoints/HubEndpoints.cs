@@ -16,6 +16,7 @@ public static class HubEndpoints
 
         group.MapPost("/", CreateHubAsync)
             .WithName("CreateHub")
+            .RequireAuthorization()
             .Produces<HubResponse>(StatusCodes.Status201Created);
 
         group.MapGet("/", GetHubsAsync)

@@ -18,6 +18,7 @@ public static class SpaceEndpoints
 
         group.MapPost("/", CreateSpaceAsync)
             .WithName("CreateSpace")
+            .RequireAuthorization()
             .Produces<SpaceResponse>(StatusCodes.Status201Created);
 
         group.MapGet("/{publicId}", GetSpaceAsync)

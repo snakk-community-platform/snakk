@@ -17,6 +17,7 @@ public static class CommunityEndpoints
 
         group.MapPost("/", CreateCommunityAsync)
             .WithName("CreateCommunity")
+            .RequireAuthorization()
             .Produces<CommunityResponse>(StatusCodes.Status201Created);
 
         group.MapGet("/", GetCommunitiesAsync)
