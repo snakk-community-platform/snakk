@@ -8,6 +8,8 @@ using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
 using Snakk.Domain.Repositories;
 using Snakk.Api.Filters;
+using Snakk.Infrastructure.Database;
+using Microsoft.EntityFrameworkCore;
 
 public static class PostEndpoints
 {
@@ -125,8 +127,19 @@ public static class PostEndpoints
         string publicId,
         PostUseCase useCase,
         IUserRepository userRepository,
-        Snakk.Api.Services.IViewRenderingService viewService)
+        Snakk.Api.Services.IViewRenderingService viewService,
+        SnakkDbContext dbContext)
     {
+        var isRestricted = await dbContext.Posts
+            .Where(p => p.PublicId == publicId && !p.IsDeleted)
+            .Select(p => (bool?)(p.Discussion.Space.IsRestricted
+                || p.Discussion.Space.Hub.IsRestricted
+                || p.Discussion.Space.Hub.Community.IsRestricted))
+            .FirstOrDefaultAsync();
+
+        if (isRestricted is null) return Results.NotFound();
+        if (isRestricted.Value) return Results.Forbid();
+
         var revisions = await useCase.GetPostHistoryAsync(PostId.From(publicId));
         var revisionList = revisions.ToList();
 

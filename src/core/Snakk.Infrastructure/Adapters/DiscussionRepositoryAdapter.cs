@@ -140,7 +140,11 @@ public class DiscussionRepositoryAdapter(
     {
         var ids = publicIds.Select(p => p.Value).ToList();
         return await context.Discussions
-            .Where(d => ids.Contains(d.PublicId))
+            .Where(d => ids.Contains(d.PublicId)
+                && !d.IsDeleted
+                && !d.Space.IsRestricted
+                && !d.Space.Hub.IsRestricted
+                && !d.Space.Hub.Community.IsRestricted)
             .Select(d => new Domain.Repositories.DiscussionSummary(
                 d.PublicId, d.Title, d.Slug,
                 d.SpacePublicId,

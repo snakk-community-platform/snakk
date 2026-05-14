@@ -853,7 +853,11 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         var ids = publicIds.ToList();
         if (ids.Count == 0) return [];
         var rawItems = await _context.Discussions
-            .Where(d => ids.Contains(d.PublicId))
+            .Where(d => ids.Contains(d.PublicId)
+                && !d.IsDeleted
+                && !d.Space.IsRestricted
+                && !d.Space.Hub.IsRestricted
+                && !d.Space.Hub.Community.IsRestricted)
             .Select(d => new {
                 d.Id,
                 d.PublicId,
