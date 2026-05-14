@@ -1,8 +1,10 @@
 namespace Snakk.Api.Endpoints;
 
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Application.DTOs.Responses;
 using Snakk.Infrastructure.Database;
+using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 
 public static class AdminContentEndpoints
@@ -364,8 +366,13 @@ public static class AdminContentEndpoints
 
     private static async Task<IResult> PinDiscussionAsync(
         string id,
+        HttpContext httpContext,
         SnakkDbContext context)
     {
+        var actorPublicId = GetActorPublicId(httpContext);
+        if (actorPublicId is null)
+            return Results.Unauthorized();
+
         var discussion = await context.Discussions
             .FirstOrDefaultAsync(d =>
                 d.PublicId == id
@@ -378,6 +385,7 @@ public static class AdminContentEndpoints
             return Results.BadRequest(new { error = "Discussion is already pinned" });
 
         discussion.IsPinned = true;
+        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.PinDiscussion, discussion);
         await context.SaveChangesAsync();
 
         return Results.NoContent();
@@ -385,8 +393,13 @@ public static class AdminContentEndpoints
 
     private static async Task<IResult> UnpinDiscussionAsync(
         string id,
+        HttpContext httpContext,
         SnakkDbContext context)
     {
+        var actorPublicId = GetActorPublicId(httpContext);
+        if (actorPublicId is null)
+            return Results.Unauthorized();
+
         var discussion = await context.Discussions
             .FirstOrDefaultAsync(d =>
                 d.PublicId == id
@@ -399,6 +412,7 @@ public static class AdminContentEndpoints
             return Results.BadRequest(new { error = "Discussion is not pinned" });
 
         discussion.IsPinned = false;
+        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.UnpinDiscussion, discussion);
         await context.SaveChangesAsync();
 
         return Results.NoContent();
@@ -406,8 +420,13 @@ public static class AdminContentEndpoints
 
     private static async Task<IResult> LockDiscussionAsync(
         string id,
+        HttpContext httpContext,
         SnakkDbContext context)
     {
+        var actorPublicId = GetActorPublicId(httpContext);
+        if (actorPublicId is null)
+            return Results.Unauthorized();
+
         var discussion = await context.Discussions
             .FirstOrDefaultAsync(d =>
                 d.PublicId == id
@@ -420,6 +439,7 @@ public static class AdminContentEndpoints
             return Results.BadRequest(new { error = "Discussion is already locked" });
 
         discussion.IsLocked = true;
+        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.LockDiscussion, discussion);
         await context.SaveChangesAsync();
 
         return Results.NoContent();
@@ -427,8 +447,13 @@ public static class AdminContentEndpoints
 
     private static async Task<IResult> UnlockDiscussionAsync(
         string id,
+        HttpContext httpContext,
         SnakkDbContext context)
     {
+        var actorPublicId = GetActorPublicId(httpContext);
+        if (actorPublicId is null)
+            return Results.Unauthorized();
+
         var discussion = await context.Discussions
             .FirstOrDefaultAsync(d =>
                 d.PublicId == id
@@ -441,6 +466,7 @@ public static class AdminContentEndpoints
             return Results.BadRequest(new { error = "Discussion is not locked" });
 
         discussion.IsLocked = false;
+        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.UnlockDiscussion, discussion);
         await context.SaveChangesAsync();
 
         return Results.NoContent();
@@ -448,8 +474,13 @@ public static class AdminContentEndpoints
 
     private static async Task<IResult> DeleteDiscussionAsync(
         string id,
+        HttpContext httpContext,
         SnakkDbContext context)
     {
+        var actorPublicId = GetActorPublicId(httpContext);
+        if (actorPublicId is null)
+            return Results.Unauthorized();
+
         var discussion = await context.Discussions
             .FirstOrDefaultAsync(d =>
                 d.PublicId == id
@@ -460,9 +491,45 @@ public static class AdminContentEndpoints
 
         discussion.IsDeleted = true;
         discussion.DeletedAt = DateTime.UtcNow;
+        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.DeleteDiscussion, discussion);
         await context.SaveChangesAsync();
 
         return Results.NoContent();
+    }
+
+    private static string? GetActorPublicId(HttpContext httpContext)
+    {
+        if (!httpContext.User.Identity?.IsAuthenticated ?? true)
+            return null;
+
+        return httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private static async Task AppendModerationLogAsync(
+        SnakkDbContext context,
+        string actorPublicId,
+        ModerationActionEnum action,
+        DiscussionDatabaseEntity discussion)
+    {
+        var actorId = await context.Users
+            .Where(u => u.PublicId == actorPublicId)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync();
+
+        if (actorId is null)
+            return;
+
+        context.ModerationLogs.Add(new ModerationLogDatabaseEntity
+        {
+            PublicId = Guid.NewGuid().ToString(),
+            ActorUserId = actorId.Value,
+            ActionId = (int)action,
+            TargetDiscussionId = discussion.Id,
+            CommunityId = discussion.CommunityId,
+            HubId = discussion.HubId,
+            SpaceId = discussion.SpaceId,
+            CreatedAt = DateTime.UtcNow
+        });
     }
 }
 

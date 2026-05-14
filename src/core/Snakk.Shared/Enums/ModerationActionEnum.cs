@@ -11,5 +11,8 @@ public enum ModerationActionEnum
     ResolveReport = 7,
     DismissReport = 8,
     EditPost = 9,
-    LockDiscussion = 10
+    LockDiscussion = 10,
+    UnlockDiscussion = 11,
+    PinDiscussion = 12,
+    UnpinDiscussion = 13
 }
