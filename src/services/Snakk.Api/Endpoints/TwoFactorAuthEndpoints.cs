@@ -8,6 +8,7 @@ using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Application.DTOs.Responses;
 using System.Security.Claims;
+using Microsoft.Extensions.Caching.Memory;
 
 public static class TwoFactorAuthEndpoints
 {
@@ -159,7 +160,8 @@ public static class TwoFactorAuthEndpoints
         IJwtTokenService jwtTokenService,
         ITrustedDeviceService trustedDeviceService,
         HttpContext httpContext,
-        SnakkDbContext context)
+        SnakkDbContext context,
+        IMemoryCache cache)
     {
         // This endpoint is used during login flow
         // User provides email/password first, gets a temporary token, then verifies 2FA
@@ -172,13 +174,25 @@ public static class TwoFactorAuthEndpoints
         if (user is null || !user.TwoFactorEnabled)
             return Results.BadRequest(new { error = "Invalid request" });
 
+        if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTime.UtcNow)
+            return Results.BadRequest(new { error = "Account is temporarily locked due to too many failed login attempts. Please try again later." });
+
         var isValid = false;
 
         // Try TOTP code first
         if (!string.IsNullOrEmpty(user.TwoFactorSecret))
         {
             var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
-            isValid = totpService.VerifyCode(decryptedSecret, request.Code);
+            if (totpService.VerifyCode(decryptedSecret, request.Code))
+            {
+                // Reject replayed codes — window is ±1 step (90 s), so TTL matches
+                var replayKey = $"2fa_used:{user.PublicId}:{request.Code}";
+                if (!cache.TryGetValue(replayKey, out _))
+                {
+                    cache.Set(replayKey, true, TimeSpan.FromSeconds(90));
+                    isValid = true;
+                }
+            }
         }
 
         // If TOTP fails, try backup codes
@@ -205,7 +219,19 @@ public static class TwoFactorAuthEndpoints
         }
 
         if (!isValid)
+        {
+            user.FailedLoginAttempts++;
+            if (user.FailedLoginAttempts >= 5)
+                user.LockoutEnd = DateTime.UtcNow.AddMinutes(15);
+            await context.SaveChangesAsync();
             return Results.BadRequest(new { error = "Invalid 2FA code" });
+        }
+
+        // Reset lockout counters on successful 2FA
+        user.FailedLoginAttempts = 0;
+        user.LockoutEnd = null;
+        user.LastLoginAt = DateTime.UtcNow;
+        await context.SaveChangesAsync();
 
         // Generate tokens with 2FA verified claim
         var role = user.Roles

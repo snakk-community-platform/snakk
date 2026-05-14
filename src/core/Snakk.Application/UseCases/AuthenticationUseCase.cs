@@ -118,12 +118,14 @@ public class AuthenticationUseCase(
             return Result<User>.Failure("Invalid email or password");
         }
 
-        // Check account lockout
+        // Verify password BEFORE checking lockout — equalizes timing so a locked-out
+        // account doesn't return faster than one with a wrong password (timing oracle).
+        var passwordValid = user.HasPassword() && passwordHasher.VerifyPassword(password, user.PasswordHash!);
+
         if (user.IsLockedOut)
             return Result<User>.Failure("Account is temporarily locked due to too many failed login attempts. Please try again later.");
 
-        // Verify password
-        if (!user.HasPassword() || !passwordHasher.VerifyPassword(password, user.PasswordHash!))
+        if (!passwordValid)
         {
             user.RecordFailedLogin(maxAttempts: 5, lockoutMinutes: 15);
             await userRepository.UpdateAsync(user);
