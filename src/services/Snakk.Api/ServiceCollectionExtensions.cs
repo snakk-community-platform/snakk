@@ -60,8 +60,15 @@ public static class ServiceCollectionExtensions
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
                 .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>()));
 
-        // Data Protection for encrypting sensitive settings
-        services.AddDataProtection();
+        // Persist Data Protection keys so encrypted 2FA secrets and email addresses
+        // survive container restarts. Shared key ring with Snakk.Auth/Web/Admin.
+        var dataProtectionPath = Path.Combine(
+            configuration["FileStorage:BasePath"] ?? "/app/storage",
+            "dataprotection-keys");
+        Directory.CreateDirectory(dataProtectionPath);
+        services.AddDataProtection()
+            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+            .SetApplicationName("Snakk");
 
         // HybridCache for settings/permissions caching (stampede-safe, also registers IMemoryCache)
         services.AddHybridCache();

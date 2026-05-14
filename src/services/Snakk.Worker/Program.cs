@@ -46,7 +46,12 @@ builder.Services.AddHybridCache();
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 
 // Services needed by workers
-builder.Services.AddDataProtection();
+// Persist Data Protection keys so encrypted email addresses survive restarts.
+var dataProtectionPath = Path.Combine(sharedConfigDir, "dataprotection-keys");
+Directory.CreateDirectory(dataProtectionPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetApplicationName("Snakk");
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailProtector, EmailProtector>();
 builder.Services.AddScoped<IUserGrantsCacheService, UserGrantsCacheService>();
