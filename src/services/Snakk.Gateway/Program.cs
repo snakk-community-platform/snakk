@@ -202,6 +202,9 @@ app.UseRequestTimeouts();
 // Gateway's own health endpoint (not proxied — handled locally before YARP)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "gateway" }));
 
+// Block Prometheus scrape endpoint from being proxied to Snakk.Web and exposed publicly
+app.MapGet("/metrics", () => Results.NotFound());
+
 // Setup gate: redirect to wizard until complete, then tombstone /setup/* permanently.
 // The setupComplete bool is flipped by a FileSystemWatcher — no restart required.
 app.Use(async (context, next) =>
