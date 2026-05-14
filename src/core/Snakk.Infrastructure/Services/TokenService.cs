@@ -31,7 +31,7 @@ public class TokenService(
         string deviceFingerprint,
         string ipAddress,
         string userAgent,
-        int expirationDays = 90)
+        int expirationDays = 30)
     {
         var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
 

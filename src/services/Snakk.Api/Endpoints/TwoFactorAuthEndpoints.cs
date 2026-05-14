@@ -233,7 +233,7 @@ public static class TwoFactorAuthEndpoints
             deviceFingerprint,
             ipAddress,
             userAgent,
-            90); // 90 days
+            30); // 30 days — matches standard login path
 
         // Set tokens in cookies
         httpContext.Response.Cookies.Append("access_token", accessToken, new CookieOptions
@@ -249,7 +249,7 @@ public static class TwoFactorAuthEndpoints
             HttpOnly = true,
             Secure = true,
             SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddDays(90)
+            Expires = DateTimeOffset.UtcNow.AddDays(30)
         });
 
         var isDeviceTrusted = await trustedDeviceService.IsDeviceTrustedAsync(

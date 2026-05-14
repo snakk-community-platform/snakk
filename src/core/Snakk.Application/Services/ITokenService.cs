@@ -11,7 +11,7 @@ public interface ITokenService
         string deviceFingerprint,
         string ipAddress,
         string userAgent,
-        int expirationDays = 90);
+        int expirationDays = 30);
     Task<string?> RefreshAccessTokenAsync(string refreshTokenValue, string ipAddress, string? userAgent = null);
     Task RevokeRefreshTokenAsync(string tokenValue, string reason);
     Task RevokeAllUserTokensAsync(UserId userId, string reason);
