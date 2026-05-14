@@ -25,8 +25,8 @@ public class HttpAccessVerifier(HttpClient httpClient, ILogger<HttpAccessVerifie
         {
             logger.LogWarning(ex, "Access verification failed for {ScopeType}:{ScopeId}", scopeType, scopeId);
 
-            // Fail open for public content — prevents outage if API is briefly unavailable
-            return true;
+            // Fail closed — deny access if the API is unreachable rather than leak restricted content
+            return false;
         }
     }
 }
