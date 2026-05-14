@@ -88,7 +88,7 @@ public class PermissionService(
         // If scope is specified, check hierarchical access
         if (!string.IsNullOrEmpty(scope) && !string.IsNullOrEmpty(scopePublicId))
         {
-            var hasHierarchicalAccess = await CheckHierarchicalAccessAsync(userRoles, scope, scopePublicId);
+            var hasHierarchicalAccess = await CheckHierarchicalAccessAsync(userRoles, permissionName, scope, scopePublicId);
 
             if (hasHierarchicalAccess)
             {
@@ -141,78 +141,67 @@ public class PermissionService(
         return roles;
     }
 
+    // ManageCommunity is an admin-only operation; CommunityMod does not qualify.
+    private static bool IsAdminOnlyPermission(string permissionName) =>
+        permissionName is "ManageCommunity";
+
     private async Task<bool> CheckHierarchicalAccessAsync(
         List<UserRoleScope> userRoles,
+        string permissionName,
         string scope,
         string scopePublicId)
     {
+        var adminOnly = IsAdminOnlyPermission(permissionName);
+
         switch (scope.ToLower())
         {
             case "community":
-                // Resolve community publicId to internal ID
                 var communityId = await GetCommunityIdByPublicIdAsync(context, scopePublicId);
+                if (communityId is null) return false;
 
-                if (communityId is null)
-                    return false;
-
-                // Check if user is CommunityAdmin or CommunityMod for this community
                 return userRoles.Any(r =>
-                    (r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod")
-                    && r.CommunityId == communityId.Value);
+                    r.RoleType == "CommunityAdmin" && r.CommunityId == communityId.Value)
+                    || (!adminOnly && userRoles.Any(r =>
+                        r.RoleType == "CommunityMod" && r.CommunityId == communityId.Value));
 
             case "hub":
-                // Resolve hub publicId to internal ID + parent community
                 var hub = await GetHubScopeByPublicIdAsync(context, scopePublicId);
+                if (hub is null) return false;
 
-                if (hub is null)
-                    return false;
-
-                // Check if user is:
-                // 1. HubMod for this hub, OR
-                // 2. CommunityAdmin/CommunityMod for the parent community
                 return userRoles.Any(r =>
                     (r.RoleType == "HubMod" && r.HubId == hub.Id)
-                    || ((r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod") && r.CommunityId == hub.CommunityId));
+                    || (r.RoleType == "CommunityAdmin" && r.CommunityId == hub.CommunityId)
+                    || (!adminOnly && r.RoleType == "CommunityMod" && r.CommunityId == hub.CommunityId));
 
             case "space":
-                // Resolve space publicId to internal ID + parent hub/community
                 var space = await GetSpaceScopeByPublicIdAsync(context, scopePublicId);
+                if (space is null) return false;
 
-                if (space is null)
-                    return false;
-
-                // Check if user is:
-                // 1. SpaceMod for this space, OR
-                // 2. HubMod for the parent hub, OR
-                // 3. CommunityAdmin/CommunityMod for the parent community
                 return userRoles.Any(r =>
                     (r.RoleType == "SpaceMod" && r.SpaceId == space.Id)
                     || (r.RoleType == "HubMod" && r.HubId == space.HubId)
-                    || ((r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod") && r.CommunityId == space.CommunityId));
+                    || (r.RoleType == "CommunityAdmin" && r.CommunityId == space.CommunityId)
+                    || (!adminOnly && r.RoleType == "CommunityMod" && r.CommunityId == space.CommunityId));
 
             case "discussion":
-                // Resolve discussion publicId to internal IDs for parent space/hub/community
                 var discussion = await GetDiscussionScopeByPublicIdAsync(context, scopePublicId);
-
-                if (discussion is null)
-                    return false;
+                if (discussion is null) return false;
 
                 return userRoles.Any(r =>
                     (r.RoleType == "SpaceMod" && r.SpaceId == discussion.SpaceId)
                     || (r.RoleType == "HubMod" && r.HubId == discussion.HubId)
-                    || ((r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod") && r.CommunityId == discussion.CommunityId));
+                    || (r.RoleType == "CommunityAdmin" && r.CommunityId == discussion.CommunityId)
+                    || (!adminOnly && r.RoleType == "CommunityMod" && r.CommunityId == discussion.CommunityId));
 
             case "post":
-                // Resolve post publicId to internal IDs for parent discussion/space/hub/community
                 var post = await GetPostScopeByPublicIdAsync(context, scopePublicId);
-
-                if (post is null)
-                    return false;
+                if (post is null) return false;
 
                 return userRoles.Any(r =>
                     (r.RoleType == "SpaceMod" && r.SpaceId == post.SpaceId)
                     || (r.RoleType == "HubMod" && r.HubId == post.HubId)
-                    || ((r.RoleType == "CommunityAdmin" || r.RoleType == "CommunityMod") && r.CommunityId == post.CommunityId));
+                    || (r.RoleType == "CommunityAdmin" && r.CommunityId == post.CommunityId)
+                    || (!adminOnly && r.RoleType == "CommunityMod" && r.CommunityId == post.CommunityId));
 
             default:
                 return false;
