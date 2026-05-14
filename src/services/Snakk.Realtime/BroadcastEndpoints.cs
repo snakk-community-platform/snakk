@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.SignalR;
 using Snakk.Realtime.Hubs;
 using Snakk.Realtime.Models;
@@ -6,6 +7,10 @@ namespace Snakk.Realtime;
 
 public static class BroadcastEndpoints
 {
+    private static readonly Regex ValidGroup = new(
+        @"^(global|admin-activity|(discussion|space|hub|user):[a-zA-Z0-9_-]{1,64})$",
+        RegexOptions.Compiled);
+
     /// <summary>
     /// Broadcast a realtime event to connected browser clients
     /// Called by Snakk.Api when posts/reactions/etc are created
@@ -14,6 +19,9 @@ public static class BroadcastEndpoints
         BroadcastRequest request,
         IHubContext<RealtimeHub> hubContext)
     {
+        if (!ValidGroup.IsMatch(request.TargetGroup))
+            return Results.BadRequest(new { error = "Invalid target group" });
+
         await hubContext.Clients.Group(request.TargetGroup)
             .SendAsync("ReceiveUpdate", new
             {
@@ -50,6 +58,9 @@ public static class BroadcastEndpoints
         ActivityBroadcastRequest request,
         IHubContext<RealtimeHub> hubContext)
     {
+        if (!ValidGroup.IsMatch(request.TargetGroup))
+            return Results.BadRequest(new { error = "Invalid target group" });
+
         await hubContext.Clients.Group(request.TargetGroup)
             .SendAsync("ReceiveActivity", new
             {

@@ -645,7 +645,7 @@ interface Subscriptions {
         }
         if (message.eventType === 'global-announcement' && !document.hidden) {
             document.dispatchEvent(new CustomEvent('snakk:realtime:global-announcement', {
-                detail: { message: message.htmlContent }
+                detail: { message: sanitizeHtml(message.htmlContent) }
             }));
             return;
         }
