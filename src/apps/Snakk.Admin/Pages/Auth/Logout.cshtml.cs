@@ -13,14 +13,10 @@ public class LogoutModel : PageModel
 
     private IActionResult PerformLogout()
     {
-        // Delete SSO auth cookie
-        Response.Cookies.Delete(".Snakk.Auth", new CookieOptions
-        {
-            Path = "/",
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Lax
-        });
+        var deleteOptions = new CookieOptions { Path = "/" };
+        Response.Cookies.Delete(".Snakk.Auth", deleteOptions);
+        Response.Cookies.Delete(".Snakk.Auth.Session", deleteOptions);
+        Response.Cookies.Delete(".Snakk.Auth.Refresh", deleteOptions);
 
         return Redirect("/auth/login");
     }
