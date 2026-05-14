@@ -42,10 +42,14 @@ public class PostUseCaseTests
         _markupParser.ToHtml(Arg.Any<string>(), Arg.Any<bool>())
             .Returns(x => $"<p>{x.Arg<string>()}</p>");
 
+        var unitOfWork = Substitute.For<IUnitOfWork>();
+        unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<Task>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => ci.Arg<Func<Task>>()());
+
         _useCase = new PostUseCase(
             _postRepository, _discussionRepository, _spaceRepository, _userRepository, _followRepository,
             _eventDispatcher, _realtimeNotifier, _counterService, _mediaService,
-            _markupParser, new ContentNormalizer(), _moderationRepository, _reactionUseCase);
+            _markupParser, new ContentNormalizer(), _moderationRepository, _reactionUseCase, unitOfWork);
     }
 
     #region CreatePostAsync Tests

@@ -315,6 +315,7 @@ public static class ServiceCollectionExtensions
 
         // Services
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
+        services.AddScoped<IUnitOfWork, Infrastructure.Services.UnitOfWork>();
         services.AddScoped<IPasswordHasher, Infrastructure.Services.BCryptPasswordHasher>();
         services.AddScoped<IEmailSender, Infrastructure.Services.ConsoleEmailSender>();
         services.AddScoped<ICounterService, Infrastructure.Services.CounterService>();

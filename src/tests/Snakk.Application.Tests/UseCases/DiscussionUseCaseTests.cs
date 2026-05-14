@@ -53,10 +53,14 @@ public class DiscussionUseCaseTests
             .NotifyDiscussionTitleUpdatedAsync(Arg.Any<DiscussionId>(), Arg.Any<string>())
             .Returns(Task.CompletedTask);
 
+        var unitOfWork = Substitute.For<IUnitOfWork>();
+        unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<Task>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => ci.Arg<Func<Task>>()());
+
         _useCase = new DiscussionUseCase(
             _discussionRepository, _spaceRepository, _userRepository, _postRepository,
             _eventDispatcher, _counterService, _markupParser, new ContentNormalizer(),
-            _realtimeNotifier, _mediaService, _moderationRepository);
+            _realtimeNotifier, _mediaService, _moderationRepository, unitOfWork);
     }
 
     #region CreateDiscussionAsync Tests

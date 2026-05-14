@@ -20,7 +20,8 @@ public class DiscussionUseCase(
     IContentNormalizer contentNormalizer,
     IRealtimeNotifier realtimeNotifier,
     IMediaService mediaService,
-    IModerationRepository moderationRepository) : UseCaseBase
+    IModerationRepository moderationRepository,
+    IUnitOfWork unitOfWork) : UseCaseBase
 {
     public async Task<Result<Discussion>> CreateDiscussionAsync(
         SpaceId spaceId,
@@ -63,9 +64,12 @@ public class DiscussionUseCase(
         var renderedFirstPost = markupParser.ToHtml(normalizedFirstPost, space.AutoParagraphEnabled);
         var firstPost = Post.Create(discussion.PublicId, userId, normalizedFirstPost, renderedFirstPost, isFirstPost: true, wasNormalized: bodyNormalized);
 
-        // Persist
-        await discussionRepository.AddAsync(discussion);
-        await postRepository.AddAsync(firstPost);
+        // Persist atomically — without a transaction an orphan Discussion row would exist if AddAsync(firstPost) fails
+        await unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await discussionRepository.AddAsync(discussion);
+            await postRepository.AddAsync(firstPost);
+        });
 
         // Update denormalized counts
         await counterService.IncrementDiscussionCountAsync(spaceId);

@@ -22,7 +22,8 @@ public class PostUseCase(
     IMarkupParser markupParser,
     IContentNormalizer contentNormalizer,
     IModerationRepository moderationRepository,
-    ReactionUseCase reactionUseCase) : UseCaseBase
+    ReactionUseCase reactionUseCase,
+    IUnitOfWork unitOfWork) : UseCaseBase
 {
     public async Task<Result<Post>> CreatePostAsync(
         DiscussionId discussionId,
@@ -85,9 +86,12 @@ public class PostUseCase(
         // Update discussion activity
         discussion.UpdateActivity();
 
-        // Persist
-        await postRepository.AddAsync(post);
-        await discussionRepository.UpdateAsync(discussion);
+        // Persist atomically — avoids an orphan post if the activity update on discussion fails
+        await unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            await postRepository.AddAsync(post);
+            await discussionRepository.UpdateAsync(discussion);
+        });
 
         // Update denormalized counts
         await counterService.IncrementPostCountAsync(discussionId);
