@@ -24,6 +24,13 @@ builder.Configuration.AddJsonFile(
 
 //builder.AddSnakkDefaults();
 
+if (!builder.Environment.IsDevelopment())
+{
+    var jwtKey = builder.Configuration["Jwt:SecretKey"];
+    if (string.IsNullOrEmpty(jwtKey) || jwtKey.Contains("change-in-production", StringComparison.OrdinalIgnoreCase))
+        throw new InvalidOperationException("SECURITY: Jwt:SecretKey must be overridden in production. Set it in snakk-config.json.");
+}
+
 // Add Razor Pages
 builder.Services.AddRazorPages();
 

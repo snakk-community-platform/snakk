@@ -254,6 +254,8 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteSettingsCacheS
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
     ?? throw new InvalidOperationException(
         "Jwt:SecretKey is not configured. Run the setup wizard (Snakk.Setup) first to generate configuration.");
+if (!builder.Environment.IsDevelopment() && jwtSecretKey.Contains("change-in-production", StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException("SECURITY: Jwt:SecretKey must be overridden in production. Set it in snakk-config.json.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Snakk";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Snakk";
 

@@ -83,6 +83,8 @@ builder.Services.AddScoped<AdminTimezoneService>();
 
 // JWT-based authentication from SSO service
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT secret key not configured");
+if (!builder.Environment.IsDevelopment() && jwtSecretKey.Contains("change-in-production", StringComparison.OrdinalIgnoreCase))
+    throw new InvalidOperationException("SECURITY: Jwt:SecretKey must be overridden in production. Set it in snakk-config.json.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Snakk";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Snakk";
 
