@@ -31,11 +31,9 @@ public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRep
             .Select(r => new
             {
                 r.Post.PublicId,
-                ContentExcerpt = r.Post.RenderedContent != null
-                    ? (r.Post.RenderedContent.Length > 300
-                        ? r.Post.RenderedContent.Substring(0, 300)
-                        : r.Post.RenderedContent)
-                    : "",
+                ContentExcerpt = r.Post.Content.Length > 300
+                    ? r.Post.Content.Substring(0, 300)
+                    : r.Post.Content,
                 PostCreatedAt = r.Post.CreatedAt,
                 DiscussionPublicId = r.Post.DiscussionPublicId,
                 DiscussionTitle = r.Post.Discussion.Title,

@@ -207,11 +207,9 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
             .Take(pageSize + 1)
             .Select(s => new SavedPostDto(
                 s.Post!.PublicId,
-                s.Post.RenderedContent != null
-                    ? s.Post.RenderedContent.Length > 300
-                        ? s.Post.RenderedContent.Substring(0, 300)
-                        : s.Post.RenderedContent
-                    : "",
+                s.Post.Content.Length > 300
+                    ? s.Post.Content.Substring(0, 300)
+                    : s.Post.Content,
                 s.Post.CreatedAt,
                 s.Post.DiscussionPublicId,
                 s.Post.Discussion.Title,
