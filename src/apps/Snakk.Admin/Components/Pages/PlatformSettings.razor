@@ -1,5 +1,5 @@
 @page "/platform/settings"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "GlobalAdmin")]
 @using Snakk.Protos.Manage
 @using System.Net.Http.Headers
 @using System.Text.Json

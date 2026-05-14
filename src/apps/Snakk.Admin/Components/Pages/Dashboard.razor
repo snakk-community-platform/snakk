@@ -1,5 +1,5 @@
 @page "/"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "GlobalAdmin")]
 <PageTitle>Dashboard - Snakk Admin</PageTitle>
 
 <MudStack Spacing="6">
