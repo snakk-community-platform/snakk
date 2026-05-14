@@ -248,8 +248,17 @@ public class ManageGrpcService(
         if (space is null)
             return new UpdateSpaceDiscordSettingsResponse { Success = false, ErrorMessage = "Space not found" };
 
-        space.DiscordWebhookUrl = request.HasDiscordWebhookUrl && !string.IsNullOrWhiteSpace(request.DiscordWebhookUrl)
-            ? request.DiscordWebhookUrl.Trim() : null;
+        if (request.HasDiscordWebhookUrl && !string.IsNullOrWhiteSpace(request.DiscordWebhookUrl))
+        {
+            var trimmed = request.DiscordWebhookUrl.Trim();
+            if (!IsValidDiscordWebhookUrl(trimmed))
+                return new UpdateSpaceDiscordSettingsResponse { Success = false, ErrorMessage = "Invalid Discord webhook URL. Must be an HTTPS discord.com webhook." };
+            space.DiscordWebhookUrl = trimmed;
+        }
+        else
+        {
+            space.DiscordWebhookUrl = null;
+        }
         space.DiscordChannelName = request.HasDiscordChannelName && !string.IsNullOrWhiteSpace(request.DiscordChannelName)
             ? request.DiscordChannelName.Trim() : null;
         space.DiscordInviteUrl = request.HasDiscordInviteUrl && !string.IsNullOrWhiteSpace(request.DiscordInviteUrl)
@@ -1688,6 +1697,13 @@ public class ManageGrpcService(
         return httpContext.User.FindFirstValue("sub")
             ?? httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
+
+    private static bool IsValidDiscordWebhookUrl(string url) =>
+        Uri.TryCreate(url, UriKind.Absolute, out var uri)
+        && uri.Scheme == Uri.UriSchemeHttps
+        && (uri.Host.Equals("discord.com", StringComparison.OrdinalIgnoreCase)
+            || uri.Host.Equals("discordapp.com", StringComparison.OrdinalIgnoreCase))
+        && uri.AbsolutePath.StartsWith("/api/webhooks/", StringComparison.OrdinalIgnoreCase);
 
     private static ResolveScopeResponse BuildResponse(
         string scopeType, string scopePublicId, string scopeName,
