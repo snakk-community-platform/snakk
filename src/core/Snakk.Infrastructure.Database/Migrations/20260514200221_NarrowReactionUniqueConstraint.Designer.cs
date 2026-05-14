@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using NpgsqlTypes;
@@ -12,9 +13,11 @@ using Snakk.Infrastructure.Database;
 namespace Snakk.Infrastructure.Database.Migrations
 {
     [DbContext(typeof(SnakkDbContext))]
-    partial class SnakkDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260514200221_NarrowReactionUniqueConstraint")]
+    partial class NarrowReactionUniqueConstraint
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1554,7 +1557,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasDatabaseName("IX_Image_PublicId");
 
                     b.HasIndex("Sha256Hash")
-                        .IsUnique()
                         .HasDatabaseName("IX_Image_Sha256Hash");
 
                     b.HasIndex("UploadedByUserId");

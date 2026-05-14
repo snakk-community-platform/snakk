@@ -397,9 +397,10 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         // === Social Features Configuration ===
 
-        // Reaction: unique constraint (one reaction type per user per post)
+        // Reaction: one reaction per user per post (TypeId excluded — including it
+        // would allow concurrent requests with different types to both insert)
         modelBuilder.Entity<PostReactionDatabaseEntity>()
-            .HasIndex(r => new { r.PostId, r.UserId, r.TypeId })
+            .HasIndex(r => new { r.PostId, r.UserId })
             .IsUnique();
 
         modelBuilder.Entity<PostReactionDatabaseEntity>()
@@ -1653,6 +1654,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         modelBuilder.Entity<ImageDatabaseEntity>()
             .HasIndex(m => m.Sha256Hash)
+            .IsUnique()
             .HasDatabaseName("IX_Image_Sha256Hash");
 
         modelBuilder.Entity<ImageDatabaseEntity>()

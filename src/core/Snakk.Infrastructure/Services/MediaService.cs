@@ -249,8 +249,26 @@ public class MediaService(
             IsDraft = true
         };
 
-        db.Images.Add(media);
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            db.Images.Add(media);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent upload of the same image won the unique-constraint race — return that record
+            var winner = await db.Images
+                .AsNoTracking()
+                .FirstOrDefaultAsync(m => m.Sha256Hash == sha256Hash && !m.IsDeleted, cancellationToken);
+            if (winner is not null)
+                return new MediaUploadResult(
+                    winner.PublicId,
+                    GetMediaUrl(winner.StoragePath),
+                    winner.ThumbnailPath is not null ? GetMediaUrl(winner.ThumbnailPath) : null,
+                    winner.MediumThumbnailPath is not null ? GetMediaUrl(winner.MediumThumbnailPath) : null,
+                    winner.BlurDataUri);
+            throw;
+        }
 
         var publicUrl = GetMediaUrl(storagePath);
         var thumbnailUrl = thumbnailPath is not null ? GetMediaUrl(thumbnailPath) : null;
