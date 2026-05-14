@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Snakk.Infrastructure.Database;
@@ -23,7 +24,8 @@ public class CommunityManagementServiceTests : IDisposable
         _context = new SnakkDbContext(options);
         var factory = new InMemoryDbContextFactory(options);
         var grantsCache = Substitute.For<IUserGrantsCacheService>();
-        _service = new CommunityManagementService(_context, factory, grantsCache);
+        var hybridCache = Substitute.For<HybridCache>();
+        _service = new CommunityManagementService(_context, factory, grantsCache, hybridCache);
     }
 
     public void Dispose()

@@ -1,6 +1,7 @@
 namespace Snakk.Api;
 
 using FluentValidation;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
 using Snakk.Infrastructure.Database;
