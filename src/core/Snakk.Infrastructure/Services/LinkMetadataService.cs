@@ -84,7 +84,8 @@ public partial class LinkMetadataService(
     {
         try
         {
-            var client = httpClientFactory.CreateClient("LinkMetadata");
+            // Use the unblocked proxy client — proxyUrl is operator-configured, not user-supplied
+            var client = httpClientFactory.CreateClient("LinkMetadataProxy");
             client.Timeout = Timeout;
 
             var payload = new { url };

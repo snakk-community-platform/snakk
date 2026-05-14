@@ -7,6 +7,7 @@ using Snakk.Infrastructure.Database;
 using Snakk.Application.UseCases;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Services;
+using Snakk.Api.Middleware;
 using Snakk.Api.Services;
 using Snakk.Api.Validators;
 using Microsoft.AspNetCore.RateLimiting;
@@ -240,7 +241,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMediaService, Infrastructure.Services.MediaService>();
         services.AddScoped<IAvatarGenerationService, Infrastructure.Services.AvatarGenerationService>();
         services.AddScoped<IAllowedTypesService, Infrastructure.Services.AllowedTypesService>();
-        services.AddHttpClient("LinkMetadata");
+        services.AddTransient<PrivateIpBlockHandler>();
+        services.AddHttpClient("LinkMetadata")
+            .AddHttpMessageHandler<PrivateIpBlockHandler>();
+        // Unblocked client for calls to the operator-configured proxy URL (internal Docker service)
+        services.AddHttpClient("LinkMetadataProxy");
         services.AddHttpClient("DiscordWebhook", client => { client.Timeout = TimeSpan.FromSeconds(5); });
         services.AddScoped<Application.Services.IDiscordNotificationService,
             Infrastructure.Services.DiscordNotificationService>();
