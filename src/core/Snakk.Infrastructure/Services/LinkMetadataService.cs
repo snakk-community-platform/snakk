@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 using Snakk.Application.Services;
@@ -125,7 +126,10 @@ public partial class LinkMetadataService(
             if (imageBytes is null)
                 return metadata;
 
-            using var image = Image.Load(imageBytes);
+            using var image = Image.Load(new DecoderOptions { MaxFrames = 1 }, imageBytes);
+
+            if (image.Width > 4096 || image.Height > 4096 || (long)image.Width * image.Height > 16_777_216)
+                return metadata;
 
             // Resize to max 800px on longest side
             if (image.Width > MaxImageDimension || image.Height > MaxImageDimension)

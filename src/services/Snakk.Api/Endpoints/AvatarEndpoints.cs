@@ -7,6 +7,7 @@ using Snakk.Domain.ValueObjects;
 using System.Security.Claims;
 using Snakk.Api.Helpers;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Processing;
 
@@ -101,7 +102,10 @@ public static class AvatarEndpoints
         var thumbFileName = $"{userId.Value}_r{nextRevision}_thumb.webp";
 
         using var inputStream = file.OpenReadStream();
-        using var image = await Image.LoadAsync(inputStream);
+        using var image = await Image.LoadAsync(new DecoderOptions { MaxFrames = 1 }, inputStream);
+
+        if (image.Width > 4096 || image.Height > 4096 || (long)image.Width * image.Height > 16_777_216)
+            return Results.BadRequest(new { error = "Image dimensions are too large." });
 
         if (image.Width > 256 || image.Height > 256)
         {
@@ -335,7 +339,10 @@ public static class AvatarEndpoints
         var thumbFileName = $"{entityId}_r{nextRevision}_thumb.webp";
 
         using var inputStream = file.OpenReadStream();
-        using var image = await Image.LoadAsync(inputStream);
+        using var image = await Image.LoadAsync(new DecoderOptions { MaxFrames = 1 }, inputStream);
+
+        if (image.Width > 4096 || image.Height > 4096 || (long)image.Width * image.Height > 16_777_216)
+            throw new InvalidOperationException("Image dimensions exceed maximum allowed size.");
 
         if (image.Width > 256 || image.Height > 256)
         {
