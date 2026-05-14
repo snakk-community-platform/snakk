@@ -11,6 +11,7 @@ using Snakk.Api.Middleware;
 using Snakk.Api.Services;
 using Snakk.Api.Validators;
 using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 public static class ServiceCollectionExtensions
 {
@@ -403,32 +404,41 @@ public static class ServiceCollectionExtensions
     {
         services.AddRateLimiter(options =>
         {
-            // Strict rate limit for authentication endpoints
-            options.AddFixedWindowLimiter("auth", opt =>
-            {
-                opt.PermitLimit = 5; // 5 attempts
-                opt.Window = TimeSpan.FromMinutes(15); // per 15 minutes
-                opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-                opt.QueueLimit = 0; // No queueing
-            });
+            // Strict rate limit for authentication endpoints — partitioned per client IP
+            options.AddPolicy("auth", ctx =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: GetRateLimitPartitionKey(ctx),
+                    factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 5,
+                        Window = TimeSpan.FromMinutes(15),
+                        QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0
+                    }));
 
-            // Standard rate limit for API endpoints
-            options.AddFixedWindowLimiter("api", opt =>
-            {
-                opt.PermitLimit = 100; // 100 requests
-                opt.Window = TimeSpan.FromMinutes(1); // per minute
-                opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-                opt.QueueLimit = 0;
-            });
+            // Standard rate limit for API endpoints — partitioned per client IP
+            options.AddPolicy("api", ctx =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: GetRateLimitPartitionKey(ctx),
+                    factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 100,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0
+                    }));
 
-            // Stricter limit for expensive operations
-            options.AddFixedWindowLimiter("expensive", opt =>
-            {
-                opt.PermitLimit = 10; // 10 requests
-                opt.Window = TimeSpan.FromMinutes(1); // per minute
-                opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
-                opt.QueueLimit = 0;
-            });
+            // Stricter limit for expensive operations — partitioned per client IP
+            options.AddPolicy("expensive", ctx =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: GetRateLimitPartitionKey(ctx),
+                    factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 10,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0
+                    }));
 
             options.OnRejected = async (context, cancellationToken) =>
             {
@@ -451,4 +461,11 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    // Reads the real client IP from X-Forwarded-For (set by trusted internal callers)
+    // with fallback to the raw socket address and finally "unknown".
+    private static string GetRateLimitPartitionKey(HttpContext ctx) =>
+        ctx.Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim()
+        ?? ctx.Connection.RemoteIpAddress?.ToString()
+        ?? "unknown";
 }
