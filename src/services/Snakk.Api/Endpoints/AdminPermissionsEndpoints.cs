@@ -10,7 +10,7 @@ public static class AdminPermissionsEndpoints
     {
         var permissionsGroup = app.MapGroup("/admin/permissions")
             .WithTags("Admin Permissions")
-            .RequireAuthorization(policy => policy.RequireRole("Admin"));
+            .RequireAuthorization(policy => policy.RequireRole("GlobalAdmin"));
 
         // Permission endpoints
         permissionsGroup.MapGet("", GetAllPermissionsAsync)
@@ -32,7 +32,7 @@ public static class AdminPermissionsEndpoints
         // Temporary role endpoints
         var tempRolesGroup = app.MapGroup("/admin/temporary-roles")
             .WithTags("Admin Temporary Roles")
-            .RequireAuthorization(policy => policy.RequireRole("Admin"));
+            .RequireAuthorization(policy => policy.RequireRole("GlobalAdmin"));
 
         tempRolesGroup.MapGet("", GetActiveTemporaryRolesAsync)
             .WithName("GetActiveTemporaryRoles")

@@ -15,7 +15,7 @@ public static class AdminModerationEndpoints
     {
         var userGroup = app.MapGroup("/admin/users")
             .WithTags("Admin - User Moderation")
-            .RequireAuthorization(policy => policy.RequireRole("Admin"));
+            .RequireAuthorization(policy => policy.RequireRole("GlobalAdmin"));
 
         // Simplified admin endpoints that work with userId instead of banId/roleId
         userGroup.MapPost("/{userId}/ban", BanUserAsync)
@@ -31,7 +31,7 @@ public static class AdminModerationEndpoints
 
         var modGroup = app.MapGroup("/admin/moderation")
             .WithTags("Admin - Moderation Tools")
-            .RequireAuthorization(policy => policy.RequireRole("Admin"));
+            .RequireAuthorization(policy => policy.RequireRole("GlobalAdmin"));
 
         // Reports
         modGroup.MapGet("/reports", GetReportsAsync)

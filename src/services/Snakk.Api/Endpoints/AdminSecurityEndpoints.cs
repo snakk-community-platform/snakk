@@ -12,7 +12,7 @@ public static class AdminSecurityEndpoints
     {
         var group = app.MapGroup("/admin/security")
             .WithTags("Admin - Security & Audit")
-            .RequireAuthorization(policy => policy.RequireRole("Admin"));
+            .RequireAuthorization(policy => policy.RequireRole("GlobalAdmin"));
 
         // Audit Logs
         group.MapGet("/audit-logs", GetAuditLogsAsync)

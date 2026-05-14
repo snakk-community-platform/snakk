@@ -11,7 +11,7 @@ public static class AdminContentEndpoints
     {
         var group = app.MapGroup("/admin/content")
             .WithTags("Admin - Content")
-            .RequireAuthorization(policy => policy.RequireRole("Admin"));
+            .RequireAuthorization(policy => policy.RequireRole("GlobalAdmin"));
 
         // Overview
         group.MapGet("/overview", GetContentOverviewAsync)

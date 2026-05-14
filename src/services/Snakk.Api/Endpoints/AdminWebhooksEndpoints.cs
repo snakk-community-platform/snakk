@@ -12,7 +12,7 @@ public static class AdminWebhooksEndpoints
     {
         var group = app.MapGroup("/admin/webhooks")
             .RequireAuthorization(new AuthorizeAttribute { AuthenticationSchemes = "Bearer" })
-            .RequireAuthorization(policy => policy.RequireRole("Admin"))
+            .RequireAuthorization(policy => policy.RequireRole("GlobalAdmin"))
             .WithTags("Admin - Webhooks");
 
         // Get all webhooks

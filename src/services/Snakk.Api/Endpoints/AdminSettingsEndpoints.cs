@@ -13,7 +13,7 @@ public static class AdminSettingsEndpoints
     {
         var group = app.MapGroup("/admin/settings")
             .WithTags("Admin - Settings")
-            .RequireAuthorization(policy => policy.RequireRole("Admin"));
+            .RequireAuthorization(policy => policy.RequireRole("GlobalAdmin"));
 
         // General Settings
         group.MapGet("/general", GetGeneralSettingsAsync)
