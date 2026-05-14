@@ -371,7 +371,7 @@ public class MediaService(
         return true;
     }
 
-    public async Task PublishDraftMediaAsync(string content, CancellationToken cancellationToken = default)
+    public async Task PublishDraftMediaAsync(string content, string userPublicId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(content)) return;
 
@@ -384,9 +384,16 @@ public class MediaService(
 
         if (storagePaths.Count == 0) return;
 
+        var uploaderInternalId = await db.Users
+            .Where(u => u.PublicId == userPublicId)
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (uploaderInternalId == 0) return;
+
         var now = DateTime.UtcNow;
         await db.Images
-            .Where(m => m.IsDraft && !m.IsDeleted && storagePaths.Contains(m.StoragePath))
+            .Where(m => m.IsDraft && !m.IsDeleted && storagePaths.Contains(m.StoragePath) && m.UploadedByUserId == uploaderInternalId)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(m => m.IsDraft, false)
                 .SetProperty(m => m.PublishedAt, now),

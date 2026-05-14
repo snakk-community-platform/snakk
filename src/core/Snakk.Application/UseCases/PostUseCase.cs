@@ -93,6 +93,9 @@ public class PostUseCase(
             await discussionRepository.UpdateAsync(discussion);
         });
 
+        // Publish any draft media referenced in the post (only the uploader's own drafts)
+        await mediaService.PublishDraftMediaAsync(normalizedContent, userId.Value);
+
         // Update denormalized counts
         await counterService.IncrementPostCountAsync(discussionId);
         await counterService.IncrementUserReplyCountAsync(userId);

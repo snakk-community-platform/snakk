@@ -46,9 +46,10 @@ public interface IMediaService
 
     /// <summary>
     /// Mark all draft media referenced in the content as published.
+    /// Only publishes drafts uploaded by the specified user.
     /// Call after a discussion or post is successfully created.
     /// </summary>
-    Task PublishDraftMediaAsync(string content, CancellationToken cancellationToken = default);
+    Task PublishDraftMediaAsync(string content, string userPublicId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Delete expired draft media (files + database records).

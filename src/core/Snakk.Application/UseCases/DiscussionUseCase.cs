@@ -84,7 +84,7 @@ public class DiscussionUseCase(
         firstPost.ClearDomainEvents();
 
         // Publish any draft media referenced in the first post
-        await mediaService.PublishDraftMediaAsync(normalizedFirstPost);
+        await mediaService.PublishDraftMediaAsync(normalizedFirstPost, userId.Value);
 
         // Notify space, hub, and global subscribers about the new discussion
         await realtimeNotifier.NotifyDiscussionCreatedAsync(discussion.PublicId, spaceId, space.HubId);
