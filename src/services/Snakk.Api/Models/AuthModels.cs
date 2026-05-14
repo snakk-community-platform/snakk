@@ -3,11 +3,13 @@ namespace Snakk.Api.Models;
 public record RegisterRequest(
     string Email,
     string Password,
-    string DisplayName);
+    string DisplayName,
+    string? TurnstileToken = null);
 
 public record LoginRequest(
     string Email,
-    string Password);
+    string Password,
+    string? TurnstileToken = null);
 
 public record UpdateProfileRequest(
     string DisplayName);

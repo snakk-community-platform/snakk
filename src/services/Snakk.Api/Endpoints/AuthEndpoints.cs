@@ -52,10 +52,14 @@ public static class AuthEndpoints
         RegisterRequest request,
         AuthenticationUseCase authUseCase,
         IJwtTokenService jwtService,
+        ITurnstileService turnstileService,
         SnakkDbContext context,
         HttpContext httpContext,
         ILogger<object> logger)
     {
+        if (!await turnstileService.VerifyAsync(request.TurnstileToken ?? ""))
+            return Results.BadRequest(new { error = "Captcha verification failed. Please try again." });
+
         var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
         var userAgent = AuthAuditLogger.GetUserAgent(httpContext);
 
@@ -113,11 +117,15 @@ public static class AuthEndpoints
         LoginRequest request,
         AuthenticationUseCase authUseCase,
         IJwtTokenService jwtService,
+        ITurnstileService turnstileService,
         SnakkDbContext context,
         HttpContext httpContext,
         ILogger<object> logger,
         IUserGrantsCacheService grantsCache)
     {
+        if (!await turnstileService.VerifyAsync(request.TurnstileToken ?? ""))
+            return Results.BadRequest(new { error = "Captcha verification failed. Please try again." });
+
         var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
         var userAgent = AuthAuditLogger.GetUserAgent(httpContext);
 
