@@ -48,6 +48,9 @@ public class NotificationUseCase(
         if (notification.RecipientUserId.Value != userId.Value)
             return Result.Failure("Cannot mark other user's notification as read");
 
+        if (notification.IsRead)
+            return Result.Success();
+
         notification.MarkAsRead();
         await notificationRepository.UpdateAsync(notification);
 

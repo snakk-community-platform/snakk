@@ -22,5 +22,5 @@ public interface IFollowRepository
     Task<IEnumerable<UserId>> GetFollowedUsersByUserAsync(UserId userId);
     Task AddAsync(Follow follow);
     Task UpdateAsync(Follow follow);
-    Task DeleteAsync(Follow follow);
+    Task<bool> DeleteAsync(Follow follow);
 }

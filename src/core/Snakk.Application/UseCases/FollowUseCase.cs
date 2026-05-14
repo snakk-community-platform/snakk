@@ -30,8 +30,9 @@ public class FollowUseCase(
         {
             // Unfollow
             existingFollow.MarkForRemoval();
-            await followRepository.DeleteAsync(existingFollow);
-            await counterService.DecrementDiscussionFollowerCountAsync(discussionId);
+            var deleted = await followRepository.DeleteAsync(existingFollow);
+            if (deleted)
+                await counterService.DecrementDiscussionFollowerCountAsync(discussionId);
 
             return Result<bool>.Success(false);
         }
@@ -61,8 +62,9 @@ public class FollowUseCase(
         {
             // Unfollow
             existingFollow.MarkForRemoval();
-            await followRepository.DeleteAsync(existingFollow);
-            await counterService.DecrementSpaceFollowerCountAsync(spaceId);
+            var deleted = await followRepository.DeleteAsync(existingFollow);
+            if (deleted)
+                await counterService.DecrementSpaceFollowerCountAsync(spaceId);
 
             return Result<bool>.Success(false);
         }
@@ -137,8 +139,9 @@ public class FollowUseCase(
         {
             // Unfollow
             existingFollow.MarkForRemoval();
-            await followRepository.DeleteAsync(existingFollow);
-            await counterService.DecrementUserFollowerCountAsync(followedUserId);
+            var deleted = await followRepository.DeleteAsync(existingFollow);
+            if (deleted)
+                await counterService.DecrementUserFollowerCountAsync(followedUserId);
 
             return Result<bool>.Success(false);
         }

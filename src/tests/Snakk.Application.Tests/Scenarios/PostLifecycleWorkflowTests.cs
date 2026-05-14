@@ -45,6 +45,10 @@ public class PostLifecycleWorkflowTests
         _markupParser.ToHtml(Arg.Any<string>(), Arg.Any<bool>())
             .Returns(x => $"<p>{x.Arg<string>()}</p>");
 
+        var unitOfWork = Substitute.For<IUnitOfWork>();
+        unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<Task>>(), Arg.Any<CancellationToken>())
+            .Returns(ci => ci.Arg<Func<Task>>()());
+
         _useCase = new PostUseCase(
             _postRepository,
             _discussionRepository,
@@ -58,7 +62,8 @@ public class PostLifecycleWorkflowTests
             _markupParser,
             new ContentNormalizer(),
             _moderationRepository,
-            _reactionUseCase);
+            _reactionUseCase,
+            unitOfWork);
     }
 
     [Test]

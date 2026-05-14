@@ -302,11 +302,11 @@ public class FollowRepositoryAdapter(
         await databaseRepository.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(Follow follow)
+    public async Task<bool> DeleteAsync(Follow follow)
     {
         var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == follow.UserId.Value);
 
-        if (user is null) return;
+        if (user is null) return false;
 
         Database.Entities.UserFollowDatabaseEntity? entity = null;
 
@@ -332,10 +332,11 @@ public class FollowRepositoryAdapter(
                 entity = await databaseRepository.GetByUserAndFollowedUserAsync(user.Id, followedUser.Id);
         }
 
-        if (entity is null) return;
+        if (entity is null) return false;
 
         await databaseRepository.DeleteAsync(entity);
         await databaseRepository.SaveChangesAsync();
+        return true;
     }
 
     private record FollowProjection(

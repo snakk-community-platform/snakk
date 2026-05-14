@@ -138,6 +138,7 @@ public class PollService(SnakkDbContext context) : IPollService
             .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
             .ToListAsync();
 
+        List<int> decrementedOptionIds = [];
         if (existingVotes.Count > 0)
         {
             if (!poll.AllowMultipleChoices && !poll.AllowChangeVote)
@@ -146,14 +147,10 @@ public class PollService(SnakkDbContext context) : IPollService
             if (!poll.AllowMultipleChoices && poll.AllowChangeVote)
             {
                 // Single choice + change allowed: remove old vote, add new
-                var optionMap = poll.Options.ToDictionary(o => o.Id);
                 foreach (var old in existingVotes)
                 {
-                    if (optionMap.TryGetValue(old.OptionId, out var oldOption))
-                    {
-                        oldOption.VoteCount = Math.Max(0, oldOption.VoteCount - 1);
-                        context.DiscussionPollVotes.Remove(old);
-                    }
+                    decrementedOptionIds.Add(old.OptionId);
+                    context.DiscussionPollVotes.Remove(old);
                 }
             }
             else if (poll.AllowMultipleChoices)
@@ -171,7 +168,6 @@ public class PollService(SnakkDbContext context) : IPollService
             VotedAt = DateTime.UtcNow,
             SegmentIndex = segmentIndex
         });
-        option.VoteCount++;
 
         try
         {
@@ -181,6 +177,15 @@ public class PollService(SnakkDbContext context) : IPollService
         {
             return (false, "You have already voted for this option");
         }
+
+        if (decrementedOptionIds.Count > 0)
+            await context.DiscussionPollOptions
+                .Where(o => decrementedOptionIds.Contains(o.Id))
+                .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount - 1));
+
+        await context.DiscussionPollOptions
+            .Where(o => o.Id == optionId)
+            .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount + 1));
 
         return (true, null);
     }
@@ -217,12 +222,12 @@ public class PollService(SnakkDbContext context) : IPollService
         if (vote is null)
             return (false, "Vote not found");
 
-        var option = poll.Options.FirstOrDefault(o => o.Id == optionId);
-        if (option is not null)
-            option.VoteCount = Math.Max(0, option.VoteCount - 1);
-
         context.DiscussionPollVotes.Remove(vote);
         await context.SaveChangesAsync();
+
+        await context.DiscussionPollOptions
+            .Where(o => o.Id == optionId)
+            .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount - 1));
 
         return (true, null);
     }
