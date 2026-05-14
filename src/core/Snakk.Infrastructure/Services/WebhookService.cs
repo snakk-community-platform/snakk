@@ -723,6 +723,7 @@ public class WebhookService(
             return bytes[0] switch
             {
                 10 => true,                                           // 10.0.0.0/8
+                100 when bytes[1] >= 64 && bytes[1] <= 127 => true,  // 100.64.0.0/10 (CGNAT)
                 127 => true,                                          // 127.0.0.0/8 (loopback)
                 169 when bytes[1] == 254 => true,                     // 169.254.0.0/16 (link-local)
                 172 when bytes[1] >= 16 && bytes[1] <= 31 => true,    // 172.16.0.0/12
@@ -732,10 +733,12 @@ public class WebhookService(
             };
         }
 
-        // IPv6: block loopback (::1) and link-local (fe80::/10)
+        // IPv6: block loopback (::1), link-local (fe80::/10), deprecated site-local (fec0::/10),
+        // and ULA (fc00::/7 — covers fc:: and fd::, the range actually used per RFC 4193)
         return IPAddress.IsLoopback(ip)
             || ip.IsIPv6LinkLocal
-            || ip.IsIPv6SiteLocal;
+            || ip.IsIPv6SiteLocal
+            || (bytes[0] & 0xfe) == 0xfc;
     }
 
     private static WebhookDeliveryLogResponse MapToDeliveryLogResponse(
