@@ -261,7 +261,7 @@ public class AdminContentService(
 
     public async Task<bool> PinDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
 
         if (discussion is null)
             return false;
@@ -284,7 +284,7 @@ public class AdminContentService(
 
     public async Task<bool> UnpinDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
 
         if (discussion is null)
             return false;
@@ -307,7 +307,7 @@ public class AdminContentService(
 
     public async Task<bool> LockDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
 
         if (discussion is null)
             return false;
@@ -330,7 +330,7 @@ public class AdminContentService(
 
     public async Task<bool> UnlockDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
 
         if (discussion is null)
             return false;
@@ -353,7 +353,7 @@ public class AdminContentService(
 
     public async Task<bool> DeleteDiscussionAsync(string id, string adminUserId)
     {
-        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
 
         if (discussion is null)
             return false;

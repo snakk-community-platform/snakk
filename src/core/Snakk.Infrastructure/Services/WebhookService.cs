@@ -150,6 +150,7 @@ public class WebhookService(
         CancellationToken cancellationToken = default)
     {
         var webhook = await dbContext.Webhooks
+            .AsTracking()
             .FirstOrDefaultAsync(w => w.Id == webhookId, cancellationToken);
 
         if (webhook is null)
@@ -356,6 +357,7 @@ public class WebhookService(
         var now = DateTime.UtcNow;
 
         var failedDeliveries = await dbContext.WebhookDeliveryLogs
+            .AsTracking()
             .Include(wdl => wdl.Webhook)
             .Where(wdl =>
                 !wdl.IsSuccess

@@ -64,6 +64,7 @@ public class RefreshTokenRepository(SnakkDbContext context) : IRefreshTokenRepos
     public async Task UpdateAsync(RefreshToken token)
     {
         var entity = await _context.RefreshTokens
+            .AsTracking()
             .FirstOrDefaultAsync(t => t.TokenValue == token.Value);
 
         if (entity is not null)
@@ -76,6 +77,7 @@ public class RefreshTokenRepository(SnakkDbContext context) : IRefreshTokenRepos
     public async Task RevokeAllForUserAsync(UserId userId)
     {
         var tokens = await _context.RefreshTokens
+            .AsTracking()
             .Where(t =>
                 t.User.PublicId == userId.Value
                 && t.RevokedAt == null)

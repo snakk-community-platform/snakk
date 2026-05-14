@@ -49,6 +49,7 @@ public class TemporaryRoleExpirationWorker(
 
         // Find all temporary role elevations that have expired but haven't been revoked yet
         var expiredElevations = await context.TemporaryRoleElevations
+            .AsTracking()
             .Where(e => e.ExpiresAt <= now && e.RevokedAt == null)
             .Include(e => e.User)
             .ToListAsync(ct);

@@ -42,7 +42,7 @@ public class PasswordResetTokenRepository(SnakkDbContext context) : IPasswordRes
 
     public async Task MarkUsedAsync(int tokenId, string? usedFromIp, string? usedUserAgent)
     {
-        var entity = await context.PasswordResetTokens.FirstOrDefaultAsync(t => t.Id == tokenId);
+        var entity = await context.PasswordResetTokens.AsTracking().FirstOrDefaultAsync(t => t.Id == tokenId);
         if (entity is null) return;
 
         entity.UsedAt = DateTime.UtcNow;

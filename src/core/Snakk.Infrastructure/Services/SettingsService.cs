@@ -128,6 +128,7 @@ public class SettingsService : ISettingsService
         string adminUserId)
     {
         var setting = await _context.SystemSettings
+            .AsTracking()
             .Include(s => s.UpdatedBy)
             .FirstOrDefaultAsync(s =>
                 s.Category == category
@@ -464,6 +465,7 @@ public class SettingsService : ISettingsService
         string category, string key, string serializedValue, string valueType, string adminUserId)
     {
         var existing = await _context.SystemSettings
+            .AsTracking()
             .FirstOrDefaultAsync(s => s.Category == category && s.Key == key);
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == adminUserId);
