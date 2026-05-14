@@ -51,8 +51,13 @@ app.UseStaticFiles(new StaticFileOptions
 });
 app.UseSession();
 
-// Require setup password if SETUP_PASSWORD env var is set (must be after UseSession)
+// Require setup password — must be set in any non-development environment
 var setupPassword = Environment.GetEnvironmentVariable("SETUP_PASSWORD");
+if (string.IsNullOrEmpty(setupPassword) && !app.Environment.IsDevelopment())
+    throw new InvalidOperationException(
+        "SETUP_PASSWORD environment variable must be set. " +
+        "Generate one with: openssl rand -base64 18 | tr -d '/+=' | head -c 16");
+
 if (!string.IsNullOrEmpty(setupPassword))
 {
     app.Use(async (context, next) =>

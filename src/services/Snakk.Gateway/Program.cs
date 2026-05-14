@@ -202,13 +202,24 @@ app.UseRequestTimeouts();
 // Gateway's own health endpoint (not proxied — handled locally before YARP)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "gateway" }));
 
-// When setup hasn't completed, redirect all non-setup traffic to the wizard.
+// Setup gate: redirect to wizard until complete, then tombstone /setup/* permanently.
 // The setupComplete bool is flipped by a FileSystemWatcher — no restart required.
 app.Use(async (context, next) =>
 {
-    if (!setupComplete)
+    var path = context.Request.Path.Value ?? "";
+
+    if (setupComplete)
     {
-        var path = context.Request.Path.Value ?? "";
+        // Setup is done — /setup/* no longer exists from the outside world.
+        if (path.StartsWith("/setup", StringComparison.OrdinalIgnoreCase))
+        {
+            context.Response.StatusCode = 404;
+            return;
+        }
+    }
+    else
+    {
+        // Setup in progress — redirect non-setup traffic to the wizard.
         if (!path.StartsWith("/setup", StringComparison.OrdinalIgnoreCase)
             && !path.Equals("/health", StringComparison.OrdinalIgnoreCase))
         {
@@ -216,6 +227,7 @@ app.Use(async (context, next) =>
             return;
         }
     }
+
     await next();
 });
 

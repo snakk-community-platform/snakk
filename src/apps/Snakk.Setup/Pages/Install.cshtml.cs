@@ -38,7 +38,7 @@ public class InstallModel(SetupService setupService) : SetupPageBase
         {
             HttpOnly = true,
             Secure = true,
-            SameSite = SameSiteMode.Lax,
+            SameSite = SameSiteMode.Strict,
             MaxAge = TimeSpan.FromHours(1)
         });
 
