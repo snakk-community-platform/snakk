@@ -175,8 +175,13 @@ public static class AuthEndpoints
     private static async Task<IResult> LogoutAsync(
         HttpContext httpContext,
         AuthenticationUseCase authUseCase,
+        IJwtTokenService jwtService,
         ILogger<object> logger)
     {
+        var authHeader = httpContext.Request.Headers.Authorization.ToString();
+        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            jwtService.RevokeToken(authHeader["Bearer ".Length..].Trim());
+
         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (userId is not null)

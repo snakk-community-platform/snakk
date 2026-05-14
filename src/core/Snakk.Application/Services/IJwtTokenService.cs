@@ -25,4 +25,6 @@ public interface IJwtTokenService
     /// Revokes a JWT by adding its jti to an in-memory blacklist until the token's natural expiry.
     /// </summary>
     void RevokeToken(string token);
+
+    bool IsRevoked(string jti);
 }

@@ -137,6 +137,10 @@ public class AuthGrpcService(
 
     public override async Task<Protos.Auth.MessageResponse> Logout(LogoutRequest request, ServerCallContext ctx)
     {
+        var authHeader = ctx.RequestHeaders.GetValue("authorization") ?? "";
+        if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            jwtService.RevokeToken(authHeader["Bearer ".Length..].Trim());
+
         var userId = currentUser.GetCurrentUserId();
 
         if (userId is not null)

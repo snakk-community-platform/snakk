@@ -97,6 +97,19 @@ public static class ServiceCollectionExtensions
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
+            options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+            {
+                OnTokenValidated = context =>
+                {
+                    var jwtService = context.HttpContext.RequestServices
+                        .GetRequiredService<IJwtTokenService>();
+                    var jti = context.Principal?
+                        .FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+                    if (jti is not null && jwtService.IsRevoked(jti))
+                        context.Fail("Token has been revoked");
+                    return Task.CompletedTask;
+                }
+            };
         });
 
         services.AddAuthorization(options =>

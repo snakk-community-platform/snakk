@@ -134,4 +134,7 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
             // Token couldn't be parsed — nothing to revoke
         }
     }
+
+    public bool IsRevoked(string jti) =>
+        memoryCache.TryGetValue(RevocationPrefix + jti, out _);
 }
