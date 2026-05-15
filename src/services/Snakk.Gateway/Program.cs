@@ -214,7 +214,11 @@ app.Use(async (context, next) =>
     if (setupComplete)
     {
         // Setup is done — /setup/* no longer exists from the outside world.
-        if (path.StartsWith("/setup", StringComparison.OrdinalIgnoreCase))
+        // Exception: allow /setup/install and /setup/restarting through so the wizard
+        // can finish its flow (finalize call + restarting page) after writing the config.
+        if (path.StartsWith("/setup", StringComparison.OrdinalIgnoreCase)
+            && !path.StartsWith("/setup/install", StringComparison.OrdinalIgnoreCase)
+            && !path.StartsWith("/setup/restarting", StringComparison.OrdinalIgnoreCase))
         {
             context.Response.StatusCode = 404;
             return;
