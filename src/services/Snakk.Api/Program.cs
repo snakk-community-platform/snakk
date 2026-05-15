@@ -71,16 +71,7 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
 
 // Add services to the container
 builder.Services.AddOpenApi();
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddSingleton<Snakk.Api.Interceptors.ProfilerTrailerInterceptor>();
-    builder.Services.AddGrpc(options =>
-        options.Interceptors.Add(typeof(Snakk.Api.Interceptors.ProfilerTrailerInterceptor)));
-}
-else
-{
-    builder.Services.AddGrpc();
-}
+builder.Services.AddGrpc();
 builder.Services.AddSnakkServices(builder.Configuration);
 builder.Services.AddRateLimiting();
 
@@ -94,20 +85,6 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
 }
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<SnakkDbContext>();
-
-if (builder.Environment.IsDevelopment())
-{
-    builder.Services.AddMiniProfiler(options =>
-    {
-        options.RouteBasePath = "/profiler";
-        options.PopupShowTimeWithChildren = true;
-        options.TrackConnectionOpenClose = true;
-        options.ResultsAuthorize = request =>
-            request.HttpContext.User.Identity?.IsAuthenticated == true &&
-            (request.HttpContext.User.HasClaim("role", "admin") ||
-             request.HttpContext.User.IsInRole("admin"));
-    }).AddEntityFramework();
-}
 
 var app = builder.Build();
 
@@ -125,7 +102,6 @@ Snakk.Shared.Helpers.AvatarHelper.UploadedAvatarBaseUrl =
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.UseMiniProfiler();
 }
 
 // Only redirect to HTTPS in production (not in Testing environment used by integration tests)

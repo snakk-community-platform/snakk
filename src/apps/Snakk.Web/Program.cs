@@ -203,13 +203,6 @@ builder.Services.AddSingleton(sp =>
 });
 builder.Services.AddSingleton<GrpcAuthInterceptor>();
 
-var isDev = builder.Environment.IsDevelopment();
-if (isDev)
-{
-    builder.Services.AddScoped<Snakk.Web.Services.ProfilerIdBag>();
-    builder.Services.AddSingleton<Snakk.Web.Services.ProfilerCapturingInterceptor>();
-}
-
 // Helper to register typed gRPC clients (all share channel + auth interceptor)
 void AddGrpcClient<T>(IServiceCollection services) where T : class
 {
@@ -218,8 +211,6 @@ void AddGrpcClient<T>(IServiceCollection services) where T : class
         var channel = sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>();
         var authInterceptor = sp.GetRequiredService<GrpcAuthInterceptor>();
         Grpc.Core.CallInvoker invoker = channel.CreateCallInvoker().Intercept(authInterceptor);
-        if (isDev)
-            invoker = invoker.Intercept(sp.GetRequiredService<Snakk.Web.Services.ProfilerCapturingInterceptor>());
         return (T)Activator.CreateInstance(typeof(T), invoker)!;
     });
 }
@@ -561,19 +552,6 @@ app.UseStaticFiles(new StaticFileOptions
 if (app.Environment.IsDevelopment())
 {
     app.UseMiddleware<Snakk.Web.Middleware.ServerTimingMiddleware>();
-
-    // Forward MiniProfiler IDs from API gRPC calls to the browser response header
-    app.Use(async (ctx, next) =>
-    {
-        ctx.Response.OnStarting(() =>
-        {
-            var bag = ctx.RequestServices.GetService<Snakk.Web.Services.ProfilerIdBag>();
-            if (bag?.Joined is { } ids)
-                ctx.Response.Headers["X-MiniProfiler-Ids"] = ids;
-            return Task.CompletedTask;
-        });
-        await next(ctx);
-    });
 }
 
 // Resolve community from URL (must be before routing)
@@ -645,18 +623,6 @@ app.MapRazorPages();
 // BFF API endpoints
 app.MapBffApiEndpoints();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapGet("/bff/profiler/{id}", async (string id, IHttpClientFactory httpClientFactory) =>
-    {
-        if (!Guid.TryParse(id, out _)) return Results.BadRequest();
-        var client = httpClientFactory.CreateClient("InternalApi");
-        var response = await client.GetAsync($"/profiler/results?id={id}");
-        if (!response.IsSuccessStatusCode) return Results.NotFound();
-        var json = await response.Content.ReadAsStringAsync();
-        return Results.Content(json, "application/json");
-    }).ExcludeFromDescription();
-}
 
 app.MapRealtimeTokenEndpoints();
 

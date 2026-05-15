@@ -1,5 +1,7 @@
 services:
   snakk:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
     volumes:
       - ../src/apps/Snakk.Web/wwwroot:/app/web/wwwroot
 

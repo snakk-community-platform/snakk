@@ -235,15 +235,6 @@
     <script src="@SnakkUrlHelper.Js("components/chart-renderer")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/inline-gallery")" asp-append-version="true" defer></script>
 
-    @if (HostEnvironment.IsDevelopment())
-    {
-        var _profilerIds = ViewContext.HttpContext.RequestServices.GetService<Snakk.Web.Services.ProfilerIdBag>()?.Joined;
-        if (_profilerIds != null)
-        {
-            <meta name="snakk-profiler-ids" content="@_profilerIds" />
-        }
-        <script src="@SnakkUrlHelper.Js("dev/profiler")" asp-append-version="true" defer></script>
-    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
