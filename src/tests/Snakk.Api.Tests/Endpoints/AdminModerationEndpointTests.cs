@@ -53,7 +53,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         await SeedUserAsync(targetUserId, "Target User");
         await SeedGlobalAdminRoleAsync(adminDbId);
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
         var body = JsonContent.Create(new { reason = "Spamming", duration = 7 });
 
         // Act
@@ -78,7 +78,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         var adminUserId = "admin-user-ban-404";
         await SeedUserAsync(adminUserId, "Admin User");
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
         var body = JsonContent.Create(new { reason = "Spamming", duration = (int?)null });
 
         // Act
@@ -98,7 +98,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         await SeedUserAsync(targetUserId, "Target User");
         await SeedGlobalAdminRoleAsync(adminDbId);
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
         var body = JsonContent.Create(new { reason = "Severe violation", duration = (int?)null });
 
         // Act
@@ -148,7 +148,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         var adminUserId = "admin-user-unban-404";
         await SeedUserAsync(adminUserId, "Admin User");
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
 
         // Act
         var response = await client.DeleteAsync("/admin/users/nonexistent-user/ban");
@@ -166,7 +166,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         await SeedUserAsync(adminUserId, "Admin User");
         await SeedUserAsync(targetUserId, "Target User");
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
 
         // Act
         var response = await client.DeleteAsync($"/admin/users/{targetUserId}/ban");
@@ -190,7 +190,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         await SeedGlobalAdminRoleAsync(adminDbId);
         await SeedActiveBanAsync(targetDbId, targetUserId, adminDbId);
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
 
         // Act
         var response = await client.DeleteAsync($"/admin/users/{targetUserId}/ban");
@@ -239,7 +239,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         await SeedUserAsync(targetUserId, "Target User");
         await SeedGlobalAdminRoleAsync(adminDbId);
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
         var body = JsonContent.Create(new { role = "Admin" });
 
         // Act
@@ -263,7 +263,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         var adminUserId = "admin-user-role-404";
         await SeedUserAsync(adminUserId, "Admin User");
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
         var body = JsonContent.Create(new { role = "Admin" });
 
         // Act
@@ -282,7 +282,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         await SeedUserAsync(adminUserId, "Admin User");
         await SeedUserAsync(targetUserId, "Target User");
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
         var body = JsonContent.Create(new { role = "Moderator" });
 
         // Act
@@ -306,7 +306,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         await SeedUserAsync(adminUserId, "Admin User");
         await SeedUserAsync(targetUserId, "Target User");
 
-        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "Admin");
+        var client = _server.CreateAuthenticatedClient(userId: adminUserId, role: "GlobalAdmin");
         var body = JsonContent.Create(new { role = "SuperDuperAdmin" });
 
         // Act
@@ -353,7 +353,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
     public async Task GetReports_WithAdmin_ReturnsPagedResults()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/moderation/reports?page=1");
@@ -385,7 +385,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
         var reportPublicId = "report-detail-get";
         await SeedReportAsync(reportPublicId, reporterDbId, reportedDbId);
 
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync($"/admin/moderation/reports/{reportPublicId}");
@@ -407,7 +407,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
     public async Task GetReport_NonExistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/moderation/reports/nonexistent-report-id");
@@ -436,7 +436,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
     public async Task ResolveReport_NonExistentReport_ReturnsBadRequest()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
         var body = JsonContent.Create(new { resolutionNote = "Resolved" });
 
         // Act
@@ -467,7 +467,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
     public async Task DismissReport_NonExistentReport_ReturnsBadRequest()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
         var body = JsonContent.Create(new { resolutionNote = "Not a real issue" });
 
         // Act
@@ -497,7 +497,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
     public async Task GetModerationLog_WithAdmin_ReturnsPagedResults()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/moderation/log?page=1");
@@ -548,7 +548,7 @@ public class AdminModerationEndpointTests : IAsyncDisposable
     public async Task GetActiveBans_WithAdmin_ReturnsPagedResults()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/moderation/bans?page=1");

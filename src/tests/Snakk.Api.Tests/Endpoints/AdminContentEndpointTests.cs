@@ -40,7 +40,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task GetContentOverview_WithAdmin_ReturnsOkWithCounts()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/content/overview");
@@ -66,7 +66,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task GetCommunities_WithAdmin_ReturnsOkWithPagination()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/content/communities?page=1&pageSize=20");
@@ -87,7 +87,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task GetCommunity_WithNonexistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/content/communities/nonexistent-id");
@@ -102,7 +102,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task GetHubs_WithAdmin_ReturnsOkWithPagination()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/content/hubs?page=1&pageSize=20");
@@ -125,7 +125,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task GetSpaces_WithAdmin_ReturnsOkWithPagination()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/content/spaces?page=1&pageSize=20");
@@ -148,7 +148,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task GetDiscussions_WithAdmin_ReturnsOkWithPagination()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/content/discussions?page=1&pageSize=20");
@@ -169,7 +169,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task GetDiscussion_WithNonexistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/content/discussions/nonexistent-id");
@@ -184,7 +184,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task PinDiscussion_WithNonexistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.PostAsync("/admin/content/discussions/nonexistent-id/pin", null);
@@ -197,7 +197,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task UnpinDiscussion_WithNonexistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.DeleteAsync("/admin/content/discussions/nonexistent-id/pin");
@@ -212,7 +212,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task LockDiscussion_WithNonexistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.PostAsync("/admin/content/discussions/nonexistent-id/lock", null);
@@ -225,7 +225,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task UnlockDiscussion_WithNonexistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.DeleteAsync("/admin/content/discussions/nonexistent-id/lock");
@@ -240,7 +240,7 @@ public class AdminContentEndpointTests : IAsyncDisposable
     public async Task DeleteDiscussion_WithNonexistentId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.DeleteAsync("/admin/content/discussions/nonexistent-id");

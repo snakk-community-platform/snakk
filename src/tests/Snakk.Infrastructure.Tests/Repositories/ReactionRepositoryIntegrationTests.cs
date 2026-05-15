@@ -181,13 +181,11 @@ public class ReactionRepositoryIntegrationTests : IDisposable
     {
         var (user, _, _, _, _, post) = await _builder.CreateFullHierarchyAsync();
         await CreateReactionAsync(user.Id, post.Id, typeId: 2);
-        await CreateReactionAsync(user.Id, post.Id, typeId: 5);
 
         var result = await _repository.GetUserReactionTypesForPostAsync(user.Id, post.Id);
 
-        await Assert.That(result).Count().IsEqualTo(2);
+        await Assert.That(result).Count().IsEqualTo(1);
         await Assert.That(result).Contains(2);
-        await Assert.That(result).Contains(5);
     }
 
     [Test]

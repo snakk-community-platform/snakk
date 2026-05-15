@@ -129,7 +129,7 @@ public class BroadcastEndpointTests
         var request = new BroadcastRequest
         {
             EventType = "reaction",
-            TargetGroup = "space:tech:programming",
+            TargetGroup = "space:programming",
             TargetId = "post-789",
             HtmlContent = "",
             SwapStrategy = "none"
@@ -139,7 +139,7 @@ public class BroadcastEndpointTests
         await BroadcastEndpoints.BroadcastEvent(request, _hubContext);
 
         // Assert
-        _clients.Received(1).Group("space:tech:programming");
+        _clients.Received(1).Group("space:programming");
     }
 
     #endregion

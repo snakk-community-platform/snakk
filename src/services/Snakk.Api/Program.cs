@@ -128,8 +128,8 @@ if (app.Environment.IsDevelopment())
     app.UseMiniProfiler();
 }
 
-// Only redirect to HTTPS in production
-if (!app.Environment.IsDevelopment())
+// Only redirect to HTTPS in production (not in Testing environment used by integration tests)
+if (!app.Environment.IsDevelopment() && !app.Environment.IsEnvironment("Testing"))
 {
     app.UseHttpsRedirection();
 }

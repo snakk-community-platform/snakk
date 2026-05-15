@@ -41,7 +41,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
     public async Task GetGeneralSettings_WithAdmin_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/settings/general");
@@ -56,7 +56,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
     public async Task GetOAuthProviders_WithAdmin_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/settings/oauth");
@@ -74,7 +74,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
     public async Task UpdateOAuthProvider_WithInvalidProvider_ReturnsBadRequest()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
         var body = new { enabled = true };
 
         // Act
@@ -96,7 +96,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
     public async Task GetEmailConfig_WithAdmin_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/settings/email");
@@ -109,7 +109,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
     public async Task TestEmail_WithAdmin_ReturnsOkOrBadRequest()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
         var body = new { recipientEmail = "test@example.com" };
 
         // Act
@@ -126,7 +126,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
     public async Task GetAvatarSettings_WithAdmin_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/settings/avatar");
@@ -141,7 +141,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
     public async Task GetContentSettings_WithAdmin_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/settings/content");
@@ -156,7 +156,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
     public async Task GetRateLimitingSettings_WithAdmin_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/settings/rate-limiting");
@@ -185,7 +185,7 @@ public class AdminSettingsEndpointTests : IAsyncDisposable
     public async Task UpdateRateLimitingSettings_WithAdmin_ReachesHandler()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
         var body = new
         {
             enabled = true,

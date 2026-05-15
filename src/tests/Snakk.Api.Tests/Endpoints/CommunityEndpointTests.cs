@@ -46,7 +46,7 @@ public class CommunityEndpointTests : IAsyncDisposable
     public async Task CreateCommunity_WithValidData_Returns_201_Created()
     {
         // Arrange
-        var client = _server.CreateClient();
+        var client = _server.CreateAuthenticatedClient();
         var request = new
         {
             name = "Test Community",
@@ -72,7 +72,7 @@ public class CommunityEndpointTests : IAsyncDisposable
     public async Task CreateCommunity_ThenGetById_Returns_CreatedCommunity()
     {
         // Arrange
-        var client = _server.CreateClient();
+        var client = _server.CreateAuthenticatedClient();
         var request = new
         {
             name = "Roundtrip Community",
@@ -119,7 +119,7 @@ public class CommunityEndpointTests : IAsyncDisposable
     public async Task CreateCommunity_ThenGetBySlug_Returns_CreatedCommunity()
     {
         // Arrange
-        var client = _server.CreateClient();
+        var client = _server.CreateAuthenticatedClient();
         var request = new
         {
             name = "Slug Lookup Community",
@@ -147,7 +147,7 @@ public class CommunityEndpointTests : IAsyncDisposable
     public async Task GetCommunities_AfterCreating_Returns_CreatedCommunity_InList()
     {
         // Arrange
-        var client = _server.CreateClient();
+        var client = _server.CreateAuthenticatedClient();
         var request = new
         {
             name = "Listed Community",

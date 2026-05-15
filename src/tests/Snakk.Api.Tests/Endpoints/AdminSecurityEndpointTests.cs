@@ -40,7 +40,7 @@ public class AdminSecurityEndpointTests : IAsyncDisposable
     public async Task GetAuditLogs_WithAdminAuth_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/security/audit-logs");
@@ -53,7 +53,7 @@ public class AdminSecurityEndpointTests : IAsyncDisposable
     public async Task GetAuditLog_WithInvalidId_ReturnsNotFound()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/security/audit-logs/nonexistent-id");
@@ -81,7 +81,7 @@ public class AdminSecurityEndpointTests : IAsyncDisposable
     public async Task GetFailedLogins_WithAdminAuth_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/security/failed-logins");
@@ -105,7 +105,7 @@ public class AdminSecurityEndpointTests : IAsyncDisposable
     public async Task GetFailedLogins_WithInvalidHours_ReturnsBadRequest(int hours)
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync($"/admin/security/failed-logins?hours={hours}");
@@ -120,7 +120,7 @@ public class AdminSecurityEndpointTests : IAsyncDisposable
     public async Task GetActiveSessions_WithAdminAuth_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/security/active-sessions");
@@ -141,7 +141,7 @@ public class AdminSecurityEndpointTests : IAsyncDisposable
     public async Task GetSuspiciousActivities_WithAdminAuth_ReturnsOk()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
 
         // Act
         var response = await client.GetAsync("/admin/security/suspicious-activities");
@@ -175,7 +175,7 @@ public class AdminSecurityEndpointTests : IAsyncDisposable
     public async Task GetUserDataExport_WithAdminAuth_ReturnsOkWithPendingStatus()
     {
         // Arrange
-        var client = _server.CreateAuthenticatedClient(role: "Admin");
+        var client = _server.CreateAuthenticatedClient(role: "GlobalAdmin");
         var exportId = "test-export-123";
 
         // Act
