@@ -613,8 +613,16 @@ app.Use(async (context, next) =>
         && !context.Request.Path.StartsWithSegments("/partials")
         && context.Response.ContentType?.StartsWith("text/html") == true)
     {
-        context.Response.Headers.CacheControl = "public, s-maxage=30, max-age=0, must-revalidate";
-        context.Response.Headers.Vary = "HX-Request";
+        var isHtmx = context.Request.Headers.ContainsKey("HX-Request");
+        if (isHtmx)
+        {
+            context.Response.Headers.CacheControl = "private, no-store";
+        }
+        else
+        {
+            context.Response.Headers.CacheControl = "public, s-maxage=30, max-age=0, must-revalidate";
+            context.Response.Headers.Vary = "HX-Request";
+        }
     }
 });
 
