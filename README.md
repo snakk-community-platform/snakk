@@ -70,7 +70,7 @@ A modern, performant community platform built with .NET 10 and ASP.NET Core.
 - **ASP.NET Core** - Razor Pages (Web), Minimal APIs (API), Blazor Server (Admin)
 - **gRPC** - Internal service-to-service communication
 - **Entity Framework Core 10** - PostgreSQL with Npgsql
-- **SignalR** - Real-time WebSocket communication (.NET 9)
+- **SignalR** - Real-time WebSocket communication
 - **YARP** - Reverse proxy gateway
 - **Serilog** - Structured logging
 - **.NET Aspire** - Service orchestration and observability
@@ -112,9 +112,10 @@ src/
 │   └── Snakk.Shared/               # Enums, utilities
 │
 ├── services/
-│   ├── Snakk.Api/                  # Internal gRPC + REST API (port 17100)
-│   ├── Snakk.Gateway/              # YARP reverse proxy (port 17000)
-│   ├── Snakk.Realtime/             # SignalR hub (port 17101)
+│   ├── Snakk.Api/                  # Internal gRPC + REST API
+│   ├── Snakk.Gateway/              # YARP reverse proxy
+│   ├── Snakk.PublicApi/            # Public-facing REST API
+│   ├── Snakk.Realtime/             # SignalR hub
 │   └── Snakk.Worker/               # Background job processor
 │
 ├── apps/
@@ -210,7 +211,7 @@ This starts all services with the correct ports and configuration. The Aspire da
 If you prefer to run services manually:
 
 ```bash
-# API (internal, port 17100)
+# API (internal, port 17101)
 dotnet run --project src/services/Snakk.Api
 
 # Web platform (port 17110)
@@ -219,7 +220,7 @@ dotnet run --project src/apps/Snakk.Web
 # Auth service (port 17111)
 dotnet run --project src/apps/Snakk.Auth
 
-# Realtime hub (port 17101)
+# Realtime hub (port 17103)
 dotnet run --project src/services/Snakk.Realtime
 ```
 
@@ -290,12 +291,14 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for architecture documentation.
 
 | Service | Port | Purpose |
 |---------|------|---------|
-| Snakk.Gateway | 17000 | YARP reverse proxy |
-| Snakk.Api | 17100 | Internal gRPC API |
-| Snakk.Realtime | 17101 | SignalR WebSocket hub |
+| Snakk.Gateway | 17100 | YARP reverse proxy |
+| Snakk.Api | 17101 | Internal gRPC API (REST on 17102) |
+| Snakk.Realtime | 17103 | SignalR WebSocket hub |
 | Snakk.Web | 17110 | Main platform |
 | Snakk.Auth | 17111 | Authentication service |
 | Snakk.Admin | 17112 | Admin panel |
+| Snakk.Setup | 17113 | First-run setup wizard |
+| Snakk.PublicApi | 17114 | Public REST API |
 
 ## Contributing
 
