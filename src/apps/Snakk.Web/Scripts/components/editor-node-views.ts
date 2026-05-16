@@ -13,7 +13,7 @@ import { Plugin, PluginKey, TextSelection } from '@milkdown/kit/prose/state';
 import { gapCursor } from 'prosemirror-gapcursor';
 
 const IMAGE_GROUP_KEY = new PluginKey('snakkImageGroup');
-const LAYOUTS = ['grid', 'masonry', 'justified', 'carousel', 'single'] as const;
+const LAYOUTS = ['grid', 'masonry', 'justified', 'carousel', 'single', 'hero', 'compare'] as const;
 type Layout = typeof LAYOUTS[number];
 
 // Callback registered by markdown-editor.ts so ChartNodeView can open the modal

@@ -20,7 +20,7 @@ public class GrpcAuthInterceptor : Interceptor
     private readonly Lazy<AuthService.AuthServiceClient> _authClientFactory;
 
     // Request coalescing: all concurrent requests sharing the same refresh token await the same task
-    private static readonly ConcurrentDictionary<string, Lazy<Task<RefreshResult?>>> _refreshTasks = new();
+    private static readonly ConcurrentDictionary<string, Lazy<Task<RefreshOutcome>>> _refreshTasks = new();
 
     public GrpcAuthInterceptor(
         IHttpContextAccessor httpContextAccessor,
@@ -72,30 +72,33 @@ public class GrpcAuthInterceptor : Interceptor
             // gRPC interceptors don't support async header modification, so we must block.
             // Bounded to 5 seconds to prevent thread pool starvation under load.
             // Request coalescing (below) ensures only one refresh runs per token.
-            RefreshResult? refreshResult = null;
+            RefreshOutcome? outcome = null;
             try
             {
-                refreshResult = RefreshTokensAsync(refreshToken, httpContext)
+                outcome = RefreshTokensAsync(refreshToken, httpContext)
                     .WaitAsync(TimeSpan.FromSeconds(5))
                     .GetAwaiter().GetResult();
             }
             catch (TimeoutException)
             {
+                // API startup or overload — keep cookies, user stays anonymous for this request
                 _logger.LogWarning("Token refresh timed out after 5 seconds in gRPC interceptor");
             }
-            if (refreshResult is not null)
+            if (outcome?.Tokens is not null)
             {
-                accessToken = refreshResult.AccessToken;
-                AuthCookieHelper.SetAuthCookies(httpContext, refreshResult.AccessToken, refreshResult.RefreshToken);
+                accessToken = outcome.Tokens.AccessToken;
+                AuthCookieHelper.SetAuthCookies(httpContext, outcome.Tokens.AccessToken, outcome.Tokens.RefreshToken);
                 _logger.LogDebug("Access token auto-refreshed via gRPC interceptor");
             }
-            else
+            else if (outcome?.ShouldClearCookies == true)
             {
-                _logger.LogWarning("Token auto-refresh failed in gRPC interceptor — clearing auth cookies");
-                // The refresh token was rejected (consumed/revoked). Clear all auth cookies so the
+                // Server explicitly rejected the token (revoked/expired) — clear cookies so the
                 // browser is not stuck in a loop with a permanently invalid token.
+                _logger.LogWarning("Token explicitly rejected by server — clearing auth cookies");
                 AuthCookieHelper.DeleteAuthCookies(httpContext);
             }
+            // else: transient network/availability error — preserve cookies, user stays anonymous
+            // for this request; next request will retry the refresh once the API is ready
         }
 
         if (!string.IsNullOrEmpty(accessToken))
@@ -185,9 +188,9 @@ public class GrpcAuthInterceptor : Interceptor
         }
     }
 
-    private async Task<RefreshResult?> RefreshTokensAsync(string refreshToken, HttpContext httpContext)
+    private async Task<RefreshOutcome> RefreshTokensAsync(string refreshToken, HttpContext httpContext)
     {
-        var lazyTask = _refreshTasks.GetOrAdd(refreshToken, key => new Lazy<Task<RefreshResult?>>(() =>
+        var lazyTask = _refreshTasks.GetOrAdd(refreshToken, key => new Lazy<Task<RefreshOutcome>>(() =>
             ExecuteRefreshAsync(key)));
 
         try
@@ -200,7 +203,7 @@ public class GrpcAuthInterceptor : Interceptor
         }
     }
 
-    private async Task<RefreshResult?> ExecuteRefreshAsync(string refreshToken)
+    private async Task<RefreshOutcome> ExecuteRefreshAsync(string refreshToken)
     {
         try
         {
@@ -211,23 +214,30 @@ public class GrpcAuthInterceptor : Interceptor
             });
 
             if (!string.IsNullOrEmpty(response.AccessToken) && !string.IsNullOrEmpty(response.RefreshToken))
-            {
-                return new RefreshResult(response.AccessToken, response.RefreshToken);
-            }
+                return new RefreshOutcome(new RefreshTokens(response.AccessToken, response.RefreshToken), ShouldClearCookies: false);
 
-            return null;
+            // Server responded but returned empty tokens — treat as explicit rejection
+            return new RefreshOutcome(null, ShouldClearCookies: true);
+        }
+        catch (RpcException ex) when (ex.StatusCode is StatusCode.Unauthenticated or StatusCode.NotFound or StatusCode.PermissionDenied)
+        {
+            // Server explicitly rejected the token (revoked, expired, unknown)
+            _logger.LogWarning("Token refresh rejected by server: {Status}", ex.Status);
+            return new RefreshOutcome(null, ShouldClearCookies: true);
         }
         catch (RpcException ex)
         {
-            _logger.LogWarning("gRPC token refresh failed: {Status}", ex.Status);
-            return null;
+            // Transient error (Unavailable, DeadlineExceeded, Internal) — API may still be starting up
+            _logger.LogWarning("gRPC token refresh unavailable (transient): {Status}", ex.Status);
+            return new RefreshOutcome(null, ShouldClearCookies: false);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Token refresh failed with exception");
-            return null;
+            _logger.LogError(ex, "Token refresh failed unexpectedly");
+            return new RefreshOutcome(null, ShouldClearCookies: false);
         }
     }
 
-    private sealed record RefreshResult(string AccessToken, string RefreshToken);
+    private sealed record RefreshTokens(string AccessToken, string RefreshToken);
+    private sealed record RefreshOutcome(RefreshTokens? Tokens, bool ShouldClearCookies);
 }

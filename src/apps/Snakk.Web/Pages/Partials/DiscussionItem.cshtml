@@ -24,20 +24,17 @@
                 <span>@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
             </div>
         </div>
-        <div class="topic-stats hidden sm:flex">
-            <div class="topic-stat">
-                <div class="topic-stat-icon">
-                    <span class="icon icon-badge-check" style="width:18px;height:18px" aria-hidden="true"></span>
+        @if (discussion.PostCount > 0)
+        {
+            <div class="topic-stats hidden sm:flex">
+                <div class="topic-stat">
+                    <div class="topic-stat-icon">
+                        <span class="icon icon-chat-square" style="width:18px;height:18px" aria-hidden="true"></span>
+                    </div>
+                    <div class="topic-stat-value" data-stat="post-count">@discussion.PostCount</div>
                 </div>
-                <div class="topic-stat-value">0</div>
             </div>
-            <div class="topic-stat">
-                <div class="topic-stat-icon">
-                    <span class="icon icon-chat-square" style="width:18px;height:18px" aria-hidden="true"></span>
-                </div>
-                <div class="topic-stat-value" data-stat="post-count">@discussion.PostCount</div>
-            </div>
-        </div>
+        }
     </div>
     <button class="preview-btn"
             data-discussion-id="@discussion.PublicId"

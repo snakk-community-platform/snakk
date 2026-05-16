@@ -144,6 +144,7 @@ public class RegisterModel(
             {
                 Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, strictOptions);
             }
+            Response.Cookies.Delete(".Snakk.Pref.RememberMe", new CookieOptions { Path = "/" });
 
             // Record consents
             var versionIds = Request.Form["consentVersionId"]

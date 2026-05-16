@@ -216,6 +216,10 @@
         width: 0.875rem;
         height: 0.875rem;
     }
+
+    &.hidden {
+        display: none;
+    }
 }
 
 .sn-card-comments {

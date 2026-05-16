@@ -64,11 +64,10 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
             }
 
             // Set auth cookies using dual-cookie pattern.
-            // Honor "remember me" preference stored during OAuth initiation;
-            // default to a short 1-day session (refresh token handles silent re-auth).
+            // Honor "remember me" preference stored during OAuth initiation.
             var rememberMe = HttpContext.Session.GetString("OAuth_RememberMe") == "true";
             HttpContext.Session.Remove("OAuth_RememberMe");
-            var expiry = DateTimeOffset.UtcNow.AddDays(rememberMe ? 30 : 1);
+            var expiry = rememberMe ? DateTimeOffset.UtcNow.AddDays(30) : DateTimeOffset.UtcNow.AddHours(8);
             var strictOptions = new CookieOptions
             {
                 HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
@@ -84,6 +83,16 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
             {
                 Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, strictOptions);
             }
+
+            // Persist remember-me preference so token refresh in Snakk.Web honors it
+            if (rememberMe)
+                Response.Cookies.Append(".Snakk.Pref.RememberMe", "1", new CookieOptions
+                {
+                    HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax,
+                    Path = "/", Expires = DateTimeOffset.UtcNow.AddDays(30)
+                });
+            else
+                Response.Cookies.Delete(".Snakk.Pref.RememberMe", new CookieOptions { Path = "/" });
 
             // New users go to profile setup page to choose their display name
             if (response.IsNewUser)

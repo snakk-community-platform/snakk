@@ -97,7 +97,7 @@
             <span class="icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
             <span data-stat="reaction-count">@discussion.ReactionCount</span>
         </span>
-        <a href="@baseUrl" class="sn-card-stat sn-card-comments">
+        <a href="@baseUrl" class="sn-card-stat sn-card-comments@(replyCount == 0 ? " hidden" : "")">
             <span class="icon icon-chat-bubble-filled" aria-hidden="true"></span>
             <span data-stat="post-count">@replyCount</span> <span class="sn-card-comments-label">@T.Card.Comments</span>
         </a>

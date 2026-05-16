@@ -24,18 +24,23 @@ interface SettingsPageConfig {
                 credentials: 'include'
             });
 
+            if (response.status === 401) {
+                window.location.href = '/auth/login?returnUrl=/settings';
+                return;
+            }
+
             if (!response.ok) {
-                throw new Error('Failed to load profile');
+                showMessage('Could not load your settings. Please refresh the page.', true);
+                return;
             }
 
             userData = await response.json();
             userId = userData.publicId;
 
-            console.log('[Profile Settings] Loaded profile data:', userData);
             populateProfileForm(userData);
         } catch (error) {
             console.error('[Profile Settings] Failed to load profile:', error);
-            window.location.href = '/auth/login?returnUrl=/settings';
+            showMessage('Could not load your settings. Please refresh the page.', true);
         }
     }
 

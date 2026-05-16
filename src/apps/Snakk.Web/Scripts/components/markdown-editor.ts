@@ -84,6 +84,7 @@ interface EditorInstance {
     destroy(): void;
     hasPendingUploads(): boolean;
     flushUploads(onProgress?: (done: number, total: number) => void): Promise<void>;
+    getImageCount(): number;
 }
 
 interface SnakkEditorOptions {
@@ -104,6 +105,9 @@ interface SnakkEditorAPI {
     init(options: SnakkEditorOptions): Promise<EditorInstance | null>;
     getInstance(container: HTMLElement): EditorInstance | null;
     destroy(container: HTMLElement): void;
+    showImageModal(options: ImageModalOptions): void;
+    renderLayoutPreview(container: HTMLElement, images: Array<{ url: string; alt: string }>, layout: string): void;
+    createImagePickerWidget(container: HTMLElement, options: ImagePickerWidgetOptions): ImagePickerWidgetController;
 }
 
 interface ToolbarItem {
@@ -1504,6 +1508,11 @@ interface ImageModalOptions {
     view?: import('@milkdown/kit/prose/view').EditorView;
     data?: ImageModalData;
     onConfirm?: (data: ImageModalData) => void;
+    pendingFiles?: Map<string, File>;
+    maxImages?: number;
+    initialFiles?: File[];
+    hideLayout?: boolean;
+    externalImageCount?: number;
 }
 
 let activeImageModal: HTMLElement | null = null;
@@ -1798,78 +1807,141 @@ function insertImageGroup(editor: Editor, data: ImageModalData): void {
     });
 }
 
-function showImageModal(options: ImageModalOptions): void {
-    closeImageModal();
-    closeLinkDialog();
-    closeChartModal();
-    closeTableModal();
-    closeGroupDropdown();
-    closeEmojiPicker();
-    closeCodeModal();
+function renderLayoutPreview(
+    container: HTMLElement,
+    images: Array<{ url: string; alt: string }>,
+    layout: string
+): void {
+    container.innerHTML = '';
+    if (images.length === 0) return;
 
-    const isEdit = !!options.onConfirm;
-
-    // Compute budget
-    let totalInDoc = 0;
-    if (options.editor) {
-        options.editor.action((ctx) => { totalInDoc = countImagesFromView(ctx.get(editorViewCtx)); });
-    } else if (options.view) {
-        totalInDoc = countImagesFromView(options.view);
+    function buildDisplayCell(img: { url: string; alt: string }): HTMLDivElement {
+        const cell = document.createElement('div');
+        cell.className = 'images-upload-item images-item-loaded';
+        cell.style.backgroundImage = `url("${img.url}")`;
+        const imgEl = document.createElement('img');
+        imgEl.src = img.url;
+        imgEl.alt = img.alt;
+        cell.appendChild(imgEl);
+        return cell;
     }
-    const currentGroupSize = options.data?.images.length ?? 0;
-    const maxImages = MAX_POST_IMAGES - (totalInDoc - currentGroupSize);
 
-    // Modal items state
-    const modalItems: ModalItem[] = (options.data?.images ?? []).map(img => ({
+    if (layout === 'carousel') {
+        const carousel = document.createElement('div');
+        carousel.className = 'gup-carousel';
+        const track = document.createElement('div');
+        track.className = 'gup-carousel-track';
+        images.forEach(img => track.appendChild(buildDisplayCell(img)));
+        const prevBtn = document.createElement('button');
+        prevBtn.type = 'button';
+        prevBtn.className = 'gup-carousel-arrow gup-carousel-prev';
+        prevBtn.innerHTML = '&#8249;';
+        const nextBtn = document.createElement('button');
+        nextBtn.type = 'button';
+        nextBtn.className = 'gup-carousel-arrow gup-carousel-next';
+        nextBtn.innerHTML = '&#8250;';
+        const counter = document.createElement('div');
+        counter.className = 'gup-carousel-counter';
+        let slide = 0;
+        const updateSlide = () => {
+            track.style.transform = `translateX(-${slide * 100}%)`;
+            counter.textContent = `${slide + 1} / ${images.length}`;
+            prevBtn.disabled = slide === 0;
+            nextBtn.disabled = slide === images.length - 1;
+        };
+        prevBtn.addEventListener('click', () => { slide--; updateSlide(); });
+        nextBtn.addEventListener('click', () => { slide++; updateSlide(); });
+        carousel.appendChild(track);
+        carousel.appendChild(prevBtn);
+        carousel.appendChild(nextBtn);
+        carousel.appendChild(counter);
+        updateSlide();
+        container.appendChild(carousel);
+    } else if (layout === 'hero') {
+        const hero = document.createElement('div');
+        hero.className = 'gup-hero';
+        const main = document.createElement('div');
+        main.className = 'gup-hero-main';
+        main.appendChild(buildDisplayCell(images[0]!));
+        hero.appendChild(main);
+        if (images.length >= 2) {
+            const heroGrid = document.createElement('div');
+            heroGrid.className = 'gup-hero-grid';
+            images.slice(1).forEach(img => heroGrid.appendChild(buildDisplayCell(img)));
+            hero.appendChild(heroGrid);
+        }
+        container.appendChild(hero);
+    } else if (layout === 'compare') {
+        const compare = document.createElement('div');
+        compare.className = 'gup-compare';
+        const before = buildDisplayCell(images[0]!);
+        before.classList.add('gup-compare-before');
+        const after = buildDisplayCell(images[1]!);
+        after.classList.add('gup-compare-after');
+        compare.appendChild(before);
+        compare.appendChild(after);
+        container.appendChild(compare);
+    } else {
+        const wrap = document.createElement('div');
+        wrap.className = `gup-${layout}`;
+        images.forEach(img => wrap.appendChild(buildDisplayCell(img)));
+        container.appendChild(wrap);
+    }
+}
+
+// ============================================================================
+// Image Picker Widget (reusable — used inline on gallery create and inside modal)
+// ============================================================================
+
+interface ImagePickerWidgetOptions {
+    pendingFiles?: Map<string, File>;
+    initialData?: { images: Array<{ src: string; alt: string }>; layout: string };
+    initialFiles?: File[];
+    maxImages?: number;
+    getExternalCount?: () => number;
+    hideLayout?: boolean;
+    onChange?: (items: ImagePickerItem[], layout: string) => void;
+}
+
+interface ImagePickerWidgetController {
+    getItems(): ImagePickerItem[];
+    getLayout(): string;
+    addFiles(files: File[]): void;
+    destroy(): void;
+}
+
+interface ImagePickerItem {
+    blobUrl: string;
+    file: File | null;
+    alt: string;
+    oversized: boolean;
+}
+
+function createImagePickerWidget(
+    container: HTMLElement,
+    options: ImagePickerWidgetOptions
+): ImagePickerWidgetController {
+    const cap = options.maxImages ?? MAX_POST_IMAGES;
+    const modalItems: ModalItem[] = (options.initialData?.images ?? []).map(img => ({
         blobUrl: img.src,
         file: null,
         alt: img.alt,
     }));
-    let modalLayout: ImageModalData['layout'] = options.data?.layout ?? 'grid';
+    let modalLayout: ImageModalData['layout'] = (options.initialData?.layout as ImageModalData['layout']) ?? 'masonry';
     let carouselSlide = 0;
     let dragSrcIdx: number | null = null;
     let lastRejections: string[] = [];
-    const LAYOUTS_MODAL: Array<{ value: ImageModalData['layout']; label: string }> = [
-        { value: 'grid', label: 'Grid' },
-        { value: 'masonry', label: 'Masonry' },
-        { value: 'justified', label: 'Justified' },
-        { value: 'carousel', label: 'Carousel' },
+
+    const LAYOUTS_MODAL: Array<{ value: ImageModalData['layout']; label: string; glp: string }> = [
+        { value: 'grid',      label: 'Grid',      glp: '<div class="glp glp-grid"><div></div><div></div><div></div><div></div></div>' },
+        { value: 'masonry',   label: 'Masonry',   glp: '<div class="glp glp-masonry"><div></div><div></div><div></div></div>' },
+        { value: 'justified', label: 'Justified', glp: '<div class="glp glp-justified"><div></div><div></div><div></div></div>' },
+        { value: 'carousel',  label: 'Carousel',  glp: '<div class="glp glp-carousel"><span>‹</span><div></div><span>›</span></div>' },
+        { value: 'hero',      label: 'Hero',      glp: '<div class="glp glp-hero"><div class="glp-hero-big"></div><div class="glp-hero-row"><div></div><div></div><div></div></div></div>' },
+        { value: 'compare',   label: 'Compare',   glp: '<div class="glp glp-compare"><div></div><div class="glp-compare-line"></div><div></div></div>' },
     ];
 
-    // ── DOM ─────────────────────────────────────────────────────────────────
-    const backdrop = document.createElement('div');
-    backdrop.className = 'chart-modal-backdrop';
-
-    const modal = document.createElement('div');
-    modal.className = 'chart-modal';
-    modal.style.maxWidth = '42rem';
-
-    const confirmClose = () => {
-        if (modalItems.length > 0 && !window.confirm('Discard changes?')) return;
-        closeImageModal();
-    };
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'chart-modal-header';
-    const title = document.createElement('span');
-    title.textContent = isEdit ? 'Edit Images' : 'Upload Images';
-    const closeBtn = document.createElement('button');
-    closeBtn.type = 'button';
-    closeBtn.className = 'chart-modal-close';
-    closeBtn.innerHTML = '&times;';
-    closeBtn.addEventListener('click', confirmClose);
-    const imageHeaderActions = document.createElement('div');
-    imageHeaderActions.className = 'chart-modal-header-actions';
-    imageHeaderActions.append(createModalExpandBtn(modal), closeBtn);
-    header.append(title, imageHeaderActions);
-
-    // Body
-    const body = document.createElement('div');
-    body.className = 'chart-modal-body';
-    body.style.flexDirection = 'column';
-
-    // Drop zone (shown when no items)
+    // ── Drop zone ────────────────────────────────────────────────────────────
     const dropZone = document.createElement('div');
     dropZone.className = 'image-modal-drop-zone';
     const dropHint = document.createElement('p');
@@ -1880,75 +1952,54 @@ function showImageModal(options: ImageModalOptions): void {
     dropZone.appendChild(dropHint);
     dropZone.appendChild(chooseBtn);
 
-    // Layout row (shown when ≥ 2 items)
-    const layoutRow = document.createElement('div');
-    layoutRow.className = 'image-modal-layout-row';
-    const layoutLabel = document.createElement('label');
-    layoutLabel.textContent = 'Layout:';
-    const layoutBtns = document.createElement('div');
-    layoutBtns.className = 'image-modal-layout-btns';
-    LAYOUTS_MODAL.forEach(({ value, label }) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.textContent = label;
-        btn.dataset.layout = value;
-        if (value === modalLayout) btn.classList.add('active');
-        btn.addEventListener('click', () => {
-            modalLayout = value;
-            carouselSlide = 0;
-            layoutBtns.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.layout === value));
-            renderGrid();
-        });
-        layoutBtns.appendChild(btn);
-    });
-    layoutRow.appendChild(layoutLabel);
-    layoutRow.appendChild(layoutBtns);
-
-    // Image grid / layout preview wrapper
-    const grid = document.createElement('div');
-    grid.className = 'image-modal-preview';
-
-    // Rejection chips container
+    // ── Rejections ───────────────────────────────────────────────────────────
     const rejectionsEl = document.createElement('div');
     rejectionsEl.className = 'image-modal-rejections';
 
-    body.appendChild(dropZone);
-    body.appendChild(rejectionsEl);
-    body.appendChild(layoutRow);
-    body.appendChild(grid);
-
-    // Footer
-    const footer = document.createElement('div');
-    footer.className = 'chart-modal-footer';
-    const statusEl = document.createElement('span');
-    statusEl.className = 'image-modal-status';
-    const cancelBtn = document.createElement('button');
-    cancelBtn.type = 'button';
-    cancelBtn.className = 'chart-modal-cancel';
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.addEventListener('click', confirmClose);
-    const insertBtn = document.createElement('button');
-    insertBtn.type = 'button';
-    insertBtn.className = 'chart-modal-insert';
-    insertBtn.textContent = isEdit ? 'Update' : 'Insert';
-    footer.appendChild(statusEl);
-    footer.appendChild(cancelBtn);
-    footer.appendChild(insertBtn);
-
-    modal.appendChild(header);
-    modal.appendChild(body);
-    modal.appendChild(footer);
-    backdrop.appendChild(modal);
-    document.body.appendChild(backdrop);
-    activeImageModal = backdrop;
-    lockBodyScroll();
-
-    backdrop.addEventListener('mousedown', (e) => {
-        if (e.target === backdrop) confirmClose();
+    // ── Layout row ───────────────────────────────────────────────────────────
+    const layoutRow = document.createElement('div');
+    layoutRow.className = 'image-modal-layout-row';
+    const layoutLabel = document.createElement('div');
+    layoutLabel.className = 'text-sm font-medium mb-2';
+    layoutLabel.textContent = 'Layout';
+    const layoutPicker = document.createElement('div');
+    layoutPicker.className = 'flex flex-wrap gap-2';
+    LAYOUTS_MODAL.forEach(({ value, label, glp }) => {
+        const lbl = document.createElement('label');
+        lbl.className = 'images-layout-option' + (value === modalLayout ? ' images-layout-active' : '');
+        lbl.dataset.layout = value;
+        const preview = document.createElement('div');
+        preview.className = 'images-layout-preview';
+        preview.innerHTML = glp;
+        const caption = document.createElement('span');
+        caption.className = 'text-xs mt-1';
+        caption.textContent = label;
+        lbl.appendChild(preview);
+        lbl.appendChild(caption);
+        lbl.addEventListener('click', () => {
+            modalLayout = value;
+            carouselSlide = 0;
+            layoutPicker.querySelectorAll<HTMLElement>('.images-layout-option')
+                .forEach(l => l.classList.toggle('images-layout-active', l.dataset.layout === value));
+            renderGrid();
+        });
+        layoutPicker.appendChild(lbl);
     });
+    layoutRow.appendChild(layoutLabel);
+    layoutRow.appendChild(layoutPicker);
 
-    imageModalEscHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') confirmClose(); };
-    document.addEventListener('keydown', imageModalEscHandler);
+    // ── Grid ─────────────────────────────────────────────────────────────────
+    const grid = document.createElement('div');
+    grid.className = 'image-modal-preview';
+
+    container.style.display = 'flex';
+    container.style.flexDirection = 'column';
+    container.style.gap = '1rem';
+
+    container.appendChild(dropZone);
+    container.appendChild(rejectionsEl);
+    if (!options.hideLayout) container.appendChild(layoutRow);
+    container.appendChild(grid);
 
     // ── File input ───────────────────────────────────────────────────────────
     const fileInput = document.createElement('input');
@@ -1961,10 +2012,8 @@ function showImageModal(options: ImageModalOptions): void {
         if (fileInput.files) addFiles(Array.from(fileInput.files));
         fileInput.value = '';
     });
-
     chooseBtn.addEventListener('click', () => fileInput.click());
 
-    // ── Drag-drop onto drop zone ──────────────────────────────────────────────
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.classList.add('dragover');
@@ -1976,10 +2025,22 @@ function showImageModal(options: ImageModalOptions): void {
         if (e.dataTransfer?.files) addFiles(Array.from(e.dataTransfer.files));
     });
 
+    function getEffectiveMax(): number {
+        return cap - (options.getExternalCount?.() ?? 0);
+    }
+
+    function notifyChange(): void {
+        options.onChange?.(
+            modalItems.map(i => ({ blobUrl: i.blobUrl, file: i.file, alt: i.alt, oversized: !!i.oversized })),
+            modalLayout
+        );
+    }
+
     // ── addFiles ─────────────────────────────────────────────────────────────
     function addFiles(files: File[]): void {
         lastRejections = [];
-        let budget = maxImages - modalItems.filter(i => !i.oversized).length;
+        const effectiveMax = getEffectiveMax();
+        let budget = effectiveMax - modalItems.filter(i => !i.oversized).length;
 
         for (const file of files) {
             if (!file.type.startsWith('image/')) {
@@ -1991,33 +2052,89 @@ function showImageModal(options: ImageModalOptions): void {
                 continue;
             }
             if (budget <= 0) {
-                lastRejections.push(`${file.name} — post limit of ${MAX_POST_IMAGES} images reached`);
+                lastRejections.push(`${file.name} — post limit of ${cap} images reached`);
                 continue;
             }
-            modalItems.push({ blobUrl: URL.createObjectURL(file), file, alt: '' });
+            const blobUrl = URL.createObjectURL(file);
+            modalItems.push({ blobUrl, file, alt: '' });
+            options.pendingFiles?.set(blobUrl, file);
             budget--;
         }
 
         renderGrid();
     }
 
+    // ── Compare slider for picker context ────────────────────────────────────
+    // Wires drag interaction on a freshly-built .gup-compare widget inside the
+    // picker. Uses pointer capture on the slider bar so no document-level
+    // listeners accumulate across renderGrid calls.
+    function initPickerCompareSlider(widget: HTMLElement): void {
+        const beforeEl = widget.querySelector<HTMLElement>('.gup-compare-before');
+        const afterEl  = widget.querySelector<HTMLElement>('.gup-compare-after');
+        const slider   = widget.querySelector<HTMLElement>('.sn-compare-slider');
+        if (!beforeEl || !afterEl || !slider) return;
+
+        function setPos(x: number): void {
+            const rect = widget.getBoundingClientRect();
+            const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
+            beforeEl!.style.clipPath = `inset(0 ${(1 - pct) * 100}% 0 0)`;
+            afterEl!.style.clipPath  = `inset(0 0 0 ${pct * 100}%)`;
+            slider!.style.right      = `${(1 - pct) * 100}%`;
+        }
+
+        requestAnimationFrame(() => {
+            const r = widget.getBoundingClientRect();
+            if (r.width > 0) setPos(r.left + r.width * 0.5);
+        });
+
+        slider.addEventListener('pointerdown', (e) => {
+            slider.setPointerCapture(e.pointerId);
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        slider.addEventListener('pointermove', (e) => {
+            if (slider.hasPointerCapture(e.pointerId)) setPos(e.clientX);
+        });
+    }
+
     // ── renderGrid ────────────────────────────────────────────────────────────
     function renderGrid(): void {
         const hasItems = modalItems.length > 0;
         const validItems = modalItems.filter(i => !i.oversized);
-        const atLimit = validItems.length >= maxImages;
-        const hasOversized = modalItems.some(i => i.oversized);
+        const effectiveMax = getEffectiveMax();
+        const atLimit = validItems.length >= effectiveMax;
 
         dropZone.classList.toggle('image-modal-drop-expanded', !hasItems);
-
-        dropHint.textContent = atLimit
-            ? `Post limit of ${MAX_POST_IMAGES} images reached`
-            : 'Drop images here';
+        dropHint.textContent = atLimit ? `Post limit of ${cap} images reached` : 'Drop images here';
         chooseBtn.style.display = atLimit ? 'none' : '';
 
-        layoutRow.style.display = validItems.length >= 2 ? '' : 'none';
+        if (!options.hideLayout) layoutRow.style.display = validItems.length >= 2 ? '' : 'none';
 
-        insertBtn.disabled = !hasItems || hasOversized;
+        // Compare: only with exactly 2 images
+        const compareLabel = layoutPicker.querySelector<HTMLElement>('[data-layout="compare"]');
+        if (compareLabel) {
+            const showCompare = validItems.length === 2;
+            compareLabel.style.display = showCompare ? '' : 'none';
+            if (!showCompare && modalLayout === 'compare') {
+                modalLayout = 'masonry';
+                layoutPicker.querySelectorAll<HTMLElement>('.images-layout-option').forEach(l =>
+                    l.classList.toggle('images-layout-active', l.dataset.layout === 'masonry')
+                );
+            }
+        }
+
+        // Hero: only with ≥ 4 images
+        const heroLabel = layoutPicker.querySelector<HTMLElement>('[data-layout="hero"]');
+        if (heroLabel) {
+            const showHero = validItems.length >= 4;
+            heroLabel.style.display = showHero ? '' : 'none';
+            if (!showHero && modalLayout === 'hero') {
+                modalLayout = 'masonry';
+                layoutPicker.querySelectorAll<HTMLElement>('.images-layout-option').forEach(l =>
+                    l.classList.toggle('images-layout-active', l.dataset.layout === 'masonry')
+                );
+            }
+        }
 
         // Rebuild rejection chips
         rejectionsEl.innerHTML = '';
@@ -2035,6 +2152,8 @@ function showImageModal(options: ImageModalOptions): void {
             chip.textContent = `⚠ ${item.file.name} — ${mb} MB exceeds the 5 MB limit`;
             rejectionsEl.appendChild(chip);
         });
+
+        notifyChange();
 
         grid.innerHTML = '';
         if (!hasItems) return;
@@ -2073,7 +2192,10 @@ function showImageModal(options: ImageModalOptions): void {
                 altInput.type = 'text';
                 altInput.placeholder = 'Alt text';
                 altInput.value = item.alt;
-                altInput.addEventListener('input', () => { item.alt = altInput.value; });
+                altInput.addEventListener('input', () => {
+                    item.alt = altInput.value;
+                    notifyChange();
+                });
                 cell.appendChild(altInput);
 
                 const delBtn = document.createElement('button');
@@ -2082,7 +2204,8 @@ function showImageModal(options: ImageModalOptions): void {
                 delBtn.textContent = '×';
                 delBtn.title = 'Remove';
                 delBtn.addEventListener('click', () => {
-                    if (item.file) URL.revokeObjectURL(item.blobUrl);
+                    if (item.blobUrl.startsWith('blob:')) URL.revokeObjectURL(item.blobUrl);
+                    options.pendingFiles?.delete(item.blobUrl);
                     modalItems.splice(idx, 1);
                     renderGrid();
                 });
@@ -2124,25 +2247,20 @@ function showImageModal(options: ImageModalOptions): void {
         if (effectiveLayout === 'carousel') {
             const carousel = document.createElement('div');
             carousel.className = 'gup-carousel image-modal-carousel';
-
             const track = document.createElement('div');
             track.className = 'gup-carousel-track';
             modalItems.forEach((item, i) => track.appendChild(buildCell(item, i)));
             carousel.appendChild(track);
-
             const counter = document.createElement('div');
             counter.className = 'gup-carousel-counter';
-
             const prevBtn = document.createElement('button');
             prevBtn.type = 'button';
             prevBtn.className = 'gup-carousel-arrow gup-carousel-prev';
             prevBtn.innerHTML = '&#8249;';
-
             const nextBtn = document.createElement('button');
             nextBtn.type = 'button';
             nextBtn.className = 'gup-carousel-arrow gup-carousel-next';
             nextBtn.innerHTML = '&#8250;';
-
             const updateSlide = () => {
                 carouselSlide = Math.max(0, Math.min(carouselSlide, modalItems.length - 1));
                 track.style.transform = `translateX(-${carouselSlide * 100}%)`;
@@ -2150,47 +2268,199 @@ function showImageModal(options: ImageModalOptions): void {
                 prevBtn.disabled = carouselSlide === 0;
                 nextBtn.disabled = carouselSlide === modalItems.length - 1;
             };
-
             prevBtn.addEventListener('click', () => { carouselSlide--; updateSlide(); });
             nextBtn.addEventListener('click', () => { carouselSlide++; updateSlide(); });
-
             carousel.appendChild(prevBtn);
             carousel.appendChild(nextBtn);
             carousel.appendChild(counter);
-
             updateSlide();
             grid.appendChild(carousel);
+        } else if (effectiveLayout === 'hero') {
+            const heroContainer = document.createElement('div');
+            heroContainer.className = 'gup-hero';
+            if (modalItems.length >= 1) {
+                const main = document.createElement('div');
+                main.className = 'gup-hero-main';
+                main.appendChild(buildCell(modalItems[0]!, 0));
+                heroContainer.appendChild(main);
+            }
+            if (modalItems.length >= 2) {
+                const heroGrid = document.createElement('div');
+                heroGrid.className = 'gup-hero-grid';
+                modalItems.slice(1).forEach((item, i) => heroGrid.appendChild(buildCell(item, i + 1)));
+                heroContainer.appendChild(heroGrid);
+            }
+            grid.appendChild(heroContainer);
+        } else if (effectiveLayout === 'compare') {
+            const compareContainer = document.createElement('div');
+            compareContainer.className = 'gup-compare sn-compare-widget';
+            if (modalItems.length >= 1) {
+                const before = buildCell(modalItems[0]!, 0);
+                before.classList.add('gup-compare-before');
+                compareContainer.appendChild(before);
+            }
+            if (modalItems.length >= 2) {
+                const after = buildCell(modalItems[1]!, 1);
+                after.classList.add('gup-compare-after');
+                compareContainer.appendChild(after);
+            }
+            const sliderEl = document.createElement('div');
+            sliderEl.className = 'gup-compare-slider sn-compare-slider';
+            compareContainer.appendChild(sliderEl);
+            initPickerCompareSlider(compareContainer);
+            grid.appendChild(compareContainer);
         } else {
-            const container = document.createElement('div');
-            container.className = `gup-${effectiveLayout}`;
-            modalItems.forEach((item, i) => container.appendChild(buildCell(item, i)));
-            grid.appendChild(container);
+            const flatContainer = document.createElement('div');
+            flatContainer.className = `gup-${effectiveLayout}`;
+            modalItems.forEach((item, i) => flatContainer.appendChild(buildCell(item, i)));
+            grid.appendChild(flatContainer);
         }
     }
 
+    if (options.initialFiles && options.initialFiles.length > 0) {
+        addFiles(options.initialFiles);
+    } else {
+        renderGrid();
+    }
+
+    return {
+        getItems: () => modalItems.map(i => ({ blobUrl: i.blobUrl, file: i.file, alt: i.alt, oversized: !!i.oversized })),
+        getLayout: () => modalLayout,
+        addFiles,
+        destroy: () => { fileInput.remove(); },
+    };
+}
+
+function showImageModal(options: ImageModalOptions): void {
+    closeImageModal();
+    closeLinkDialog();
+    closeChartModal();
+    closeTableModal();
+    closeGroupDropdown();
+    closeEmojiPicker();
+    closeCodeModal();
+
+    const isEdit = !!options.onConfirm;
+
+    // Compute budget
+    let totalInDoc = 0;
+    if (options.editor) {
+        options.editor.action((ctx) => { totalInDoc = countImagesFromView(ctx.get(editorViewCtx)); });
+    } else if (options.view) {
+        totalInDoc = countImagesFromView(options.view);
+    }
+    const cap = options.maxImages ?? MAX_POST_IMAGES;
+    const currentGroupSize = options.data?.images.length ?? 0;
+    const maxImages = cap - (options.externalImageCount ?? 0) - (totalInDoc - currentGroupSize);
+
+    // ── DOM ─────────────────────────────────────────────────────────────────
+    const backdrop = document.createElement('div');
+    backdrop.className = 'chart-modal-backdrop';
+
+    const modal = document.createElement('div');
+    modal.className = 'chart-modal';
+    modal.style.maxWidth = '42rem';
+
+    // Body
+    const body = document.createElement('div');
+    body.className = 'chart-modal-body';
+    body.style.flexDirection = 'column';
+
+    // Insert button (created before widget so onChange can reference it)
+    const insertBtn = document.createElement('button');
+    insertBtn.type = 'button';
+    insertBtn.className = 'chart-modal-insert';
+    insertBtn.textContent = isEdit ? 'Update' : 'Insert';
+    insertBtn.disabled = true;
+
+    // Widget renders the interactive picker into body
+    const widget = createImagePickerWidget(body, {
+        pendingFiles: options.pendingFiles,
+        initialData: options.data ? {
+            images: options.data.images.map(i => ({ src: i.src, alt: i.alt })),
+            layout: options.data.layout,
+        } : undefined,
+        initialFiles: options.initialFiles,
+        maxImages,
+        hideLayout: options.hideLayout,
+        onChange: (items) => {
+            const hasOversized = items.some(i => i.oversized);
+            insertBtn.disabled = items.length === 0 || hasOversized;
+        },
+    });
+
+    const confirmClose = () => {
+        if (widget.getItems().length > 0 && !window.confirm('Discard changes?')) return;
+        widget.destroy();
+        closeImageModal();
+    };
+
+    // Header
+    const header = document.createElement('div');
+    header.className = 'chart-modal-header';
+    const title = document.createElement('span');
+    title.textContent = isEdit ? 'Edit Images' : 'Upload Images';
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'chart-modal-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.addEventListener('click', confirmClose);
+    const imageHeaderActions = document.createElement('div');
+    imageHeaderActions.className = 'chart-modal-header-actions';
+    imageHeaderActions.append(createModalExpandBtn(modal), closeBtn);
+    header.append(title, imageHeaderActions);
+
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'chart-modal-footer';
+    const statusEl = document.createElement('span');
+    statusEl.className = 'image-modal-status';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', confirmClose);
+    footer.appendChild(statusEl);
+    footer.appendChild(cancelBtn);
+    footer.appendChild(insertBtn);
+
+    modal.appendChild(header);
+    modal.appendChild(body);
+    modal.appendChild(footer);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    activeImageModal = backdrop;
+    lockBodyScroll();
+
+    backdrop.addEventListener('mousedown', (e) => {
+        if (e.target === backdrop) confirmClose();
+    });
+
+    imageModalEscHandler = (e: KeyboardEvent) => { if (e.key === 'Escape') confirmClose(); };
+    document.addEventListener('keydown', imageModalEscHandler);
+
     // ── Insert / Update ───────────────────────────────────────────────────────
     insertBtn.addEventListener('click', () => {
-        if (modalItems.length === 0) return;
+        const items = widget.getItems();
+        if (items.length === 0) return;
 
-        // Register new files for deferred upload on submit
+        // Register new files for deferred upload on submit (editor case)
         if (options.editor) {
             const pending = editorPendingUploads.get(options.editor);
             if (pending) {
-                for (const item of modalItems) {
-                    if (item.file && !item.oversized) {
-                        pending.set(item.blobUrl, item.file);
-                    }
+                for (const item of items) {
+                    if (item.file && !item.oversized) pending.set(item.blobUrl, item.file);
                 }
             }
         }
 
         const data: ImageModalData = {
-            images: modalItems.map(m => ({ src: m.blobUrl, alt: m.alt })),
-            layout: modalLayout,
+            images: items.map(m => ({ src: m.blobUrl, alt: m.alt })),
+            layout: widget.getLayout(),
         };
 
+        widget.destroy();
         closeImageModal();
-        fileInput.remove();
 
         if (options.onConfirm) {
             options.onConfirm(data);
@@ -2198,9 +2468,6 @@ function showImageModal(options: ImageModalOptions): void {
             insertImageGroup(options.editor, data);
         }
     });
-
-    // Initial render
-    renderGrid();
 }
 
 // ============================================================================
@@ -4000,7 +4267,7 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
 
     const pickerItems: PickerItem[] = [
         { icon: '❝',  label: 'Blockquote',    action: (pos) => insertAtEmptyPara(editor, pos, () => editor.action(callCommand(wrapInBlockquoteCommand.key))) },
-        { icon: '🖼',  label: 'Image',         action: (pos) => insertAtEmptyPara(editor, pos, () => showImageModal({ editor })) },
+        { icon: '🖼',  label: 'Image',         action: (pos) => insertAtEmptyPara(editor, pos, () => showImageModal({ editor, externalImageCount: (window as any).SnakkGalleryNew?.getImageCount() ?? 0 })) },
         { icon: '{ }', label: 'Code snippet',  action: (pos) => insertAtEmptyPara(editor, pos, () => showCodeModal({ editor })) },
         { icon: '⊞',  label: 'Table',         action: (pos) => insertAtEmptyPara(editor, pos, () => showTableModal({ onConfirm: (d) => insertTable(editor, d) })) },
         { separator: true },
@@ -4328,7 +4595,7 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
             });
 
             setImageEditCallback((data, view, onConfirm) => {
-                showImageModal({ data, view, onConfirm });
+                showImageModal({ data, view, onConfirm, externalImageCount: (window as any).SnakkGalleryNew?.getImageCount() ?? 0 });
             });
 
             setCodeEditCallback((data, onConfirm) => {
@@ -4611,6 +4878,11 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
                     destroyEditor(container);
                 },
                 hasPendingUploads: () => pendingUploads.size > 0,
+                getImageCount: (): number => {
+                    let count = 0;
+                    editor.action((ctx) => { count = countImagesFromView(ctx.get(editorViewCtx)); });
+                    return count;
+                },
                 flushUploads: async (onProgress?: (done: number, total: number) => void): Promise<void> => {
                     const entries = [...pendingUploads.entries()];
                     onProgress?.(0, entries.length);
@@ -4664,5 +4936,8 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
         init,
         getInstance,
         destroy: destroyEditor,
+        showImageModal,
+        renderLayoutPreview,
+        createImagePickerWidget,
     } as any;
 })();

@@ -1028,12 +1028,15 @@ public class DatabaseSeeder(
                 IsUsersFirstPostInDiscussion = true,
                 IsUsersFirstPostInSpace = isFirstInSpace,
                 IsNecro = false,
-                IsMilestone = milestoneThresholds.Contains(postNumber)
+                IsMilestone = milestoneThresholds.Contains(postNumber),
+                HasCodeBlock = firstPostContent.Contains('`')
             });
 
             // Variable number of replies
             var replyCount = GetSkewedReplyCount();
             var lastActivityAt = discussion.CreatedAt;
+            UserDatabaseEntity? lastReplyAuthor = null;
+            string lastReplyExcerpt = "";
 
             // Time budget: from discussion creation to latest allowed
             var replyTimeWindow = (latestAllowed - discussion.CreatedAt).TotalMinutes;
@@ -1087,17 +1090,38 @@ public class DatabaseSeeder(
                     IsUsersFirstPostInDiscussion = isFirstInDiscussion,
                     IsUsersFirstPostInSpace = isFirstInSpaceReply,
                     IsNecro = isNecro,
-                    IsMilestone = milestoneThresholds.Contains(postNumber)
+                    IsMilestone = milestoneThresholds.Contains(postNumber),
+                    HasCodeBlock = replyContent.Contains('`')
                 });
 
                 if (replyCreatedAt > lastActivityAt)
+                {
                     lastActivityAt = replyCreatedAt;
+                    lastReplyAuthor = replyAuthor;
+                    lastReplyExcerpt = replyPlainText.Length > 150 ? replyPlainText[..150] : replyPlainText;
+                }
             }
 
             discussion.LastActivityAt = lastActivityAt;
             discussion.PostCount = 1 + replyCount;
             discussion.ReactionCount = 0;
             discussion.EngagementScore = discussion.PostCount;
+            if (lastReplyAuthor is not null)
+            {
+                discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
+                discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
+                discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
+                discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
+                discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
+            }
+            else
+            {
+                discussion.LastPostAuthorPublicId = author.PublicId;
+                discussion.LastPostAuthorDisplayName = author.DisplayName;
+                discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
+                discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
+                discussion.LastPostPlainTextExcerpt = firstPostPlainText.Length > 150 ? firstPostPlainText[..150] : firstPostPlainText;
+            }
         }
 
         _context.Posts.AddRange(posts);
@@ -1325,6 +1349,9 @@ public class DatabaseSeeder(
                 case DiscussionTypeEnum.Iama:
                 {
                     var isScheduled = _faker.Random.Bool(0.3f);
+                    var verificationNote = _faker.Random.Bool(0.6f)
+                        ? $"I'm {_faker.Name.FullName()}, {_faker.Name.JobTitle()} at {_faker.Company.CompanyName()}. Proof: {_faker.Internet.Url()}"
+                        : null;
                     var iama = new DiscussionTypeIamaDatabaseEntity
                     {
                         DiscussionId = discussion.Id,
@@ -1336,9 +1363,8 @@ public class DatabaseSeeder(
                         ScheduledEndUtc = isScheduled && _faker.Random.Bool(0.5f)
                             ? discussion.CreatedAt.AddDays(_faker.Random.Int(1, 7)).AddHours(_faker.Random.Int(1, 3))
                             : null,
-                        VerificationNote = _faker.Random.Bool(0.6f)
-                            ? $"I'm {_faker.Name.FullName()}, {_faker.Name.JobTitle()} at {_faker.Company.CompanyName()}. Proof: {_faker.Internet.Url()}"
-                            : null
+                        VerificationNote = verificationNote,
+                        VerificationNoteHtml = verificationNote != null ? _markupParser.ToHtml(verificationNote) : null
                     };
                     _context.DiscussionIamas.Add(iama);
                     await _context.SaveChangesAsync();
@@ -1351,6 +1377,7 @@ public class DatabaseSeeder(
                         .Where(p => p.CreatedByUserId != discussion.CreatedByUserId && p.ReplyToPostId == null)
                         .ToList();
 
+                    var officialAnswerCount = 0;
                     foreach (var question in questions)
                     {
                         if (hostReplies.Count > 0 && _faker.Random.Bool(0.4f))
@@ -1362,14 +1389,17 @@ public class DatabaseSeeder(
                                 QuestionPostId = question.Id,
                                 AnswerPostId = answer.Id
                             });
+                            officialAnswerCount++;
                         }
                     }
 
                     // Mark 1-3 best questions on ~30% of closed/archived AMAs
+                    var bestQuestionCount = 0;
                     if (iama.Phase >= 2 && questions.Count > 0 && _faker.Random.Bool(0.3f))
                     {
                         var bestCount = Math.Min(_faker.Random.Int(1, 3), questions.Count);
                         var bestPicks = _faker.PickRandom(questions, bestCount).ToList();
+                        bestQuestionCount = bestPicks.Count;
 
                         for (var i = 0; i < bestPicks.Count; i++)
                         {
@@ -1381,6 +1411,8 @@ public class DatabaseSeeder(
                             });
                         }
                     }
+                    iama.OfficialAnswerCount = officialAnswerCount;
+                    iama.BestQuestionCount = bestQuestionCount;
                     break;
                 }
             }
@@ -1614,6 +1646,8 @@ public class DatabaseSeeder(
 
             var posts = new List<PostDatabaseEntity>();
             var lastActivityAt = createdAt;
+            UserDatabaseEntity? lastReplyAuthor = null;
+            string lastReplyExcerpt = "";
             var replyTimeWindow = (latestAllowed - createdAt).TotalMinutes;
             var replyCount = postCount - 1; // first post counts as 1
             var usersWhoPostedInDiscussion = new HashSet<int>();
@@ -1648,7 +1682,8 @@ public class DatabaseSeeder(
                 IsUsersFirstPostInDiscussion = true,
                 IsUsersFirstPostInSpace = isFirstInSpace,
                 IsNecro = false,
-                IsMilestone = false
+                IsMilestone = false,
+                HasCodeBlock = firstPostContent.Contains('`')
             });
 
             for (var j = 0; j < replyCount; j++)
@@ -1695,17 +1730,38 @@ public class DatabaseSeeder(
                     IsUsersFirstPostInDiscussion = isFirstInDiscussion,
                     IsUsersFirstPostInSpace = isFirstInSpaceReply,
                     IsNecro = false,
-                    IsMilestone = milestoneThresholds.Contains(postNumber)
+                    IsMilestone = milestoneThresholds.Contains(postNumber),
+                    HasCodeBlock = replyContent.Contains('`')
                 });
 
                 if (replyCreatedAt > lastActivityAt)
+                {
                     lastActivityAt = replyCreatedAt;
+                    lastReplyAuthor = replyAuthor;
+                    lastReplyExcerpt = replyPlainText.Length > 150 ? replyPlainText[..150] : replyPlainText;
+                }
             }
 
             discussion.LastActivityAt = lastActivityAt;
             discussion.PostCount = postCount;
             discussion.ReactionCount = 0;
             discussion.EngagementScore = discussion.PostCount;
+            if (lastReplyAuthor is not null)
+            {
+                discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
+                discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
+                discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
+                discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
+                discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
+            }
+            else
+            {
+                discussion.LastPostAuthorPublicId = author.PublicId;
+                discussion.LastPostAuthorDisplayName = author.DisplayName;
+                discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
+                discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
+                discussion.LastPostPlainTextExcerpt = firstPostPlainText.Length > 150 ? firstPostPlainText[..150] : firstPostPlainText;
+            }
 
             _context.Posts.AddRange(posts);
             await _context.SaveChangesAsync();
@@ -1761,12 +1817,15 @@ public class DatabaseSeeder(
             var usersWhoPostedInDiscussion = new HashSet<int>();
             var postNumber = 0;
             var lastPostDate = createdAt;
+            UserDatabaseEntity? lastReplyAuthor = null;
+            string lastReplyExcerpt = "";
 
             // First post (OP)
             postNumber++;
             usersWhoPostedInDiscussion.Add(author.Id);
             var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
             var firstContent = GeneratePostContent(isOpeningPost: true);
+            var firstPlainText = _markupParser.ToPlainText(firstContent);
             posts.Add(new PostDatabaseEntity
             {
                 PublicId = Ulid.NewUlid().ToString(),
@@ -1780,6 +1839,7 @@ public class DatabaseSeeder(
                 CommunityPublicId = space.CommunityPublicId,
                 Content = firstContent,
                 RenderedContent = _markupParser.ToHtml(firstContent),
+                PlainTextExcerpt = firstPlainText.Length > 200 ? firstPlainText[..200] : firstPlainText,
                 CreatedByUserId = author.Id,
                 CreatedByUserPublicId = author.PublicId,
                 CreatedAt = createdAt,
@@ -1789,7 +1849,8 @@ public class DatabaseSeeder(
                 IsUsersFirstPostInDiscussion = true,
                 IsUsersFirstPostInSpace = isFirstInSpace,
                 IsNecro = false,
-                IsMilestone = false
+                IsMilestone = false,
+                HasCodeBlock = firstContent.Contains('`')
             });
             lastPostDate = createdAt;
 
@@ -1804,6 +1865,7 @@ public class DatabaseSeeder(
                 var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
 
                 var content = GeneratePostContent(isOpeningPost: false);
+                var plainText = _markupParser.ToPlainText(content);
                 posts.Add(new PostDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
@@ -1817,6 +1879,7 @@ public class DatabaseSeeder(
                     CommunityPublicId = space.CommunityPublicId,
                     Content = content,
                     RenderedContent = _markupParser.ToHtml(content),
+                    PlainTextExcerpt = plainText.Length > 200 ? plainText[..200] : plainText,
                     CreatedByUserId = replyAuthor.Id,
                     CreatedByUserPublicId = replyAuthor.PublicId,
                     CreatedAt = replyDate,
@@ -1826,8 +1889,11 @@ public class DatabaseSeeder(
                     IsUsersFirstPostInDiscussion = isFirstInDiscussion,
                     IsUsersFirstPostInSpace = isFirstInSpaceReply,
                     IsNecro = false,
-                    IsMilestone = false
+                    IsMilestone = false,
+                    HasCodeBlock = content.Contains('`')
                 });
+                lastReplyAuthor = replyAuthor;
+                lastReplyExcerpt = plainText.Length > 150 ? plainText[..150] : plainText;
                 lastPostDate = replyDate;
             }
 
@@ -1845,6 +1911,7 @@ public class DatabaseSeeder(
                 var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
 
                 var content = GeneratePostContent(isOpeningPost: false);
+                var plainText = _markupParser.ToPlainText(content);
                 posts.Add(new PostDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
@@ -1858,6 +1925,7 @@ public class DatabaseSeeder(
                     CommunityPublicId = space.CommunityPublicId,
                     Content = content,
                     RenderedContent = _markupParser.ToHtml(content),
+                    PlainTextExcerpt = plainText.Length > 200 ? plainText[..200] : plainText,
                     CreatedByUserId = replyAuthor.Id,
                     CreatedByUserPublicId = replyAuthor.PublicId,
                     CreatedAt = replyDate,
@@ -1867,8 +1935,11 @@ public class DatabaseSeeder(
                     IsUsersFirstPostInDiscussion = isFirstInDiscussion,
                     IsUsersFirstPostInSpace = isFirstInSpaceReply,
                     IsNecro = isNecro,
-                    IsMilestone = false
+                    IsMilestone = false,
+                    HasCodeBlock = content.Contains('`')
                 });
+                lastReplyAuthor = replyAuthor;
+                lastReplyExcerpt = plainText.Length > 150 ? plainText[..150] : plainText;
                 if (replyDate > necroDate) necroDate = replyDate;
             }
 
@@ -1876,6 +1947,22 @@ public class DatabaseSeeder(
             discussion.PostCount = postNumber;
             discussion.ReactionCount = 0;
             discussion.EngagementScore = discussion.PostCount;
+            if (lastReplyAuthor is not null)
+            {
+                discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
+                discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
+                discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
+                discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
+                discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
+            }
+            else
+            {
+                discussion.LastPostAuthorPublicId = author.PublicId;
+                discussion.LastPostAuthorDisplayName = author.DisplayName;
+                discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
+                discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
+                discussion.LastPostPlainTextExcerpt = firstPlainText.Length > 150 ? firstPlainText[..150] : firstPlainText;
+            }
 
             _context.Posts.AddRange(posts);
             await _context.SaveChangesAsync();
@@ -2093,6 +2180,55 @@ public class DatabaseSeeder(
         await _context.SaveChangesAsync();
 
         Console.WriteLine($"Updated counts for {users.Count} users.");
+
+        // Discussions: back-fill FollowerCount from UserFollows
+        var discussionFollowerCounts = await _context.UserFollows
+            .Where(f => f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion)
+            .GroupBy(f => f.DiscussionId!.Value)
+            .Select(g => new { DiscussionId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.DiscussionId, x => x.Count);
+
+        var allDiscussions = await _context.Discussions.ToListAsync();
+        foreach (var d in allDiscussions)
+            d.FollowerCount = discussionFollowerCounts.GetValueOrDefault(d.Id);
+
+        await _context.SaveChangesAsync();
+        Console.WriteLine($"Updated follower counts for {allDiscussions.Count} discussions.");
+
+        // Discussions: compute TrendScore — same formula as TrendScoreCalculator
+        const double PostWeight = 3.0, ReactionWeight = 1.0, Gravity = 1.8;
+        var trendNow = DateTime.UtcNow;
+        var trendCutoff = trendNow.AddHours(-48);
+
+        var recentPostData = await _context.Posts
+            .Where(p => p.CreatedAt >= trendCutoff && !p.IsDeleted)
+            .Select(p => new { p.DiscussionId, p.CreatedAt })
+            .ToListAsync();
+
+        var recentReactionData = await _context.PostReactions
+            .Where(r => r.CreatedAt >= trendCutoff)
+            .Select(r => new { r.Post.DiscussionId, r.CreatedAt })
+            .ToListAsync();
+
+        var postsByDiscussion = recentPostData
+            .GroupBy(p => p.DiscussionId)
+            .ToDictionary(g => g.Key, g => g.Select(p => p.CreatedAt).ToList());
+
+        var reactionsByDiscussion = recentReactionData
+            .GroupBy(r => r.DiscussionId)
+            .ToDictionary(g => g.Key, g => g.Select(r => r.CreatedAt).ToList());
+
+        foreach (var d in allDiscussions)
+        {
+            var postTimes = postsByDiscussion.GetValueOrDefault(d.Id, []);
+            var reactionTimes = reactionsByDiscussion.GetValueOrDefault(d.Id, []);
+            d.TrendScore =
+                postTimes.Sum(t => PostWeight / Math.Pow((trendNow - t).TotalHours + 2, Gravity))
+                + reactionTimes.Sum(t => ReactionWeight / Math.Pow((trendNow - t).TotalHours + 2, Gravity));
+        }
+
+        await _context.SaveChangesAsync();
+        Console.WriteLine($"Computed trend scores for {allDiscussions.Count} discussions.");
     }
 
     private string GenerateSlug(string title)
@@ -2149,6 +2285,7 @@ public class DatabaseSeeder(
             IsDismissible = true,
             SortOrder = 0,
             CreatedByUserId = adminUser.Id,
+            CreatedByUserPublicId = adminUser.PublicId,
             CreatedAt = EarliestDate.AddDays(1)
         });
 
@@ -2168,6 +2305,7 @@ public class DatabaseSeeder(
             IsDismissible = true,
             SortOrder = 1,
             CreatedByUserId = adminUser.Id,
+            CreatedByUserPublicId = adminUser.PublicId,
             CreatedAt = Now.AddDays(-1)
         });
 
@@ -2185,6 +2323,7 @@ public class DatabaseSeeder(
             IsDismissible = true,
             SortOrder = 0,
             CreatedByUserId = adminUser.Id,
+            CreatedByUserPublicId = adminUser.PublicId,
             CreatedAt = EarliestDate.AddDays(10)
         });
 
@@ -2202,6 +2341,7 @@ public class DatabaseSeeder(
             IsDismissible = false,
             SortOrder = 0,
             CreatedByUserId = adminUser.Id,
+            CreatedByUserPublicId = adminUser.PublicId,
             CreatedAt = Now.AddDays(-3)
         });
 
@@ -2600,6 +2740,8 @@ public class DatabaseSeeder(
             post.RevisionCount = revisionCount;
             post.Content = GeneratePostContent(isOpeningPost: false);
             post.RenderedContent = _markupParser.ToHtml(post.Content);
+            var revisedPlainText = _markupParser.ToPlainText(post.Content);
+            post.PlainTextExcerpt = revisedPlainText.Length > 200 ? revisedPlainText[..200] : revisedPlainText;
         }
 
         _context.PostRevisions.AddRange(revisions);

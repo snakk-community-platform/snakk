@@ -16,9 +16,10 @@ public static class AuthCookieHelper
     public const string SessionCookieName = ".Snakk.Auth.Session";
     public const string RefreshCookieName = ".Snakk.Auth.Refresh";
 
-    public static void SetAuthCookies(HttpContext ctx, string accessToken, string refreshToken, bool rememberMe = false)
+    public static void SetAuthCookies(HttpContext ctx, string accessToken, string refreshToken, bool? rememberMe = null)
     {
-        var expiry = rememberMe
+        var actualRememberMe = rememberMe ?? IsRememberMe(ctx);
+        var expiry = actualRememberMe
             ? DateTimeOffset.UtcNow.AddDays(30)
             : DateTimeOffset.UtcNow.AddHours(8);
 
@@ -61,6 +62,7 @@ public static class AuthCookieHelper
         ctx.Response.Cookies.Delete(SessionCookieName, deleteOptions);
         ctx.Response.Cookies.Delete(RefreshCookieName, deleteOptions);
         ctx.Response.Cookies.Delete(TimezoneCookieName, deleteOptions);
+        ctx.Response.Cookies.Delete(RememberMeCookieName, deleteOptions);
     }
 
     /// <summary>
@@ -69,6 +71,27 @@ public static class AuthCookieHelper
     /// </summary>
     public static bool HasStrictAuthCookie(HttpContext ctx) =>
         ctx.Request.Cookies.ContainsKey(AccessCookieName);
+
+    // Remember-me indicator cookie (persists the preference through token refreshes)
+    public const string RememberMeCookieName = ".Snakk.Pref.RememberMe";
+
+    public static bool IsRememberMe(HttpContext ctx) =>
+        ctx.Request.Cookies[RememberMeCookieName] == "1";
+
+    public static void SetRememberMeCookie(HttpContext ctx, bool rememberMe)
+    {
+        if (rememberMe)
+            ctx.Response.Cookies.Append(RememberMeCookieName, "1", new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Lax,
+                Path = "/",
+                Expires = DateTimeOffset.UtcNow.AddDays(30)
+            });
+        else
+            ctx.Response.Cookies.Delete(RememberMeCookieName, new CookieOptions { Path = "/" });
+    }
 
     // Timezone cookie (non-httponly, long-lived)
     public const string TimezoneCookieName = ".Snakk.Pref.Timezone";

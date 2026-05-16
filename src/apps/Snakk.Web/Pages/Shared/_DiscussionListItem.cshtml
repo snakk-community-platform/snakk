@@ -88,20 +88,29 @@
                 }
             </div>
         </div>
-        <div class="topic-stats hidden sm:flex">
-              <div class="topic-stat">
-                <div class="topic-stat-icon">
-                    <span class="icon icon-badge-check" style="width:18px;height:18px" aria-hidden="true"></span>
-                </div>
-                <div class="topic-stat-value">@discussion.ReactionCount</div>
+        @if (discussion.ReactionCount > 0 || discussion.PostCount > 0)
+        {
+            <div class="topic-stats hidden sm:flex">
+                @if (discussion.ReactionCount > 0)
+                {
+                    <div class="topic-stat">
+                        <div class="topic-stat-icon">
+                            <span class="icon icon-badge-check" style="width:18px;height:18px" aria-hidden="true"></span>
+                        </div>
+                        <div class="topic-stat-value">@discussion.ReactionCount</div>
+                    </div>
+                }
+                @if (discussion.PostCount > 0)
+                {
+                    <div class="topic-stat">
+                        <div class="topic-stat-icon">
+                            <span class="icon icon-chat-square" style="width:18px;height:18px" aria-hidden="true"></span>
+                        </div>
+                        <div class="topic-stat-value">@discussion.PostCount</div>
+                    </div>
+                }
             </div>
-            <div class="topic-stat">
-                <div class="topic-stat-icon">
-                    <span class="icon icon-chat-square" style="width:18px;height:18px" aria-hidden="true"></span>
-                </div>
-                <div class="topic-stat-value">@discussion.PostCount</div>
-            </div>
-        </div>
+        }
     </div>
     <button class="preview-btn"
             data-discussion-id="@discussion.PublicId"

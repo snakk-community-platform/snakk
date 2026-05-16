@@ -117,8 +117,29 @@
             document.getElementById('error-display').classList.remove('hidden');
         }
 
-        function showSuccess() {
-            window.location.href = '/setup/restarting';
+        async function showSuccess() {
+            document.getElementById('status-icon').className = 'loading loading-spinner loading-lg text-success';
+            document.getElementById('status-title').textContent = 'Setup Complete!';
+            document.getElementById('status-message').textContent = 'Waiting for Snakk to be ready…';
+            document.getElementById('status-detail').classList.add('hidden');
+
+            // Poll / until the web app is up, then navigate.
+            // The gateway forwards / to the web cluster once setup is done;
+            // YARP returns 503 while the cluster is still starting.
+            var deadline = Date.now() + 90000;
+            while (Date.now() < deadline) {
+                await new Promise(function (r) { setTimeout(r, 2000); });
+                try {
+                    var res = await fetch('/', { method: 'HEAD', cache: 'no-store' });
+                    if (res.ok) {
+                        window.location.href = '/';
+                        return;
+                    }
+                } catch (e) {
+                    // Network error or YARP 503 — keep waiting
+                }
+            }
+            window.location.href = '/';
         }
 
         async function pollStatus() {

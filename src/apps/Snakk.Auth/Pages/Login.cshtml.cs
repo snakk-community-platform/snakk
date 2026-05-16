@@ -138,6 +138,16 @@ public class LoginModel(
                 Response.Cookies.Append(".Snakk.Auth.Refresh", response.RefreshToken, strictOptions);
             }
 
+            // Persist remember-me preference so token refresh in Snakk.Web honors it
+            if (Input.RememberMe)
+                Response.Cookies.Append(".Snakk.Pref.RememberMe", "1", new CookieOptions
+                {
+                    HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax,
+                    Path = "/", Expires = DateTimeOffset.UtcNow.AddDays(30)
+                });
+            else
+                Response.Cookies.Delete(".Snakk.Pref.RememberMe", new CookieOptions { Path = "/" });
+
             var returnUrl = Input.ReturnUrl ?? ReturnUrl ?? "/";
             if (!Url.IsLocalUrl(returnUrl))
                 returnUrl = "/";
