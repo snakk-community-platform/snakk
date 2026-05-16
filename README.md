@@ -2,7 +2,7 @@
     <img src="https://github.com/snakk-community-platform/snakk/blob/main/media/github-logo.webp?raw=true"> 
 </p>
 
-A modern, performant community platform built with .NET 10 and ASP.NET Core. Snakk enables communities to create organized discussions through a hierarchical structure of communities, hubs, and spaces, with built-in moderation, real-time features, and multi-community support.
+A modern, performant community platform built with .NET 10 and ASP.NET Core.
 
 > **Pre-Release Software**
 > Snakk is in active development and should be considered pre-release/alpha software. Core functionality works, but some features may be incomplete or subject to breaking changes.
@@ -48,7 +48,7 @@ A modern, performant community platform built with .NET 10 and ASP.NET Core. Sna
 - **Avatar Generation**: Deterministic SVG avatars (Marble, Beam, Pixel, Bauhaus styles) with custom upload support
 
 ### Performance
-- **HybridCache**: In-memory + distributed caching with granular invalidation
+- **In-Memory Cache**: Granular invalidation with IMemoryCache
 - **Output Caching**: Page-level caching for public content
 - **Database Optimization**: PostgreSQL with trigram indexes, projection queries, and denormalized counters
 - **HTMX Navigation**: SPA-like page transitions with adaptive loading indicators
@@ -59,7 +59,6 @@ A modern, performant community platform built with .NET 10 and ASP.NET Core. Sna
 - **Read State Tracking**: Batched read state updates with unread indicators
 
 ### User Experience
-- **Dark Mode**: System-preference aware with manual toggle
 - **Infinite Scroll**: HTMX-powered endless scroll with pagination fallback
 - **Smart Navigation**: Resume-reading, unread tracking, and draft persistence
 - **Embed Privacy Controls**: Per-provider settings for external embedded content (stored client-side)
@@ -151,8 +150,6 @@ docs/
 
 ### Quick Start (Pre-built Image)
 
-If you already have Docker and Docker Compose installed, you can run Snakk with two files and one command. No source checkout, no compilation.
-
 ```bash
 # 1. Download the production compose file
 wget https://raw.githubusercontent.com/snakk-community-platform/snakk/main/docker/docker-compose.production.yml -O docker-compose.yml
@@ -178,13 +175,6 @@ For a fresh Linux server with no Docker installed, the installer handles Docker,
 ```bash
 curl -fsSL https://get.snakk.community/install-docker.sh | sudo bash
 ```
-
-**What it does:**
-1. Installs prerequisites (Git, Docker, optionally Caddy for HTTPS)
-2. Clones the repository to `/opt/snakk`
-3. Detects system RAM and tunes PostgreSQL accordingly
-4. Builds and starts containers
-5. Prints the URL to complete setup in your browser
 
 **Supported distros:** Ubuntu, Debian, Rocky Linux, AlmaLinux, RHEL
 
@@ -294,14 +284,7 @@ dotnet ef database update \
   --startup-project src/services/Snakk.Api/Snakk.Api.csproj
 ```
 
-### Code Structure Guidelines
-
-- **Domain Layer**: Pure business logic, no external dependencies
-- **Application Layer**: Use cases, orchestration, DTOs, service interfaces
-- **Infrastructure Layer**: Service implementations, database repositories
-- **Web Layer**: Razor Pages, BFF endpoints, minimal logic
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture documentation.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for architecture documentation.
 
 ## Service Ports (Development)
 
@@ -316,13 +299,7 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture docum
 
 ## Contributing
 
-Contributions are welcome! Please read the contributing guidelines before submitting pull requests.
-
-### Development Workflow
-1. Create a feature branch from `main`
-2. Make your changes with clear commit messages
-3. Write tests for new functionality
-4. Submit a pull request with description of changes
+Contributions are welcome! Submit a pull request with a clear description of changes.
 
 ## License
 
@@ -334,7 +311,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [ ] Email notifications
 - [ ] Mobile apps (iOS/Android)
 - [ ] Plugin system
-- [ ] Localization/i18n
 
 ## AI Assistance
 
