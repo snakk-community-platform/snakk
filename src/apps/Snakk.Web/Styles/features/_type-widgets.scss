@@ -185,9 +185,13 @@
 .link-preview-banner {
     border-radius: 0 !important;
 
-    .sn-images-frame,
+    .sn-images-frame {
+        border-radius: 0;
+    }
+
     .sn-images-slide-wrapper {
         border-radius: 0;
+        height: 100%;
     }
 }
 
@@ -1812,6 +1816,8 @@
     color: #fff;
     white-space: pre-wrap;
     word-break: break-word;
+
+    a { color: #fff; }
 }
 
 // --- IAmA: Q&A pairing badges ---

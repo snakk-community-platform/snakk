@@ -407,6 +407,10 @@
                                 <div class="sn-images-preview link-preview-banner"@(linkBlur != null ? $" style=\"--blur-bg:url({linkBlur})\"" : "")>
                                     <div class="sn-images-frame"@(frameStyle != "" ? $" style=\"{frameStyle}\"" : "")>
                                         <div class="sn-images-slide-wrapper"@(linkBlur != null ? $" style=\"--blur:url({linkBlur})\"" : "")>
+                                            @if (linkBlur != null && hasSize)
+                                            {
+                                                <div class="sn-images-lqip" style="aspect-ratio: @Model.LinkInfo.ImageWidth / @Model.LinkInfo.ImageHeight"></div>
+                                            }
                                             <img src="@linkImageSrc" alt="" class="sn-images-slide" loading="lazy" decoding="async" data-blur-up />
                                         </div>
                                     </div>
