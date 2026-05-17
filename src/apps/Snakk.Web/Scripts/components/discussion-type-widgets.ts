@@ -468,6 +468,13 @@
             if (img?.dataset.full) { const p = new window.Image(); p.src = img.dataset.full; }
         });
 
+        const utils = (window as any).SnakkUtils;
+        if (utils?.addCarouselSwipe && track) {
+            utils.addCarouselSwipe(track, (idx: number) => {
+                if (idx >= 0 && idx < items.length) slide(idx);
+            }, () => carouselIdx);
+        }
+
         slide(0);
 
     }

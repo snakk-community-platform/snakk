@@ -150,6 +150,7 @@
                     <label class="auth-label" asp-for="Input.DisplayName">Display Name</label>
                     <input asp-for="Input.DisplayName" class="auth-input" placeholder="How others will see you" />
                     <span asp-validation-for="Input.DisplayName" class="text-error text-xs mt-1 block"></span>
+                    <p class="text-xs text-base-content/50 mt-1">Letters, numbers, hyphens, and underscores only. No spaces.</p>
                 </div>
 
                 <div>
@@ -160,8 +161,9 @@
 
                 <div>
                     <label class="auth-label" asp-for="Input.Password">Password</label>
-                    <input asp-for="Input.Password" type="password" class="auth-input" placeholder="At least 8 characters" />
+                    <input asp-for="Input.Password" type="password" class="auth-input" placeholder="Min 8 chars, e.g. Hello@123" />
                     <span asp-validation-for="Input.Password" class="text-error text-xs mt-1 block"></span>
+                    <p class="text-xs text-base-content/50 mt-1">Must include uppercase, lowercase, number, and special character (e.g. ! @@ # $).</p>
                 </div>
 
                 <div>

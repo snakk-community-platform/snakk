@@ -43,6 +43,7 @@ interface SnakkUtilsAPI {
     dispatchEvent(name: string, detail?: any): void;
     encodeUlid(ulid: string): string;
     extractBlurUrl(element: HTMLElement | null): string | null;
+    addCarouselSwipe(track: HTMLElement, goTo: (idx: number) => void, getCurrent: () => number): void;
 }
 
 // ============================================================================
@@ -391,6 +392,25 @@ interface SnakkUtilsAPI {
         return result.join('');
     }
 
+    function addCarouselSwipe(track: HTMLElement, goTo: (idx: number) => void, getCurrent: () => number): void {
+        let startX = 0;
+        let active = false;
+        const THRESHOLD = 40;
+        track.addEventListener('pointerdown', (e) => { startX = e.clientX; active = true; track.setPointerCapture(e.pointerId); });
+        track.addEventListener('pointerup', (e) => {
+            if (!active) return;
+            active = false;
+            const delta = e.clientX - startX;
+            if (Math.abs(delta) >= THRESHOLD) {
+                goTo(getCurrent() + (delta < 0 ? 1 : -1));
+                // Suppress the synthesized click that follows a pointer swipe so
+                // lightbox opens and card navigation don't fire after a swipe.
+                track.addEventListener('click', (ev) => ev.stopPropagation(), { once: true, capture: true });
+            }
+        });
+        track.addEventListener('pointercancel', () => { active = false; });
+    }
+
     // Export all utilities
     const SnakkUtils: SnakkUtilsAPI = {
         formatRelativeTime,
@@ -414,7 +434,8 @@ interface SnakkUtilsAPI {
         clone,
         dispatchEvent,
         encodeUlid,
-        extractBlurUrl
+        extractBlurUrl,
+        addCarouselSwipe
     };
 
     (window as any).SnakkUtils = SnakkUtils;

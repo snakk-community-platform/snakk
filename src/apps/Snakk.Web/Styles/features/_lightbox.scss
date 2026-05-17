@@ -187,3 +187,9 @@ html.lightbox-lock {
     font-size: 0.875rem;
     user-select: none;
 }
+
+@media (max-width: 767.98px) {
+    .lightbox-content { inset: 0; touch-action: none; }
+
+    .lightbox-overlay.lightbox-zoomed .lightbox-img-wrap { padding: 0; }
+}

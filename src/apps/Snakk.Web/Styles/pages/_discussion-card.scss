@@ -401,3 +401,7 @@
         text-overflow: clip;
     }
 }
+
+@media (max-width: 767.98px) {
+    .sn-card-title-row { gap: .25rem; }
+}

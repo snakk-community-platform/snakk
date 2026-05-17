@@ -1086,6 +1086,7 @@
     display: flex;
     transition: transform 0.35s ease;
     height: 100%;
+    touch-action: pan-y;
 
     .images-upload-item {
         flex: 0 0 100%;
@@ -1265,7 +1266,7 @@
         img {
             width: 100%;
             height: 100%;
-            object-fit: contain !important;
+            object-fit: contain;
             position: relative;
             z-index: 1;
         }
@@ -1314,6 +1315,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    touch-action: none;
 }
 
 .gup-compare-line {
@@ -1339,6 +1341,7 @@
     justify-content: center;
     gap: 0;
     cursor: ew-resize;
+    touch-action: none;
     z-index: 11;
 
     svg, .icon {

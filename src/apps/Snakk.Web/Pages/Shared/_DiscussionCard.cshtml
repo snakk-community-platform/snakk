@@ -234,6 +234,8 @@
                     var afterImg = images[1];
                     var (beforeSrc, beforeW, beforeH) = bestSrcDim(beforeImg);
                     var (afterSrc, afterW, afterH) = bestSrcDim(afterImg);
+                    var beforeOrigW = beforeImg.Width > 0 ? beforeImg.Width : beforeW;
+                    var beforeOrigH = beforeImg.Height > 0 ? beforeImg.Height : beforeH;
                     var beforeBlur = beforeImg.HasBlurDataUri ? beforeImg.BlurDataUri : "";
                     var afterBlur = afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "";
                     var beforeBg = beforeImg.HasBlurDataUri ? $"background-image:url({beforeBlur});background-size:cover;background-position:center" : "";
@@ -244,8 +246,8 @@
                     // in CSS) so the blur bleed shows on sides/top-bottom when the
                     // frame is smaller than the column.
                     var compareOuterStyle = beforeImg.HasBlurDataUri ? $"--blur-bg: url({beforeBlur});" : "";
-                    var compareFrameStyle = beforeW > 0 && beforeH > 0
-                        ? $"aspect-ratio: {beforeW} / {beforeH}; max-width: {beforeW}px;"
+                    var compareFrameStyle = beforeOrigW > 0 && beforeOrigH > 0
+                        ? $"aspect-ratio: {beforeOrigW} / {beforeOrigH}; max-width: {beforeOrigW}px;"
                         : "";
 
                     <div class="sn-compare-preview @(gpSpoiler ? "sn-images-spoiler" : "")" style="@compareOuterStyle" data-discussion-id="@discussion.PublicId">

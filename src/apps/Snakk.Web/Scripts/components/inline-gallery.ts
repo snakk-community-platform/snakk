@@ -121,6 +121,9 @@
 
         if (prevBtn) prevBtn.addEventListener('click', e => { e.stopPropagation(); goTo(current - 1); });
         if (nextBtn) nextBtn.addEventListener('click', e => { e.stopPropagation(); goTo(current + 1); });
+
+        const utils = (window as any).SnakkUtils;
+        if (utils?.addCarouselSwipe) utils.addCarouselSwipe(track, goTo, () => current);
         goTo(0);
 
         slides.forEach((slide, idx) => {

@@ -44,9 +44,8 @@ public class AuthGrpcService(
             allowAdult);
 
         if (!result.IsSuccess)
-            throw new RpcException(new Status(
-                StatusCode.InvalidArgument,
-                "Registration failed. Please check your details and try again."));
+            throw new RpcException(new Status(StatusCode.InvalidArgument,
+                result.Error ?? "Registration failed. Please check your details and try again."));
 
         var user = result.Value!;
         var roles = await GetUserRolesAsync(user.PublicId.Value);

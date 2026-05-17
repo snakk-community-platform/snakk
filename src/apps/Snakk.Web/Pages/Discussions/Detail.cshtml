@@ -404,7 +404,8 @@
                                 var frameStyle = hasSize
                                     ? $"aspect-ratio: {Model.LinkInfo.ImageWidth} / {Model.LinkInfo.ImageHeight}; max-width: {Model.LinkInfo.ImageWidth}px;"
                                     : "";
-                                <div class="sn-images-preview link-preview-banner"@(linkBlur != null ? $" style=\"--blur-bg:url({linkBlur})\"" : "")>
+                                var blurBgVal = linkBlur != null ? $"url({linkBlur})" : $"url({linkImageSrc})";
+                                <div class="sn-images-preview link-preview-banner" style="--blur-bg:@blurBgVal">
                                     <div class="sn-images-frame"@(frameStyle != "" ? $" style=\"{frameStyle}\"" : "")>
                                         <div class="sn-images-slide-wrapper"@(linkBlur != null ? $" style=\"--blur:url({linkBlur})\"" : "")>
                                             @if (linkBlur != null && hasSize)
@@ -753,10 +754,13 @@
                             var afterImg = Model.ImagesItems[1];
                             var (beforeMedium, beforeMW, beforeMH) = pickMedium(beforeImg);
                             var (afterMedium, afterMW, afterMH) = pickMedium(afterImg);
+                            var (_, beforeOrigW, beforeOrigH) = pickOriginal(beforeImg);
                             var compareOuterStyle = beforeImg.HasBlurDataUri ? $"--blur-bg: url({beforeImg.BlurDataUri});" : "";
-                            var compareFrameStyle = beforeMW > 0 && beforeMH > 0
-                                ? $"aspect-ratio: {beforeMW} / {beforeMH}; max-width: {beforeMW}px;"
-                                : "";
+                            var compareFrameStyle = beforeOrigW > 0 && beforeOrigH > 0
+                                ? $"aspect-ratio: {beforeOrigW} / {beforeOrigH}; max-width: {beforeOrigW}px;"
+                                : beforeMW > 0 && beforeMH > 0
+                                    ? $"aspect-ratio: {beforeMW} / {beforeMH}; max-width: {beforeMW}px;"
+                                    : "";
                             <div class="images-display-framed" style="@compareOuterStyle">
                                 <div class="gup-compare" id="images-compare" style="@compareFrameStyle">
                                     <div class="gup-compare-after images-upload-item"
@@ -1580,7 +1584,7 @@
                         <span class="icon icon-info-circle" aria-hidden="true"></span>
                         @T.Pages.DiscAboutPrefix@Model.Space?.Name
                     </div>
-                    @if (!string.IsNullOrEmpty(Model.Space.Description))
+                    @if (!string.IsNullOrEmpty(Model.Space?.Description))
                     {
                         <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
                     }

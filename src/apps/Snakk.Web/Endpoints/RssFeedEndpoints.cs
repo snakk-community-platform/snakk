@@ -455,6 +455,7 @@ public static class RssFeedEndpoints
     private static IResult FeedResult(string content, string contentType, HttpContext httpContext)
     {
         httpContext.Response.Headers.CacheControl = $"public, max-age={CacheMinutes * 60}";
+        httpContext.Response.Headers.ContentDisposition = "inline";
         return Results.Content(content, contentType, Encoding.UTF8);
     }
 

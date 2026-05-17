@@ -1851,6 +1851,13 @@ function renderLayoutPreview(
         };
         prevBtn.addEventListener('click', () => { slide--; updateSlide(); });
         nextBtn.addEventListener('click', () => { slide++; updateSlide(); });
+        const _utils1 = (window as any).SnakkUtils;
+        if (_utils1?.addCarouselSwipe) {
+            _utils1.addCarouselSwipe(track, (idx: number) => {
+                slide = Math.max(0, Math.min(images.length - 1, idx));
+                updateSlide();
+            }, () => slide);
+        }
         carousel.appendChild(track);
         carousel.appendChild(prevBtn);
         carousel.appendChild(nextBtn);
@@ -2270,6 +2277,10 @@ function createImagePickerWidget(
             };
             prevBtn.addEventListener('click', () => { carouselSlide--; updateSlide(); });
             nextBtn.addEventListener('click', () => { carouselSlide++; updateSlide(); });
+            const _utils2 = (window as any).SnakkUtils;
+            if (_utils2?.addCarouselSwipe) {
+                _utils2.addCarouselSwipe(track, (idx: number) => { carouselSlide = idx; updateSlide(); }, () => carouselSlide);
+            }
             carousel.appendChild(prevBtn);
             carousel.appendChild(nextBtn);
             carousel.appendChild(counter);

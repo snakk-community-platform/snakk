@@ -160,6 +160,7 @@
     display: flex;
     transition: transform 0.35s ease;
     height: 100%;
+    touch-action: pan-y;
 }
 
 .sn-images-slide-wrapper {

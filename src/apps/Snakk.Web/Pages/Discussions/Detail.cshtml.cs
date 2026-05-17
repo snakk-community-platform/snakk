@@ -14,6 +14,7 @@ using System.Threading.RateLimiting;
 namespace Snakk.Web.Pages.Discussions;
 
 [OutputCache(PolicyName = "AnonymousPage")]
+[Microsoft.AspNetCore.Mvc.RequestFormLimits(ValueLengthLimit = 512 * 1024)]
 public class DetailModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
@@ -65,6 +66,7 @@ public class DetailModel(
     public Snakk.Protos.Discussion.IamaInfoResponse? IamaInfo { get; set; }
 
     [BindProperty]
+    [System.ComponentModel.DataAnnotations.StringLength(50000, ErrorMessage = "Posts cannot exceed 50,000 characters.")]
     public string PostContent { get; set; } = string.Empty;
 
     [BindProperty]

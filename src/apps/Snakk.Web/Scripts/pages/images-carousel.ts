@@ -95,6 +95,9 @@
                     next.addEventListener('mouseenter', function() { preloadSlide(current + 1); });
                 }
                 if (prev) prev.addEventListener('mouseenter', function() { preloadSlide(current - 1); });
+
+                const utils = (window as any).SnakkUtils;
+                if (utils?.addCarouselSwipe) utils.addCarouselSwipe(track, showSlide, () => current);
                 showSlide(0);
             }
 

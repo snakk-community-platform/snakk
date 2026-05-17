@@ -163,6 +163,23 @@ function initReplyEditor(): Promise<void> {
             return md.replace(/```[\s\S]*?```/g, '').trim().length > 0;
         }
 
+        const MAX_POST_LENGTH = 50000;
+
+        function updateCharCount(): void {
+            const countEl = document.getElementById('reply-char-count');
+            if (!countEl) return;
+            const len = replyMd.length;
+            if (len >= MAX_POST_LENGTH * 0.8) {
+                countEl.classList.remove('hidden');
+                countEl.textContent = `${len.toLocaleString()} / ${MAX_POST_LENGTH.toLocaleString()}`;
+                countEl.className = len > MAX_POST_LENGTH
+                    ? 'text-xs text-error font-medium'
+                    : 'text-xs text-warning';
+            } else {
+                countEl.className = 'text-xs hidden';
+            }
+        }
+
         function updateReplyBtn(): void {
             const btn = document.getElementById('reply-submit-btn') as HTMLButtonElement | null;
             if (!btn) return;
@@ -170,8 +187,10 @@ function initReplyEditor(): Promise<void> {
             const hasPicker = !!form?.querySelector('.debate-position-picker');
             const hasPosition = !!form?.querySelector('input[name="DebatePositionId"]');
             const positionOk = !hasPicker || hasPosition;
-            btn.disabled = !hasTextContent(replyMd) || replyUploading || !positionOk;
+            const tooLong = replyMd.length > MAX_POST_LENGTH;
+            btn.disabled = !hasTextContent(replyMd) || replyUploading || !positionOk || tooLong;
             btn.title = hasPicker && !hasPosition ? 'Pick a position before replying' : '';
+            updateCharCount();
         }
 
         const editor = await (window as any).SnakkEditor.init({
@@ -205,6 +224,11 @@ function initReplyEditor(): Promise<void> {
                 if (progressRow) footer.appendChild(progressRow);
                 footer.appendChild(submitBtn);
                 submitBtn.classList.remove('hidden');
+
+                const charCountEl = document.createElement('span');
+                charCountEl.id = 'reply-char-count';
+                charCountEl.className = 'text-xs hidden';
+                footer.appendChild(charCountEl);
             }
 
             // Typing indicator: fire when content actually changes (not on arrow/modifier keys)
@@ -241,6 +265,11 @@ function initReplyEditor(): Promise<void> {
 
                 const md = editor.getMarkdown();
                 if (!md.trim()) {
+                    e.preventDefault();
+                    return;
+                }
+
+                if (md.length > MAX_POST_LENGTH) {
                     e.preventDefault();
                     return;
                 }

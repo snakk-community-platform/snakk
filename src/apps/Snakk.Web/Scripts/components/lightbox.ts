@@ -9,11 +9,38 @@
     let overlay: HTMLElement | null = null;
     let imgEl: HTMLImageElement | null = null;
     let lqipEl: HTMLImageElement | null = null;
+    let imgWrap: HTMLElement | null = null;
     let images: string[] = [];
     let blurs: (string | null)[] = [];
     let currentIdx = 0;
     let savedScrollY = 0;
     let isZoomed = false;
+
+    let pinchScale = 1;
+    let pinchTx = 0;
+    let pinchTy = 0;
+    let lastPinchDist = 0;
+    let lastPinchMidX = 0;
+    let lastPinchMidY = 0;
+    let isPinching = false;
+    let wasPinching = false;
+
+    function touchDist(a: Touch, b: Touch): number {
+        const dx = a.clientX - b.clientX, dy = a.clientY - b.clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function applyPinchTransform(): void {
+        if (!imgWrap) return;
+        imgWrap.style.transform = `translate(${pinchTx}px, ${pinchTy}px) scale(${pinchScale})`;
+    }
+
+    function resetPinchTransform(): void {
+        pinchScale = 1;
+        pinchTx = 0;
+        pinchTy = 0;
+        if (imgWrap) imgWrap.style.transform = '';
+    }
 
     function open(urls: string[], startIdx: number, blurUrls?: (string | null)[]): void {
         images = urls;
@@ -61,6 +88,7 @@
 
     function show(idx: number): void {
         if (isZoomed) zoomOut();
+        resetPinchTransform();
         currentIdx = idx;
         if (!imgEl) return;
 
@@ -147,8 +175,10 @@
 
         imgEl = overlay.querySelector('.lightbox-img') as HTMLImageElement;
         lqipEl = overlay.querySelector('.lightbox-lqip') as HTMLImageElement;
+        imgWrap = overlay.querySelector('.lightbox-img-wrap') as HTMLElement;
         imgEl.addEventListener('load', () => imgEl!.classList.add('lightbox-loaded'));
         imgEl.addEventListener('click', (e) => {
+            if (wasPinching) return;
             e.stopPropagation();
             isZoomed ? zoomOut() : zoomIn();
         });
@@ -164,6 +194,50 @@
         overlay.querySelector('.lightbox-close')!.addEventListener('click', close);
         overlay.querySelector('.lightbox-prev')!.addEventListener('click', prev);
         overlay.querySelector('.lightbox-next')!.addEventListener('click', next);
+
+        // Pinch-to-zoom: intercept 2-finger gestures on the image area only,
+        // applying a CSS transform to imgWrap so chrome (arrows, close, counter)
+        // is unaffected. touch-action: none in SCSS prevents browser-level zoom.
+        const content = overlay.querySelector('.lightbox-content') as HTMLElement;
+
+        content.addEventListener('touchstart', (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                isPinching = true;
+                lastPinchDist = touchDist(e.touches[0]!, e.touches[1]!);
+                lastPinchMidX = (e.touches[0]!.clientX + e.touches[1]!.clientX) / 2;
+                lastPinchMidY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
+            }
+        }, { passive: true });
+
+        content.addEventListener('touchmove', (e: TouchEvent) => {
+            if (e.touches.length < 2 || !isPinching) return;
+            e.preventDefault();
+            const t0 = e.touches[0]!, t1 = e.touches[1]!;
+            const newDist = touchDist(t0, t1);
+            const ds = newDist / lastPinchDist;
+            pinchScale = Math.min(Math.max(pinchScale * ds, 1), 6);
+
+            const newMidX = (t0.clientX + t1.clientX) / 2;
+            const newMidY = (t0.clientY + t1.clientY) / 2;
+            pinchTx += newMidX - lastPinchMidX;
+            pinchTy += newMidY - lastPinchMidY;
+
+            lastPinchDist = newDist;
+            lastPinchMidX = newMidX;
+            lastPinchMidY = newMidY;
+
+            applyPinchTransform();
+        }, { passive: false });
+
+        const onPinchEnd = () => {
+            if (!isPinching) return;
+            isPinching = false;
+            wasPinching = true;
+            setTimeout(() => { wasPinching = false; }, 300);
+            if (pinchScale < 1.05) resetPinchTransform();
+        };
+        content.addEventListener('touchend', onPinchEnd);
+        content.addEventListener('touchcancel', onPinchEnd);
 
         document.body.appendChild(overlay);
     }
