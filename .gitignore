@@ -89,6 +89,8 @@ secrets.json
 
 # Compiled frontend dist (rebuilt by npm run build in Dockerfile and local builds)
 **/wwwroot/js/dist/
+**/wwwroot/js/pages/
+**/wwwroot/js/components/
 **/wwwroot/css/dist/
 
 # Generated i18n code (rebuilt from Locales/*.json)
