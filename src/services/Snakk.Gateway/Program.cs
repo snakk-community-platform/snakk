@@ -96,6 +96,7 @@ builder.Services.AddRateLimiter(options =>
 
         context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter).ToString();
         context.HttpContext.Response.Headers["X-RateLimit-Policy"] = context.Lease.ToString();
+        context.HttpContext.Response.Headers.CacheControl = "no-store";
         await context.HttpContext.Response.WriteAsJsonAsync(new
         {
             error = "Too many requests. Please try again later.",
@@ -113,8 +114,8 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: $"{ip}:{(isPost ? "post" : "get")}",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = isPost ? 30 : 60,
-                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = isPost ? 5 : 30,
+                Window = isPost ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
             });
@@ -126,7 +127,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: GetClientIp(context, clientIpHeader),
             factory: _ => new SlidingWindowRateLimiterOptions
             {
-                PermitLimit = 600,
+                PermitLimit = 200,
                 Window = TimeSpan.FromMinutes(1),
                 SegmentsPerWindow = 6,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
@@ -139,7 +140,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: GetClientIp(context, clientIpHeader),
             factory: _ => new SlidingWindowRateLimiterOptions
             {
-                PermitLimit = 300,
+                PermitLimit = 120,
                 Window = TimeSpan.FromMinutes(1),
                 SegmentsPerWindow = 6,
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,

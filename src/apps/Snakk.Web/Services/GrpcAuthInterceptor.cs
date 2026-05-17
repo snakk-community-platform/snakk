@@ -36,7 +36,7 @@ public class GrpcAuthInterceptor : Interceptor
 
     // Default deadline for all gRPC calls. Prevents hangs from stalled internal calls.
     // A call exceeding this returns RpcException with DeadlineExceeded, which callers handle gracefully.
-    private static readonly TimeSpan DefaultDeadline = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan DefaultDeadline = TimeSpan.FromSeconds(8);
 
     // Timing thresholds for gRPC call observability
     private static readonly TimeSpan SlowCallThreshold = TimeSpan.FromMilliseconds(500);

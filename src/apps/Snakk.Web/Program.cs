@@ -181,7 +181,10 @@ builder.Services.AddSingleton(sp =>
 {
     var handler = new SocketsHttpHandler
     {
-        EnableMultipleHttp2Connections = true
+        EnableMultipleHttp2Connections = true,
+        KeepAlivePingDelay = TimeSpan.FromSeconds(30),
+        KeepAlivePingTimeout = TimeSpan.FromSeconds(5),
+        KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always
     };
 
     // When using plain HTTP (no TLS), force HTTP/2 cleartext (h2c) for gRPC.
