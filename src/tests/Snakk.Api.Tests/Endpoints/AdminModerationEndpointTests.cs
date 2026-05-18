@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Snakk.Api.Tests.Helpers;
+using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
@@ -574,12 +575,13 @@ public class AdminModerationEndpointTests : IAsyncDisposable
     {
         using var scope = _server.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SnakkDbContext>();
+        var emailProtector = scope.ServiceProvider.GetRequiredService<IEmailProtector>();
 
         var user = new UserDatabaseEntity
         {
             PublicId = publicId,
             DisplayName = displayName,
-            Email = $"{publicId}@test.com",
+            Email = emailProtector.Protect($"{publicId}@test.com"),
             EmailVerified = true,
             CreatedAt = DateTime.UtcNow
         };

@@ -55,7 +55,7 @@ public class BffSearchTests
         app.MockApiClient
             .SearchDiscussionsAsync(
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(searchResults);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -80,7 +80,7 @@ public class BffSearchTests
         app.MockApiClient
             .SearchDiscussionsAsync(
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns((PagedDiscussionSearchResults?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -144,7 +144,7 @@ public class BffSearchTests
         app.MockApiClient
             .SearchPostsAsync(
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(searchResults);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -170,7 +170,7 @@ public class BffSearchTests
         app.MockApiClient
             .SearchPostsAsync(
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns((PagedPostSearchResults?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -194,7 +194,7 @@ public class BffSearchTests
         app.MockApiClient
             .SearchDiscussionsAsync(
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(new PagedDiscussionSearchResults
             {
                 Offset = 0,
@@ -214,7 +214,9 @@ public class BffSearchTests
             null,
             null,
             Arg.Any<int>(),
-            20);
+            20,
+            Arg.Any<bool>(),
+            Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -225,7 +227,7 @@ public class BffSearchTests
         app.MockApiClient
             .SearchPostsAsync(
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>())
+                Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(new PagedPostSearchResults
             {
                 Offset = 0,
@@ -245,6 +247,7 @@ public class BffSearchTests
             null,
             null,
             Arg.Any<int>(),
-            15);
+            15,
+            Arg.Any<CancellationToken>());
     }
 }

@@ -388,11 +388,17 @@ app.UseForwardedHeaders(forwardedHeadersOptions);
 
 app.UseStatusCodePagesWithReExecute("/NotFound");
 
-// Disable status code page re-execution for BFF API endpoints — they return JSON error
+// Disable status code page re-execution for API-like endpoints — they return structured
 // responses with proper HTTP status codes, not HTML error pages
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/bff"))
+    var path = context.Request.Path;
+    var pathStr = path.Value ?? "";
+    if (path.StartsWithSegments("/bff") ||
+        path.StartsWithSegments("/oembed") ||
+        pathStr.EndsWith("feed.xml") ||
+        pathStr.EndsWith("feed.atom") ||
+        pathStr.EndsWith("feed.json"))
     {
         var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>();
         if (feature is not null)

@@ -20,7 +20,7 @@ public class BffReactionTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .GetPostReactionsAsync(Arg.Any<string>())
+            .GetPostReactionsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new Dictionary<string, int>
             {
                 { "Agree", 5 },
@@ -50,7 +50,7 @@ public class BffReactionTests
         await using var app = new TestWebApp();
         // When API returns null, BFF endpoint defaults all counts to empty
         app.MockApiClient
-            .GetPostReactionsAsync(Arg.Any<string>())
+            .GetPostReactionsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns((Dictionary<string, int>?)null);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -72,7 +72,7 @@ public class BffReactionTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .GetMyPostReactionsAsync(Arg.Any<string>())
+            .GetMyPostReactionsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new List<string> { "Love" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -95,7 +95,7 @@ public class BffReactionTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .GetMyPostReactionsAsync(Arg.Any<string>())
+            .GetMyPostReactionsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new List<string>());
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -117,7 +117,7 @@ public class BffReactionTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .TogglePostReactionAsync(Arg.Any<string>(), Arg.Any<int>())
+            .TogglePostReactionAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -130,7 +130,7 @@ public class BffReactionTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify the API client was called with correct post ID and reaction type
-        await app.MockApiClient.Received(1).TogglePostReactionAsync("post-001", 1);
+        await app.MockApiClient.Received(1).TogglePostReactionAsync("post-001", 1, Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -139,7 +139,7 @@ public class BffReactionTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .TogglePostReactionAsync(Arg.Any<string>(), Arg.Any<int>())
+            .TogglePostReactionAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -153,6 +153,6 @@ public class BffReactionTests
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        await app.MockApiClient.Received(1).TogglePostReactionAsync("post-001", 2);
+        await app.MockApiClient.Received(1).TogglePostReactionAsync("post-001", 2, Arg.Any<CancellationToken>());
     }
 }

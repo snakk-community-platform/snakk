@@ -6,6 +6,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.PixelFormats;
 using Snakk.Api.Tests.Helpers;
+using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 
@@ -33,13 +34,13 @@ public class AvatarEndpointTests : IAsyncDisposable
     {
         using var scope = _server.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<SnakkDbContext>();
+        var emailProtector = scope.ServiceProvider.GetRequiredService<IEmailProtector>();
 
         var user = new UserDatabaseEntity
         {
-            Id = 1,
             PublicId = TestUserId,
             DisplayName = "Test User",
-            Email = "test@example.com",
+            Email = emailProtector.Protect("test@example.com"),
             EmailVerified = true,
             CreatedAt = DateTime.UtcNow,
             AvatarFileName = avatarFileName
