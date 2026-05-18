@@ -61,7 +61,10 @@ public class TwoFactorVerifyModel(
                 return Page();
             }
 
-            var expiry = DateTimeOffset.UtcNow.AddDays(30);
+            var rememberMe = Request.Cookies[".Snakk.Pref.RememberMe"] == "1";
+            var expiry = rememberMe
+                ? DateTimeOffset.UtcNow.AddDays(30)
+                : DateTimeOffset.UtcNow.AddHours(8);
             var strictOptions = new CookieOptions
             {
                 HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry

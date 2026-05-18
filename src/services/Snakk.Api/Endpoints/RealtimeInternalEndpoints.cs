@@ -3,6 +3,7 @@ namespace Snakk.Api.Endpoints;
 using System.Security.Cryptography;
 using System.Text;
 using Snakk.Application.Services;
+using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database.Repositories;
 
 public static class RealtimeInternalEndpoints
@@ -19,6 +20,7 @@ public static class RealtimeInternalEndpoints
         IDiscussionRepository discussionRepository,
         IHubRepository hubRepository,
         ISpaceRepository spaceRepository,
+        Snakk.Domain.Repositories.ICommunityRepository communityRepository,
         IUserGrantsCacheService grantsCache,
         HttpContext httpContext)
     {
@@ -43,6 +45,8 @@ public static class RealtimeInternalEndpoints
                 request.UserId, request.ScopeId, spaceRepository, restricted, grantsCache),
             "Hub" => await CheckHubAccessAsync(
                 request.UserId, request.ScopeId, hubRepository, restricted, grantsCache),
+            "Community" => await CheckCommunityAccessAsync(
+                request.ScopeId, communityRepository),
             _ => false
         };
 
@@ -86,6 +90,12 @@ public static class RealtimeInternalEndpoints
 
         var grants = await grantsCache.GetGrantsAsync(userId);
         return grants.HubIds.Contains(hub.Id);
+    }
+
+    private static async Task<bool> CheckCommunityAccessAsync(string publicId, Snakk.Domain.Repositories.ICommunityRepository repo)
+    {
+        var community = await repo.GetByPublicIdAsync(CommunityId.From(publicId));
+        return community is not null;
     }
 }
 

@@ -114,7 +114,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: $"{ip}:{(isPost ? "post" : "get")}",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = isPost ? 5 : 30,
+                PermitLimit = isPost ? 20 : 30,
                 Window = isPost ? TimeSpan.FromMinutes(5) : TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0

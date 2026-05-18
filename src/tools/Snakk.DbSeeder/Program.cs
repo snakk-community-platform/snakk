@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -66,7 +67,13 @@ builder.Services.AddScoped<Snakk.Domain.Repositories.ICommunityRepository, Commu
 builder.Services.AddScoped<Snakk.Domain.Repositories.IHubRepository, HubRepositoryAdapter>();
 builder.Services.AddScoped<Snakk.Domain.Repositories.ISpaceRepository, SpaceRepositoryAdapter>();
 
-builder.Services.AddDataProtection();
+var dataProtectionPath = Path.Combine(
+    builder.Configuration["FileStorage:BasePath"] ?? "/app/storage",
+    "dataprotection-keys");
+Directory.CreateDirectory(dataProtectionPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetApplicationName("Snakk");
 builder.Services.AddScoped<IEmailProtector, EmailProtector>();
 builder.Services.AddScoped<IAvatarGenerationService, AvatarGenerationService>();
 builder.Services.AddSingleton<IMarkupParser, MarkupParser>();

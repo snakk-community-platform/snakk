@@ -11,6 +11,9 @@ public class HttpAccessVerifier(HttpClient httpClient, ILogger<HttpAccessVerifie
     public Task<bool> VerifyHubAccessAsync(string userId, string hubPublicId) =>
         VerifyAsync(userId, "Hub", hubPublicId);
 
+    public Task<bool> VerifyCommunityAccessAsync(string userId, string communityPublicId) =>
+        VerifyAsync(userId, "Community", communityPublicId);
+
     private async Task<bool> VerifyAsync(string userId, string scopeType, string scopeId)
     {
         try

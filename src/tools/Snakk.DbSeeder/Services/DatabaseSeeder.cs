@@ -325,14 +325,10 @@ public class DatabaseSeeder(
             var existing = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == publicId);
             if (existing is not null)
             {
-                // Fix previously broken entries that were created without credentials
-                if (string.IsNullOrEmpty(existing.EmailHash))
-                {
-                    existing.Email = _emailProtector.Protect(email);
-                    existing.EmailHash = _emailProtector.ComputeHash(email);
-                    existing.PasswordHash = testPasswordHash;
-                    existing.EmailVerified = true;
-                }
+                existing.Email = _emailProtector.Protect(email);
+                existing.EmailHash = _emailProtector.ComputeHash(email);
+                existing.PasswordHash = testPasswordHash;
+                existing.EmailVerified = true;
                 continue;
             }
 
@@ -403,7 +399,7 @@ public class DatabaseSeeder(
         var newAdminUser = new UserDatabaseEntity
         {
             PublicId = adminPublicId,
-            Email = adminEmail,
+            Email = _emailProtector.Protect(adminEmail),
             EmailHash = _emailProtector.ComputeHash(adminEmail),
             PasswordHash = passwordHash,
             DisplayName = adminDisplayName,

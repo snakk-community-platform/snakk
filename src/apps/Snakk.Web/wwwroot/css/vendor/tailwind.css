@@ -4561,6 +4561,9 @@
   .mask-repeat {
     mask-repeat: repeat;
   }
+  .object-cover {
+    object-fit: cover;
+  }
   .checkbox-sm {
     @layer daisyui.l1.l2 {
       padding: 0.1875rem;

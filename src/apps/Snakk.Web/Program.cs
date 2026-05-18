@@ -274,7 +274,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = context =>
             {
-                var token = context.Request.Cookies[AuthCookieHelper.AccessCookieName]
+                var token = context.HttpContext.Items[Services.TokenRefreshMiddleware.RefreshedAccessTokenKey] as string
+                    ?? context.Request.Cookies[AuthCookieHelper.AccessCookieName]
                     ?? context.Request.Cookies[AuthCookieHelper.SessionCookieName];
                 if (!string.IsNullOrEmpty(token))
                 {
@@ -562,6 +563,7 @@ app.UseCommunityResolution();
 
 app.UseRouting();
 
+app.UseMiddleware<Services.TokenRefreshMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 if (!disableRateLimiting) app.UseRateLimiter();

@@ -10,6 +10,8 @@ public record BroadcastRequest
     public string? PostId { get; init; }
     public Dictionary<string, int>? Counts { get; init; }
     public string? DiscussionId { get; init; }
+    public string? SpaceId { get; init; }
+    public string? HubId { get; init; }
     public string? Title { get; init; }
     public int? Delta { get; init; }
     public string? AuthorId { get; init; }

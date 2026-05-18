@@ -72,7 +72,9 @@ async function handleMessage(tabId: number, _port: MessagePort, data: any): Prom
     switch (data.type) {
         case 'init':
             if (!initialized) {
-                realtimeUrl = data.realtimeUrl;
+                // Resolve relative URLs to absolute — SignalR's withUrl() uses window.location
+                // which doesn't exist in a SharedWorker context.
+                realtimeUrl = new URL(data.realtimeUrl, self.location.href).href;
                 initialized = true;
                 (self as any).importScripts(data.signalrSrc);
                 await connect();
@@ -145,8 +147,11 @@ async function connect(): Promise<void> {
 
     try {
         await connection.start();
-        // Subscribe to global announcements — every connection gets these
         await connection.invoke('SubscribeToGlobal').catch(() => {});
+        // Replay any group subscriptions that arrived before the connection was ready
+        for (const [group] of groupSubscribers) {
+            await invokeSubscribe(group);
+        }
         broadcastState('connected');
     } catch {
         broadcastState('disconnected');

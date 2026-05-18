@@ -32,6 +32,11 @@
 <partial name="Shared/_LeftSidebar" />
 }
 
+@if (Model.CommunityDetail != null)
+{
+    <div id="page-context" class="hidden" data-community-id="@Model.CommunityDetail.PublicId"></div>
+}
+
 <!-- Center Column -->
 <div class="sn-center">
     @* Hero card lives outside .sn-center-inner so it sits flush against the

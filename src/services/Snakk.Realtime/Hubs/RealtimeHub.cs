@@ -14,8 +14,8 @@ namespace Snakk.Realtime.Hubs;
 [Authorize]
 public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> logger) : Hub
 {
-    // Connection → (userId, displayName, isAnon) for viewer presence
-    private static readonly ConcurrentDictionary<string, (string UserId, string DisplayName, bool IsAnon)> ConnectionViewers = new();
+    // Connection → (userId, displayName, isAnon, avatarUrl) for viewer presence
+    private static readonly ConcurrentDictionary<string, (string UserId, string DisplayName, bool IsAnon, string AvatarUrl)> ConnectionViewers = new();
 
     // Connection → discussion mapping for viewer cleanup on disconnect
     private static readonly ConcurrentDictionary<string, string> ConnectionDiscussions = new();
@@ -96,6 +96,7 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
         var userId = Context.UserIdentifier!;
         var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
         var isAnon = Context.User?.FindFirst("presence_hidden")?.Value == "true";
+        var avatarUrl = Context.User?.FindFirst("avatar_url")?.Value ?? "";
 
         if (!await accessVerifier.VerifyDiscussionAccessAsync(userId, discussionId))
         {
@@ -114,7 +115,7 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"discussion:{discussionId}");
         ConnectionDiscussions[Context.ConnectionId] = discussionId;
-        ConnectionViewers[Context.ConnectionId] = (userId, displayName, isAnon);
+        ConnectionViewers[Context.ConnectionId] = (userId, displayName, isAnon, avatarUrl);
 
         await BroadcastViewers(discussionId);
 
@@ -193,6 +194,34 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
             Context.ConnectionId, hubPublicId);
     }
 
+    // ==================== Community ====================
+
+    /// <summary>Subscribe to community updates (banner changes)</summary>
+    public async Task SubscribeToCommunity(string communityPublicId)
+    {
+        var userId = Context.UserIdentifier!;
+
+        if (!await accessVerifier.VerifyCommunityAccessAsync(userId, communityPublicId))
+        {
+            logger.LogWarning("Access denied: {UserId} → community:{CommunityPublicId}", userId, communityPublicId);
+            return;
+        }
+
+        await Groups.AddToGroupAsync(Context.ConnectionId, $"community:{communityPublicId}");
+        logger.LogInformation(
+            "Client {ConnectionId} subscribed to community {CommunityPublicId}",
+            Context.ConnectionId, communityPublicId);
+    }
+
+    /// <summary>Unsubscribe from community</summary>
+    public async Task UnsubscribeFromCommunity(string communityPublicId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"community:{communityPublicId}");
+        logger.LogInformation(
+            "Client {ConnectionId} unsubscribed from community {CommunityPublicId}",
+            Context.ConnectionId, communityPublicId);
+    }
+
     // ==================== Typing Indicators ====================
 
     /// <summary>Notify others that this user is composing a reply in a discussion</summary>
@@ -224,10 +253,14 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
         // Collect distinct users (deduplicate by userId — multiple tabs = one entry)
         var viewers = ConnectionDiscussions
             .Where(kvp => kvp.Value == discussionId)
-            .Select(kvp => ConnectionViewers.TryGetValue(kvp.Key, out var v) ? ((string UserId, string DisplayName, bool IsAnon)?)v : null)
+            .Select(kvp => ConnectionViewers.TryGetValue(kvp.Key, out var v) ? ((string UserId, string DisplayName, bool IsAnon, string AvatarUrl)?)v : null)
             .Where(v => v.HasValue)
             .GroupBy(v => v!.Value.UserId)
-            .Select(g => new { userId = g.Key, displayName = g.First()!.Value.DisplayName, isAnon = g.First()!.Value.IsAnon })
+            .Select(g => new {
+                userId = g.Key,
+                displayName = g.First()!.Value.DisplayName,
+                isAnon = g.First()!.Value.IsAnon,
+                avatarUrl = g.First()!.Value.AvatarUrl })
             .ToList();
 
         await Clients.Group($"discussion:{discussionId}")

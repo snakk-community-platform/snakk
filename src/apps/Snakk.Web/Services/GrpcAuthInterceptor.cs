@@ -58,8 +58,10 @@ public class GrpcAuthInterceptor : Interceptor
         if (httpContext is null)
             return WrapWithTiming(continuation(request, context), context.Method!.FullName);
 
-        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
-        var refreshToken = httpContext.Request.Cookies[AuthCookieHelper.RefreshCookieName];
+        var accessToken = httpContext.Items[TokenRefreshMiddleware.RefreshedAccessTokenKey] as string
+            ?? httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        var refreshToken = httpContext.Items[TokenRefreshMiddleware.RefreshedRefreshTokenKey] as string
+            ?? httpContext.Request.Cookies[AuthCookieHelper.RefreshCookieName];
 
         // Skip interception for RefreshToken calls to prevent recursion
         var methodName = context.Method?.Name;

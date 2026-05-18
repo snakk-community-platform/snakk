@@ -33,6 +33,7 @@ public static class RealtimeTokenEndpoints
 
         var currentUser = await apiClient.GetCurrentUserAsync();
         var hidePresence = currentUser?.HidePresence ?? false;
+        var avatarUrl = currentUser?.AvatarUrl ?? "";
 
         var claims = new List<Claim>
         {
@@ -41,6 +42,8 @@ public static class RealtimeTokenEndpoints
         };
         if (hidePresence)
             claims.Add(new Claim("presence_hidden", "true"));
+        if (!string.IsNullOrEmpty(avatarUrl))
+            claims.Add(new Claim("avatar_url", avatarUrl));
 
         var token = new JwtSecurityToken(
             issuer: "Snakk",

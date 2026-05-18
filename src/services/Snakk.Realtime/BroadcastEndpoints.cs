@@ -8,7 +8,7 @@ namespace Snakk.Realtime;
 public static class BroadcastEndpoints
 {
     private static readonly Regex ValidGroup = new(
-        @"^(global|admin-activity|(discussion|space|hub|user):[a-zA-Z0-9_-]{1,64})$",
+        @"^(global|admin-activity|(discussion|space|hub|user|community):[a-zA-Z0-9_-]{1,64})$",
         RegexOptions.Compiled);
 
     /// <summary>
@@ -33,6 +33,8 @@ public static class BroadcastEndpoints
                 postId = request.PostId,
                 counts = request.Counts,
                 discussionId = request.DiscussionId,
+                spaceId = request.SpaceId,
+                hubId = request.HubId,
                 title = request.Title,
                 delta = request.Delta,
                 authorId = request.AuthorId,

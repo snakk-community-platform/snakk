@@ -186,8 +186,11 @@ public class UserRepositoryAdapter(
         var plainEmail = user.Email;
 
         entity.DisplayName = user.DisplayName;
-        entity.Email = plainEmail is not null ? emailProtector.Protect(plainEmail) : null;
-        entity.EmailHash = plainEmail is not null ? emailProtector.ComputeHash(plainEmail) : null;
+        if (plainEmail is not null)
+        {
+            entity.Email = emailProtector.Protect(plainEmail);
+            entity.EmailHash = emailProtector.ComputeHash(plainEmail);
+        }
         entity.AvatarFileName = user.AvatarFileName;
         entity.AvatarThumbnailFileName = user.AvatarThumbnailFileName;
         entity.AvatarMicroFileName = user.AvatarMicroFileName;
@@ -298,13 +301,7 @@ public class UserRepositoryAdapter(
 
         public User ToDomain(IEmailProtector emailProtector)
         {
-            // Decrypt email at the adapter boundary
-            string? decryptedEmail = null;
-            if (Email is not null)
-            {
-                try { decryptedEmail = emailProtector.Unprotect(Email); }
-                catch { decryptedEmail = Email; } // legacy plaintext email — leave as-is
-            }
+            var decryptedEmail = Email is not null ? emailProtector.Unprotect(Email) : null;
 
             return User.Rehydrate(
                 UserId.From(PublicId),

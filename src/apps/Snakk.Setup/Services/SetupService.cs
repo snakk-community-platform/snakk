@@ -290,15 +290,18 @@ public class SetupService()
     /// </summary>
     public async Task<string> GenerateAdminJwtAsync(SetupState state)
     {
-        // Query the newly created admin user from the database to get their PublicId
+        // The admin always has a fixed PublicId assigned by the seeder
+        const string publicId = "01JJQP000000000000000ADM1N";
+
+        // Verify the admin was actually created
         await using var conn = new Npgsql.NpgsqlConnection(state.GetConnectionString());
         await conn.OpenAsync();
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT \"PublicId\" FROM \"User\" WHERE \"Email\" = @email LIMIT 1";
-        cmd.Parameters.AddWithValue("email", state.AdminEmail);
+        cmd.CommandText = "SELECT 1 FROM \"User\" WHERE \"PublicId\" = @publicId LIMIT 1";
+        cmd.Parameters.AddWithValue("publicId", publicId);
         var result = await cmd.ExecuteScalarAsync();
-        var publicId = result?.ToString()
-            ?? throw new InvalidOperationException("Admin user was not created in the database.");
+        if (result is null)
+            throw new InvalidOperationException("Admin user was not created in the database.");
 
         var claims = new List<Claim>
         {

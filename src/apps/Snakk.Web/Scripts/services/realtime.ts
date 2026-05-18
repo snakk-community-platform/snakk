@@ -61,6 +61,7 @@ interface ViewerInfo {
     userId: string;
     displayName: string;
     isAnon?: boolean;
+    avatarUrl?: string;
 }
 
 interface ViewerCountData {
@@ -90,12 +91,14 @@ interface PageContext {
     discussionId: string | null;
     spaceId: string | null;
     hubId: string | null;
+    communityId: string | null;
 }
 
 interface Subscriptions {
     discussionId: string | null;
     spaceId: string | null;
     hubId: string | null;
+    communityId: string | null;
 }
 
 // ============================================================================
@@ -151,6 +154,7 @@ interface Subscriptions {
             discussionId: el?.dataset.discussionId || null,
             spaceId: el?.dataset.spaceId || null,
             hubId: el?.dataset.hubId || null,
+            communityId: el?.dataset.communityId || null,
         };
     }
 
@@ -527,7 +531,7 @@ interface Subscriptions {
             wrap.setAttribute('data-tip', v.isAnon ? '?' : v.displayName);
 
             const bubble = document.createElement('div');
-            bubble.className = 'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold leading-none select-none cursor-default';
+            bubble.className = 'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold leading-none select-none cursor-default overflow-hidden';
 
             if (v.isAnon) {
                 bubble.classList.add('bg-base-300', 'text-base-content/50');
@@ -536,6 +540,21 @@ interface Subscriptions {
                 icon.style.cssText = 'width:0.875rem;height:0.875rem';
                 icon.setAttribute('aria-hidden', 'true');
                 bubble.appendChild(icon);
+            } else if (v.avatarUrl) {
+                const img = document.createElement('img');
+                img.src = v.avatarUrl;
+                img.alt = '';
+                img.width = 24;
+                img.height = 24;
+                img.className = 'w-full h-full object-cover';
+                img.onerror = () => {
+                    // Fall back to initial on load failure
+                    img.remove();
+                    bubble.style.background = `oklch(0.55 0.15 ${viewerHue(v.userId)})`;
+                    bubble.classList.add('text-white');
+                    bubble.textContent = (v.displayName.trim().charAt(0) || '?').toUpperCase();
+                };
+                bubble.appendChild(img);
             } else {
                 bubble.classList.add('text-white');
                 bubble.style.background = `oklch(0.55 0.15 ${viewerHue(v.userId)})`;
@@ -639,7 +658,7 @@ interface Subscriptions {
             handleReadStateUpdated(message.discussionId);
             return;
         }
-        if (message.eventType === 'announcement-updated') {
+        if (message.eventType === 'announcement-updated' || message.eventType === 'banner-updated') {
             handleAnnouncementUpdated();
             return;
         }
@@ -696,7 +715,7 @@ interface Subscriptions {
     // ============================================================================
 
     let worker: SharedWorker | null = null;
-    const currentSubs: Subscriptions = { discussionId: null, spaceId: null, hubId: null };
+    const currentSubs: Subscriptions = { discussionId: null, spaceId: null, hubId: null, communityId: null };
 
     function trySharedWorker(): boolean {
         if (typeof SharedWorker === 'undefined') return false;
@@ -762,6 +781,13 @@ interface Subscriptions {
         if (ctx.hubId && ctx.hubId !== currentSubs.hubId)
             worker.port.postMessage({ type: 'subscribe', group: `hub:${ctx.hubId}` });
         currentSubs.hubId = ctx.hubId;
+
+        // Community
+        if (currentSubs.communityId && currentSubs.communityId !== ctx.communityId)
+            worker.port.postMessage({ type: 'unsubscribe', group: `community:${currentSubs.communityId}` });
+        if (ctx.communityId && ctx.communityId !== currentSubs.communityId)
+            worker.port.postMessage({ type: 'subscribe', group: `community:${ctx.communityId}` });
+        currentSubs.communityId = ctx.communityId;
     }
 
     // ============================================================================
@@ -769,7 +795,7 @@ interface Subscriptions {
     // ============================================================================
 
     let connection: signalR.HubConnection | null = null;
-    const directSubs: Subscriptions = { discussionId: null, spaceId: null, hubId: null };
+    const directSubs: Subscriptions = { discussionId: null, spaceId: null, hubId: null, communityId: null };
 
     function loadSignalR(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -836,6 +862,10 @@ interface Subscriptions {
             connection.invoke('SubscribeToHub', ctx.hubId).catch(() => {});
             directSubs.hubId = ctx.hubId;
         }
+        if (ctx.communityId) {
+            connection.invoke('SubscribeToCommunity', ctx.communityId).catch(() => {});
+            directSubs.communityId = ctx.communityId;
+        }
     }
 
     function updateDirectSubscriptions(): void {
@@ -865,6 +895,14 @@ interface Subscriptions {
             connection.invoke('SubscribeToHub', ctx.hubId).catch(() => {});
         }
         directSubs.hubId = ctx.hubId;
+
+        if (directSubs.communityId && directSubs.communityId !== ctx.communityId) {
+            connection.invoke('UnsubscribeFromCommunity', directSubs.communityId).catch(() => {});
+        }
+        if (ctx.communityId && ctx.communityId !== directSubs.communityId) {
+            connection.invoke('SubscribeToCommunity', ctx.communityId).catch(() => {});
+        }
+        directSubs.communityId = ctx.communityId;
     }
 
     // ============================================================================
@@ -893,6 +931,11 @@ interface Subscriptions {
     // ============================================================================
 
     function start(): void {
+        const userId = document.querySelector<HTMLMetaElement>('meta[name="current-user-id"]')?.content;
+        if (!userId) {
+            debugLog('Not authenticated — realtime disabled');
+            return;
+        }
         if (!trySharedWorker()) {
             debugLog('SharedWorker unavailable — using direct connection');
             startDirectConnection();

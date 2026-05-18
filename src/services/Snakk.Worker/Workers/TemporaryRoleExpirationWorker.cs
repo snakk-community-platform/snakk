@@ -13,6 +13,7 @@ public class TemporaryRoleExpirationWorker(
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly ILogger<TemporaryRoleExpirationWorker> _logger = logger;
+    private DateTime _lastTokenCleanup = DateTime.MinValue;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -30,6 +31,19 @@ public class TemporaryRoleExpirationWorker(
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in Temporary Role Expiration Worker");
+            }
+
+            if (DateTime.UtcNow - _lastTokenCleanup > TimeSpan.FromHours(24))
+            {
+                try
+                {
+                    await DeleteExpiredRefreshTokensAsync(stoppingToken);
+                    _lastTokenCleanup = DateTime.UtcNow;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error cleaning up expired refresh tokens");
+                }
             }
 
             // Run every 5 minutes
@@ -95,5 +109,17 @@ public class TemporaryRoleExpirationWorker(
         // Save all changes
         var savedCount = await context.SaveChangesAsync(ct);
         _logger.LogInformation("Expired {Count} temporary role elevations", savedCount);
+    }
+
+    private async Task DeleteExpiredRefreshTokensAsync(CancellationToken ct)
+    {
+        using var scope = _serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<SnakkDbContext>();
+
+        var deleted = await context.RefreshTokens
+            .Where(t => t.ExpiresAt < DateTime.UtcNow)
+            .ExecuteDeleteAsync(ct);
+
+        _logger.LogInformation("Deleted {Count} expired refresh tokens", deleted);
     }
 }

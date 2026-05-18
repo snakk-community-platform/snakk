@@ -1,6 +1,7 @@
 namespace Snakk.Web.Endpoints;
 
 using System.Security.Claims;
+using Grpc.Core;
 using Microsoft.AspNetCore.Mvc;
 using Snakk.Web.Helpers;
 using Snakk.Web.Models.Bff;
@@ -811,11 +812,18 @@ public static class BffApiEndpoints
             AuthCookieHelper.SetAuthCookies(httpContext, response.AccessToken, response.RefreshToken);
             return Results.Ok(new { needsConsent = response.NeedsConsent });
         }
-        catch
+        catch (RpcException ex) when (ex.StatusCode is StatusCode.Unauthenticated
+                                          or StatusCode.NotFound or StatusCode.PermissionDenied)
         {
-            // gRPC call failed — clear all auth cookies to force a clean re-login.
+            // Explicit rejection — refresh token is invalid, force re-login.
             AuthCookieHelper.DeleteAuthCookies(httpContext);
             return Results.Unauthorized();
+        }
+        catch
+        {
+            // Transient failure (API restart, timeout, network blip) — preserve cookies
+            // so the user isn't logged out just because the API was momentarily unavailable.
+            return Results.StatusCode(503);
         }
     }
 

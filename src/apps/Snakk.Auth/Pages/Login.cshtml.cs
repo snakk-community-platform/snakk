@@ -177,9 +177,12 @@ public class LoginModel(
         catch (RpcException ex)
         {
             logger.LogWarning("Login gRPC error: {Status}", ex.Status.Detail);
-            ErrorMessage = ex.StatusCode == Grpc.Core.StatusCode.Unauthenticated
-                ? "Invalid email or password."
-                : "Login failed. Please try again.";
+            ErrorMessage = ex.StatusCode switch
+            {
+                Grpc.Core.StatusCode.Unauthenticated => "Invalid email or password.",
+                Grpc.Core.StatusCode.ResourceExhausted => "Too many login attempts. Please wait a few minutes and try again.",
+                _ => "Login failed. Please try again."
+            };
             return Page();
         }
         catch (Exception ex)

@@ -80,8 +80,9 @@ builder.Services.AddAuthorization();
 builder.Services.AddHostedService<ViewerCountCleanupService>();
 
 // HTTP client to Snakk.Api for subscription access verification
+// Uses Realtime:ApiKey — the same shared key that Snakk.Api validates on its internal endpoints
 var snakkApiBaseUrl = builder.Configuration["SnakkApi:BaseUrl"] ?? "https://localhost:17101";
-var snakkApiKey = builder.Configuration["SnakkApi:ApiKey"] ?? string.Empty;
+var snakkApiKey = builder.Configuration["Realtime:ApiKey"] ?? string.Empty;
 
 builder.Services.AddHttpClient<IAccessVerifier, HttpAccessVerifier>(client =>
 {
@@ -91,10 +92,12 @@ builder.Services.AddHttpClient<IAccessVerifier, HttpAccessVerifier>(client =>
 })
 .AddStandardResilienceHandler();
 
-// Configure forwarded headers — trust only internal Docker/private networks, not any source
+// Configure forwarded headers — trust loopback (YARP on same host) and private networks
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.All;
+    options.KnownProxies.Add(IPAddress.Loopback);
+    options.KnownProxies.Add(IPAddress.IPv6Loopback);
     options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("10.0.0.0"), 8));
     options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("172.16.0.0"), 12));
     options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
@@ -105,11 +108,20 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(
-                builder.Configuration["Cors:AllowedOrigins"]?.Split(';') ?? ["https://localhost:17100"])
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        if (builder.Environment.IsDevelopment())
+        {
+            // In dev, snakk-config.json may set a bare origin (e.g. https://localhost) that
+            // doesn't match the gateway port (17100), so allow any origin to avoid 403 on upgrade.
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+        }
+        else
+        {
+            policy.WithOrigins(
+                    builder.Configuration["Cors:AllowedOrigins"]?.Split(';') ?? ["https://localhost:17100"])
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
     });
 });
 
