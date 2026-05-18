@@ -5,32 +5,32 @@ public interface IStatsRepository
     /// <summary>
     /// Gets platform-wide statistics
     /// </summary>
-    Task<PlatformStatsDto> GetPlatformStatsAsync();
+    Task<PlatformStatsDto> GetPlatformStatsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Gets statistics for a specific hub
     /// </summary>
-    Task<HubStatsDto?> GetHubStatsAsync(string publicId);
+    Task<HubStatsDto?> GetHubStatsAsync(string publicId, CancellationToken ct = default);
 
     /// <summary>
     /// Gets statistics for a specific space
     /// </summary>
-    Task<SpaceStatsDto?> GetSpaceStatsAsync(string publicId);
+    Task<SpaceStatsDto?> GetSpaceStatsAsync(string publicId, CancellationToken ct = default);
 
     /// <summary>
     /// Gets statistics for a specific community
     /// </summary>
-    Task<CommunityStatsDto?> GetCommunityStatsAsync(string publicId);
+    Task<CommunityStatsDto?> GetCommunityStatsAsync(string publicId, CancellationToken ct = default);
 
     /// <summary>
     /// Gets statistics for a specific user
     /// </summary>
-    Task<UserStatsDto?> GetUserStatsAsync(string publicId);
+    Task<UserStatsDto?> GetUserStatsAsync(string publicId, CancellationToken ct = default);
 
     /// <summary>
     /// Gets statistics for a specific discussion
     /// </summary>
-    Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId);
+    Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId, CancellationToken ct = default);
 
     /// <summary>
     /// Gets top active spaces by post count since the given cutoff
@@ -39,7 +39,8 @@ public interface IStatsRepository
         DateTime since,
         string? hubId = null,
         string? communityId = null,
-        int limit = 5);
+        int limit = 5,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Gets spaces ordered by most recent post (no time filter)
@@ -47,7 +48,8 @@ public interface IStatsRepository
     Task<List<LatestActiveSpaceDto>> GetLatestActiveSpacesAsync(
         string? hubId = null,
         string? communityId = null,
-        int limit = 5);
+        int limit = 5,
+        CancellationToken ct = default);
 }
 
 public record LatestActiveSpaceDto(

@@ -61,7 +61,8 @@ public static class MeEndpoints
         ICurrentUserService currentUser,
         AuthenticationUseCase authUseCase,
         IJwtTokenService jwtService,
-        SnakkDbContext context)
+        SnakkDbContext context,
+        CancellationToken ct)
     {
         var userIdValue = currentUser.GetCurrentUserId();
 
@@ -83,7 +84,7 @@ public static class MeEndpoints
 
             var userDbEntity = await context.Users
                 .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-                .FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value);
+                .FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value, ct);
 
             var roles = userDbEntity?.Roles
                 .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())

@@ -13,7 +13,7 @@ public class CommunityRepositoryAdapter(
     Infrastructure.Database.Repositories.ICommunityDatabaseRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.ICommunityRepository
 {
-    public async Task<Community?> GetByPublicIdAsync(CommunityId publicId)
+    public async Task<Community?> GetByPublicIdAsync(CommunityId publicId, CancellationToken ct = default)
     {
         var projection = await context.Communities
             .Where(c => c.PublicId == publicId.Value)
@@ -22,11 +22,11 @@ public class CommunityRepositoryAdapter(
                 c.VisibilityId, c.ExposeToPlatformFeed,
                 c.CreatedAt, c.LastModifiedAt,
                 c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<Community?> GetBySlugAsync(string slug)
+    public async Task<Community?> GetBySlugAsync(string slug, CancellationToken ct = default)
     {
         var projection = await context.Communities
             .Where(c => c.Slug == slug)
@@ -35,11 +35,11 @@ public class CommunityRepositoryAdapter(
                 c.VisibilityId, c.ExposeToPlatformFeed,
                 c.CreatedAt, c.LastModifiedAt,
                 c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<Community?> GetByDomainAsync(string domain)
+    public async Task<Community?> GetByDomainAsync(string domain, CancellationToken ct = default)
     {
         var projection = await context.Set<Database.Entities.CommunityDomainDatabaseEntity>()
             .Where(d =>
@@ -50,13 +50,13 @@ public class CommunityRepositoryAdapter(
                 d.Community.VisibilityId, d.Community.ExposeToPlatformFeed,
                 d.Community.CreatedAt, d.Community.LastModifiedAt,
                 d.Community.AvatarFileName, d.Community.AvatarThumbnailFileName, d.Community.AvatarMicroFileName, d.Community.AvatarRevision))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<PagedResult<Community>> GetPublicListedAsync(int offset, int pageSize)
+    public async Task<PagedResult<Community>> GetPublicListedAsync(int offset, int pageSize, CancellationToken ct = default)
     {
-        var result = await databaseRepository.GetPublicListedAsync(offset, pageSize);
+        var result = await databaseRepository.GetPublicListedAsync(offset, pageSize, ct);
 
         return new PagedResult<Community>
         {
@@ -77,9 +77,9 @@ public class CommunityRepositoryAdapter(
         };
     }
 
-    public async Task<PagedResult<Community>> GetForPlatformFeedAsync(int offset, int pageSize)
+    public async Task<PagedResult<Community>> GetForPlatformFeedAsync(int offset, int pageSize, CancellationToken ct = default)
     {
-        var result = await databaseRepository.GetForPlatformFeedAsync(offset, pageSize);
+        var result = await databaseRepository.GetForPlatformFeedAsync(offset, pageSize, ct);
 
         return new PagedResult<Community>
         {
@@ -100,16 +100,16 @@ public class CommunityRepositoryAdapter(
         };
     }
 
-    public async Task AddAsync(Community community)
+    public async Task AddAsync(Community community, CancellationToken ct = default)
     {
         var entity = community.ToPersistence();
-        await databaseRepository.AddAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateAsync(Community community)
+    public async Task UpdateAsync(Community community, CancellationToken ct = default)
     {
-        var entity = await context.Communities.FirstOrDefaultAsync(c => c.PublicId == community.PublicId.Value);
+        var entity = await context.Communities.FirstOrDefaultAsync(c => c.PublicId == community.PublicId.Value, ct);
 
         if (entity is null)
             throw new InvalidOperationException($"Community with PublicId '{community.PublicId}' not found");
@@ -128,8 +128,8 @@ public class CommunityRepositoryAdapter(
         entity.AvatarMicroFileName = community.AvatarMicroFileName;
         entity.AvatarRevision = community.AvatarRevision;
 
-        await databaseRepository.UpdateAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
 
         if (nameChanged || slugChanged)
         {
@@ -137,7 +137,7 @@ public class CommunityRepositoryAdapter(
                 .Where(s => s.Hub.CommunityId == entity.Id)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(sp => sp.CommunityName, entity.Name)
-                    .SetProperty(sp => sp.CommunitySlug, entity.Slug));
+                    .SetProperty(sp => sp.CommunitySlug, entity.Slug), ct);
         }
     }
 

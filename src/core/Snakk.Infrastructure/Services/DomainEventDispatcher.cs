@@ -7,15 +7,15 @@ using Snakk.Application.Events;
 
 public class DomainEventDispatcher(IServiceProvider serviceProvider) : IDomainEventDispatcher
 {
-    public async Task DispatchAsync(IEnumerable<IDomainEvent> events)
+    public async Task DispatchAsync(IEnumerable<IDomainEvent> events, CancellationToken ct = default)
     {
         foreach (var domainEvent in events)
         {
-            await DispatchAsync(domainEvent);
+            await DispatchAsync(domainEvent, ct);
         }
     }
 
-    public async Task DispatchAsync(IDomainEvent domainEvent)
+    public async Task DispatchAsync(IDomainEvent domainEvent, CancellationToken ct = default)
     {
         var eventType = domainEvent.GetType();
         var handlerType = typeof(IDomainEventHandler<>).MakeGenericType(eventType);
@@ -27,7 +27,7 @@ public class DomainEventDispatcher(IServiceProvider serviceProvider) : IDomainEv
 
             if (handleMethod is not null)
             {
-                var task = (Task?)handleMethod.Invoke(handler, [domainEvent]);
+                var task = (Task?)handleMethod.Invoke(handler, [domainEvent, ct]);
 
                 if (task is not null)
                     await task;

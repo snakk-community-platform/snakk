@@ -8,8 +8,9 @@ public class PrivacyModel(SnakkApiClient apiClient) : PageModel
 {
     public bool HidePresence { get; private set; }
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (User.Identity?.IsAuthenticated == true)
         {
             var me = await apiClient.GetCurrentUserAsync();

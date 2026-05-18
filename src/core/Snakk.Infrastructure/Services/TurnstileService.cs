@@ -12,7 +12,7 @@ public class TurnstileService(
 {
     private const string VerifyUrl = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
-    public async Task<bool> VerifyAsync(string token, string? remoteIp = null)
+    public async Task<bool> VerifyAsync(string token, string? remoteIp = null, CancellationToken ct = default)
     {
         var secretKey = configuration["Turnstile:SecretKey"];
 

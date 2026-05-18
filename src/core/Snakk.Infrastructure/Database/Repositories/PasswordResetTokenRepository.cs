@@ -12,7 +12,8 @@ public class PasswordResetTokenRepository(SnakkDbContext context) : IPasswordRes
         string tokenHash,
         DateTime expiresAt,
         string? createdFromIp,
-        string? createdUserAgent)
+        string? createdUserAgent,
+        CancellationToken ct = default)
     {
         var entity = new PasswordResetTokenDatabaseEntity
         {
@@ -25,11 +26,11 @@ public class PasswordResetTokenRepository(SnakkDbContext context) : IPasswordRes
             CreatedUserAgent = createdUserAgent
         };
 
-        await context.PasswordResetTokens.AddAsync(entity);
-        await context.SaveChangesAsync();
+        await context.PasswordResetTokens.AddAsync(entity, ct);
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task<PasswordResetTokenLookupDto?> GetByTokenHashAsync(string tokenHash)
+    public async Task<PasswordResetTokenLookupDto?> GetByTokenHashAsync(string tokenHash, CancellationToken ct = default)
         => await context.PasswordResetTokens
             .Where(t => t.TokenHash == tokenHash)
             .Select(t => new PasswordResetTokenLookupDto(
@@ -38,20 +39,20 @@ public class PasswordResetTokenRepository(SnakkDbContext context) : IPasswordRes
                 t.User.PublicId,
                 t.ExpiresAt,
                 t.UsedAt))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
-    public async Task MarkUsedAsync(int tokenId, string? usedFromIp, string? usedUserAgent)
+    public async Task MarkUsedAsync(int tokenId, string? usedFromIp, string? usedUserAgent, CancellationToken ct = default)
     {
-        var entity = await context.PasswordResetTokens.AsTracking().FirstOrDefaultAsync(t => t.Id == tokenId);
+        var entity = await context.PasswordResetTokens.AsTracking().FirstOrDefaultAsync(t => t.Id == tokenId, ct);
         if (entity is null) return;
 
         entity.UsedAt = DateTime.UtcNow;
         entity.UsedFromIp = usedFromIp;
         entity.UsedUserAgent = usedUserAgent;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task InvalidateAllForUserAsync(int userId)
+    public async Task InvalidateAllForUserAsync(int userId, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
         await context.PasswordResetTokens
@@ -59,6 +60,6 @@ public class PasswordResetTokenRepository(SnakkDbContext context) : IPasswordRes
                 t.UserId == userId
                 && t.UsedAt == null
                 && t.ExpiresAt > now)
-            .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsedAt, now));
+            .ExecuteUpdateAsync(s => s.SetProperty(t => t.UsedAt, now), ct);
     }
 }

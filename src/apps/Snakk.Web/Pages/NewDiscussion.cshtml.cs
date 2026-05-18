@@ -32,8 +32,10 @@ public class NewDiscussionModel(
     public async Task<IActionResult> OnGetAsync(
         [FromQuery] string? spaceId,
         [FromQuery] string? hubId,
-        [FromQuery] string? communityId)
+        [FromQuery] string? communityId,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         PreselectedSpaceId = spaceId;
         ScopeHubId = hubId;
         ScopeCommunityId = communityId;

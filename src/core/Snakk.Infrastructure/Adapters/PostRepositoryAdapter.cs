@@ -14,7 +14,7 @@ public class PostRepositoryAdapter(
     SnakkDbContext context,
     IConfiguration configuration) : Domain.Repositories.IPostRepository
 {
-    public async Task<Post?> GetByIdAsync(int id)
+    public async Task<Post?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var projection = await context.Posts
             .Where(p => p.Id == id)
@@ -25,11 +25,11 @@ public class PostRepositoryAdapter(
                 p.IsDeleted, p.HasCodeBlock,
                 p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
                 p.RevisionCount, p.WasNormalized))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<Post?> GetByPublicIdAsync(PostId publicId)
+    public async Task<Post?> GetByPublicIdAsync(PostId publicId, CancellationToken ct = default)
     {
         var projection = await context.Posts
             .Where(p => p.PublicId == publicId.Value)
@@ -40,11 +40,11 @@ public class PostRepositoryAdapter(
                 p.IsDeleted, p.HasCodeBlock,
                 p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
                 p.RevisionCount, p.WasNormalized))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<IEnumerable<Post>> GetByPublicIdsAsync(IEnumerable<PostId> publicIds)
+    public async Task<IEnumerable<Post>> GetByPublicIdsAsync(IEnumerable<PostId> publicIds, CancellationToken ct = default)
     {
         var publicIdStrings = publicIds
             .Select(id => id.Value)
@@ -75,14 +75,14 @@ public class PostRepositoryAdapter(
                 p.IsMilestone,
                 p.RevisionCount,
                 p.WasNormalized))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());
     }
 
-    public async Task<IEnumerable<Post>> GetByDiscussionIdAsync(DiscussionId discussionId)
+    public async Task<IEnumerable<Post>> GetByDiscussionIdAsync(DiscussionId discussionId, CancellationToken ct = default)
     {
-        var dbId = await context.Discussions.Where(d => d.PublicId == discussionId.Value).Select(d => d.Id).FirstOrDefaultAsync();
+        var dbId = await context.Discussions.Where(d => d.PublicId == discussionId.Value).Select(d => d.Id).FirstOrDefaultAsync(ct);
         var projections = await context.Posts
             .Where(p => p.DiscussionId == dbId)
             .OrderBy(p => p.CreatedAt)
@@ -93,7 +93,7 @@ public class PostRepositoryAdapter(
                 p.IsDeleted, p.HasCodeBlock,
                 p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
                 p.RevisionCount, p.WasNormalized))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());
     }
@@ -101,12 +101,13 @@ public class PostRepositoryAdapter(
     public async Task<PagedResult<Post>> GetPagedByDiscussionIdAsync(
         DiscussionId discussionId,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
         var discussionDbId = await context.Discussions
             .Where(d => d.PublicId == discussionId.Value)
             .Select(d => d.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (discussionDbId == 0)
             return new PagedResult<Post>
@@ -142,7 +143,7 @@ public class PostRepositoryAdapter(
                 p.IsMilestone,
                 p.RevisionCount,
                 p.WasNormalized))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = projections.Count > pageSize;
         var resultItems = hasMoreItems
@@ -160,15 +161,15 @@ public class PostRepositoryAdapter(
         };
     }
 
-    public async Task AddAsync(Post post)
+    public async Task AddAsync(Post post, CancellationToken ct = default)
     {
         var entity = post.ToPersistence();
 
         // Resolve foreign keys (sequential — EF Core DbContext is not thread-safe)
-        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == post.DiscussionId.Value)
+        var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == post.DiscussionId.Value, ct)
             ?? throw new InvalidOperationException($"Discussion with PublicId '{post.DiscussionId}' not found");
 
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == post.CreatedByUserId.Value)
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == post.CreatedByUserId.Value, ct)
             ?? throw new InvalidOperationException($"User with PublicId '{post.CreatedByUserId}' not found");
 
         entity.DiscussionId = discussion.Id;
@@ -187,31 +188,31 @@ public class PostRepositoryAdapter(
             entity.ReplyToPostId = await context.Posts
                 .Where(p => p.PublicId == post.ReplyToPostId.Value)
                 .Select(p => (int?)p.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
         }
 
         entity.IsOp = discussion.CreatedByUserId == user.Id;
 
         // Compute denormalized post flags (sequential — same DbContext)
         entity.IsUsersFirstPostInDiscussion = !await context.Posts
-            .AnyAsync(p => p.DiscussionId == discussion.Id && p.CreatedByUserId == user.Id);
+            .AnyAsync(p => p.DiscussionId == discussion.Id && p.CreatedByUserId == user.Id, ct);
 
         entity.IsUsersFirstPostInSpace = !await context.Posts
-            .AnyAsync(p => p.SpaceId == discussion.SpaceId && p.CreatedByUserId == user.Id);
+            .AnyAsync(p => p.SpaceId == discussion.SpaceId && p.CreatedByUserId == user.Id, ct);
 
         var necroDays = configuration.GetValue("PostFlags:NecroDays", 30);
         var lastPostDate = await context.Posts
             .Where(p => p.DiscussionId == discussion.Id && !p.IsDeleted)
             .OrderByDescending(p => p.CreatedAt)
             .Select(p => (DateTime?)p.CreatedAt)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         entity.IsNecro = lastPostDate.HasValue
             && (DateTime.UtcNow - lastPostDate.Value).TotalDays >= necroDays;
 
         var postCount = await context.Posts
             .Where(p => p.DiscussionId == discussion.Id)
-            .CountAsync();
+            .CountAsync(ct);
 
         var milestoneThresholds = configuration
             .GetSection("PostFlags:MilestoneThresholds")
@@ -220,13 +221,13 @@ public class PostRepositoryAdapter(
         entity.IsMilestone = milestoneThresholds.Contains(postCount + 1);
         entity.PlainTextExcerpt = StripMarkdown(post.Content);
 
-        await databaseRepository.AddAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateAsync(Post post)
+    public async Task UpdateAsync(Post post, CancellationToken ct = default)
     {
-        var entity = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == post.PublicId.Value);
+        var entity = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == post.PublicId.Value, ct);
 
         if (entity is null)
             throw new InvalidOperationException($"Post with PublicId '{post.PublicId}' not found");
@@ -240,32 +241,32 @@ public class PostRepositoryAdapter(
         entity.RevisionCount = post.RevisionCount;
         entity.WasNormalized = post.WasNormalized;
 
-        await databaseRepository.UpdateAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteAsync(Post post)
+    public async Task DeleteAsync(Post post, CancellationToken ct = default)
     {
-        var entity = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == post.PublicId.Value);
+        var entity = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == post.PublicId.Value, ct);
 
         if (entity is null)
             throw new InvalidOperationException($"Post with PublicId '{post.PublicId}' not found");
 
         context.Posts.Remove(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task AddRevisionAsync(PostRevision revision)
+    public async Task AddRevisionAsync(PostRevision revision, CancellationToken ct = default)
     {
         var entity = revision.ToPersistence();
 
         // Resolve foreign keys
-        var post = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == revision.PostId.Value);
+        var post = await context.Posts.FirstOrDefaultAsync(p => p.PublicId == revision.PostId.Value, ct);
 
         if (post is null)
             throw new InvalidOperationException($"Post with PublicId '{revision.PostId}' not found");
 
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == revision.EditedByUserId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == revision.EditedByUserId.Value, ct);
 
         if (user is null)
             throw new InvalidOperationException($"User with PublicId '{revision.EditedByUserId}' not found");
@@ -274,10 +275,10 @@ public class PostRepositoryAdapter(
         entity.EditedByUserId = user.Id;
 
         context.PostRevisions.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task<IEnumerable<PostRevision>> GetRevisionsAsync(PostId postId)
+    public async Task<IEnumerable<PostRevision>> GetRevisionsAsync(PostId postId, CancellationToken ct = default)
     {
         var revisions = await context.PostRevisions
             .Where(pr => pr.PostPublicId == postId.Value)
@@ -288,7 +289,7 @@ public class PostRepositoryAdapter(
                 pr.EditedByUserPublicId,
                 pr.RevisionNumber,
                 pr.CreatedAt })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return revisions.Select(r => PostRevision.Rehydrate(
             PostId.From(r.PostPublicId),
@@ -298,10 +299,10 @@ public class PostRepositoryAdapter(
             r.CreatedAt));
     }
 
-    public async Task<int> GetPostNumberInDiscussionAsync(DiscussionId discussionId, DateTime createdAt)
+    public async Task<int> GetPostNumberInDiscussionAsync(DiscussionId discussionId, DateTime createdAt, CancellationToken ct = default)
     {
         var discussionDbEntity = await context.Discussions
-            .FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
+            .FirstOrDefaultAsync(d => d.PublicId == discussionId.Value, ct);
 
         if (discussionDbEntity is null)
             return 0;
@@ -311,13 +312,13 @@ public class PostRepositoryAdapter(
                 p.DiscussionId == discussionDbEntity.Id
                 && !p.IsDeleted
                 && p.CreatedAt <= createdAt)
-            .CountAsync();
+            .CountAsync(ct);
     }
 
-    public async Task<Post?> GetFirstPostByDiscussionIdAsync(DiscussionId discussionId)
+    public async Task<Post?> GetFirstPostByDiscussionIdAsync(DiscussionId discussionId, CancellationToken ct = default)
     {
         var discussionDbEntity = await context.Discussions
-            .FirstOrDefaultAsync(d => d.PublicId == discussionId.Value);
+            .FirstOrDefaultAsync(d => d.PublicId == discussionId.Value, ct);
 
         if (discussionDbEntity is null)
             return null;
@@ -347,7 +348,7 @@ public class PostRepositoryAdapter(
                 p.IsMilestone,
                 p.RevisionCount,
                 p.WasNormalized))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         return projection?.ToDomain();
     }
@@ -357,7 +358,8 @@ public class PostRepositoryAdapter(
         HubId? hubId,
         SpaceId? spaceId,
         CommunityId? communityId,
-        int limit)
+        int limit,
+        CancellationToken ct = default)
     {
         var postsQuery = context.Posts
             .Where(p => p.CreatedAt >= since);
@@ -365,21 +367,21 @@ public class PostRepositoryAdapter(
         // Resolve public IDs to internal IDs once, outside the query
         if (communityId is not null)
         {
-            var dbId = await context.Communities.Where(c => c.PublicId == communityId.Value).Select(c => c.Id).FirstOrDefaultAsync();
+            var dbId = await context.Communities.Where(c => c.PublicId == communityId.Value).Select(c => c.Id).FirstOrDefaultAsync(ct);
             if (dbId == 0) return [];
             postsQuery = postsQuery.Where(p => p.CommunityId == dbId);
         }
 
         if (hubId is not null)
         {
-            var dbId = await context.Hubs.Where(h => h.PublicId == hubId.Value).Select(h => h.Id).FirstOrDefaultAsync();
+            var dbId = await context.Hubs.Where(h => h.PublicId == hubId.Value).Select(h => h.Id).FirstOrDefaultAsync(ct);
             if (dbId == 0) return [];
             postsQuery = postsQuery.Where(p => p.HubId == dbId);
         }
 
         if (spaceId is not null)
         {
-            var dbId = await context.Spaces.Where(s => s.PublicId == spaceId.Value).Select(s => s.Id).FirstOrDefaultAsync();
+            var dbId = await context.Spaces.Where(s => s.PublicId == spaceId.Value).Select(s => s.Id).FirstOrDefaultAsync(ct);
             if (dbId == 0) return [];
             postsQuery = postsQuery.Where(p => p.SpaceId == dbId);
         }
@@ -389,7 +391,7 @@ public class PostRepositoryAdapter(
             .Select(g => new { PublicId = g.Key, PostCount = g.Count() })
             .OrderByDescending(x => x.PostCount)
             .Take(limit)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return topContributors
             .Where(c => c.PublicId is not null)
@@ -401,27 +403,28 @@ public class PostRepositoryAdapter(
         HubId? hubId,
         SpaceId? spaceId,
         CommunityId? communityId,
-        int limit)
+        int limit,
+        CancellationToken ct = default)
     {
         var postsQuery = context.Posts.AsQueryable();
 
         if (communityId is not null)
         {
-            var dbId = await context.Communities.Where(c => c.PublicId == communityId.Value).Select(c => c.Id).FirstOrDefaultAsync();
+            var dbId = await context.Communities.Where(c => c.PublicId == communityId.Value).Select(c => c.Id).FirstOrDefaultAsync(ct);
             if (dbId == 0) return [];
             postsQuery = postsQuery.Where(p => p.CommunityId == dbId);
         }
 
         if (hubId is not null)
         {
-            var dbId = await context.Hubs.Where(h => h.PublicId == hubId.Value).Select(h => h.Id).FirstOrDefaultAsync();
+            var dbId = await context.Hubs.Where(h => h.PublicId == hubId.Value).Select(h => h.Id).FirstOrDefaultAsync(ct);
             if (dbId == 0) return [];
             postsQuery = postsQuery.Where(p => p.HubId == dbId);
         }
 
         if (spaceId is not null)
         {
-            var dbId = await context.Spaces.Where(s => s.PublicId == spaceId.Value).Select(s => s.Id).FirstOrDefaultAsync();
+            var dbId = await context.Spaces.Where(s => s.PublicId == spaceId.Value).Select(s => s.Id).FirstOrDefaultAsync(ct);
             if (dbId == 0) return [];
             postsQuery = postsQuery.Where(p => p.SpaceId == dbId);
         }
@@ -431,7 +434,7 @@ public class PostRepositoryAdapter(
             .Select(g => new { UserId = g.Key, LastPostAt = g.Max(p => p.CreatedAt) })
             .OrderByDescending(x => x.LastPostAt)
             .Take(limit)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return latestContributors
             .Where(c => c.UserId is not null)
@@ -441,13 +444,14 @@ public class PostRepositoryAdapter(
 
     public async Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(
         UserId userId,
-        DateTime startDate)
+        DateTime startDate,
+        CancellationToken ct = default)
     {
         // Get the internal user ID
         var userDbId = await context.Users
             .Where(u => u.PublicId == userId.Value)
             .Select(u => u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (userDbId == 0)
             return [];
@@ -461,17 +465,17 @@ public class PostRepositoryAdapter(
             .Select(g => new {
                 Date = g.Key,
                 Count = g.Count() })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return activity.Select(a => (a.Date, a.Count));
     }
 
-    public async Task<List<Domain.Repositories.TopSpaceForUser>> GetTopSpacesForUserAsync(UserId userId, int limit)
+    public async Task<List<Domain.Repositories.TopSpaceForUser>> GetTopSpacesForUserAsync(UserId userId, int limit, CancellationToken ct = default)
     {
         var userDbId = await context.Users
             .Where(u => u.PublicId == userId.Value)
             .Select(u => u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (userDbId == 0)
             return [];
@@ -482,7 +486,7 @@ public class PostRepositoryAdapter(
             .Select(g => new { SpaceId = g.Key, PostCount = g.Count() })
             .OrderByDescending(x => x.PostCount)
             .Take(limit)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         if (topSpaceData.Count == 0)
             return [];
@@ -501,7 +505,7 @@ public class PostRepositoryAdapter(
                 HubSlug = s.HubSlug,
                 CommunitySlug = s.CommunitySlug
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var spacesById = spaces.ToDictionary(s => s.Id);
 

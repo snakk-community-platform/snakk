@@ -16,8 +16,10 @@ public class ModeratorsModel(
         string scopeType,
         string scopeId,
         string moderatorsUrl = "/",
-        string rev = "")
+        string rev = "",
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=31536000, immutable";
 
         ModeratorsPageUrl = moderatorsUrl;

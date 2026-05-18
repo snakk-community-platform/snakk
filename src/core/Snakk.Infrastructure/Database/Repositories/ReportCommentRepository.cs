@@ -7,16 +7,16 @@ using Snakk.Infrastructure.Database.Entities;
 public class ReportCommentRepository(SnakkDbContext context)
     : GenericDatabaseRepository<ReportCommentDatabaseEntity>(context), IReportCommentRepository
 {
-    public async Task<ReportCommentDatabaseEntity?> GetByPublicIdAsync(string publicId) => await _dbSet
+    public async Task<ReportCommentDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .Include(rc => rc.AuthorUser)
         .Include(rc => rc.Report)
         .FirstOrDefaultAsync(rc =>
             rc.PublicId == publicId
-            && !rc.IsDeleted);
+            && !rc.IsDeleted, ct);
 
-    public async Task<IEnumerable<ReportCommentDatabaseEntity>> GetCommentsForReportAsync(int reportId) => await _dbSet
+    public async Task<IEnumerable<ReportCommentDatabaseEntity>> GetCommentsForReportAsync(int reportId, CancellationToken ct = default) => await _dbSet
         .Include(rc => rc.AuthorUser)
         .Where(rc => rc.ReportId == reportId && !rc.IsDeleted)
         .OrderBy(rc => rc.CreatedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 }

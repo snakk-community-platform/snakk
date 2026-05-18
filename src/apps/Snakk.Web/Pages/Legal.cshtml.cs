@@ -13,8 +13,9 @@ public class LegalModel(
     public new string Content { get; set; } = "";
     public int VersionNumber { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(string slug)
+    public async Task<IActionResult> OnGetAsync(string slug, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(slug))
             return NotFound();
 

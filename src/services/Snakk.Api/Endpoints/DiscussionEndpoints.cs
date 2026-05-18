@@ -138,6 +138,7 @@ public static class DiscussionEndpoints
         int offset,
         int pageSize,
         Application.Repositories.ISearchRepository searchRepo,
+        CancellationToken ct,
         string? communityId = null,
         string? cursor = null)
     {
@@ -145,7 +146,7 @@ public static class DiscussionEndpoints
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
         offset = Math.Max(0, offset);
 
-        var result = await searchRepo.GetRecentDiscussionsAsync(offset, pageSize, communityId, null, cursor, httpContext.User.GetUserIdString());
+        var result = await searchRepo.GetRecentDiscussionsAsync(offset, pageSize, communityId, null, cursor, httpContext.User.GetUserIdString(), ct: ct);
 
         return TypedResults.Ok(new PagedResponse<RecentDiscussionResponse>(
             Items: result.Items.Select(d => new RecentDiscussionResponse(

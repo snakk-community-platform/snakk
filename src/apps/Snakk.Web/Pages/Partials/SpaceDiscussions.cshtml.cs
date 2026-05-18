@@ -22,8 +22,9 @@ public class SpaceDiscussionsModel(
     public string SpaceSlug { get; set; } = string.Empty;
     public int? TypeFilter { get; set; }
 
-    public async Task OnGetAsync(string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null, string? cursor = null)
+    public async Task OnGetAsync(string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null, string? cursor = null, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=5";
 
         SpaceId = spaceId;

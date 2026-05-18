@@ -12,7 +12,8 @@ public class ConsentGrpcService(
     public override async Task<GetRequiredConsentsResponse> GetRequiredConsents(
         GetRequiredConsentsRequest request, ServerCallContext context)
     {
-        var consents = await consentService.GetActiveRequiredConsentsAsync();
+        var ct = context.CancellationToken;
+        var consents = await consentService.GetActiveRequiredConsentsAsync(ct);
 
         var response = new GetRequiredConsentsResponse();
         foreach (var c in consents)
@@ -35,8 +36,9 @@ public class ConsentGrpcService(
     public override async Task<GetPendingConsentsResponse> GetPendingConsents(
         GetPendingConsentsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
-        var pending = await consentService.GetPendingConsentsAsync(userId);
+        var pending = await consentService.GetPendingConsentsAsync(userId, ct);
 
         var response = new GetPendingConsentsResponse();
         foreach (var p in pending)
@@ -58,15 +60,17 @@ public class ConsentGrpcService(
     public override async Task<AcceptConsentsResponse> AcceptConsents(
         AcceptConsentsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
-        await consentService.AcceptConsentsAsync(userId, request.VersionIds, request.IpAddress);
+        await consentService.AcceptConsentsAsync(userId, request.VersionIds, request.IpAddress, ct);
         return new AcceptConsentsResponse { Success = true };
     }
 
     public override async Task<GetConsentTextResponse> GetConsentText(
         GetConsentTextRequest request, ServerCallContext context)
     {
-        var version = await consentService.GetLatestVersionAsync(request.Slug);
+        var ct = context.CancellationToken;
+        var version = await consentService.GetLatestVersionAsync(request.Slug, ct);
 
         if (version is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Consent type not found"));

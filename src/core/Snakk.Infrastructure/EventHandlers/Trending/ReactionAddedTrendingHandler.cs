@@ -7,16 +7,16 @@ using Snakk.Infrastructure.Database;
 
 public class ReactionAddedTrendingHandler(SnakkDbContext context) : IDomainEventHandler<ReactionAddedEvent>
 {
-    public async Task HandleAsync(ReactionAddedEvent @event)
+    public async Task HandleAsync(ReactionAddedEvent @event, CancellationToken cancellationToken = default)
     {
         var discussionPublicId = await context.Posts
             .Where(p => p.PublicId == @event.PostId.Value)
             .Select(p => p.Discussion.PublicId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (discussionPublicId is null)
             return;
 
-        await TrendScoreCalculator.RecalculateAsync(context, discussionPublicId);
+        await TrendScoreCalculator.RecalculateAsync(context, discussionPublicId, cancellationToken);
     }
 }

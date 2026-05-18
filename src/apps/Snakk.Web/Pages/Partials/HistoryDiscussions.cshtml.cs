@@ -13,8 +13,9 @@ public class HistoryDiscussionsModel(
     public bool ShowCommunity { get; set; }
     public ICommunityContext Community => communityContext;
 
-    public async Task<IActionResult> OnGetAsync(string? ids)
+    public async Task<IActionResult> OnGetAsync(string? ids, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(ids))
             return Content("", "text/html");
 

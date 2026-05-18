@@ -9,7 +9,7 @@ public class HubDeletedAvatarCleanupHandler(
     IAvatarGenerationService avatarService,
     ILogger<HubDeletedAvatarCleanupHandler> logger) : IDomainEventHandler<HubDeletedEvent>
 {
-    public async Task HandleAsync(HubDeletedEvent @event)
+    public async Task HandleAsync(HubDeletedEvent @event, CancellationToken cancellationToken = default)
     {
         try
         {

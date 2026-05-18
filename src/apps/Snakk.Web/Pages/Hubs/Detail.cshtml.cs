@@ -44,8 +44,9 @@ public class DetailModel(
     public SidebarHubRulesVM? InlineHubRules { get; set; }
     public SidebarModeratorsVM? InlineModerators { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(string slug, int offset = 0)
+    public async Task<IActionResult> OnGetAsync(string slug, int offset = 0, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Slug = slug;
 
         var hubResult = await _apiClient.GetHubBySlugResultAsync(slug, CommunityContext.CommunitySlug!);

@@ -17,8 +17,9 @@ public class SpaceRulesModel(
     public bool ParentHubHasRules { get; set; }
     public bool ParentCommunityHasRules { get; set; }
 
-    public async Task OnGetAsync(string spaceId, string rev = "")
+    public async Task OnGetAsync(string spaceId, string rev = "", CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=31536000, immutable";
 
         // Derive parent slugs and rule flags from the space

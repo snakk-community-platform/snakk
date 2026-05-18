@@ -57,7 +57,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             user.OAuthProvider,
             roles.FirstOrDefault(),
-            user.AvatarFileName);
+            user.AvatarFileName,
+            authVersion: user.AuthVersion);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 
@@ -115,7 +116,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             user.OAuthProvider,
             roles.FirstOrDefault(),
-            user.AvatarFileName);
+            user.AvatarFileName,
+            authVersion: user.AuthVersion);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 
@@ -165,7 +167,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             user.OAuthProvider,
             roles.FirstOrDefault(),
-            user.AvatarFileName);
+            user.AvatarFileName,
+            authVersion: user.AuthVersion);
 
         var needsConsent = !await consentService.HasAllRequiredConsentsAsync(user.PublicId.Value);
 
@@ -289,7 +292,8 @@ public class AuthGrpcService(
                 user.EmailVerified,
                 user.OAuthProvider,
                 roles.FirstOrDefault(),
-                user.AvatarFileName);
+                user.AvatarFileName,
+                authVersion: user.AuthVersion);
 
             return new UpdateProfileResponse
             {
@@ -387,7 +391,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             user.OAuthProvider,
             roles.FirstOrDefault(),
-            user.AvatarFileName);
+            user.AvatarFileName,
+            authVersion: user.AuthVersion);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 

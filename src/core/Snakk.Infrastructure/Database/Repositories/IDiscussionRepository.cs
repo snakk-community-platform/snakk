@@ -5,14 +5,14 @@ using Snakk.Shared.Models;
 
 public interface IDiscussionRepository : IGenericDatabaseRepository<DiscussionDatabaseEntity>
 {
-    Task<DiscussionDatabaseEntity?> GetForUpdateAsync(string publicId);
-    Task<DiscussionDetailDto?> GetForDisplayAsync(string publicId);
-    Task<DiscussionDatabaseEntity?> GetByPublicIdAsync(string publicId);
-    Task<DiscussionDatabaseEntity?> GetBySlugAsync(string slug);
-    Task<IEnumerable<DiscussionDatabaseEntity>> GetBySpaceIdAsync(int spaceId);
-    Task<PagedResult<DiscussionListDto>> GetPagedBySpaceIdAsync(int spaceId, int offset, int pageSize, string? cursor = null);
-    Task<IEnumerable<DiscussionDatabaseEntity>> GetRecentAsync(int count);
-    Task<PagedResult<RecentDiscussionDto>> GetRecentWithDetailsAsync(int offset, int pageSize, string? communityId = null, string? cursor = null);
+    Task<DiscussionDatabaseEntity?> GetForUpdateAsync(string publicId, CancellationToken ct = default);
+    Task<DiscussionDetailDto?> GetForDisplayAsync(string publicId, CancellationToken ct = default);
+    Task<DiscussionDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default);
+    Task<DiscussionDatabaseEntity?> GetBySlugAsync(string slug, CancellationToken ct = default);
+    Task<IEnumerable<DiscussionDatabaseEntity>> GetBySpaceIdAsync(int spaceId, CancellationToken ct = default);
+    Task<PagedResult<DiscussionListDto>> GetPagedBySpaceIdAsync(int spaceId, int offset, int pageSize, string? cursor = null, CancellationToken ct = default);
+    Task<IEnumerable<DiscussionDatabaseEntity>> GetRecentAsync(int count, CancellationToken ct = default);
+    Task<PagedResult<RecentDiscussionDto>> GetRecentWithDetailsAsync(int offset, int pageSize, string? communityId = null, string? cursor = null, CancellationToken ct = default);
 }
 
 public record DiscussionListDto(

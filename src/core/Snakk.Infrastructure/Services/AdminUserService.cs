@@ -21,7 +21,7 @@ public class AdminUserService(
         return await query(db);
     }
 
-    public async Task<AdminUserDto?> GetUserByIdAsync(string userId)
+    public async Task<AdminUserDto?> GetUserByIdAsync(string userId, CancellationToken ct = default)
     {
         var cacheKey = $"admin_user_{userId}";
 
@@ -37,20 +37,21 @@ public class AdminUserService(
                     CreatedAt = u.CreatedAt
                 })
                 .FirstOrDefaultAsync(cancel),
-            CacheOptions);
+            CacheOptions,
+            cancellationToken: ct);
     }
 
-    public async Task<bool> UserExistsAsync(string userId) =>
-        await context.Users.AnyAsync(u => u.PublicId == userId);
+    public async Task<bool> UserExistsAsync(string userId, CancellationToken ct = default) =>
+        await context.Users.AnyAsync(u => u.PublicId == userId, ct);
 
-    public async Task<PaginatedResponse<AdminBanDto>> GetActiveBansAsync(int page, int pageSize)
+    public async Task<PaginatedResponse<AdminBanDto>> GetActiveBansAsync(int page, int pageSize, CancellationToken ct = default)
     {
         var offset = (page - 1) * pageSize;
         var now = DateTime.UtcNow;
 
         var countTask = ReadAsync(db => db.UserBans
             .Where(b => b.UnbannedAt == null && (b.ExpiresAt == null || b.ExpiresAt > now))
-            .CountAsync());
+            .CountAsync(ct));
 
         var listTask = ReadAsync(db => db.UserBans
             .Where(b => b.UnbannedAt == null && (b.ExpiresAt == null || b.ExpiresAt > now))
@@ -65,7 +66,7 @@ public class AdminUserService(
                 BannedAt = b.BannedAt,
                 ExpiresAt = b.ExpiresAt
             })
-            .ToListAsync());
+            .ToListAsync(ct));
 
         await Task.WhenAll(countTask, listTask);
 

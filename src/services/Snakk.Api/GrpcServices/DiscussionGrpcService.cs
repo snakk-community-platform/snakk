@@ -32,6 +32,7 @@ public class DiscussionGrpcService(
 {
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await discussionUseCase.GetDiscussionAsync(DiscussionId.From(request.PublicId));
 
         if (!result.IsSuccess || result.Value is null)
@@ -39,9 +40,9 @@ public class DiscussionGrpcService(
 
         var d = result.Value;
 
-        if (!await IsDiscussionAccessibleAsync(d.PublicId.Value, currentUser.GetCurrentUserId()))
+        if (!await IsDiscussionAccessibleAsync(d.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
-        var postCount = await searchRepository.GetDiscussionPostCountAsync(d.PublicId.Value);
+        var postCount = await searchRepository.GetDiscussionPostCountAsync(d.PublicId.Value, ct);
         var info = new DiscussionInfo
         {
             PublicId = d.PublicId.Value,
@@ -64,6 +65,7 @@ public class DiscussionGrpcService(
 
     public override async Task<DiscussionsByIdsResponse> GetDiscussionsByIds(GetDiscussionsByIdsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var ids = request.PublicIds.Select(DiscussionId.From);
         var summaries = await discussionUseCase.GetDiscussionsByIdsAsync(ids);
 
@@ -91,7 +93,8 @@ public class DiscussionGrpcService(
 
     public override async Task<PagedRecentDiscussionList> GetRecentDiscussionsByIds(GetRecentDiscussionsByIdsRequest request, ServerCallContext context)
     {
-        var items = await searchRepository.GetRecentDiscussionsByPublicIdsAsync(request.PublicIds);
+        var ct = context.CancellationToken;
+        var items = await searchRepository.GetRecentDiscussionsByPublicIdsAsync(request.PublicIds, ct);
         var pagedResult = new PagedResult<RecentDiscussionDto>
         {
             Items = items,
@@ -110,20 +113,21 @@ public class DiscussionGrpcService(
         if (request.Content?.Length > 50000)
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Content must be 50,000 characters or less"));
 
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
 
-        if (!await IsSpaceAccessibleAsync(request.SpaceId, userId.Value))
+        if (!await IsSpaceAccessibleAsync(request.SpaceId, userId.Value, ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         // Enforce write permissions: Author or Write required to create discussions
-        var access = await groupAccessService.CheckAccessForSpaceAsync(userId.Value, request.SpaceId, context.CancellationToken);
+        var access = await groupAccessService.CheckAccessForSpaceAsync(userId.Value, request.SpaceId, ct);
         if (!access.CanAuthor)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "You don't have permission to create discussions here"));
 
         var type = (DiscussionTypeEnum)request.Type;
 
         // Validate type is allowed in this space
-        var effectiveTypes = await allowedTypesService.GetSpaceEffectiveAllowedTypesAsync(request.SpaceId);
+        var effectiveTypes = await allowedTypesService.GetSpaceEffectiveAllowedTypesAsync(request.SpaceId, ct);
         if (!effectiveTypes.Contains(type))
             throw new RpcException(new Status(StatusCode.InvalidArgument, $"Discussion type '{type}' is not allowed in this space"));
 
@@ -287,6 +291,7 @@ public class DiscussionGrpcService(
 
     public override async Task<PagedRecentDiscussionList> GetRecentDiscussions(GetRecentDiscussionsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await searchRepository.GetRecentDiscussionsAsync(
             request.Offset,
             request.PageSize,
@@ -297,7 +302,8 @@ public class DiscussionGrpcService(
             currentUser.GetCurrentUserId(),
             request.HasAuthorId ? request.AuthorId : null,
             request.SpaceIds.Count > 0 ? [.. request.SpaceIds] : null,
-            request.ViewerAllowsAdult);
+            request.ViewerAllowsAdult,
+            ct);
 
         var response = new PagedRecentDiscussionList
         {
@@ -455,38 +461,44 @@ public class DiscussionGrpcService(
 
     public override async Task<PagedRecentDiscussionList> GetTrendingDiscussions(GetTrendingDiscussionsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await searchRepository.GetTrendingDiscussionsAsync(
             request.Offset,
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
             userId: currentUser.GetCurrentUserId(),
-            viewerAllowsAdult: request.ViewerAllowsAdult);
+            viewerAllowsAdult: request.ViewerAllowsAdult,
+            ct: ct);
 
         return BuildPagedRecentDiscussionList(result);
     }
 
     public override async Task<PagedRecentDiscussionList> GetTopDiscussions(GetTopDiscussionsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await searchRepository.GetTopDiscussionsAsync(
             request.Offset,
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
             string.IsNullOrEmpty(request.TimePeriod) ? null : request.TimePeriod,
             userId: currentUser.GetCurrentUserId(),
-            viewerAllowsAdult: request.ViewerAllowsAdult);
+            viewerAllowsAdult: request.ViewerAllowsAdult,
+            ct: ct);
 
         return BuildPagedRecentDiscussionList(result);
     }
 
     public override async Task<PagedRecentDiscussionList> GetNewDiscussions(GetNewDiscussionsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await searchRepository.GetNewDiscussionsAsync(
             request.Offset,
             request.PageSize,
             request.HasCommunityId ? request.CommunityId : null,
             request.HasCursor ? request.Cursor : null,
             userId: currentUser.GetCurrentUserId(),
-            viewerAllowsAdult: request.ViewerAllowsAdult);
+            viewerAllowsAdult: request.ViewerAllowsAdult,
+            ct: ct);
 
         return BuildPagedRecentDiscussionList(result);
     }
@@ -649,6 +661,7 @@ public class DiscussionGrpcService(
 
     public override async Task<PagedDiscussionBySpaceList> GetDiscussionsBySpace(GetDiscussionsBySpaceRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         int? typeFilter = request.HasTypeFilter ? request.TypeFilter : null;
 
         var result = await searchRepository.GetDiscussionsBySpaceAsync(
@@ -658,7 +671,8 @@ public class DiscussionGrpcService(
             typeFilter,
             currentUser.GetCurrentUserId(),
             request.HasCursor ? request.Cursor : null,
-            request.ViewerAllowsAdult);
+            request.ViewerAllowsAdult,
+            ct);
 
         var response = new PagedDiscussionBySpaceList
         {
@@ -712,7 +726,8 @@ public class DiscussionGrpcService(
 
     public override async Task<DiscussionPreviewInfo> GetDiscussionPreview(GetDiscussionPreviewRequest request, ServerCallContext context)
     {
-        if (!await IsDiscussionAccessibleAsync(request.DiscussionId, currentUser.GetCurrentUserId()))
+        var ct = context.CancellationToken;
+        if (!await IsDiscussionAccessibleAsync(request.DiscussionId, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         var result = await discussionUseCase.GetFirstPostPreviewAsync(DiscussionId.From(request.DiscussionId));
@@ -725,7 +740,8 @@ public class DiscussionGrpcService(
 
     public override async Task<DiscussionStats> GetDiscussionStats(GetDiscussionStatsRequest request, ServerCallContext context)
     {
-        if (!await IsDiscussionAccessibleAsync(request.PublicId, currentUser.GetCurrentUserId()))
+        var ct = context.CancellationToken;
+        if (!await IsDiscussionAccessibleAsync(request.PublicId, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         var result = await statisticsUseCase.GetDiscussionStatsAsync(request.PublicId);
@@ -744,12 +760,12 @@ public class DiscussionGrpcService(
         };
     }
 
-    private async Task<bool> IsDiscussionAccessibleAsync(string discussionPublicId, string? userId)
+    private async Task<bool> IsDiscussionAccessibleAsync(string discussionPublicId, string? userId, CancellationToken ct = default)
     {
-        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync(ct);
         if (restricted.IsEmpty) return true;
 
-        var h = await hierarchyCache.GetDiscussionHierarchyAsync(discussionPublicId);
+        var h = await hierarchyCache.GetDiscussionHierarchyAsync(discussionPublicId, ct);
         if (h is null) return false;
 
         var spaceGate = restricted.SpaceIds.Contains(h.SpaceId);
@@ -759,7 +775,7 @@ public class DiscussionGrpcService(
         if (!spaceGate && !hubGate && !communityGate) return true;
         if (userId is null) return false;
 
-        var grants = await grantsCache.GetGrantsAsync(userId);
+        var grants = await grantsCache.GetGrantsAsync(userId, ct);
         return (!spaceGate || grants.SpaceIds.Contains(h.SpaceId))
             && (!hubGate || grants.HubIds.Contains(h.HubId))
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
@@ -769,8 +785,9 @@ public class DiscussionGrpcService(
 
     public override async Task<PollResponse> GetPoll(GetPollRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = currentUser.GetCurrentUserId();
-        var data = await pollService.GetPollAsync(request.DiscussionId, userId);
+        var data = await pollService.GetPollAsync(request.DiscussionId, userId, ct);
 
         if (data is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Poll not found"));
@@ -818,8 +835,9 @@ public class DiscussionGrpcService(
 
     public override async Task<VotePollResponse> VotePoll(VotePollRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
-        var (success, error) = await pollService.VoteAsync(request.DiscussionId, request.OptionId, userId.Value, request.HasSegmentIndex ? (int?)request.SegmentIndex : null);
+        var (success, error) = await pollService.VoteAsync(request.DiscussionId, request.OptionId, userId.Value, request.HasSegmentIndex ? (int?)request.SegmentIndex : null, ct);
 
         if (success) await BroadcastPollUpdatedAsync(request.DiscussionId);
         return new VotePollResponse { Success = success, Error = error };
@@ -827,8 +845,9 @@ public class DiscussionGrpcService(
 
     public override async Task<VotePollResponse> RemovePollVote(RemovePollVoteRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
-        var (success, error) = await pollService.RemoveVoteAsync(request.DiscussionId, request.OptionId, userId.Value);
+        var (success, error) = await pollService.RemoveVoteAsync(request.DiscussionId, request.OptionId, userId.Value, ct);
 
         if (success) await BroadcastPollUpdatedAsync(request.DiscussionId);
         return new VotePollResponse { Success = success, Error = error };
@@ -849,7 +868,8 @@ public class DiscussionGrpcService(
 
     public override async Task<QuestionStatusResponse> GetQuestionStatus(GetQuestionStatusRequest request, ServerCallContext context)
     {
-        var status = await typeQueryService.GetQuestionStatusAsync(request.DiscussionId);
+        var ct = context.CancellationToken;
+        var status = await typeQueryService.GetQuestionStatusAsync(request.DiscussionId, ct);
         if (status is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Question not found"));
 
@@ -863,8 +883,9 @@ public class DiscussionGrpcService(
 
     public override async Task<MarkQuestionSolvedResponse> MarkQuestionSolved(MarkQuestionSolvedRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
-        var (success, error) = await typeQueryService.MarkQuestionSolvedAsync(request.DiscussionId, request.PostPublicId, userId.Value);
+        var (success, error) = await typeQueryService.MarkQuestionSolvedAsync(request.DiscussionId, request.PostPublicId, userId.Value, ct);
         return new MarkQuestionSolvedResponse { Success = success, Error = error };
     }
 
@@ -872,7 +893,8 @@ public class DiscussionGrpcService(
 
     public override async Task<DebateInfoResponse> GetDebateInfo(GetDebateInfoRequest request, ServerCallContext context)
     {
-        var info = await typeQueryService.GetDebateInfoAsync(request.DiscussionId);
+        var ct = context.CancellationToken;
+        var info = await typeQueryService.GetDebateInfoAsync(request.DiscussionId, ct);
         if (info is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Debate not found"));
 
@@ -890,7 +912,8 @@ public class DiscussionGrpcService(
 
     public override async Task<DiscussionLinkResponse> GetDiscussionLink(GetDiscussionLinkRequest request, ServerCallContext context)
     {
-        var link = await typeQueryService.GetLinkInfoAsync(request.DiscussionId);
+        var ct = context.CancellationToken;
+        var link = await typeQueryService.GetLinkInfoAsync(request.DiscussionId, ct);
         if (link is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Link not found"));
 
@@ -912,8 +935,9 @@ public class DiscussionGrpcService(
 
     public override async Task<ImagesLayoutResponse> GetImagesLayout(GetImagesLayoutRequest request, ServerCallContext context)
     {
-        var (layout, isSpoiler) = await typeQueryService.GetImagesInfoAsync(request.DiscussionId);
-        var images = await typeQueryService.GetImagesListAsync(request.DiscussionId);
+        var ct = context.CancellationToken;
+        var (layout, isSpoiler) = await typeQueryService.GetImagesInfoAsync(request.DiscussionId, ct);
+        var images = await typeQueryService.GetImagesListAsync(request.DiscussionId, ct);
 
         var response = new ImagesLayoutResponse { Layout = layout ?? "grid", IsSpoiler = isSpoiler };
         foreach (var img in images)
@@ -936,7 +960,8 @@ public class DiscussionGrpcService(
 
     public override async Task<JournalEntriesResponse> GetJournalEntries(GetJournalEntriesRequest request, ServerCallContext context)
     {
-        var info = await typeQueryService.GetJournalInfoAsync(request.DiscussionId);
+        var ct = context.CancellationToken;
+        var info = await typeQueryService.GetJournalInfoAsync(request.DiscussionId, ct);
         if (info is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Journal not found"));
 
@@ -947,12 +972,13 @@ public class DiscussionGrpcService(
 
     public override async Task<SetPostDebatePositionResponse> SetPostDebatePosition(SetPostDebatePositionRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
-        var (success, error) = await typeQueryService.SetPostDebatePositionAsync(request.DiscussionId, request.PostPublicId, request.PositionId, userId.Value);
+        var (success, error) = await typeQueryService.SetPostDebatePositionAsync(request.DiscussionId, request.PostPublicId, request.PositionId, userId.Value, ct);
 
         if (success)
         {
-            var info = await typeQueryService.GetDebateInfoAsync(request.DiscussionId);
+            var info = await typeQueryService.GetDebateInfoAsync(request.DiscussionId, ct);
             if (info is not null)
             {
                 var totalPosts = info.Positions.Sum(p => p.PostCount);
@@ -969,8 +995,9 @@ public class DiscussionGrpcService(
 
     public override async Task<AddJournalEntryResponse> AddJournalEntry(AddJournalEntryRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
-        var (success, error) = await typeQueryService.AddJournalEntryAsync(request.DiscussionId, request.PostPublicId, userId.Value);
+        var (success, error) = await typeQueryService.AddJournalEntryAsync(request.DiscussionId, request.PostPublicId, userId.Value, ct);
         return new AddJournalEntryResponse { Success = success, Error = error };
     }
 
@@ -978,7 +1005,8 @@ public class DiscussionGrpcService(
 
     public override async Task<IamaInfoResponse> GetIamaInfo(GetIamaInfoRequest request, ServerCallContext context)
     {
-        var info = await typeQueryService.GetIamaInfoAsync(request.DiscussionId);
+        var ct = context.CancellationToken;
+        var info = await typeQueryService.GetIamaInfoAsync(request.DiscussionId, ct);
         if (info is null)
             throw new RpcException(new Status(StatusCode.NotFound, "AMA not found"));
 
@@ -1013,34 +1041,37 @@ public class DiscussionGrpcService(
 
     public override async Task<MarkIamaOfficialAnswerResponse> MarkIamaOfficialAnswer(MarkIamaOfficialAnswerRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var (success, error) = await typeQueryService.MarkIamaOfficialAnswerAsync(
-            request.DiscussionId, request.QuestionPostPublicId, request.AnswerPostPublicId, userId.Value);
+            request.DiscussionId, request.QuestionPostPublicId, request.AnswerPostPublicId, userId.Value, ct);
         return new MarkIamaOfficialAnswerResponse { Success = success, Error = error };
     }
 
     public override async Task<SetIamaBestQuestionsResponse> SetIamaBestQuestions(SetIamaBestQuestionsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var (success, error) = await typeQueryService.SetIamaBestQuestionsAsync(
-            request.DiscussionId, request.PostPublicIds.ToList(), userId.Value);
+            request.DiscussionId, request.PostPublicIds.ToList(), userId.Value, ct);
         return new SetIamaBestQuestionsResponse { Success = success, Error = error };
     }
 
     public override async Task<TransitionIamaPhaseResponse> TransitionIamaPhase(TransitionIamaPhaseRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var (success, error) = await typeQueryService.TransitionIamaPhaseAsync(
-            request.DiscussionId, request.NewPhase, userId.Value);
+            request.DiscussionId, request.NewPhase, userId.Value, ct);
         return new TransitionIamaPhaseResponse { Success = success, Error = error };
     }
 
-    private async Task<bool> IsSpaceAccessibleAsync(string spacePublicId, string? userId)
+    private async Task<bool> IsSpaceAccessibleAsync(string spacePublicId, string? userId, CancellationToken ct = default)
     {
-        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync(ct);
         if (restricted.IsEmpty) return true;
 
-        var h = await hierarchyCache.GetSpaceHierarchyAsync(spacePublicId);
+        var h = await hierarchyCache.GetSpaceHierarchyAsync(spacePublicId, ct);
         if (h is null) return false;
 
         var spaceGate = restricted.SpaceIds.Contains(h.Id);
@@ -1050,7 +1081,7 @@ public class DiscussionGrpcService(
         if (!spaceGate && !hubGate && !communityGate) return true;
         if (userId is null) return false;
 
-        var grants = await grantsCache.GetGrantsAsync(userId);
+        var grants = await grantsCache.GetGrantsAsync(userId, ct);
         return (!spaceGate || grants.SpaceIds.Contains(h.Id))
             && (!hubGate || grants.HubIds.Contains(h.HubId))
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));

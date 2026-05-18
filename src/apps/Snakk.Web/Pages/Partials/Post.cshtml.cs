@@ -18,8 +18,9 @@ public class PostModel(
     public bool IsDiscussionLocked { get; set; }
     public string DiscussionPublicId { get; set; } = string.Empty;
 
-    public async Task<IActionResult> OnGetAsync(string discussionId, string postId, bool isLocked = false)
+    public async Task<IActionResult> OnGetAsync(string discussionId, string postId, bool isLocked = false, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         IsDiscussionLocked = isLocked;
         DiscussionPublicId = discussionId;
 

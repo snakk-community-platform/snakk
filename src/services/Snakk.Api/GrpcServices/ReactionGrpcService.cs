@@ -16,6 +16,7 @@ public class ReactionGrpcService(
 {
     public override async Task<ToggleReactionResponse> ToggleReaction(ToggleReactionRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
 
         if (!System.Enum.TryParse<ReactionType>(request.ReactionType, true, out var reactionType))
@@ -34,6 +35,7 @@ public class ReactionGrpcService(
 
     public override async Task<ReactionCounts> GetReactionCounts(GetReactionCountsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var counts = await reactionUseCase.GetReactionCountsAsync(PostId.From(request.PostId));
 
         var response = new ReactionCounts();
@@ -46,6 +48,7 @@ public class ReactionGrpcService(
 
     public override async Task<UserReactions> GetMyReactions(GetMyReactionsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)
@@ -63,10 +66,11 @@ public class ReactionGrpcService(
     public override async Task<PagedReactedPostsList> GetMyReactedPosts(
         GetMyReactedPostsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var pageSize = Math.Clamp(request.PageSize, 1, 50);
         var result = await reactionQueryRepository.GetReactedPostsByUserAsync(
-            userId.Value, request.Offset, pageSize);
+            userId.Value, request.Offset, pageSize, ct);
 
         var response = new PagedReactedPostsList
         {
@@ -99,10 +103,11 @@ public class ReactionGrpcService(
     public override async Task<PagedReactedPostsList> GetMyReactedDiscussions(
         GetMyReactedPostsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var pageSize = Math.Clamp(request.PageSize, 1, 50);
         var result = await reactionQueryRepository.GetReactedDiscussionsByUserAsync(
-            userId.Value, request.Offset, pageSize);
+            userId.Value, request.Offset, pageSize, ct);
 
         var response = new PagedReactedPostsList
         {

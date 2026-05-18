@@ -7,10 +7,10 @@ namespace Snakk.Application.Services;
 /// </summary>
 public interface IEntityHierarchyCacheService
 {
-    Task<DiscussionHierarchy?> GetDiscussionHierarchyAsync(string publicId);
-    Task<SpaceHierarchy?> GetSpaceHierarchyAsync(string publicId);
-    Task<HubHierarchy?> GetHubHierarchyAsync(string publicId);
-    Task<int?> GetCommunityIdAsync(string publicId);
+    Task<DiscussionHierarchy?> GetDiscussionHierarchyAsync(string publicId, CancellationToken ct = default);
+    Task<SpaceHierarchy?> GetSpaceHierarchyAsync(string publicId, CancellationToken ct = default);
+    Task<HubHierarchy?> GetHubHierarchyAsync(string publicId, CancellationToken ct = default);
+    Task<int?> GetCommunityIdAsync(string publicId, CancellationToken ct = default);
 }
 
 /// <param name="SpaceId">Internal Space.Id</param>

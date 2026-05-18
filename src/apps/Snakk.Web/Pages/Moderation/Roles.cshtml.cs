@@ -51,8 +51,9 @@ public class RolesModel(
         _ => "badge-ghost"
     };
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         CanAdminister = await apiClient.CanAdministerAsync(CommunityId, HubId, SpaceId);
         if (!CanAdminister)
         {
@@ -82,8 +83,9 @@ public class RolesModel(
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAssignAsync()
+    public async Task<IActionResult> OnPostAssignAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
 
         if (AssignRequest is null || string.IsNullOrEmpty(AssignRequest.TargetUserId))
@@ -93,8 +95,9 @@ public class RolesModel(
         return RedirectToPage(new { UserId = AssignRequest.TargetUserId });
     }
 
-    public async Task<IActionResult> OnPostRevokeAsync(string roleId, string userId)
+    public async Task<IActionResult> OnPostRevokeAsync(string roleId, string userId, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
 
         await apiClient.RevokeRoleAsync(roleId);

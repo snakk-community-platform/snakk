@@ -8,23 +8,23 @@ using Snakk.Shared.Models;
 public class DiscussionRepository(SnakkDbContext context)
     : GenericDatabaseRepository<DiscussionDatabaseEntity>(context), IDiscussionRepository
 {
-    public override async Task<DiscussionDatabaseEntity?> GetByIdAsync(int id) =>
-        await _dbSet.FirstOrDefaultAsync(d => d.Id == id);
+    public override async Task<DiscussionDatabaseEntity?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(d => d.Id == id, ct);
 
-    public async Task<DiscussionDatabaseEntity?> GetForUpdateAsync(string publicId) => await _dbSet
+    public async Task<DiscussionDatabaseEntity?> GetForUpdateAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .AsTracking()
         .Include(d => d.Space)
         .Include(d => d.CreatedByUser)
-        .FirstOrDefaultAsync(d => d.PublicId == publicId);
+        .FirstOrDefaultAsync(d => d.PublicId == publicId, ct);
 
-    public override async Task<IEnumerable<DiscussionDatabaseEntity>> GetAllAsync() =>
+    public override async Task<IEnumerable<DiscussionDatabaseEntity>> GetAllAsync(CancellationToken ct = default) =>
         await _dbSet.AsNoTracking()
             .Include(d => d.Space)
             .Include(d => d.CreatedByUser)
             .Take(1000)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-    public async Task<DiscussionDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
+    public async Task<DiscussionDetailDto?> GetForDisplayAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .Where(d => d.PublicId == publicId)
         .Select(d => new DiscussionDetailDto(
             d.PublicId,
@@ -39,26 +39,27 @@ public class DiscussionRepository(SnakkDbContext context)
             d.Space.Name,
             d.CreatedByUserPublicId,
             d.CreatedByUser.DisplayName ?? ""))
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(ct);
 
-    public async Task<DiscussionDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
-        await _dbSet.FirstOrDefaultAsync(d => d.PublicId == publicId);
+    public async Task<DiscussionDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(d => d.PublicId == publicId, ct);
 
-    public async Task<DiscussionDatabaseEntity?> GetBySlugAsync(string slug) =>
-        await _dbSet.FirstOrDefaultAsync(d => d.Slug == slug);
+    public async Task<DiscussionDatabaseEntity?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(d => d.Slug == slug, ct);
 
-    public async Task<IEnumerable<DiscussionDatabaseEntity>> GetBySpaceIdAsync(int spaceId) => await _dbSet
+    public async Task<IEnumerable<DiscussionDatabaseEntity>> GetBySpaceIdAsync(int spaceId, CancellationToken ct = default) => await _dbSet
         .AsNoTracking()
         .Where(d => d.SpaceId == spaceId)
         .OrderByDescending(d => d.IsPinned)
         .ThenByDescending(d => d.LastActivityAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 
     public async Task<PagedResult<DiscussionListDto>> GetPagedBySpaceIdAsync(
         int spaceId,
         int offset,
         int pageSize,
-        string? cursor = null)
+        string? cursor = null,
+        CancellationToken ct = default)
     {
         var query = _dbSet.Where(d => d.SpaceId == spaceId);
 
@@ -103,7 +104,7 @@ public class DiscussionRepository(SnakkDbContext context)
                     d.ReactionCount,
                     string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems
@@ -131,17 +132,18 @@ public class DiscussionRepository(SnakkDbContext context)
         };
     }
 
-    public async Task<IEnumerable<DiscussionDatabaseEntity>> GetRecentAsync(int count) => await _dbSet
+    public async Task<IEnumerable<DiscussionDatabaseEntity>> GetRecentAsync(int count, CancellationToken ct = default) => await _dbSet
         .AsNoTracking()
         .OrderByDescending(d => d.LastActivityAt)
         .Take(count)
-        .ToListAsync();
+        .ToListAsync(ct);
 
     public async Task<PagedResult<RecentDiscussionDto>> GetRecentWithDetailsAsync(
         int offset,
         int pageSize,
         string? communityId = null,
-        string? cursor = null)
+        string? cursor = null,
+        CancellationToken ct = default)
     {
         var query = _dbSet.AsQueryable();
 
@@ -198,7 +200,7 @@ public class DiscussionRepository(SnakkDbContext context)
                     d.ReactionCount,
                     string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries))
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems

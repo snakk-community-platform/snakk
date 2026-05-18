@@ -6,12 +6,12 @@ using Snakk.Shared.Models;
 
 public interface IHubRepository
 {
-    Task<Hub?> GetByIdAsync(int id);
-    Task<Hub?> GetByPublicIdAsync(HubId publicId);
-    Task<Hub?> GetBySlugAsync(string slug, string communitySlug);
-    Task<IEnumerable<Hub>> GetAllAsync();
-    Task<PagedResult<Hub>> GetFilteredForDisplayAsync(int offset, int pageSize);
-    Task<PagedResult<Hub>> GetByCommunityAsync(CommunityId communityId, int offset, int pageSize, string? userId = null);
-    Task AddAsync(Hub hub);
-    Task UpdateAsync(Hub hub);
+    Task<Hub?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task<Hub?> GetByPublicIdAsync(HubId publicId, CancellationToken ct = default);
+    Task<Hub?> GetBySlugAsync(string slug, string communitySlug, CancellationToken ct = default);
+    Task<IEnumerable<Hub>> GetAllAsync(CancellationToken ct = default);
+    Task<PagedResult<Hub>> GetFilteredForDisplayAsync(int offset, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<Hub>> GetByCommunityAsync(CommunityId communityId, int offset, int pageSize, string? userId = null, CancellationToken ct = default);
+    Task AddAsync(Hub hub, CancellationToken ct = default);
+    Task UpdateAsync(Hub hub, CancellationToken ct = default);
 }

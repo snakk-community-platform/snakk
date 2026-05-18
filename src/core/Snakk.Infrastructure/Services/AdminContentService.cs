@@ -22,7 +22,7 @@ public class AdminContentService(
         return await query(db);
     }
 
-    public async Task<ContentOverviewDto> GetContentOverviewAsync()
+    public async Task<ContentOverviewDto> GetContentOverviewAsync(CancellationToken ct = default)
     {
         var cacheKey = "admin_content_overview";
 
@@ -45,13 +45,15 @@ public class AdminContentService(
                     TotalPosts = postTask.Result
                 };
             },
-            CacheOptions);
+            CacheOptions,
+            cancellationToken: ct);
     }
 
     public async Task<PaginatedResponse<AdminCommunityDto>> GetCommunitiesAsync(
         int page,
         int pageSize,
-        string? search)
+        string? search,
+        CancellationToken ct = default)
     {
         var offset = (page - 1) * pageSize;
 
@@ -60,7 +62,7 @@ public class AdminContentService(
             var q = db.Communities.AsQueryable();
             if (!string.IsNullOrWhiteSpace(search))
                 q = q.Where(c => c.Name.Contains(search) || c.Slug.Contains(search));
-            return q.CountAsync();
+            return q.CountAsync(ct);
         });
 
         var listTask = ReadAsync(db =>
@@ -79,7 +81,7 @@ public class AdminContentService(
                     HubCount = c.Hubs.Count,
                     CreatedAt = c.CreatedAt
                 })
-                .ToListAsync();
+                .ToListAsync(ct);
         });
 
         await Task.WhenAll(countTask, listTask);
@@ -97,7 +99,8 @@ public class AdminContentService(
         int page,
         int pageSize,
         string? search,
-        string? communityId)
+        string? communityId,
+        CancellationToken ct = default)
     {
         var offset = (page - 1) * pageSize;
 
@@ -108,7 +111,7 @@ public class AdminContentService(
                 q = q.Where(h => h.Community.Slug == communityId);
             if (!string.IsNullOrWhiteSpace(search))
                 q = q.Where(h => h.Name.Contains(search) || h.Slug.Contains(search));
-            return q.CountAsync();
+            return q.CountAsync(ct);
         });
 
         var listTask = ReadAsync(db =>
@@ -130,7 +133,7 @@ public class AdminContentService(
                     SpaceCount = h.Spaces.Count,
                     CreatedAt = h.CreatedAt
                 })
-                .ToListAsync();
+                .ToListAsync(ct);
         });
 
         await Task.WhenAll(countTask, listTask);
@@ -148,7 +151,8 @@ public class AdminContentService(
         int page,
         int pageSize,
         string? search,
-        string? hubId)
+        string? hubId,
+        CancellationToken ct = default)
     {
         var offset = (page - 1) * pageSize;
 
@@ -159,7 +163,7 @@ public class AdminContentService(
                 q = q.Where(s => s.HubSlug == hubId);
             if (!string.IsNullOrWhiteSpace(search))
                 q = q.Where(s => s.Name.Contains(search) || s.Slug.Contains(search));
-            return q.CountAsync();
+            return q.CountAsync(ct);
         });
 
         var listTask = ReadAsync(db =>
@@ -182,7 +186,7 @@ public class AdminContentService(
                     DiscussionCount = s.Discussions.Count,
                     CreatedAt = s.CreatedAt
                 })
-                .ToListAsync();
+                .ToListAsync(ct);
         });
 
         await Task.WhenAll(countTask, listTask);
@@ -202,7 +206,8 @@ public class AdminContentService(
         string? search,
         string? spaceId,
         bool? isPinned,
-        bool? isLocked)
+        bool? isLocked,
+        CancellationToken ct = default)
     {
         var offset = (page - 1) * pageSize;
 
@@ -217,7 +222,7 @@ public class AdminContentService(
                 q = q.Where(d => d.IsPinned == isPinned.Value);
             if (isLocked.HasValue)
                 q = q.Where(d => d.IsLocked == isLocked.Value);
-            return q.CountAsync();
+            return q.CountAsync(ct);
         });
 
         var listTask = ReadAsync(db =>
@@ -245,7 +250,7 @@ public class AdminContentService(
                     PostCount = d.PostCount,
                     CreatedAt = d.CreatedAt
                 })
-                .ToListAsync();
+                .ToListAsync(ct);
         });
 
         await Task.WhenAll(countTask, listTask);
@@ -259,15 +264,15 @@ public class AdminContentService(
         };
     }
 
-    public async Task<bool> PinDiscussionAsync(string id, string adminUserId)
+    public async Task<bool> PinDiscussionAsync(string id, string adminUserId, CancellationToken ct = default)
     {
-        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id, ct);
 
         if (discussion is null)
             return false;
 
         discussion.IsPinned = true;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         await securityService.LogAuditAsync(
             adminUserId,
@@ -282,15 +287,15 @@ public class AdminContentService(
         return true;
     }
 
-    public async Task<bool> UnpinDiscussionAsync(string id, string adminUserId)
+    public async Task<bool> UnpinDiscussionAsync(string id, string adminUserId, CancellationToken ct = default)
     {
-        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id, ct);
 
         if (discussion is null)
             return false;
 
         discussion.IsPinned = false;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         await securityService.LogAuditAsync(
             adminUserId,
@@ -305,15 +310,15 @@ public class AdminContentService(
         return true;
     }
 
-    public async Task<bool> LockDiscussionAsync(string id, string adminUserId)
+    public async Task<bool> LockDiscussionAsync(string id, string adminUserId, CancellationToken ct = default)
     {
-        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id, ct);
 
         if (discussion is null)
             return false;
 
         discussion.IsLocked = true;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         await securityService.LogAuditAsync(
             adminUserId,
@@ -328,15 +333,15 @@ public class AdminContentService(
         return true;
     }
 
-    public async Task<bool> UnlockDiscussionAsync(string id, string adminUserId)
+    public async Task<bool> UnlockDiscussionAsync(string id, string adminUserId, CancellationToken ct = default)
     {
-        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id, ct);
 
         if (discussion is null)
             return false;
 
         discussion.IsLocked = false;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         await securityService.LogAuditAsync(
             adminUserId,
@@ -351,16 +356,16 @@ public class AdminContentService(
         return true;
     }
 
-    public async Task<bool> DeleteDiscussionAsync(string id, string adminUserId)
+    public async Task<bool> DeleteDiscussionAsync(string id, string adminUserId, CancellationToken ct = default)
     {
-        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id);
+        var discussion = await context.Discussions.AsTracking().FirstOrDefaultAsync(d => d.Slug == id, ct);
 
         if (discussion is null)
             return false;
 
         var title = discussion.Title; // Store for audit log
         context.Discussions.Remove(discussion);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         await securityService.LogAuditAsync(
             adminUserId,

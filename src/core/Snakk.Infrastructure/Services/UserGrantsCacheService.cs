@@ -32,7 +32,7 @@ public class UserGrantsCacheService(
     private string UserGrantsKey(string userId) =>
         $"user-grants:{userId}:{GetGeneration()}";
 
-    public async Task<UserGrants> GetGrantsAsync(string userId)
+    public async Task<UserGrants> GetGrantsAsync(string userId, CancellationToken ct = default)
     {
         var key = UserGrantsKey(userId);
 
@@ -44,7 +44,7 @@ public class UserGrantsCacheService(
             .SelectMany(gm => context.GroupAccess.Where(ga =>
                 ga.GroupId == gm.GroupId && ga.AccessLevel >= (int)AccessLevelEnum.Read))
             .Select(ga => new { ga.SpaceId, ga.HubId, ga.CommunityId })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var grants = new UserGrants(
             SpaceIds: raw
@@ -81,7 +81,7 @@ public class UserGrantsCacheService(
     // handles the normal case immediately.
     private const string RestrictedEntitiesKey = "restricted-entities";
 
-    public async Task<RestrictedEntitySet> GetRestrictedEntitiesAsync()
+    public async Task<RestrictedEntitySet> GetRestrictedEntitiesAsync(CancellationToken ct = default)
     {
         if (cache.TryGetValue(RestrictedEntitiesKey, out RestrictedEntitySet? cached) && cached is not null)
             return cached;
@@ -89,17 +89,17 @@ public class UserGrantsCacheService(
         var spaceIds = await context.Spaces
             .Where(s => s.IsRestricted)
             .Select(s => s.Id)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hubIds = await context.Hubs
             .Where(h => h.IsRestricted)
             .Select(h => h.Id)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var communityIds = await context.Communities
             .Where(c => c.IsRestricted)
             .Select(c => c.Id)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var result = spaceIds.Count == 0 && hubIds.Count == 0 && communityIds.Count == 0
             ? RestrictedEntitySet.Empty
@@ -116,8 +116,8 @@ public class UserGrantsCacheService(
         return result;
     }
 
-    public async Task<bool> AnyRestrictedAsync() =>
-        !(await GetRestrictedEntitiesAsync()).IsEmpty;
+    public async Task<bool> AnyRestrictedAsync(CancellationToken ct = default) =>
+        !(await GetRestrictedEntitiesAsync(ct)).IsEmpty;
 
     public void InvalidateRestrictedCount() =>
         cache.Remove(RestrictedEntitiesKey);
@@ -126,7 +126,7 @@ public class UserGrantsCacheService(
 
     private const string AdultHidingSpacesKey = "adult-hiding-spaces";
 
-    public async Task<HashSet<int>> GetAdultHidingSpaceIdsAsync()
+    public async Task<HashSet<int>> GetAdultHidingSpaceIdsAsync(CancellationToken ct = default)
     {
         if (cache.TryGetValue(AdultHidingSpacesKey, out HashSet<int>? cached) && cached is not null)
             return cached;
@@ -134,7 +134,7 @@ public class UserGrantsCacheService(
         var spaceIds = await context.Spaces
             .Where(s => s.CommunityHideAdultDiscussionsFromLists)
             .Select(s => s.Id)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         HashSet<int> result = [.. spaceIds];
 

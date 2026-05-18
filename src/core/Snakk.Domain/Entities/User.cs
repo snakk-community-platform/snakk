@@ -39,6 +39,8 @@ public class User
     public DateTime? LastLoginAt { get; private set; }
     public int FailedLoginAttempts { get; private set; }
     public DateTime? LockoutEnd { get; private set; }
+    public long AuthVersion { get; private set; } = 1;
+    public DateTime AuthVersionUpdatedAt { get; private set; }
 
     private readonly List<IDomainEvent> _domainEvents = [];
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -82,7 +84,9 @@ public class User
         DateTime? lockoutEnd = null,
         AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show,
         bool hidePresence = false,
-        DateTime? emailVerificationTokenCreatedAt = null)
+        DateTime? emailVerificationTokenCreatedAt = null,
+        long authVersion = 1,
+        DateTime? authVersionUpdatedAt = null)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -117,6 +121,8 @@ public class User
         LastModifiedAt = lastModifiedAt;
         LastSeenAt = lastSeenAt;
         LastLoginAt = lastLoginAt;
+        AuthVersion = authVersion;
+        AuthVersionUpdatedAt = authVersionUpdatedAt ?? DateTime.UtcNow;
     }
 
     public static User CreateWithEmail(
@@ -252,7 +258,9 @@ public class User
         DateTime? lockoutEnd = null,
         AdultPreviewImageModeEnum adultPreviewImageMode = AdultPreviewImageModeEnum.Show,
         bool hidePresence = false,
-        DateTime? emailVerificationTokenCreatedAt = null) =>
+        DateTime? emailVerificationTokenCreatedAt = null,
+        long authVersion = 1,
+        DateTime? authVersionUpdatedAt = null) =>
         new User(
             publicId,
             displayName,
@@ -286,7 +294,9 @@ public class User
             lockoutEnd,
             adultPreviewImageMode,
             hidePresence,
-            emailVerificationTokenCreatedAt);
+            emailVerificationTokenCreatedAt,
+            authVersion,
+            authVersionUpdatedAt);
 
     public void UpdateDisplayName(string displayName)
     {
@@ -444,6 +454,12 @@ public class User
     {
         FeedToken = null;
         LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void IncrementAuthVersion()
+    {
+        AuthVersion++;
+        AuthVersionUpdatedAt = DateTime.UtcNow;
     }
 
     public void AddDomainEvent(IDomainEvent domainEvent)

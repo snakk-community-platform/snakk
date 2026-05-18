@@ -22,7 +22,7 @@ public record PollOptionData(int Id, string Text, int VoteCount, int DisplayOrde
 
 public interface IPollService
 {
-    Task<PollData?> GetPollAsync(string discussionPublicId, string? userPublicId = null);
-    Task<(bool Success, string? Error)> VoteAsync(string discussionPublicId, int optionId, string userPublicId, int? segmentIndex = null);
-    Task<(bool Success, string? Error)> RemoveVoteAsync(string discussionPublicId, int optionId, string userPublicId);
+    Task<PollData?> GetPollAsync(string discussionPublicId, string? userPublicId = null, CancellationToken ct = default);
+    Task<(bool Success, string? Error)> VoteAsync(string discussionPublicId, int optionId, string userPublicId, int? segmentIndex = null, CancellationToken ct = default);
+    Task<(bool Success, string? Error)> RemoveVoteAsync(string discussionPublicId, int optionId, string userPublicId, CancellationToken ct = default);
 }

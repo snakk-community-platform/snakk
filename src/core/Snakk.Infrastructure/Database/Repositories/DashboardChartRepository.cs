@@ -8,14 +8,14 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
 {
     private readonly SnakkDbContext _context = context;
 
-    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query)
+    private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query, CancellationToken ct = default)
     {
-        await using var db = await dbFactory.CreateDbContextAsync();
+        await using var db = await dbFactory.CreateDbContextAsync(ct);
         return await query(db);
     }
 
     public async Task<List<DailyActivityData>> GetDailyActivityAsync(
-        string scopeType, string scopePublicId, int days)
+        string scopeType, string scopePublicId, int days, CancellationToken ct = default)
     {
         var since = DateTime.UtcNow.Date.AddDays(-days);
 
@@ -32,7 +32,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 .GroupBy(d => d.CreatedAt.Date)
                 .Select(g => new { Date = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Date, x => x.Count);
-        });
+        }, ct);
 
         var postTask = ReadAsync(db =>
         {
@@ -47,7 +47,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 .GroupBy(p => p.CreatedAt.Date)
                 .Select(g => new { Date = g.Key, Count = g.Count() })
                 .ToDictionaryAsync(x => x.Date, x => x.Count);
-        });
+        }, ct);
 
         await Task.WhenAll(discussTask, postTask);
         var discussionsByDay = discussTask.Result;
@@ -66,7 +66,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
     }
 
     public async Task<List<WeeklyModerationData>> GetWeeklyModerationAsync(
-        string scopeType, string scopePublicId, int weeks)
+        string scopeType, string scopePublicId, int weeks, CancellationToken ct = default)
     {
         var since = StartOfWeek(DateTime.UtcNow).AddDays(-7d * weeks);
 
@@ -83,7 +83,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 .GroupBy(r => r.CreatedAt.Date)
                 .Select(g => new { Date = g.Key, Count = g.Count() })
                 .ToListAsync();
-        });
+        }, ct);
 
         var resolvedTask = ReadAsync(db =>
         {
@@ -98,7 +98,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 .GroupBy(r => r.ResolvedAt!.Value.Date)
                 .Select(g => new { Date = g.Key, Count = g.Count() })
                 .ToListAsync();
-        });
+        }, ct);
 
         await Task.WhenAll(openedTask, resolvedTask);
         var openedByWeek   = openedTask.Result;
@@ -126,7 +126,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
     }
 
     public async Task<List<ReactionBreakdownData>> GetReactionBreakdownAsync(
-        string scopeType, string scopePublicId, int days)
+        string scopeType, string scopePublicId, int days, CancellationToken ct = default)
     {
         var since = DateTime.UtcNow.Date.AddDays(-days);
 
@@ -145,7 +145,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
             .Where(r => r.CreatedAt >= since)
             .GroupBy(r => r.TypeId)
             .Select(g => new { TypeId = g.Key, Count = g.Count() })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return grouped
             .Select(g => new ReactionBreakdownData(
@@ -156,7 +156,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
     }
 
     public async Task<List<ContentTypeBreakdownData>> GetContentTypeBreakdownAsync(
-        string scopeType, string scopePublicId, int days)
+        string scopeType, string scopePublicId, int days, CancellationToken ct = default)
     {
         var since = DateTime.UtcNow.Date.AddDays(-days);
 
@@ -175,7 +175,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
             .Where(d => !d.IsDeleted && d.CreatedAt >= since)
             .GroupBy(d => d.Type)
             .Select(g => new { Type = g.Key, Count = g.Count() })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return grouped
             .Select(g => new ContentTypeBreakdownData(
@@ -186,7 +186,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
     }
 
     public async Task<List<DailyEngagementData>> GetDailyEngagementAsync(
-        string scopeType, string scopePublicId, int days)
+        string scopeType, string scopePublicId, int days, CancellationToken ct = default)
     {
         var since = DateTime.UtcNow.Date.AddDays(-days);
 
@@ -205,7 +205,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
             .Where(r => r.CreatedAt >= since)
             .GroupBy(r => r.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(x => x.Date, x => x.Count);
+            .ToDictionaryAsync(x => x.Date, x => x.Count, ct);
 
         var result = new List<DailyEngagementData>();
 
@@ -219,7 +219,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
     }
 
     public async Task<List<TopDiscussionData>> GetTopDiscussionsAsync(
-        string scopeType, string scopePublicId, int days, int count = 10)
+        string scopeType, string scopePublicId, int days, int count = 10, CancellationToken ct = default)
     {
         var since = DateTime.UtcNow.Date.AddDays(-days);
 
@@ -245,7 +245,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 d.Space.Slug,
                 d.PostCount,
                 d.ReactionCount))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     private static DateTime StartOfWeek(DateTime date)

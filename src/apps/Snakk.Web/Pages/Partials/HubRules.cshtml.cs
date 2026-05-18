@@ -15,8 +15,9 @@ public class HubRulesModel(
     public string CommunitySlug { get; set; } = string.Empty;
     public bool ParentCommunityHasRules { get; set; }
 
-    public async Task OnGetAsync(string hubId, string rev = "")
+    public async Task OnGetAsync(string hubId, string rev = "", CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=31536000, immutable";
 
         // Derive community slug and rule flags from the hub

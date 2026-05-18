@@ -21,6 +21,7 @@ public class StatisticsGrpcService(
 
     public override async Task<PlatformStats> GetPlatformStats(GetPlatformStatsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var stats = await statisticsUseCase.GetPlatformStatsAsync();
 
         return new PlatformStats
@@ -34,6 +35,7 @@ public class StatisticsGrpcService(
 
     public override async Task<TopActiveDiscussionsList> GetTopActiveDiscussionsToday(GetTopActiveDiscussionsTodayRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await statisticsUseCase.GetTopActiveDiscussionsTodayAsync(
             GetTrendingSince(),
             request.HasHubId ? request.HubId : null,
@@ -86,6 +88,7 @@ public class StatisticsGrpcService(
 
     public override async Task<TopActiveSpacesList> GetTopActiveSpacesToday(GetTopActiveSpacesTodayRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var spaces = await statisticsUseCase.GetTopActiveSpacesTodayAsync(
             GetTrendingSince(),
             request.HasHubId ? request.HubId : null,
@@ -117,6 +120,7 @@ public class StatisticsGrpcService(
 
     public override async Task<TopContributorsList> GetTopContributorsToday(GetTopContributorsTodayRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await statisticsUseCase.GetTopContributorsTodayAsync(
             GetTrendingSince(),
             request.HasHubId ? request.HubId : null,
@@ -194,6 +198,7 @@ public class StatisticsGrpcService(
 
     public override async Task<TopActiveSpacesList> GetTrendingSpaces(GetTrendingSpacesRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var since = DateTime.UtcNow.AddDays(-configuration.GetValue("Trending:SpacesLookbackDays", 7));
         var spaces = await statisticsUseCase.GetTrendingSpacesAsync(
             since,
@@ -205,6 +210,7 @@ public class StatisticsGrpcService(
 
     public override async Task<TopContributorsList> GetTrendingContributors(GetTrendingContributorsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var since = DateTime.UtcNow.AddDays(-configuration.GetValue("Trending:ContributorsLookbackDays", 7));
         var result = await statisticsUseCase.GetTrendingContributorsAsync(
             since,
@@ -217,6 +223,7 @@ public class StatisticsGrpcService(
 
     public override async Task<TopActiveSpacesList> GetTopSpacesByPeriod(GetTopSpacesByPeriodRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var since = GetPeriodSince(request.TimePeriod);
         var spaces = await statisticsUseCase.GetTopSpacesByPeriodAsync(
             since,
@@ -228,6 +235,7 @@ public class StatisticsGrpcService(
 
     public override async Task<TopContributorsList> GetTopContributorsByPeriod(GetTopContributorsByPeriodRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var since = GetPeriodSince(request.TimePeriod);
         var result = await statisticsUseCase.GetTopContributorsByPeriodAsync(
             since,
@@ -240,6 +248,7 @@ public class StatisticsGrpcService(
 
     public override async Task<LatestSpacesList> GetLatestActiveSpaces(GetLatestActiveSpacesRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var spaces = await statisticsUseCase.GetLatestActiveSpacesAsync(
             request.HasHubId ? request.HubId : null,
             request.HasCommunityId ? request.CommunityId : null,
@@ -262,6 +271,7 @@ public class StatisticsGrpcService(
 
     public override async Task<LatestContributorsList> GetLatestContributors(GetLatestContributorsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await statisticsUseCase.GetLatestContributorsAsync(
             request.HasHubId ? request.HubId : null,
             request.HasSpaceId ? request.SpaceId : null,
@@ -287,6 +297,7 @@ public class StatisticsGrpcService(
 
     public override async Task<UserActivityHistory> GetUserActivityHistory(GetUserActivityHistoryRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await statisticsUseCase.GetUserActivityHistoryAsync(request.PublicId, request.Days);
 
         if (!result.IsSuccess || result.Value is null)
@@ -314,6 +325,7 @@ public class StatisticsGrpcService(
 
     public override async Task<UserStats> GetUserStats(GetUserStatsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await statisticsUseCase.GetUserStatsAsync(request.PublicId);
 
         if (!result.IsSuccess || result.Value is null)
@@ -341,6 +353,7 @@ public class StatisticsGrpcService(
 
     public override async Task<SparklineResponse> GetActivitySparkline(SparklineRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var entityType = request.EntityType switch
         {
             "community"  => ActivityEntityTypeEnum.Community,
@@ -354,7 +367,7 @@ public class StatisticsGrpcService(
         var days = Math.Clamp(request.Days, 1, 90);
         var publicId = string.IsNullOrEmpty(request.PublicId) ? null : request.PublicId;
 
-        var data = await activitySnapshotRepository.GetSparklineAsync(entityType, publicId, days, context.CancellationToken);
+        var data = await activitySnapshotRepository.GetSparklineAsync(entityType, publicId, days, ct);
 
         var response = new SparklineResponse();
         foreach (var d in data)
@@ -372,9 +385,10 @@ public class StatisticsGrpcService(
     public override async Task<SparklineBatchResponse> GetActivitySparklinesBatch(
         SparklineBatchRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var days = Math.Clamp(request.Days, 1, 90);
         var data = await activitySnapshotRepository.GetSparklinesForSpacesAsync(
-            request.PublicIds, days, context.CancellationToken);
+            request.PublicIds, days, ct);
 
         var response = new SparklineBatchResponse();
         foreach (var (publicId, sparkline) in data)

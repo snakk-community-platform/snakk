@@ -25,6 +25,7 @@ public class PostGrpcService(
         if (request.PageSize > 200)
             throw new RpcException(new Status(StatusCode.InvalidArgument, "PageSize must be 200 or less"));
 
+        var ct = context.CancellationToken;
         UserId? currentUserId = null;
         string? currentUserIdValue = null;
 
@@ -35,7 +36,7 @@ public class PostGrpcService(
             if (currentUserIdValue is not null) currentUserId = UserId.From(currentUserIdValue);
         }
 
-        if (!await IsDiscussionAccessibleAsync(request.DiscussionId, currentUserIdValue))
+        if (!await IsDiscussionAccessibleAsync(request.DiscussionId, currentUserIdValue, ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         var result = await postUseCase.GetEnrichedPostsByDiscussionAsync(
@@ -130,16 +131,17 @@ public class PostGrpcService(
         if (request.Content?.Length > 50000)
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Content must be 50,000 characters or less"));
 
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
 
-        if (!await IsDiscussionAccessibleAsync(request.DiscussionId, userId.Value))
+        if (!await IsDiscussionAccessibleAsync(request.DiscussionId, userId.Value, ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
         // Enforce write permissions:
         // Write = can reply to any discussion
         // Author = can only reply to own discussions
         var (access, authorId) = await groupAccessService.CheckAccessForDiscussionAsync(
-            userId.Value, request.DiscussionId, context.CancellationToken);
+            userId.Value, request.DiscussionId, ct);
 
         if (!access.CanWrite && !(access.CanAuthor && authorId == userId.Value))
             throw new RpcException(new Status(StatusCode.PermissionDenied, "You don't have permission to reply here"));
@@ -172,6 +174,7 @@ public class PostGrpcService(
 
     public override async Task<EditPostResponse> EditPost(EditPostRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
 
         var result = await postUseCase.UpdatePostAsync(
@@ -194,6 +197,7 @@ public class PostGrpcService(
 
     public override async Task<PostNumberResponse> GetPostNumber(GetPostNumberRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await discussionUseCase.GetPostNumberAsync(
             DiscussionId.From(request.DiscussionId),
             PostId.From(request.PostId));
@@ -206,6 +210,7 @@ public class PostGrpcService(
 
     public override async Task<PostHistoryResponse> GetPostHistory(GetPostHistoryRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         RequireAuth();
 
         var revisions = await postUseCase.GetPostHistoryAsync(PostId.From(request.PostId));
@@ -223,12 +228,12 @@ public class PostGrpcService(
         return response;
     }
 
-    private async Task<bool> IsDiscussionAccessibleAsync(string discussionPublicId, string? userId)
+    private async Task<bool> IsDiscussionAccessibleAsync(string discussionPublicId, string? userId, CancellationToken ct = default)
     {
-        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync(ct);
         if (restricted.IsEmpty) return true;
 
-        var h = await hierarchyCache.GetDiscussionHierarchyAsync(discussionPublicId);
+        var h = await hierarchyCache.GetDiscussionHierarchyAsync(discussionPublicId, ct);
 
         if (h is null) return false;
 
@@ -239,7 +244,7 @@ public class PostGrpcService(
         if (!spaceGate && !hubGate && !communityGate) return true;
         if (userId is null) return false;
 
-        var grants = await grantsCache.GetGrantsAsync(userId);
+        var grants = await grantsCache.GetGrantsAsync(userId, ct);
         return (!spaceGate || grants.SpaceIds.Contains(h.SpaceId))
             && (!hubGate || grants.HubIds.Contains(h.HubId))
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));

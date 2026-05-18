@@ -8,44 +8,45 @@ using Snakk.Shared.Enums;
 public class UserRoleRepository(SnakkDbContext context)
     : GenericDatabaseRepository<UserRoleDatabaseEntity>(context), IUserRoleRepository
 {
-    public async Task<UserRoleDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
-        await _dbSet.FirstOrDefaultAsync(ur => ur.PublicId == publicId);
+    public async Task<UserRoleDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(ur => ur.PublicId == publicId, ct);
 
-    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForUserAsync(int userId) => await _dbSet
+    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForUserAsync(int userId, CancellationToken ct = default) => await _dbSet
         .Where(ur => ur.UserId == userId && ur.RevokedAt == null)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForCommunityAsync(int communityId) => await _dbSet
+    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForCommunityAsync(int communityId, CancellationToken ct = default) => await _dbSet
         .Where(ur => ur.CommunityId == communityId && ur.RevokedAt == null)
         .OrderBy(ur => ur.RoleId)
         .ThenBy(ur => ur.AssignedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForHubAsync(int hubId) => await _dbSet
+    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForHubAsync(int hubId, CancellationToken ct = default) => await _dbSet
         .Where(ur => ur.HubId == hubId && ur.RevokedAt == null)
         .OrderBy(ur => ur.RoleId)
         .ThenBy(ur => ur.AssignedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForSpaceAsync(int spaceId) => await _dbSet
+    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetActiveRolesForSpaceAsync(int spaceId, CancellationToken ct = default) => await _dbSet
         .Where(ur => ur.SpaceId == spaceId && ur.RevokedAt == null)
         .OrderBy(ur => ur.RoleId)
         .ThenBy(ur => ur.AssignedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetGlobalAdminsAsync() => await _dbSet
+    public async Task<IEnumerable<UserRoleDatabaseEntity>> GetGlobalAdminsAsync(CancellationToken ct = default) => await _dbSet
         .Where(ur =>
             ur.RoleId == (int)UserRoleTypeEnum.GlobalAdmin
             && ur.RevokedAt == null)
         .OrderBy(ur => ur.AssignedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 
     public async Task<bool> HasRoleAtOrAboveAsync(
         int userId,
         string roleType,
         int? communityId = null,
         int? hubId = null,
-        int? spaceId = null)
+        int? spaceId = null,
+        CancellationToken ct = default)
     {
         // Check for exact role at the specified scope
         if (!Enum.TryParse<UserRoleTypeEnum>(roleType, out var roleEnum))
@@ -59,21 +60,22 @@ public class UserRoleRepository(SnakkDbContext context)
             && ur.RevokedAt == null
             && (ur.CommunityId == communityId || communityId == null)
             && (ur.HubId == hubId || hubId == null)
-            && (ur.SpaceId == spaceId || spaceId == null));
+            && (ur.SpaceId == spaceId || spaceId == null), ct);
     }
 
     public async Task<bool> CanModerateAsync(
         int userId,
         int? communityId = null,
         int? hubId = null,
-        int? spaceId = null)
+        int? spaceId = null,
+        CancellationToken ct = default)
     {
-        var activeRoles = await GetActiveRolesForUserAsync(userId);
+        var activeRoles = await GetActiveRolesForUserAsync(userId, ct);
 
         // Resolve the space's hub ID once (not per role)
         int? spaceHubId = null;
         if (spaceId.HasValue)
-            spaceHubId = await _context.Spaces.Where(s => s.Id == spaceId).Select(s => (int?)s.HubId).FirstOrDefaultAsync();
+            spaceHubId = await _context.Spaces.Where(s => s.Id == spaceId).Select(s => (int?)s.HubId).FirstOrDefaultAsync(ct);
 
         foreach (var role in activeRoles)
         {
@@ -110,18 +112,19 @@ public class UserRoleRepository(SnakkDbContext context)
         int userId,
         int? communityId = null,
         int? hubId = null,
-        int? spaceId = null)
+        int? spaceId = null,
+        CancellationToken ct = default)
     {
-        var activeRoles = await GetActiveRolesForUserAsync(userId);
+        var activeRoles = await GetActiveRolesForUserAsync(userId, ct);
 
         // Resolve parent community IDs once (not per role)
         int? hubCommunityId = null;
         if (hubId.HasValue)
-            hubCommunityId = await _context.Hubs.Where(h => h.Id == hubId).Select(h => (int?)h.CommunityId).FirstOrDefaultAsync();
+            hubCommunityId = await _context.Hubs.Where(h => h.Id == hubId).Select(h => (int?)h.CommunityId).FirstOrDefaultAsync(ct);
 
         int? spaceCommunityId = null;
         if (spaceId.HasValue)
-            spaceCommunityId = await _context.Spaces.Where(s => s.Id == spaceId).Select(s => (int?)s.Hub.CommunityId).FirstOrDefaultAsync();
+            spaceCommunityId = await _context.Spaces.Where(s => s.Id == spaceId).Select(s => (int?)s.Hub.CommunityId).FirstOrDefaultAsync(ct);
 
         foreach (var role in activeRoles)
         {

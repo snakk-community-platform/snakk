@@ -14,6 +14,7 @@ public class BannerGrpcService(
         GetActiveBannersRequest request,
         ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var announcements = await bannerUseCase.GetActiveForCommunityAsync(
             CommunityId.From(request.EntityId));
 
@@ -24,6 +25,7 @@ public class BannerGrpcService(
         GetActiveBannersRequest request,
         ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var announcements = await bannerUseCase.GetActiveForHubAsync(
             HubId.From(request.EntityId));
 
@@ -34,6 +36,7 @@ public class BannerGrpcService(
         GetActiveBannersRequest request,
         ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var announcements = await bannerUseCase.GetActiveForSpaceAsync(
             SpaceId.From(request.EntityId));
 

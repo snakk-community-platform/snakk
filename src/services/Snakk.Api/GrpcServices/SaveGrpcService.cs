@@ -16,24 +16,27 @@ public class SaveGrpcService(
 {
     public override async Task<SaveToggleResponse> ToggleSaveDiscussion(ToggleSaveDiscussionRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
-        var isSaved = await saveRepository.ToggleSaveDiscussionAsync(userId, request.DiscussionId);
+        var isSaved = await saveRepository.ToggleSaveDiscussionAsync(userId, request.DiscussionId, ct);
         return new SaveToggleResponse { IsSaved = isSaved };
     }
 
     public override async Task<SaveToggleResponse> ToggleSavePost(ToggleSavePostRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
-        var isSaved = await saveRepository.ToggleSavePostAsync(userId, request.PostId);
+        var isSaved = await saveRepository.ToggleSavePostAsync(userId, request.PostId, ct);
         return new SaveToggleResponse { IsSaved = isSaved };
     }
 
     public override async Task<SavedIdsResponse> GetSavedDiscussionIds(GetSavedIdsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
         if (userId is null) return new SavedIdsResponse();
 
-        var ids = await saveRepository.GetSavedDiscussionIdsAsync(userId);
+        var ids = await saveRepository.GetSavedDiscussionIdsAsync(userId, ct);
         var response = new SavedIdsResponse();
         response.PublicIds.AddRange(ids);
         return response;
@@ -41,10 +44,11 @@ public class SaveGrpcService(
 
     public override async Task<SavedIdsResponse> GetSavedPostIds(GetSavedIdsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
         if (userId is null) return new SavedIdsResponse();
 
-        var ids = await saveRepository.GetSavedPostIdsAsync(userId);
+        var ids = await saveRepository.GetSavedPostIdsAsync(userId, ct);
         var response = new SavedIdsResponse();
         response.PublicIds.AddRange(ids);
         return response;
@@ -52,12 +56,13 @@ public class SaveGrpcService(
 
     public override async Task<Snakk.Protos.Discussion.PagedRecentDiscussionList> GetSavedDiscussions(GetSavedDiscussionsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var pageSize = Math.Clamp(request.PageSize, 1, 50);
-        var result = await saveRepository.GetSavedDiscussionsAsync(userId, request.Offset, pageSize);
+        var result = await saveRepository.GetSavedDiscussionsAsync(userId, request.Offset, pageSize, ct);
 
         var publicIds = result.Items.Select(d => d.PublicId).ToList();
-        var previewMap = await searchRepository.FetchPreviewsByPublicIdsAsync(publicIds);
+        var previewMap = await searchRepository.FetchPreviewsByPublicIdsAsync(publicIds, ct);
 
         var enrichedItems = result.Items.Select(d =>
             previewMap.TryGetValue(d.PublicId, out var preview) ? d with { Preview = preview } : d).ToList();
@@ -68,9 +73,10 @@ public class SaveGrpcService(
 
     public override async Task<PagedSavedPostsList> GetSavedPosts(GetSavedPostsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var pageSize = Math.Clamp(request.PageSize, 1, 50);
-        var result = await saveRepository.GetSavedPostsAsync(userId, request.Offset, pageSize);
+        var result = await saveRepository.GetSavedPostsAsync(userId, request.Offset, pageSize, ct);
 
         var response = new PagedSavedPostsList
         {
@@ -110,10 +116,11 @@ public class SaveGrpcService(
 
     public override async Task<SaveCountsResponse> GetSaveCounts(GetSaveCountsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
         if (userId is null) return new SaveCountsResponse();
 
-        var (discussionCount, postCount) = await saveRepository.GetSaveCountsAsync(userId);
+        var (discussionCount, postCount) = await saveRepository.GetSaveCountsAsync(userId, ct);
         return new SaveCountsResponse
         {
             DiscussionCount = discussionCount,

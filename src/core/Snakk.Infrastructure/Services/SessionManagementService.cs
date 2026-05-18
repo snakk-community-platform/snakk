@@ -13,13 +13,14 @@ public class SessionManagementService(
 {
     public async Task<SessionListResponse> GetActiveSessionsAsync(
         string userId,
-        string? currentRefreshToken = null)
+        string? currentRefreshToken = null,
+        CancellationToken ct = default)
     {
         // Get user's database ID
         var user = await context.Users
             .Where(u => u.PublicId == userId)
             .Select(u => new { u.Id })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (user is null)
         {
@@ -48,7 +49,7 @@ public class SessionManagementService(
                 ExpiresAt = t.ExpiresAt,
                 IsCurrent = t.TokenValue == currentRefreshToken
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return new SessionListResponse
         {
@@ -57,13 +58,13 @@ public class SessionManagementService(
         };
     }
 
-    public async Task<bool> RevokeSessionAsync(string sessionId, string userId)
+    public async Task<bool> RevokeSessionAsync(string sessionId, string userId, CancellationToken ct = default)
     {
         // Get user's database ID
         var user = await context.Users
             .Where(u => u.PublicId == userId)
             .Select(u => new { u.Id })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (user is null)
         {
@@ -77,7 +78,7 @@ public class SessionManagementService(
                 t.PublicId == sessionId
                 && t.UserId == user.Id)
             .Select(t => new { t.TokenValue })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (session is null)
         {
@@ -86,7 +87,7 @@ public class SessionManagementService(
         }
 
         // Revoke via token service
-        await tokenService.RevokeRefreshTokenAsync(session.TokenValue, "User requested revocation");
+        await tokenService.RevokeRefreshTokenAsync(session.TokenValue, "User requested revocation", ct);
 
         logger.LogInformation("Session revoked: {SessionId} for user {UserId}", sessionId, userId);
 

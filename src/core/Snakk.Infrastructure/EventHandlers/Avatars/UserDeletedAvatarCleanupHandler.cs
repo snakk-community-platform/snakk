@@ -9,7 +9,7 @@ public class UserDeletedAvatarCleanupHandler(
     IAvatarGenerationService avatarService,
     ILogger<UserDeletedAvatarCleanupHandler> logger) : IDomainEventHandler<UserDeletedEvent>
 {
-    public async Task HandleAsync(UserDeletedEvent @event)
+    public async Task HandleAsync(UserDeletedEvent @event, CancellationToken cancellationToken = default)
     {
         try
         {

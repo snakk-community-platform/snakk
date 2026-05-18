@@ -7,16 +7,17 @@ using Snakk.Infrastructure.Database.Entities;
 public class ReportReasonRepository(SnakkDbContext context)
     : GenericDatabaseRepository<ReportReasonDatabaseEntity>(context), IReportReasonRepository
 {
-    public async Task<ReportReasonDatabaseEntity?> GetByPublicIdAsync(string publicId) => await _dbSet
+    public async Task<ReportReasonDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .Include(rr => rr.Community)
         .Include(rr => rr.Hub)
         .Include(rr => rr.Space)
-        .FirstOrDefaultAsync(rr => rr.PublicId == publicId);
+        .FirstOrDefaultAsync(rr => rr.PublicId == publicId, ct);
 
     public async Task<IEnumerable<ReportReasonDatabaseEntity>> GetReasonsForScopeAsync(
         int? communityId = null,
         int? hubId = null,
-        int? spaceId = null)
+        int? spaceId = null,
+        CancellationToken ct = default)
     {
         // Get global reasons + reasons at the specified scope and parent scopes
         var query = _dbSet.AsQueryable();
@@ -32,22 +33,23 @@ public class ReportReasonRepository(SnakkDbContext context)
         return await query
             .OrderBy(rr => rr.DisplayOrder)
             .ThenBy(rr => rr.Name)
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task<IEnumerable<ReportReasonDatabaseEntity>> GetGlobalReasonsAsync() => await _dbSet
+    public async Task<IEnumerable<ReportReasonDatabaseEntity>> GetGlobalReasonsAsync(CancellationToken ct = default) => await _dbSet
         .Where(rr =>
             rr.CommunityId == null
             && rr.HubId == null
             && rr.SpaceId == null)
         .OrderBy(rr => rr.DisplayOrder)
         .ThenBy(rr => rr.Name)
-        .ToListAsync();
+        .ToListAsync(ct);
 
     public async Task<IEnumerable<ReportReasonDatabaseEntity>> GetReasonsByEntityAsync(
         int? communityId = null,
         int? hubId = null,
-        int? spaceId = null)
+        int? spaceId = null,
+        CancellationToken ct = default)
     {
         var query = _dbSet.AsQueryable();
 
@@ -67,6 +69,6 @@ public class ReportReasonRepository(SnakkDbContext context)
         return await query
             .OrderBy(rr => rr.DisplayOrder)
             .ThenBy(rr => rr.Name)
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 }

@@ -4,20 +4,20 @@ using Snakk.Infrastructure.Database.Entities;
 
 public interface IReportReasonRepository : IGenericDatabaseRepository<ReportReasonDatabaseEntity>
 {
-    Task<ReportReasonDatabaseEntity?> GetByPublicIdAsync(string publicId);
-    
+    Task<ReportReasonDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default);
+
     /// <summary>
     /// Get all reasons available for a given scope (includes global + inherited from parent scopes)
     /// </summary>
-    Task<IEnumerable<ReportReasonDatabaseEntity>> GetReasonsForScopeAsync(int? communityId = null, int? hubId = null, int? spaceId = null);
-    
+    Task<IEnumerable<ReportReasonDatabaseEntity>> GetReasonsForScopeAsync(int? communityId = null, int? hubId = null, int? spaceId = null, CancellationToken ct = default);
+
     /// <summary>
     /// Get only global reasons (no scope)
     /// </summary>
-    Task<IEnumerable<ReportReasonDatabaseEntity>> GetGlobalReasonsAsync();
-    
+    Task<IEnumerable<ReportReasonDatabaseEntity>> GetGlobalReasonsAsync(CancellationToken ct = default);
+
     /// <summary>
     /// Get reasons defined at a specific scope (not inherited)
     /// </summary>
-    Task<IEnumerable<ReportReasonDatabaseEntity>> GetReasonsByEntityAsync(int? communityId = null, int? hubId = null, int? spaceId = null);
+    Task<IEnumerable<ReportReasonDatabaseEntity>> GetReasonsByEntityAsync(int? communityId = null, int? hubId = null, int? spaceId = null, CancellationToken ct = default);
 }

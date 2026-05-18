@@ -11,17 +11,18 @@ public interface ISecurityService
         string? action = null,
         string? actorUserId = null,
         string? fromDate = null,
-        string? toDate = null);
+        string? toDate = null,
+        CancellationToken ct = default);
 
-    Task<AuditLogDto?> GetAuditLogByIdAsync(string id);
+    Task<AuditLogDto?> GetAuditLogByIdAsync(string id, CancellationToken ct = default);
 
-    Task<List<FailedLoginDto>> GetFailedLoginsAsync(int page, int hours = 24);
+    Task<List<FailedLoginDto>> GetFailedLoginsAsync(int page, int hours = 24, CancellationToken ct = default);
 
-    Task<List<ActiveSessionDto>> GetActiveSessionsAsync();
+    Task<List<ActiveSessionDto>> GetActiveSessionsAsync(CancellationToken ct = default);
 
-    Task<List<SuspiciousActivityDto>> GetSuspiciousActivitiesAsync(int page, int hours = 24);
+    Task<List<SuspiciousActivityDto>> GetSuspiciousActivitiesAsync(int page, int hours = 24, CancellationToken ct = default);
 
-    Task<UserDataExportDto> ExportUserDataAsync(string userId, string adminUserId, string? ipAddress, string? userAgent);
+    Task<UserDataExportDto> ExportUserDataAsync(string userId, string adminUserId, string? ipAddress, string? userAgent, CancellationToken ct = default);
 
     Task LogAuditAsync(
         string action,
@@ -33,5 +34,6 @@ public interface ISecurityService
         string? ipAddress = null,
         string? userAgent = null,
         bool success = true,
-        AuditLogSeverityEnum severity = AuditLogSeverityEnum.Info);
+        AuditLogSeverityEnum severity = AuditLogSeverityEnum.Info,
+        CancellationToken ct = default);
 }

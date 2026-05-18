@@ -14,25 +14,25 @@ public class UserRepositoryAdapter(
     SnakkDbContext context,
     IEmailProtector emailProtector) : Domain.Repositories.IUserRepository
 {
-    public async Task<User?> GetByIdAsync(int id)
+    public async Task<User?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var projection = await context.Users
             .Where(u => u.Id == id)
             .Select(u => new UserProjection(u))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain(emailProtector);
     }
 
-    public async Task<User?> GetByPublicIdAsync(UserId publicId)
+    public async Task<User?> GetByPublicIdAsync(UserId publicId, CancellationToken ct = default)
     {
         var projection = await context.Users
             .Where(u => u.PublicId == publicId.Value)
             .Select(u => new UserProjection(u))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain(emailProtector);
     }
 
-    public async Task<IEnumerable<User>> GetByPublicIdsAsync(IEnumerable<UserId> publicIds)
+    public async Task<IEnumerable<User>> GetByPublicIdsAsync(IEnumerable<UserId> publicIds, CancellationToken ct = default)
     {
         var publicIdStrings = publicIds
             .Select(id => id.Value)
@@ -43,12 +43,12 @@ public class UserRepositoryAdapter(
         var projections = await context.Users
             .Where(u => publicIdStrings.Contains(u.PublicId))
             .Select(u => new UserProjection(u))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain(emailProtector));
     }
 
-    public async Task<IEnumerable<UserAvatarSlim>> GetAvatarSlimByPublicIdsAsync(IEnumerable<UserId> publicIds)
+    public async Task<IEnumerable<UserAvatarSlim>> GetAvatarSlimByPublicIdsAsync(IEnumerable<UserId> publicIds, CancellationToken ct = default)
     {
         var ids = publicIds.Select(u => u.Value).ToList();
         if (ids.Count == 0) return [];
@@ -58,10 +58,10 @@ public class UserRepositoryAdapter(
             .Select(u => new UserAvatarSlim(
                 u.PublicId, u.DisplayName,
                 u.AvatarFileName, u.AvatarThumbnailFileName, u.AvatarMicroFileName, u.AvatarRevision))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task<IEnumerable<PostAuthorSlim>> GetPostAuthorSlimByPublicIdsAsync(IEnumerable<UserId> publicIds)
+    public async Task<IEnumerable<PostAuthorSlim>> GetPostAuthorSlimByPublicIdsAsync(IEnumerable<UserId> publicIds, CancellationToken ct = default)
     {
         var ids = publicIds.Select(u => u.Value).ToList();
         if (ids.Count == 0) return [];
@@ -72,10 +72,10 @@ public class UserRepositoryAdapter(
                 u.PublicId, u.DisplayName,
                 u.AvatarFileName, u.AvatarThumbnailFileName, u.AvatarMicroFileName, u.AvatarRevision,
                 u.CreatedAt, u.DiscussionCount, u.ReplyCount))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task<UserProfileSlim?> GetProfileSlimByPublicIdAsync(UserId publicId)
+    public async Task<UserProfileSlim?> GetProfileSlimByPublicIdAsync(UserId publicId, CancellationToken ct = default)
     {
         return await context.Users
             .Where(u => u.PublicId == publicId.Value)
@@ -84,10 +84,10 @@ public class UserRepositoryAdapter(
                 u.AvatarFileName, u.AvatarThumbnailFileName,
                 u.CreatedAt, u.LastSeenAt,
                 u.DiscussionCount, u.FollowerCount, u.ReplyCount, u.Bio))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId)
+    public async Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId, CancellationToken ct = default)
     {
         return await context.Users
             .Where(u => u.PublicId == publicId.Value)
@@ -101,67 +101,67 @@ public class UserRepositoryAdapter(
                 u.AllowAdultContent, u.AdultPreviewImageMode,
                 u.DisplayNameChangedAt,
                 u.HidePresence))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<User?> GetByEmailAsync(string email)
+    public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
     {
         var hash = emailProtector.ComputeHash(email);
         var projection = await context.Users
             .Where(u => u.EmailHash == hash)
             .Select(u => new UserProjection(u))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain(emailProtector);
     }
 
-    public async Task<User?> GetByOAuthProviderIdAsync(string oauthProviderId)
+    public async Task<User?> GetByOAuthProviderIdAsync(string oauthProviderId, CancellationToken ct = default)
     {
         var projection = await context.Users
             .Where(u => u.OAuthProviderId == oauthProviderId)
             .Select(u => new UserProjection(u))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain(emailProtector);
     }
 
-    public async Task<User?> GetByDisplayNameAsync(string displayName)
+    public async Task<User?> GetByDisplayNameAsync(string displayName, CancellationToken ct = default)
     {
         var projection = await context.Users
             .Where(u => u.DisplayName == displayName)
             .Select(u => new UserProjection(u))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain(emailProtector);
     }
 
-    public async Task<User?> GetByEmailVerificationTokenAsync(string token)
+    public async Task<User?> GetByEmailVerificationTokenAsync(string token, CancellationToken ct = default)
     {
         var projection = await context.Users
             .Where(u => u.EmailVerificationToken == token)
             .Select(u => new UserProjection(u))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain(emailProtector);
     }
 
-    public async Task<IEnumerable<User>> SearchByDisplayNameAsync(string query, int limit)
+    public async Task<IEnumerable<User>> SearchByDisplayNameAsync(string query, int limit, CancellationToken ct = default)
     {
         var projections = await context.Users
             .Where(u => u.DisplayName!.Contains(query))
             .Take(limit)
             .Select(u => new UserProjection(u))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain(emailProtector));
     }
 
-    public async Task<IEnumerable<User>> GetAllAsync()
+    public async Task<IEnumerable<User>> GetAllAsync(CancellationToken ct = default)
     {
         var projections = await context.Users
             .Select(u => new UserProjection(u))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain(emailProtector));
     }
 
-    public async Task AddAsync(User user)
+    public async Task AddAsync(User user, CancellationToken ct = default)
     {
         var plainEmail = user.Email;
         var entity = user.ToPersistence();
@@ -172,13 +172,13 @@ public class UserRepositoryAdapter(
             entity.EmailHash = emailProtector.ComputeHash(plainEmail);
         }
 
-        await databaseRepository.AddAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateAsync(User user)
+    public async Task UpdateAsync(User user, CancellationToken ct = default)
     {
-        var entity = await context.Users.FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value);
+        var entity = await context.Users.FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value, ct);
 
         if (entity is null)
             throw new InvalidOperationException($"User with PublicId '{user.PublicId}' not found");
@@ -208,9 +208,11 @@ public class UserRepositoryAdapter(
         entity.EmailVerificationTokenCreatedAt = user.EmailVerificationTokenCreatedAt;
         entity.FailedLoginAttempts = user.FailedLoginAttempts;
         entity.LockoutEnd = user.LockoutEnd;
+        entity.AuthVersion = user.AuthVersion;
+        entity.AuthVersionUpdatedAt = user.AuthVersionUpdatedAt;
 
-        await databaseRepository.UpdateAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
 
         try
         {
@@ -219,14 +221,14 @@ public class UserRepositoryAdapter(
                 .ExecuteUpdateAsync(d => d
                     .SetProperty(x => x.AuthorDisplayName, entity.DisplayName)
                     .SetProperty(x => x.AuthorAvatarFileName, entity.AvatarFileName)
-                    .SetProperty(x => x.AuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName));
+                    .SetProperty(x => x.AuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName), ct);
 
             await context.Discussions
                 .Where(d => d.LastPostAuthorPublicId == entity.PublicId)
                 .ExecuteUpdateAsync(d => d
                     .SetProperty(x => x.LastPostAuthorDisplayName, entity.DisplayName)
                     .SetProperty(x => x.LastPostAuthorAvatarFileName, entity.AvatarFileName)
-                    .SetProperty(x => x.LastPostAuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName));
+                    .SetProperty(x => x.LastPostAuthorAvatarThumbnailFileName, entity.AvatarThumbnailFileName), ct);
         }
         catch (InvalidOperationException)
         {
@@ -264,6 +266,8 @@ public class UserRepositoryAdapter(
         public bool NeedsProfileSetup { get; init; }
         public int DiscussionCount { get; init; }
         public int ReplyCount { get; init; }
+        public long AuthVersion { get; init; }
+        public DateTime AuthVersionUpdatedAt { get; init; }
 
         public UserProjection(Database.Entities.UserDatabaseEntity u)
         {
@@ -297,6 +301,8 @@ public class UserRepositoryAdapter(
             NeedsProfileSetup = u.NeedsProfileSetup;
             DiscussionCount = u.DiscussionCount;
             ReplyCount = u.ReplyCount;
+            AuthVersion = u.AuthVersion;
+            AuthVersionUpdatedAt = u.AuthVersionUpdatedAt;
         }
 
         public User ToDomain(IEmailProtector emailProtector)
@@ -319,7 +325,9 @@ public class UserRepositoryAdapter(
                 replyCount: ReplyCount,
                 failedLoginAttempts: FailedLoginAttempts,
                 lockoutEnd: LockoutEnd,
-                emailVerificationTokenCreatedAt: EmailVerificationTokenCreatedAt);
+                emailVerificationTokenCreatedAt: EmailVerificationTokenCreatedAt,
+                authVersion: AuthVersion,
+                authVersionUpdatedAt: AuthVersionUpdatedAt);
         }
     }
 }

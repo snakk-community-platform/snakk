@@ -47,9 +47,9 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
         return $"{browser} on {os}";
     }
 
-    public async Task<bool> IsDeviceTrustedAsync(UserId userId, string deviceFingerprint)
+    public async Task<bool> IsDeviceTrustedAsync(UserId userId, string deviceFingerprint, CancellationToken ct = default)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value, ct);
 
         if (user is null) return false;
 
@@ -60,7 +60,7 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
                 d.UserId == user.Id
                 && d.DeviceFingerprint == deviceFingerprint
                 && d.RevokedAt == null
-                && (d.ExpiresAt == null || d.ExpiresAt > now));
+                && (d.ExpiresAt == null || d.ExpiresAt > now), ct);
     }
 
     public async Task TrustDeviceAsync(
@@ -68,9 +68,10 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
         string deviceFingerprint,
         string deviceName,
         string ipAddress,
-        int? expirationDays = null)
+        int? expirationDays = null,
+        CancellationToken ct = default)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value, ct);
 
         if (user is null)
             throw new InvalidOperationException($"User {userId} not found");
@@ -80,7 +81,7 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
             .FirstOrDefaultAsync(d =>
                 d.UserId == user.Id
                 && d.DeviceFingerprint == deviceFingerprint
-                && d.RevokedAt == null);
+                && d.RevokedAt == null, ct);
 
         if (existing is not null)
         {
@@ -109,12 +110,12 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
             context.TwoFactorTrustedDevices.Add(device);
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task<List<TrustedDeviceDto>> GetTrustedDevicesAsync(UserId userId)
+    public async Task<List<TrustedDeviceDto>> GetTrustedDevicesAsync(UserId userId, CancellationToken ct = default)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value, ct);
 
         if (user is null)
             return [];
@@ -126,7 +127,7 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
                 d.UserId == user.Id
                 && d.RevokedAt == null)
             .OrderByDescending(d => d.LastUsedAt ?? d.TrustedAt)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return devices
             .Select(d => new TrustedDeviceDto
@@ -142,37 +143,37 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
             .ToList();
     }
 
-    public async Task RevokeDeviceAsync(string devicePublicId, string reason)
+    public async Task RevokeDeviceAsync(string devicePublicId, string reason, CancellationToken ct = default)
     {
         var device = await context.TwoFactorTrustedDevices
-            .FirstOrDefaultAsync(d => d.PublicId == devicePublicId);
+            .FirstOrDefaultAsync(d => d.PublicId == devicePublicId, ct);
 
         if (device is not null && device.RevokedAt is null)
         {
             device.RevokedAt = DateTime.UtcNow;
             device.RevocationReason = reason;
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
         }
     }
 
-    public async Task<bool> RevokeDeviceForUserAsync(string devicePublicId, string userId, string reason)
+    public async Task<bool> RevokeDeviceForUserAsync(string devicePublicId, string userId, string reason, CancellationToken ct = default)
     {
         var device = await context.TwoFactorTrustedDevices
             .Include(d => d.User)
-            .FirstOrDefaultAsync(d => d.PublicId == devicePublicId);
+            .FirstOrDefaultAsync(d => d.PublicId == devicePublicId, ct);
 
         if (device is null || device.User.PublicId != userId || device.RevokedAt is not null)
             return false;
 
         device.RevokedAt = DateTime.UtcNow;
         device.RevocationReason = reason;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
         return true;
     }
 
-    public async Task RevokeAllDevicesAsync(UserId userId, string reason)
+    public async Task RevokeAllDevicesAsync(UserId userId, string reason, CancellationToken ct = default)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value, ct);
 
         if (user is null) return;
 
@@ -180,7 +181,7 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
             .Where(d =>
                 d.UserId == user.Id
                 && d.RevokedAt == null)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         foreach (var device in devices)
         {
@@ -188,6 +189,6 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
             device.RevocationReason = reason;
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 }

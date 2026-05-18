@@ -38,7 +38,8 @@ public static class ReadStateEndpoints
     private static async Task<IResult> GetReadStateAsync(
         string discussionId,
         HttpContext context,
-        IDiscussionReadStateRepository readStateRepository)
+        IDiscussionReadStateRepository readStateRepository,
+        CancellationToken ct)
     {
         // SECURITY: Extract userId from JWT, NOT query parameter
         var userId = context.User.GetUserId();
@@ -48,7 +49,8 @@ public static class ReadStateEndpoints
 
         var readState = await readStateRepository.GetAsync(
             userId,
-            DiscussionId.From(discussionId));
+            DiscussionId.From(discussionId),
+            ct);
 
         if (readState is null)
             return TypedResults.Ok(new ReadStateResponse(null, null));
@@ -61,7 +63,8 @@ public static class ReadStateEndpoints
         string postId,
         HttpContext context,
         IDiscussionReadStateRepository readStateRepository,
-        IRealtimeNotifier realtimeNotifier)
+        IRealtimeNotifier realtimeNotifier,
+        CancellationToken ct)
     {
         // SECURITY: Extract userId from JWT, NOT from request
         var userId = context.User.GetUserId();
@@ -71,14 +74,14 @@ public static class ReadStateEndpoints
 
         var discussionIdValue = DiscussionId.From(discussionId);
         var postIdValue = PostId.From(postId);
-        var readState = await readStateRepository.GetAsync(userId, discussionIdValue);
+        var readState = await readStateRepository.GetAsync(userId, discussionIdValue, ct);
 
         if (readState is null)
             readState = DiscussionReadState.Create(userId, discussionIdValue, postIdValue);
         else
             readState.MarkAsRead(postIdValue);
 
-        await readStateRepository.SaveAsync(readState);
+        await readStateRepository.SaveAsync(readState, ct);
         await realtimeNotifier.NotifyReadStateUpdatedAsync(UserId.From(userId), discussionId, postId);
 
         return TypedResults.Ok(new SuccessResponse(true));
@@ -88,7 +91,8 @@ public static class ReadStateEndpoints
         BatchMarkAsReadRequest request,
         HttpContext httpContext,
         IDiscussionReadStateRepository readStateRepository,
-        IRealtimeNotifier realtimeNotifier)
+        IRealtimeNotifier realtimeNotifier,
+        CancellationToken ct)
     {
         if (request?.Updates is null || request.Updates.Count == 0)
             return TypedResults.Ok(new SuccessResponse(true, 0));
@@ -105,7 +109,7 @@ public static class ReadStateEndpoints
             .Select(u => DiscussionReadState.Create(userIdValue, DiscussionId.From(u.DiscussionId), PostId.From(u.PostId)))
             .ToList();
 
-        await readStateRepository.BatchSaveAsync(updatedStates);
+        await readStateRepository.BatchSaveAsync(updatedStates, ct);
 
         await Task.WhenAll(request.Updates.Select(u =>
             realtimeNotifier.NotifyReadStateUpdatedAsync(userIdValue, u.DiscussionId, u.PostId)));

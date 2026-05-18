@@ -10,7 +10,7 @@ public class PostEditedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<PostEditedEvent>
 {
-    public async Task HandleAsync(PostEditedEvent @event)
+    public async Task HandleAsync(PostEditedEvent @event, CancellationToken cancellationToken = default)
     {
         var data = await context.Posts
             .Where(p => p.PublicId == @event.PostId.Value)
@@ -18,7 +18,7 @@ public class PostEditedActivityHandler(
                 UserId = p.CreatedByUser.PublicId,
                 Username = p.CreatedByUser.DisplayName ?? "",
                 DiscussionTitle = p.Discussion.Title })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (data is null)
             return;

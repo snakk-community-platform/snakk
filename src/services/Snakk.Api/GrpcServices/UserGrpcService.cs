@@ -17,6 +17,7 @@ public class UserGrpcService(
 {
     public override async Task<UserProfileInfo> GetUserProfile(GetUserProfileRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var profile = await userProfileUseCase.GetUserProfileAsync(request.PublicId);
 
         if (profile is null)
@@ -44,7 +45,7 @@ public class UserGrpcService(
         var discord = await dbContext.Users
             .Where(u => u.PublicId == request.PublicId && u.DiscordUserId != null)
             .Select(u => new { u.DiscordUserId, u.DiscordUsername })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         if (discord is not null)
         {
             response.DiscordUserId = discord.DiscordUserId!;
@@ -119,6 +120,7 @@ public class UserGrpcService(
 
     public override async Task<UserSearchResults> SearchUsers(SearchUsersRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var users = await userRepository.SearchByDisplayNameAsync(request.Query, request.Limit);
 
         var response = new UserSearchResults();

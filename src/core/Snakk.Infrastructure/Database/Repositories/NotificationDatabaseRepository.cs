@@ -9,13 +9,14 @@ public class NotificationDatabaseRepository(SnakkDbContext context)
     : GenericDatabaseRepository<UserNotificationDatabaseEntity>(context), INotificationDatabaseRepository
 {
 
-    public async Task<UserNotificationDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
-        await _dbSet.FirstOrDefaultAsync(n => n.PublicId == publicId);
+    public async Task<UserNotificationDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(n => n.PublicId == publicId, ct);
 
     public async Task<PagedResult<UserNotificationDatabaseEntity>> GetByUserIdAsync(
         int userId,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
         // Don't use Include() - the DTOs only need FK IDs which are already on the notification entity
         var items = await _dbSet
@@ -23,7 +24,7 @@ public class NotificationDatabaseRepository(SnakkDbContext context)
             .OrderByDescending(n => n.CreatedAt)
             .Skip(offset)
             .Take(pageSize + 1)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems ? items.Take(pageSize) : items;
@@ -37,10 +38,10 @@ public class NotificationDatabaseRepository(SnakkDbContext context)
         };
     }
 
-    public async Task<int> GetUnreadCountAsync(int userId) =>
-        await _dbSet.CountAsync(n => n.RecipientUserId == userId && !n.IsRead);
+    public async Task<int> GetUnreadCountAsync(int userId, CancellationToken ct = default) =>
+        await _dbSet.CountAsync(n => n.RecipientUserId == userId && !n.IsRead, ct);
 
-    public async Task MarkAllAsReadAsync(int userId)
+    public async Task MarkAllAsReadAsync(int userId, CancellationToken ct = default)
     {
         try
         {
@@ -48,14 +49,14 @@ public class NotificationDatabaseRepository(SnakkDbContext context)
                 .Where(n => n.RecipientUserId == userId && !n.IsRead)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(n => n.IsRead, true)
-                    .SetProperty(n => n.ReadAt, DateTime.UtcNow));
+                    .SetProperty(n => n.ReadAt, DateTime.UtcNow), ct);
         }
         catch (InvalidOperationException)
         {
             // Fallback for providers that don't support ExecuteUpdateAsync (e.g. InMemory)
             var unread = await _dbSet
                 .Where(n => n.RecipientUserId == userId && !n.IsRead)
-                .ToListAsync();
+                .ToListAsync(ct);
 
             var now = DateTime.UtcNow;
             foreach (var notification in unread)
@@ -64,7 +65,7 @@ public class NotificationDatabaseRepository(SnakkDbContext context)
                 notification.ReadAt = now;
             }
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(ct);
         }
     }
 }

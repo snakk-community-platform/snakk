@@ -4,13 +4,13 @@ using Snakk.Shared.Models;
 
 public interface ISaveRepository
 {
-    Task<bool> ToggleSaveDiscussionAsync(string userId, string discussionPublicId);
-    Task<bool> ToggleSavePostAsync(string userId, string postPublicId);
-    Task<List<string>> GetSavedDiscussionIdsAsync(string userId);
-    Task<List<string>> GetSavedPostIdsAsync(string userId);
-    Task<PagedResult<RecentDiscussionDto>> GetSavedDiscussionsAsync(string userId, int offset, int pageSize);
-    Task<PagedResult<SavedPostDto>> GetSavedPostsAsync(string userId, int offset, int pageSize);
-    Task<(int DiscussionCount, int PostCount)> GetSaveCountsAsync(string userId);
+    Task<bool> ToggleSaveDiscussionAsync(string userId, string discussionPublicId, CancellationToken ct = default);
+    Task<bool> ToggleSavePostAsync(string userId, string postPublicId, CancellationToken ct = default);
+    Task<List<string>> GetSavedDiscussionIdsAsync(string userId, CancellationToken ct = default);
+    Task<List<string>> GetSavedPostIdsAsync(string userId, CancellationToken ct = default);
+    Task<PagedResult<RecentDiscussionDto>> GetSavedDiscussionsAsync(string userId, int offset, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<SavedPostDto>> GetSavedPostsAsync(string userId, int offset, int pageSize, CancellationToken ct = default);
+    Task<(int DiscussionCount, int PostCount)> GetSaveCountsAsync(string userId, CancellationToken ct = default);
 }
 
 public record SavedPostDto(

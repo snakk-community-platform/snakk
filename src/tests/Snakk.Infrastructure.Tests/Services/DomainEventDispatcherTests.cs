@@ -25,7 +25,7 @@ public class DomainEventDispatcherTests
         public bool WasCalled { get; private set; }
         public TestDomainEvent? ReceivedEvent { get; private set; }
 
-        public Task HandleAsync(TestDomainEvent domainEvent)
+        public Task HandleAsync(TestDomainEvent domainEvent, CancellationToken cancellationToken = default)
         {
             WasCalled = true;
             ReceivedEvent = domainEvent;
@@ -38,7 +38,7 @@ public class DomainEventDispatcherTests
     {
         public bool WasCalled { get; private set; }
 
-        public Task HandleAsync(TestDomainEvent domainEvent)
+        public Task HandleAsync(TestDomainEvent domainEvent, CancellationToken cancellationToken = default)
         {
             WasCalled = true;
             return Task.CompletedTask;
@@ -49,7 +49,7 @@ public class DomainEventDispatcherTests
     {
         public bool WasCalled { get; private set; }
 
-        public Task HandleAsync(AnotherDomainEvent domainEvent)
+        public Task HandleAsync(AnotherDomainEvent domainEvent, CancellationToken cancellationToken = default)
         {
             WasCalled = true;
             return Task.CompletedTask;

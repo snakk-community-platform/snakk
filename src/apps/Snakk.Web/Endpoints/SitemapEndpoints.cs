@@ -19,13 +19,15 @@ public static class SitemapEndpoints
     private static async Task<IResult> GenerateSitemapIndexAsync(
         SearchService.SearchServiceClient searchClient,
         HttpContext httpContext,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var baseUrl = configuration["WebBaseUrl"]
             ?? $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
 
         // Fetch page 1 just to get total count
-        var result = await searchClient.GetSitemapDiscussionsAsync(new SitemapRequest { Page = 1, PageSize = 1 });
+        var result = await searchClient.GetSitemapDiscussionsAsync(new SitemapRequest { Page = 1, PageSize = 1 }, cancellationToken: ct);
         var totalPages = Math.Max(1, (int)Math.Ceiling((double)result.TotalCount / SitemapPageSize));
 
         var xml = new StringBuilder();
@@ -48,8 +50,10 @@ public static class SitemapEndpoints
         int page,
         SearchService.SearchServiceClient searchClient,
         HttpContext httpContext,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         if (page < 1)
             return Results.NotFound();
 
@@ -57,7 +61,7 @@ public static class SitemapEndpoints
             ?? $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
 
         var result = await searchClient.GetSitemapDiscussionsAsync(
-            new SitemapRequest { Page = page, PageSize = SitemapPageSize });
+            new SitemapRequest { Page = page, PageSize = SitemapPageSize }, cancellationToken: ct);
 
         if (result.Discussions.Count == 0 && page > 1)
             return Results.NotFound();

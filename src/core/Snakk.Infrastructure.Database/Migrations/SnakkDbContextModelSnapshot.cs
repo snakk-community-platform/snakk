@@ -3040,6 +3040,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<bool?>("AllowAdultContent")
                         .HasColumnType("boolean");
 
+                    b.Property<long>("AuthVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("AuthVersionUpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("AutoFollowOnReply")
                         .HasColumnType("boolean");
 

@@ -71,8 +71,13 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
 
 // Add services to the container
 builder.Services.AddOpenApi();
-builder.Services.AddGrpc();
+builder.Services.AddGrpc(o => o.Interceptors.Add<Snakk.Api.Interceptors.AuthValidationInterceptor>());
 builder.Services.AddSnakkServices(builder.Configuration);
+
+builder.Services.AddSingleton<Snakk.Application.Services.IRevocationCache, Snakk.Api.Services.RevocationCache>();
+builder.Services.AddSingleton<Snakk.Application.Services.IAuthVersionCache, Snakk.Api.Services.AuthVersionCache>();
+builder.Services.AddScoped<Snakk.Api.Interceptors.AuthValidationInterceptor>();
+builder.Services.AddHostedService<Snakk.Api.Services.AuthVersionSweeper>();
 builder.Services.AddRateLimiting();
 
 // Warn if ConsoleEmailSender is used outside Development/Testing (self-hosted installs may have no SMTP configured)

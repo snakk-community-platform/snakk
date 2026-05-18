@@ -13,6 +13,7 @@ public class NotificationGrpcService(
 {
     public override async Task<PagedNotificationList> GetNotifications(GetNotificationsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)
@@ -66,6 +67,7 @@ public class NotificationGrpcService(
 
     public override async Task<UnreadCountResponse> GetUnreadCount(GetUnreadCountRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)
@@ -78,6 +80,7 @@ public class NotificationGrpcService(
 
     public override async Task<MarkAsReadResponse> MarkAsRead(Snakk.Protos.Notification.MarkAsReadRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var result = await notificationUseCase.MarkAsReadAsync(
             NotificationId.From(request.NotificationId),
@@ -88,6 +91,7 @@ public class NotificationGrpcService(
 
     public override async Task<MarkAllAsReadResponse> MarkAllAsRead(MarkAllAsReadRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         await notificationUseCase.MarkAllAsReadAsync(userId);
 

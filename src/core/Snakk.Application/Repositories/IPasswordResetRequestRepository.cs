@@ -7,11 +7,12 @@ public interface IPasswordResetRequestRepository
     Task LogAsync(
         string emailHash,
         string ipAddress,
-        PasswordResetRequestOutcomeEnum outcome);
+        PasswordResetRequestOutcomeEnum outcome,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Counts requests from a given IP address within a rolling time window.
     /// Used for rate limiting.
     /// </summary>
-    Task<int> CountByIpInWindowAsync(string ipAddress, TimeSpan window);
+    Task<int> CountByIpInWindowAsync(string ipAddress, TimeSpan window, CancellationToken ct = default);
 }

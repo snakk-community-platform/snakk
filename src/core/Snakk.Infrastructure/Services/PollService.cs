@@ -7,7 +7,7 @@ namespace Snakk.Infrastructure.Services;
 
 public class PollService(SnakkDbContext context) : IPollService
 {
-    public async Task<PollData?> GetPollAsync(string discussionPublicId, string? userPublicId = null)
+    public async Task<PollData?> GetPollAsync(string discussionPublicId, string? userPublicId = null, CancellationToken ct = default)
     {
         var poll = await context.DiscussionPolls
             .Where(p => p.Discussion.PublicId == discussionPublicId && !p.Discussion.IsDeleted)
@@ -26,7 +26,7 @@ public class PollService(SnakkDbContext context) : IPollService
                     .Select(o => new { o.Id, o.Text, o.VoteCount, o.DisplayOrder })
                     .ToList()
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (poll is null) return null;
 
@@ -42,7 +42,7 @@ public class PollService(SnakkDbContext context) : IPollService
             var userId = await context.Users
                 .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
                 .Select(u => u.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (userId > 0)
             {
@@ -50,7 +50,7 @@ public class PollService(SnakkDbContext context) : IPollService
                 var userVotes = await context.DiscussionPollVotes
                     .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
                     .Select(v => new { v.OptionId, v.SegmentIndex })
-                    .ToListAsync();
+                    .ToListAsync(ct);
 
                 userVotedIds = userVotes.Select(v => v.OptionId).ToList();
                 if (poll.IsSegmented)
@@ -67,7 +67,7 @@ public class PollService(SnakkDbContext context) : IPollService
                 .Where(v => allOptionIds.Contains(v.OptionId))
                 .GroupBy(v => new { v.OptionId, v.SegmentIndex })
                 .Select(g => new { g.Key.OptionId, g.Key.SegmentIndex, Count = g.Count() })
-                .ToListAsync();
+                .ToListAsync(ct);
 
             segmentVotes = allOptionIds.Select(oid => new PollOptionSegmentData(
                 oid,
@@ -106,13 +106,13 @@ public class PollService(SnakkDbContext context) : IPollService
     }
 
     public async Task<(bool Success, string? Error)> VoteAsync(
-        string discussionPublicId, int optionId, string userPublicId, int? segmentIndex = null)
+        string discussionPublicId, int optionId, string userPublicId, int? segmentIndex = null, CancellationToken ct = default)
     {
         var poll = await context.DiscussionPolls
             .AsTracking()
             .Include(p => p.Options)
             .Where(p => p.Discussion.PublicId == discussionPublicId && !p.Discussion.IsDeleted)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (poll is null)
             return (false, "Poll not found");
@@ -127,7 +127,7 @@ public class PollService(SnakkDbContext context) : IPollService
         var userId = await context.Users
             .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
             .Select(u => u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (userId == 0)
             return (false, "User not found");
@@ -136,7 +136,7 @@ public class PollService(SnakkDbContext context) : IPollService
         var optionIds = poll.Options.Select(o => o.Id).ToList();
         var existingVotes = await context.DiscussionPollVotes
             .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         List<int> decrementedOptionIds = [];
         if (existingVotes.Count > 0)
@@ -171,7 +171,7 @@ public class PollService(SnakkDbContext context) : IPollService
 
         try
         {
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
         }
         catch (Microsoft.EntityFrameworkCore.DbUpdateException)
         {
@@ -181,23 +181,23 @@ public class PollService(SnakkDbContext context) : IPollService
         if (decrementedOptionIds.Count > 0)
             await context.DiscussionPollOptions
                 .Where(o => decrementedOptionIds.Contains(o.Id))
-                .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount - 1));
+                .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount - 1), ct);
 
         await context.DiscussionPollOptions
             .Where(o => o.Id == optionId)
-            .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount + 1));
+            .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount + 1), ct);
 
         return (true, null);
     }
 
     public async Task<(bool Success, string? Error)> RemoveVoteAsync(
-        string discussionPublicId, int optionId, string userPublicId)
+        string discussionPublicId, int optionId, string userPublicId, CancellationToken ct = default)
     {
         var poll = await context.DiscussionPolls
             .AsTracking()
             .Include(p => p.Options)
             .Where(p => p.Discussion.PublicId == discussionPublicId && !p.Discussion.IsDeleted)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (poll is null)
             return (false, "Poll not found");
@@ -211,23 +211,23 @@ public class PollService(SnakkDbContext context) : IPollService
         var userId = await context.Users
             .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
             .Select(u => u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (userId == 0)
             return (false, "User not found");
 
         var vote = await context.DiscussionPollVotes
-            .FirstOrDefaultAsync(v => v.OptionId == optionId && v.UserId == userId);
+            .FirstOrDefaultAsync(v => v.OptionId == optionId && v.UserId == userId, ct);
 
         if (vote is null)
             return (false, "Vote not found");
 
         context.DiscussionPollVotes.Remove(vote);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         await context.DiscussionPollOptions
             .Where(o => o.Id == optionId)
-            .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount - 1));
+            .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount - 1), ct);
 
         return (true, null);
     }

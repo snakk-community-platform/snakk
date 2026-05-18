@@ -41,8 +41,9 @@ public class ReportDetailModel(
         _ => "badge-ghost"
     };
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         CanModerate = await apiClient.CanModerateAsync();
         if (!CanModerate)
         {
@@ -58,8 +59,9 @@ public class ReportDetailModel(
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAddCommentAsync()
+    public async Task<IActionResult> OnPostAddCommentAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
 
         if (string.IsNullOrWhiteSpace(CommentContent))
@@ -71,16 +73,18 @@ public class ReportDetailModel(
         return RedirectToPage(new { Id });
     }
 
-    public async Task<IActionResult> OnPostResolveAsync()
+    public async Task<IActionResult> OnPostResolveAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
 
         await apiClient.ResolveReportAsync(Id, new ResolveReportRequest(ResolutionNote, false));
         return RedirectToPage(new { Id });
     }
 
-    public async Task<IActionResult> OnPostDismissAsync()
+    public async Task<IActionResult> OnPostDismissAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
 
         await apiClient.ResolveReportAsync(Id, new ResolveReportRequest(ResolutionNote, true));

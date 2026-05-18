@@ -98,7 +98,7 @@ public static class ServiceCollectionExtensions
                 ValidateAudience = true,
                 ValidAudience = configuration["Jwt:Audience"] ?? "Snakk",
                 ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.FromSeconds(30)
             };
             options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
             {

@@ -13,8 +13,9 @@ public class LatestSpacesModel(
     public string CacheSource { get; set; } = "unknown";
     public ICommunityContext Community => communityContext;
 
-    public async Task OnGetAsync(string scopeType, string scopeId)
+    public async Task OnGetAsync(string scopeType, string scopeId, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=10";
 
         var cacheKey = $"latest-spaces:{scopeType}:{scopeId}";

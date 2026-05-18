@@ -7,12 +7,12 @@ namespace Snakk.Infrastructure.Services;
 public class AuthorizationService(
     SnakkDbContext context) : IAuthorizationService
 {
-    public async Task<bool> UserHas2FAEnabledAsync(string userId)
+    public async Task<bool> UserHas2FAEnabledAsync(string userId, CancellationToken ct = default)
     {
         var user = await context.Users
             .Where(u => u.PublicId == userId)
             .Select(u => new { u.TwoFactorEnabled })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         return user?.TwoFactorEnabled ?? false;
     }

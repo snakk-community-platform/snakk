@@ -24,15 +24,17 @@ public class ManagePermissionService(
     public async Task<ManagePermissionSet> GetPermissionsForScopeAsync(
         string userId,
         string scopeType,
-        string scopePublicId)
+        string scopePublicId,
+        CancellationToken ct = default)
     {
         var cacheKey = $"manage_perms_{userId}_{scopeType}_{scopePublicId}";
 
         var cached = await cache.GetOrCreateAsync(
             cacheKey,
-            async cancel => await ComputePermissionsAsync(userId, scopeType, scopePublicId),
+            async cancel => await ComputePermissionsAsync(userId, scopeType, scopePublicId, cancel),
             CacheOptions,
-            tags: [$"manage_perms_user_{userId}"]);
+            tags: [$"manage_perms_user_{userId}"],
+            cancellationToken: ct);
 
         return cached ?? ManagePermissionSet.None;
     }
@@ -41,21 +43,23 @@ public class ManagePermissionService(
         string userId,
         string scopeType,
         string scopePublicId,
-        ManagePermissionEnum permission)
+        ManagePermissionEnum permission,
+        CancellationToken ct = default)
     {
-        var permissionSet = await GetPermissionsForScopeAsync(userId, scopeType, scopePublicId);
+        var permissionSet = await GetPermissionsForScopeAsync(userId, scopeType, scopePublicId, ct);
         return permissionSet.HasPermission(permission);
     }
 
     private async Task<ManagePermissionSet> ComputePermissionsAsync(
         string userId,
         string scopeType,
-        string scopePublicId)
+        string scopePublicId,
+        CancellationToken ct = default)
     {
         var user = await context.Users
             .Where(u => u.PublicId == userId)
             .Select(u => new { u.Id })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (user is null)
             return ManagePermissionSet.None;
@@ -73,11 +77,11 @@ public class ManagePermissionService(
                 HubId = ur.HubId,
                 SpaceId = ur.SpaceId
             })
-            .ToListAsync());
+            .ToListAsync(ct));
 
         var tempElevationsTask = ReadAsync(db => db.TemporaryRoleElevations
             .Where(e => e.UserId == userId2 && e.RevokedAt == null && e.ExpiresAt > now)
-            .ToListAsync());
+            .ToListAsync(ct));
 
         await Task.WhenAll(activeRolesTask, tempElevationsTask);
         var activeRoles    = activeRolesTask.Result;
@@ -105,7 +109,7 @@ public class ManagePermissionService(
         }
 
         // Determine the highest-level matching role for the requested scope
-        var matchingRoleType = await GetHighestMatchingRoleAsync(activeRoles, scopeType, scopePublicId);
+        var matchingRoleType = await GetHighestMatchingRoleAsync(activeRoles, scopeType, scopePublicId, ct);
 
         if (matchingRoleType is null)
         {
@@ -119,7 +123,8 @@ public class ManagePermissionService(
     private async Task<UserRoleTypeEnum?> GetHighestMatchingRoleAsync(
         List<RoleWithScope> roles,
         string scopeType,
-        string scopePublicId)
+        string scopePublicId,
+        CancellationToken ct = default)
     {
         UserRoleTypeEnum? highest = null;
 
@@ -130,7 +135,7 @@ public class ManagePermissionService(
                 var communityId = await context.Communities
                     .Where(c => c.PublicId == scopePublicId)
                     .Select(c => c.Id)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(ct);
 
                 if (communityId == 0) return null;
 
@@ -154,7 +159,7 @@ public class ManagePermissionService(
                     .Select(h => new {
                         h.Id,
                         h.CommunityId })
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(ct);
 
                 if (hub is null) return null;
 
@@ -187,7 +192,7 @@ public class ManagePermissionService(
                         s.Id,
                         s.HubId,
                         s.Hub.CommunityId })
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(ct);
 
                 if (space is null) return null;
 

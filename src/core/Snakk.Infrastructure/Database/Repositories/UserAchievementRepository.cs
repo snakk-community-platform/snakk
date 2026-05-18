@@ -7,21 +7,21 @@ using Snakk.Infrastructure.Database.Entities;
 public class UserAchievementRepository(SnakkDbContext context)
     : GenericDatabaseRepository<UserAchievementDatabaseEntity>(context), IUserAchievementRepository
 {
-    public async Task<UserAchievementDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
-        await _dbSet.FirstOrDefaultAsync(ua => ua.PublicId == publicId);
+    public async Task<UserAchievementDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(ua => ua.PublicId == publicId, ct);
 
-    public async Task<IEnumerable<UserAchievementDatabaseEntity>> GetByUserIdAsync(int userId) => await _dbSet
+    public async Task<IEnumerable<UserAchievementDatabaseEntity>> GetByUserIdAsync(int userId, CancellationToken ct = default) => await _dbSet
         .Where(ua => ua.UserId == userId)
         .OrderByDescending(ua => ua.EarnedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<IEnumerable<UserAchievementDatabaseEntity>> GetDisplayedByUserIdAsync(int userId) => await _dbSet
+    public async Task<IEnumerable<UserAchievementDatabaseEntity>> GetDisplayedByUserIdAsync(int userId, CancellationToken ct = default) => await _dbSet
         .Where(ua => ua.UserId == userId && ua.IsDisplayed)
         .OrderBy(ua => ua.DisplayOrder)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<bool> HasAchievementAsync(int userId, int achievementId) => await _dbSet
+    public async Task<bool> HasAchievementAsync(int userId, int achievementId, CancellationToken ct = default) => await _dbSet
         .AnyAsync(ua =>
             ua.UserId == userId
-            && ua.AchievementId == achievementId);
+            && ua.AchievementId == achievementId, ct);
 }

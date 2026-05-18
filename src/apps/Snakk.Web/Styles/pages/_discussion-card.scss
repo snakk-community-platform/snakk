@@ -2,7 +2,7 @@
 #discussions-container {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 2.5rem;
 }
 
 .sn-card {
@@ -12,8 +12,8 @@
     position: relative;
     cursor: pointer;
     border-radius: 0.5rem;
-    padding: .75rem 0.5rem;
-    margin: -0.5rem;
+    padding: 1.25rem .75rem;
+    margin: -1.25rem -.75rem;
     transition: background 0.15s;
 
     &:hover {
@@ -27,7 +27,6 @@
 // card immediately following it.
 .sn-card ~ .sn-card {
     border-top: 1px solid var(--border-secondary);
-    padding-top: 1.25rem;
 }
 
 .sn-card-header {
@@ -89,8 +88,7 @@
     background: var(--sidebar-bg);
     color: var(--link-primary);
     white-space: nowrap;
-
-    &:hover { color: var(--link-hover); }
+    transition: background 0.15s, color 0.15s;
 }
 
 .sn-card-tag--space {
@@ -109,6 +107,14 @@
         z-index: -1;
         background: linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.35));
         pointer-events: none;
+    }
+
+    &:hover {
+        color: #fff;
+    }
+
+    &:hover::before {
+        backdrop-filter: brightness(.85);
     }
 }
 

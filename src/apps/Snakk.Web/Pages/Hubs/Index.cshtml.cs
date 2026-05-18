@@ -47,8 +47,9 @@ public class IndexModel(
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
 
-    public async Task OnGetAsync(int offset = 0)
+    public async Task OnGetAsync(int offset = 0, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // Fetch community detail for breadcrumb popup or custom domain scoping
         string? communityId = null;
         if (!string.IsNullOrEmpty(communityContext.CommunitySlug)

@@ -10,7 +10,7 @@ public class FollowCreatedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<FollowCreatedEvent>
 {
-    public async Task HandleAsync(FollowCreatedEvent @event)
+    public async Task HandleAsync(FollowCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         var data = await context.UserFollows
             .Where(f => f.PublicId == @event.FollowId.Value)
@@ -28,7 +28,7 @@ public class FollowCreatedActivityHandler(
                     f.FollowedUser != null ? f.FollowedUser.DisplayName
                     : f.Space != null ? f.Space.Name
                     : f.Discussion != null ? f.Discussion.Title : null })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (data == null)
             return;

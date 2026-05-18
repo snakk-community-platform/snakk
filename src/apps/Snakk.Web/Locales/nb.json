@@ -1229,5 +1229,14 @@
         "shareTelegram":                   "Del på Telegram",
         "shareHackerNews":                 "Hacker News",
         "shareEmail":                      "Send på e-post"
+    },
+    "relogin": {
+        "title":               "Sesjonen er utløpt",
+        "subtitle":            "Sesjonen din er utløpt. Skriv inn passordet ditt for å fortsette.",
+        "passwordPlaceholder": "Passord",
+        "submit":              "Logg inn igjen",
+        "otherAccount":        "Bruk en annen konto",
+        "errorWrongPassword":  "Feil passord. Prøv igjen.",
+        "errorGeneric":        "Noe gikk galt. Prøv igjen."
     }
 }

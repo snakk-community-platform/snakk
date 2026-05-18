@@ -31,8 +31,9 @@ public class ProfileModel(
         return FormatRelativeTime(dateTime.Value);
     }
 
-    public async Task<IActionResult> OnGetAsync(string publicId)
+    public async Task<IActionResult> OnGetAsync(string publicId, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         string decodedPublicId;
         try { decodedPublicId = UlidBase62.Decode(publicId); }
         catch { return NotFound(); }

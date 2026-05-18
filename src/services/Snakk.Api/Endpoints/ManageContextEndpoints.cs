@@ -25,7 +25,8 @@ public static class ManageContextEndpoints
         string? spaceId,
         ClaimsPrincipal user,
         SnakkDbContext context,
-        IManagePermissionService permissionService)
+        IManagePermissionService permissionService,
+        CancellationToken ct)
     {
         var userId = user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -40,7 +41,7 @@ public static class ManageContextEndpoints
                 c.Name,
                 c.Slug,
                 c.PublicId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (community is null)
             return Results.NotFound(new { error = "Community not found" });
@@ -78,7 +79,7 @@ public static class ManageContextEndpoints
                 h.Name,
                 h.Slug,
                 h.PublicId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (hub is null)
             return Results.NotFound(new { error = "Hub not found" });
@@ -115,7 +116,7 @@ public static class ManageContextEndpoints
                 s.Name,
                 s.Slug,
                 s.PublicId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (space is null)
             return Results.NotFound(new { error = "Space not found" });

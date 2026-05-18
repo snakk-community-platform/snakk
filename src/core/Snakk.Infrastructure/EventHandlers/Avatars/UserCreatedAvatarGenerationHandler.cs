@@ -9,7 +9,7 @@ public class UserCreatedAvatarGenerationHandler(
     IAvatarGenerationService avatarService,
     ILogger<UserCreatedAvatarGenerationHandler> logger) : IDomainEventHandler<UserCreatedEvent>
 {
-    public async Task HandleAsync(UserCreatedEvent @event)
+    public async Task HandleAsync(UserCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         try
         {

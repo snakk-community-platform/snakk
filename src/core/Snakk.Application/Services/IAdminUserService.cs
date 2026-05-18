@@ -7,7 +7,7 @@ namespace Snakk.Application.Services;
 /// </summary>
 public interface IAdminUserService
 {
-    Task<AdminUserDto?> GetUserByIdAsync(string userId);
-    Task<bool> UserExistsAsync(string userId);
-    Task<PaginatedResponse<AdminBanDto>> GetActiveBansAsync(int page, int pageSize);
+    Task<AdminUserDto?> GetUserByIdAsync(string userId, CancellationToken ct = default);
+    Task<bool> UserExistsAsync(string userId, CancellationToken ct = default);
+    Task<PaginatedResponse<AdminBanDto>> GetActiveBansAsync(int page, int pageSize, CancellationToken ct = default);
 }

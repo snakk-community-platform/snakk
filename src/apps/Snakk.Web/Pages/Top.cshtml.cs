@@ -49,8 +49,9 @@ public class TopModel(
     public SidebarTrendingSpacesVM? InlineTrendingSpaces { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
 
-    public async Task OnGetAsync([FromQuery] string period = "week", [FromQuery] int offset = 0)
+    public async Task OnGetAsync([FromQuery] string period = "week", [FromQuery] int offset = 0, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Period = period is "day" or "week" or "month" or "year" or "all_time"
             ? period
             : "week";

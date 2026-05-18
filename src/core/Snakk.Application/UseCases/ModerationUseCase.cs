@@ -3,9 +3,15 @@ namespace Snakk.Application.UseCases;
 using Snakk.Domain;
 using Snakk.Domain.ValueObjects;
 using Snakk.Application.Repositories;
+using Snakk.Application.Services;
+using Snakk.Domain.Repositories;
 using Snakk.Shared.Models;
 
-public class ModerationUseCase(IModerationRepository moderationRepository) : UseCaseBase
+public class ModerationUseCase(
+    IModerationRepository moderationRepository,
+    IRevocationCache revocationCache,
+    IAuthVersionCache authVersionCache,
+    IUserRepository userRepository) : UseCaseBase
 {
     // ==================== Role Management ====================
 
@@ -113,6 +119,20 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
 
             var ban = await moderationRepository.BanUserAsync(
                 targetUserPublicId, banType, communityPublicId, hubPublicId, spacePublicId, reason, expiresAt, bannedByUserPublicId);
+
+            // For global bans, immediately revoke all active sessions
+            if (communityPublicId is null && hubPublicId is null && spacePublicId is null)
+            {
+                revocationCache.RevokeUser(targetUserPublicId);
+
+                var user = await userRepository.GetByPublicIdAsync(Domain.ValueObjects.UserId.From(targetUserPublicId));
+                if (user is not null)
+                {
+                    user.IncrementAuthVersion();
+                    await userRepository.UpdateAsync(user);
+                    await authVersionCache.InvalidateAsync(targetUserPublicId);
+                }
+            }
 
             return Result<UserBanDto>.Success(ban);
         }
@@ -238,11 +258,11 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
 
     // ==================== Content Moderation ====================
 
-    public async Task<Result> ModeratorDeletePostAsync(string postPublicId, string moderatorPublicId, string? reason)
+    public async Task<Result> ModeratorDeletePostAsync(string postPublicId, string moderatorPublicId, string? reason, CancellationToken ct = default)
     {
         try
         {
-            await moderationRepository.ModeratorDeletePostAsync(postPublicId, moderatorPublicId, reason);
+            await moderationRepository.ModeratorDeletePostAsync(postPublicId, moderatorPublicId, reason, ct);
             return Result.Success();
         }
         catch (Exception ex)
@@ -251,11 +271,11 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
         }
     }
 
-    public async Task<Result> ModeratorDeleteDiscussionAsync(string discussionPublicId, string moderatorPublicId, string? reason)
+    public async Task<Result> ModeratorDeleteDiscussionAsync(string discussionPublicId, string moderatorPublicId, string? reason, CancellationToken ct = default)
     {
         try
         {
-            await moderationRepository.ModeratorDeleteDiscussionAsync(discussionPublicId, moderatorPublicId, reason);
+            await moderationRepository.ModeratorDeleteDiscussionAsync(discussionPublicId, moderatorPublicId, reason, ct);
             return Result.Success();
         }
         catch (Exception ex)
@@ -264,11 +284,11 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
         }
     }
 
-    public async Task<Result> LockDiscussionAsync(string discussionPublicId, string moderatorPublicId, string? reason)
+    public async Task<Result> LockDiscussionAsync(string discussionPublicId, string moderatorPublicId, string? reason, CancellationToken ct = default)
     {
         try
         {
-            await moderationRepository.LockDiscussionAsync(discussionPublicId, moderatorPublicId, reason);
+            await moderationRepository.LockDiscussionAsync(discussionPublicId, moderatorPublicId, reason, ct);
             return Result.Success();
         }
         catch (Exception ex)
@@ -277,11 +297,11 @@ public class ModerationUseCase(IModerationRepository moderationRepository) : Use
         }
     }
 
-    public async Task<Result> UnlockDiscussionAsync(string discussionPublicId, string moderatorPublicId)
+    public async Task<Result> UnlockDiscussionAsync(string discussionPublicId, string moderatorPublicId, CancellationToken ct = default)
     {
         try
         {
-            await moderationRepository.UnlockDiscussionAsync(discussionPublicId, moderatorPublicId);
+            await moderationRepository.UnlockDiscussionAsync(discussionPublicId, moderatorPublicId, ct);
             return Result.Success();
         }
         catch (Exception ex)

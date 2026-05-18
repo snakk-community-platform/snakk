@@ -22,8 +22,9 @@ public class ReactionsModel(
     public bool HasMoreItems { get; set; }
     public int NextOffset { get; set; }
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         IsAuthenticated = HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
         if (!IsAuthenticated) return Page();
 

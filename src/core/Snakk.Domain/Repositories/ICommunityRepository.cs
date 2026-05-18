@@ -6,11 +6,11 @@ using Snakk.Shared.Models;
 
 public interface ICommunityRepository
 {
-    Task<Community?> GetByPublicIdAsync(CommunityId publicId);
-    Task<Community?> GetBySlugAsync(string slug);
-    Task<Community?> GetByDomainAsync(string domain);
-    Task<PagedResult<Community>> GetPublicListedAsync(int offset, int pageSize);
-    Task<PagedResult<Community>> GetForPlatformFeedAsync(int offset, int pageSize);
-    Task AddAsync(Community community);
-    Task UpdateAsync(Community community);
+    Task<Community?> GetByPublicIdAsync(CommunityId publicId, CancellationToken ct = default);
+    Task<Community?> GetBySlugAsync(string slug, CancellationToken ct = default);
+    Task<Community?> GetByDomainAsync(string domain, CancellationToken ct = default);
+    Task<PagedResult<Community>> GetPublicListedAsync(int offset, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<Community>> GetForPlatformFeedAsync(int offset, int pageSize, CancellationToken ct = default);
+    Task AddAsync(Community community, CancellationToken ct = default);
+    Task UpdateAsync(Community community, CancellationToken ct = default);
 }

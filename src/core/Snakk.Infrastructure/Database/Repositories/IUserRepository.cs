@@ -4,14 +4,14 @@ using Snakk.Infrastructure.Database.Entities;
 
 public interface IUserRepository : IGenericDatabaseRepository<UserDatabaseEntity>
 {
-    Task<UserDatabaseEntity?> GetForUpdateAsync(string publicId);
-    Task<UserDetailDto?> GetForDisplayAsync(string publicId);
-    Task<UserDatabaseEntity?> GetByPublicIdAsync(string publicId);
-    Task<IEnumerable<UserDatabaseEntity>> GetByPublicIdsAsync(IEnumerable<string> publicIds);
-    Task<UserDatabaseEntity?> GetByEmailAsync(string email);
-    Task<UserDatabaseEntity?> GetByOAuthProviderIdAsync(string oauthProviderId);
-    Task<UserDatabaseEntity?> GetByDisplayNameAsync(string displayName);
-    Task<IEnumerable<UserDatabaseEntity>> SearchByDisplayNameAsync(string query, int limit);
+    Task<UserDatabaseEntity?> GetForUpdateAsync(string publicId, CancellationToken ct = default);
+    Task<UserDetailDto?> GetForDisplayAsync(string publicId, CancellationToken ct = default);
+    Task<UserDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default);
+    Task<IEnumerable<UserDatabaseEntity>> GetByPublicIdsAsync(IEnumerable<string> publicIds, CancellationToken ct = default);
+    Task<UserDatabaseEntity?> GetByEmailAsync(string email, CancellationToken ct = default);
+    Task<UserDatabaseEntity?> GetByOAuthProviderIdAsync(string oauthProviderId, CancellationToken ct = default);
+    Task<UserDatabaseEntity?> GetByDisplayNameAsync(string displayName, CancellationToken ct = default);
+    Task<IEnumerable<UserDatabaseEntity>> SearchByDisplayNameAsync(string query, int limit, CancellationToken ct = default);
 }
 
 public record UserListDto(

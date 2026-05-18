@@ -9,7 +9,7 @@ public class SpaceDeletedAvatarCleanupHandler(
     IAvatarGenerationService avatarService,
     ILogger<SpaceDeletedAvatarCleanupHandler> logger) : IDomainEventHandler<SpaceDeletedEvent>
 {
-    public async Task HandleAsync(SpaceDeletedEvent @event)
+    public async Task HandleAsync(SpaceDeletedEvent @event, CancellationToken cancellationToken = default)
     {
         try
         {

@@ -8,7 +8,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
 {
     private readonly SnakkDbContext _context = context;
 
-    public async Task<PlatformStatsDto> GetPlatformStatsAsync()
+    public async Task<PlatformStatsDto> GetPlatformStatsAsync(CancellationToken ct = default)
     {
         // Use denormalized counters from Community entities (avoids full table scans on Posts)
         var stats = await _context.Communities
@@ -18,7 +18,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 SpaceCount = g.Sum(c => c.SpaceCount),
                 DiscussionCount = g.Sum(c => c.DiscussionCount),
                 PostCount = g.Sum(c => c.PostCount) })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (stats is null)
             return new PlatformStatsDto(0, 0, 0, 0);
@@ -29,7 +29,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
         return new PlatformStatsDto(stats.HubCount, stats.SpaceCount, stats.DiscussionCount, replyCount);
     }
 
-    public async Task<HubStatsDto?> GetHubStatsAsync(string publicId) =>
+    public async Task<HubStatsDto?> GetHubStatsAsync(string publicId, CancellationToken ct = default) =>
         // Use denormalized counters (avoids SelectMany chains across tables)
         await _context.Hubs
             .Where(h => h.PublicId == publicId)
@@ -41,9 +41,9 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 h.DiscussionCount,
                 h.PostCount - h.DiscussionCount,
                 h.AvatarFileName))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
-    public async Task<SpaceStatsDto?> GetSpaceStatsAsync(string publicId) =>
+    public async Task<SpaceStatsDto?> GetSpaceStatsAsync(string publicId, CancellationToken ct = default) =>
         // Use denormalized counters for all counts (avoids correlated subquery on UserFollows)
         await _context.Spaces
             .Where(s => s.PublicId == publicId)
@@ -55,9 +55,9 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 s.PostCount - s.DiscussionCount,
                 s.FollowerCount,
                 s.AvatarFileName))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
-    public async Task<CommunityStatsDto?> GetCommunityStatsAsync(string publicId) =>
+    public async Task<CommunityStatsDto?> GetCommunityStatsAsync(string publicId, CancellationToken ct = default) =>
         // Use denormalized counters (avoids SelectMany chains across millions of posts)
         await _context.Communities
             .Where(c => c.PublicId == publicId)
@@ -70,9 +70,9 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 c.DiscussionCount,
                 c.PostCount - c.DiscussionCount,
                 c.AvatarFileName))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
-    public async Task<UserStatsDto?> GetUserStatsAsync(string publicId) => await _context.Users
+    public async Task<UserStatsDto?> GetUserStatsAsync(string publicId, CancellationToken ct = default) => await _context.Users
         .Where(u => u.PublicId == publicId)
         .Select(u => new UserStatsDto(
             u.PublicId,
@@ -83,9 +83,9 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
             u.AvatarFileName,
             u.Bio,
             u.AvatarThumbnailFileName))
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(ct);
 
-    public async Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId) =>
+    public async Task<DiscussionStatsDto?> GetDiscussionStatsAsync(string publicId, CancellationToken ct = default) =>
         await _context.Discussions
             .Where(d => d.PublicId == publicId)
             .Select(d => new DiscussionStatsDto(
@@ -93,13 +93,14 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 d.Title,
                 d.PostCount - 1,
                 d.FollowerCount))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
     public async Task<List<TopActiveSpaceDto>> GetTopActiveSpacesSinceAsync(
         DateTime since,
         string? hubId = null,
         string? communityId = null,
-        int limit = 5)
+        int limit = 5,
+        CancellationToken ct = default)
     {
         var postsQuery = _context.Posts
             .Where(p => p.CreatedAt >= since);
@@ -107,14 +108,14 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
         // Filter by community if specified
         if (!string.IsNullOrEmpty(communityId))
         {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync();
+            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
             postsQuery = postsQuery.Where(p => p.CommunityId == communityDbId);
         }
 
         // Filter by hub if specified
         if (!string.IsNullOrEmpty(hubId))
         {
-            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync();
+            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync(ct);
             postsQuery = postsQuery.Where(p => p.HubId == hubDbId);
         }
 
@@ -138,7 +139,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                     s.HubSlug,
                     s.HubName,
                     s.CommunitySlug))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return topSpaces;
     }
@@ -146,19 +147,20 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
     public async Task<List<LatestActiveSpaceDto>> GetLatestActiveSpacesAsync(
         string? hubId = null,
         string? communityId = null,
-        int limit = 5)
+        int limit = 5,
+        CancellationToken ct = default)
     {
         var postsQuery = _context.Posts.AsQueryable();
 
         if (!string.IsNullOrEmpty(communityId))
         {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync();
+            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
             postsQuery = postsQuery.Where(p => p.CommunityId == communityDbId);
         }
 
         if (!string.IsNullOrEmpty(hubId))
         {
-            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync();
+            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync(ct);
             postsQuery = postsQuery.Where(p => p.HubId == hubDbId);
         }
 
@@ -176,7 +178,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                     x.LastPostAt,
                     s.HubPublicId, s.HubSlug, s.HubName,
                     s.CommunitySlug))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return latestSpaces;
     }

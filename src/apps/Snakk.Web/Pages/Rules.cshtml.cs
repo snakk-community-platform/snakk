@@ -8,8 +8,9 @@ public class RulesModel(SnakkApiClient apiClient) : PageModel
 {
     public SiteRulesResponse? Rules { get; set; }
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Rules = await apiClient.GetSiteRulesAsync();
     }
 }

@@ -51,7 +51,9 @@ public static class UserMapper
             entity.LockoutEnd,
             adultPreviewImageMode: (AdultPreviewImageModeEnum)entity.AdultPreviewImageMode,
             hidePresence: entity.HidePresence,
-            emailVerificationTokenCreatedAt: entity.EmailVerificationTokenCreatedAt);
+            emailVerificationTokenCreatedAt: entity.EmailVerificationTokenCreatedAt,
+            authVersion: entity.AuthVersion,
+            authVersionUpdatedAt: entity.AuthVersionUpdatedAt);
     }
 
     public static UserDatabaseEntity ToPersistence(this User user) =>
@@ -88,6 +90,8 @@ public static class UserMapper
             DisplayNameChangedAt = user.DisplayNameChangedAt,
             IsDisplayNameLocked = user.IsDisplayNameLocked,
             FailedLoginAttempts = user.FailedLoginAttempts,
-            LockoutEnd = user.LockoutEnd
+            LockoutEnd = user.LockoutEnd,
+            AuthVersion = user.AuthVersion,
+            AuthVersionUpdatedAt = user.AuthVersionUpdatedAt
         };
 }

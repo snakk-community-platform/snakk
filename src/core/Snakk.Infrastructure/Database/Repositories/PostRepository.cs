@@ -8,24 +8,24 @@ using Snakk.Shared.Models;
 public class PostRepository(SnakkDbContext context)
     : GenericDatabaseRepository<PostDatabaseEntity>(context), IPostRepository
 {
-    public override async Task<PostDatabaseEntity?> GetByIdAsync(int id) =>
-        await _dbSet.FirstOrDefaultAsync(p => p.Id == id);
+    public override async Task<PostDatabaseEntity?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(p => p.Id == id, ct);
 
-    public async Task<PostDatabaseEntity?> GetForUpdateAsync(string publicId) => await _dbSet
+    public async Task<PostDatabaseEntity?> GetForUpdateAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .AsTracking()
         .Include(p => p.Discussion)
         .Include(p => p.CreatedByUser)
         .Include(p => p.ReplyToPost)
-        .FirstOrDefaultAsync(p => p.PublicId == publicId);
+        .FirstOrDefaultAsync(p => p.PublicId == publicId, ct);
 
-    public override async Task<IEnumerable<PostDatabaseEntity>> GetAllAsync() =>
+    public override async Task<IEnumerable<PostDatabaseEntity>> GetAllAsync(CancellationToken ct = default) =>
         await _dbSet.AsNoTracking()
             .Include(p => p.Discussion)
             .Include(p => p.CreatedByUser)
             .Take(1000)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-    public async Task<PostDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
+    public async Task<PostDetailDto?> GetForDisplayAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .Where(p => p.PublicId == publicId)
         .Select(p => new PostDetailDto(
             p.PublicId,
@@ -38,21 +38,22 @@ public class PostRepository(SnakkDbContext context)
             p.CreatedByUserPublicId,
             p.CreatedByUser.DisplayName ?? "",
             p.ReplyToPost != null ? p.ReplyToPost.PublicId : null))
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(ct);
 
-    public async Task<PostDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
-        await _dbSet.FirstOrDefaultAsync(p => p.PublicId == publicId);
+    public async Task<PostDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(p => p.PublicId == publicId, ct);
 
-    public async Task<IEnumerable<PostDatabaseEntity>> GetByDiscussionIdAsync(int discussionId) => await _dbSet
+    public async Task<IEnumerable<PostDatabaseEntity>> GetByDiscussionIdAsync(int discussionId, CancellationToken ct = default) => await _dbSet
         .AsNoTracking()
         .Where(p => p.DiscussionId == discussionId)
         .OrderBy(p => p.CreatedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 
     public async Task<PagedResult<PostListDto>> GetPagedByDiscussionIdAsync(
         int discussionId,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
         var items = await _dbSet
             .Where(p => p.DiscussionId == discussionId)
@@ -67,7 +68,7 @@ public class PostRepository(SnakkDbContext context)
                 p.IsFirstPost,
                 p.CreatedByUserPublicId,
                 p.CreatedByUser.DisplayName ?? ""))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems ? items.Take(pageSize) : items;

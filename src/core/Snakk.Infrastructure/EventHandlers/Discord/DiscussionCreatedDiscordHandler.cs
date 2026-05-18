@@ -10,7 +10,7 @@ public class DiscussionCreatedDiscordHandler(
     IDiscordNotificationService discordService,
     SnakkDbContext context) : IDomainEventHandler<DiscussionCreatedEvent>
 {
-    public async Task HandleAsync(DiscussionCreatedEvent @event)
+    public async Task HandleAsync(DiscussionCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         var data = await context.Discussions
             .Where(d => d.PublicId == @event.DiscussionId.Value)
@@ -24,7 +24,7 @@ public class DiscussionCreatedDiscordHandler(
                 CommunitySlug = d.Space.Hub.Community.Slug,
                 AuthorName = d.CreatedByUser.DisplayName ?? ""
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (data is null) return;
 

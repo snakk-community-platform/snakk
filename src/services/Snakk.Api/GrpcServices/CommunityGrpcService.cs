@@ -26,12 +26,13 @@ public class CommunityGrpcService(
 {
     public override async Task<CommunityInfo> GetCommunityBySlug(GetCommunityBySlugRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await communityUseCase.GetCommunityBySlugAsync(request.Slug);
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
-        if (!await IsCommunityAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
+        if (!await IsCommunityAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var info = MapToProto(result.Value);
@@ -42,12 +43,13 @@ public class CommunityGrpcService(
 
     public override async Task<CommunityInfo> GetCommunityByDomain(GetCommunityByDomainRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await communityUseCase.GetCommunityByDomainAsync(request.Domain);
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
-        if (!await IsCommunityAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
+        if (!await IsCommunityAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var info = MapToProto(result.Value);
@@ -58,12 +60,13 @@ public class CommunityGrpcService(
 
     public override async Task<CommunityInfo> GetCommunity(GetCommunityRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await communityUseCase.GetCommunityAsync(CommunityId.From(request.PublicId));
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
-        if (!await IsCommunityAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
+        if (!await IsCommunityAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var info = MapToProto(result.Value);
@@ -74,6 +77,7 @@ public class CommunityGrpcService(
 
     public override async Task<PagedCommunityList> ListCommunities(ListCommunitiesRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await communityUseCase.GetPublicCommunitiesAsync(request.Offset, request.PageSize);
 
         // Fetch denormalized counts from database entities
@@ -81,7 +85,7 @@ public class CommunityGrpcService(
         var counts = await dbContext.Communities
             .Where(c => publicIds.Contains(c.PublicId))
             .Select(c => new { c.PublicId, c.DiscussionCount, c.PostCount })
-            .ToDictionaryAsync(c => c.PublicId, context.CancellationToken);
+            .ToDictionaryAsync(c => c.PublicId, ct);
 
         var response = new PagedCommunityList
         {
@@ -106,6 +110,7 @@ public class CommunityGrpcService(
 
     public override async Task<CommunityStats> GetCommunityStats(GetCommunityStatsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await statisticsUseCase.GetCommunityStatsAsync(request.PublicId);
 
         if (!result.IsSuccess || result.Value is null)
@@ -128,7 +133,8 @@ public class CommunityGrpcService(
 
     public override async Task<CommunityRulesResponse> GetCommunityRules(GetCommunityRulesRequest request, ServerCallContext context)
     {
-        var rules = await ruleService.GetRulesAsync("Community", request.CommunityId);
+        var ct = context.CancellationToken;
+        var rules = await ruleService.GetRulesAsync("Community", request.CommunityId, ct);
 
         var response = new CommunityRulesResponse();
 
@@ -147,8 +153,9 @@ public class CommunityGrpcService(
 
     public override async Task<SiteRulesResponse> GetSiteRules(GetSiteRulesRequest request, ServerCallContext context)
     {
-        var rules = await ruleService.GetRulesAsync("Site", null);
-        var revision = await ruleService.GetSiteRulesRevisionAsync();
+        var ct = context.CancellationToken;
+        var rules = await ruleService.GetRulesAsync("Site", null, ct);
+        var revision = await ruleService.GetSiteRulesRevisionAsync(ct);
 
         var response = new SiteRulesResponse { Revision = revision };
 
@@ -165,18 +172,18 @@ public class CommunityGrpcService(
         return response;
     }
 
-    private async Task<bool> IsCommunityAccessibleAsync(string communityPublicId, string? userId)
+    private async Task<bool> IsCommunityAccessibleAsync(string communityPublicId, string? userId, CancellationToken ct = default)
     {
-        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync(ct);
         if (restricted.IsEmpty) return true;
 
-        var communityDbId = await hierarchyCache.GetCommunityIdAsync(communityPublicId);
+        var communityDbId = await hierarchyCache.GetCommunityIdAsync(communityPublicId, ct);
 
         if (communityDbId is null) return false;
         if (!restricted.CommunityIds.Contains(communityDbId.Value)) return true;
         if (userId is null) return false;
 
-        var grants = await grantsCache.GetGrantsAsync(userId);
+        var grants = await grantsCache.GetGrantsAsync(userId, ct);
         return grants.CommunityIds.Contains(communityDbId.Value);
     }
 
@@ -210,6 +217,7 @@ public class CommunityGrpcService(
         CheckGroupAccessRequest request,
         ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userPublicId = context.GetHttpContext().User
             .FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -218,7 +226,7 @@ public class CommunityGrpcService(
             request.CommunityPublicId,
             request.HasHubPublicId ? request.HubPublicId : null,
             request.HasSpacePublicId ? request.SpacePublicId : null,
-            context.CancellationToken);
+            ct);
 
         return new CheckGroupAccessResponse
         {

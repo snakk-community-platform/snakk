@@ -122,7 +122,7 @@ public class AvatarGenerationService(
         }
     }
 
-    public async Task<int> GenerateAllMissingAvatarsAsync()
+    public async Task<int> GenerateAllMissingAvatarsAsync(CancellationToken ct = default)
     {
         logger.LogInformation("Starting generation of all missing avatars...");
         var totalGenerated = 0;

@@ -19,21 +19,21 @@ public class SpaceRepository(SnakkDbContext context)
         string HubPublicId,
         string HubName);
 
-    public override async Task<SpaceDatabaseEntity?> GetByIdAsync(int id) =>
-        await _dbSet.FirstOrDefaultAsync(s => s.Id == id);
+    public override async Task<SpaceDatabaseEntity?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(s => s.Id == id, ct);
 
-    public async Task<SpaceDatabaseEntity?> GetForUpdateAsync(string publicId) => await _dbSet
+    public async Task<SpaceDatabaseEntity?> GetForUpdateAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .AsTracking()
         .Include(s => s.Hub)
-        .FirstOrDefaultAsync(s => s.PublicId == publicId);
+        .FirstOrDefaultAsync(s => s.PublicId == publicId, ct);
 
-    public override async Task<IEnumerable<SpaceDatabaseEntity>> GetAllAsync() =>
+    public override async Task<IEnumerable<SpaceDatabaseEntity>> GetAllAsync(CancellationToken ct = default) =>
         await _dbSet.AsNoTracking()
             .Include(s => s.Hub)
             .Take(1000)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-    public async Task<SpaceDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
+    public async Task<SpaceDetailDto?> GetForDisplayAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .Where(s => s.PublicId == publicId)
         .Select(s => new SpaceDetailDto(
             s.PublicId,
@@ -45,20 +45,21 @@ public class SpaceRepository(SnakkDbContext context)
             s.CreatedAt,
             s.HubPublicId,
             s.HubName))
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(ct);
 
-    public async Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
-        await _dbSet.FirstOrDefaultAsync(s => s.PublicId == publicId);
+    public async Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(s => s.PublicId == publicId, ct);
 
-    public async Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug, string hubSlug) =>
-        await _dbSet.FirstOrDefaultAsync(s => s.Slug == slug && s.HubSlug == hubSlug);
+    public async Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug, string hubSlug, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(s => s.Slug == slug && s.HubSlug == hubSlug, ct);
 
     public async Task<PagedResult<SpaceListDto>> GetFilteredForDisplayAsync(
         string hubPublicId,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
-        var hubDbId = await context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync();
+        var hubDbId = await context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync(ct);
         var items = await _dbSet
             .Where(s => s.HubId == hubDbId)
             .OrderBy(s => s.Name)
@@ -74,7 +75,7 @@ public class SpaceRepository(SnakkDbContext context)
                 s.CreatedAt,
                 s.HubPublicId,
                 s.HubName))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems

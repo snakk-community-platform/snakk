@@ -9,7 +9,7 @@ public class SpaceCreatedAvatarGenerationHandler(
     IAvatarGenerationService avatarService,
     ILogger<SpaceCreatedAvatarGenerationHandler> logger) : IDomainEventHandler<SpaceCreatedEvent>
 {
-    public async Task HandleAsync(SpaceCreatedEvent @event)
+    public async Task HandleAsync(SpaceCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         try
         {

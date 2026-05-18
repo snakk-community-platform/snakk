@@ -15,9 +15,11 @@ public interface IJwtTokenService
         string? avatarFileName = null,
         bool needsProfileSetup = false,
         string? avatarThumbnailFileName = null,
-        string? avatarMicroFileName = null);
+        string? avatarMicroFileName = null,
+        long authVersion = 0,
+        string? sessionId = null);
 
-    string GenerateToken(User user);
+    string GenerateToken(User user, string? sessionId = null);
 
     ClaimsPrincipal? ValidateToken(string token);
 

@@ -39,7 +39,8 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
         string? action = null,
         string? actorUserId = null,
         string? fromDate = null,
-        string? toDate = null)
+        string? toDate = null,
+        CancellationToken ct = default)
     {
         const int pageSize = 50;
         var offset = (page - 1) * pageSize;
@@ -49,7 +50,7 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
 
         var countTask = ReadAsync(db =>
             ApplyAuditLogFilters(db.AuditLogs.AsQueryable(), category, action, actorUserId, from, to)
-                .CountAsync());
+                .CountAsync(ct));
 
         var listTask = ReadAsync(db =>
             ApplyAuditLogFilters(db.AuditLogs.AsQueryable(), category, action, actorUserId, from, to)
@@ -69,7 +70,7 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
                     Severity = ((AuditLogSeverityEnum)a.SeverityId).ToString(),
                     ActorUsername = a.ActorUser != null ? a.ActorUser.DisplayName : null,
                 })
-                .ToListAsync());
+                .ToListAsync(ct));
 
         await Task.WhenAll(countTask, listTask);
 
@@ -82,7 +83,7 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
         };
     }
 
-    public async Task<AuditLogDto?> GetAuditLogByIdAsync(string id) =>
+    public async Task<AuditLogDto?> GetAuditLogByIdAsync(string id, CancellationToken ct = default) =>
         await context.AuditLogs
             .Where(a => a.PublicId == id)
             .Select(a => new AuditLogDto
@@ -101,9 +102,9 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
 
                 ActorUsername = a.ActorUser != null ? a.ActorUser.DisplayName : null,
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
-    public async Task<List<FailedLoginDto>> GetFailedLoginsAsync(int page, int hours = 24)
+    public async Task<List<FailedLoginDto>> GetFailedLoginsAsync(int page, int hours = 24, CancellationToken ct = default)
     {
         const int pageSize = 50;
         var offset = (page - 1) * pageSize;
@@ -128,10 +129,10 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
             .OrderByDescending(f => f.AttemptCount)
             .Skip(offset)
             .Take(pageSize)
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task<List<ActiveSessionDto>> GetActiveSessionsAsync()
+    public async Task<List<ActiveSessionDto>> GetActiveSessionsAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
 
@@ -149,10 +150,10 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
                 CreatedAt = t.CreatedAt,
                 ExpiresAt = t.ExpiresAt
             })
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task<List<SuspiciousActivityDto>> GetSuspiciousActivitiesAsync(int page, int hours = 24)
+    public async Task<List<SuspiciousActivityDto>> GetSuspiciousActivitiesAsync(int page, int hours = 24, CancellationToken ct = default)
     {
         const int pageSize = 50;
         var offset = (page - 1) * pageSize;
@@ -180,14 +181,15 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
 
                 ActorUsername = a.ActorUser != null ? a.ActorUser.DisplayName : null,
             })
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     public async Task<UserDataExportDto> ExportUserDataAsync(
         string userId,
         string adminUserId,
         string? ipAddress,
-        string? userAgent)
+        string? userAgent,
+        CancellationToken ct = default)
     {
         var user = await context.Users
             .Where(u => u.PublicId == userId)
@@ -195,7 +197,7 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
                 u.Id,
                 u.DisplayName,
                 u.Email })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (user is null)
             throw new InvalidOperationException("User not found");
@@ -232,7 +234,8 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
         string? ipAddress = null,
         string? userAgent = null,
         bool success = true,
-        AuditLogSeverityEnum severity = AuditLogSeverityEnum.Info)
+        AuditLogSeverityEnum severity = AuditLogSeverityEnum.Info,
+        CancellationToken ct = default)
     {
         int? actorUserIdInt = null;
 
@@ -241,7 +244,7 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
             var actorUser = await context.Users
                 .Where(u => u.PublicId == actorUserId)
                 .Select(u => u.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (actorUser != 0)
                 actorUserIdInt = actorUser;
@@ -263,6 +266,6 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
         };
 
         context.AuditLogs.Add(auditLog);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 }

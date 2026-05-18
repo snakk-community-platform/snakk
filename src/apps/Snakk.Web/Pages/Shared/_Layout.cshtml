@@ -117,6 +117,11 @@
     <script id="js-htmx-head"    hx-preserve src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
     <script id="js-loading-bar"  hx-preserve src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
     <script id="js-actions"      hx-preserve src="@SnakkUrlHelper.Js("core/actions")" asp-append-version="true" defer></script>
+    @if (!string.IsNullOrEmpty(Context.Request.Cookies[".Snakk.ReloginHint"]))
+    {
+        <script>window.snakkReloginStrings={wrongPassword:@Json.Serialize(T.Relogin.ErrorWrongPassword),generic:@Json.Serialize(T.Relogin.ErrorGeneric)};</script>
+    }
+    <script id="js-relogin"      hx-preserve src="@SnakkUrlHelper.Js("core/relogin-modal")" asp-append-version="true" defer></script>
     <script id="js-auth"         hx-preserve src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
     <script id="js-theme"        hx-preserve src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/prefs")" asp-append-version="true"></script>
@@ -230,6 +235,7 @@
             </div>
         </div>
     </dialog>
+    <partial name="Shared/_ReloginModal" />
     <script src="@SnakkUrlHelper.Js("components/external-link-guard")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/syntax-highlight")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/chart-renderer")" asp-append-version="true" defer></script>

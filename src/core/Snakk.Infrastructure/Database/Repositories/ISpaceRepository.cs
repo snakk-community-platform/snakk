@@ -5,11 +5,11 @@ using Snakk.Shared.Models;
 
 public interface ISpaceRepository : IGenericDatabaseRepository<SpaceDatabaseEntity>
 {
-    Task<SpaceDatabaseEntity?> GetForUpdateAsync(string publicId);
-    Task<SpaceDetailDto?> GetForDisplayAsync(string publicId);
-    Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId);
-    Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug, string hubSlug);
-    Task<PagedResult<SpaceRepository.SpaceListDto>> GetFilteredForDisplayAsync(string hubPublicId, int offset, int pageSize);
+    Task<SpaceDatabaseEntity?> GetForUpdateAsync(string publicId, CancellationToken ct = default);
+    Task<SpaceDetailDto?> GetForDisplayAsync(string publicId, CancellationToken ct = default);
+    Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default);
+    Task<SpaceDatabaseEntity?> GetBySlugAsync(string slug, string hubSlug, CancellationToken ct = default);
+    Task<PagedResult<SpaceRepository.SpaceListDto>> GetFilteredForDisplayAsync(string hubPublicId, int offset, int pageSize, CancellationToken ct = default);
 }
 
 public record SpaceListDto(

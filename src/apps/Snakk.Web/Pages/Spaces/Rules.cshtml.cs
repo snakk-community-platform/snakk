@@ -17,8 +17,9 @@ public class RulesModel(
     public SpaceRulesResponse? Rules { get; set; }
     public string HubSlug { get; set; } = string.Empty;
 
-    public async Task<IActionResult> OnGetAsync(string hubSlug, string slug)
+    public async Task<IActionResult> OnGetAsync(string hubSlug, string slug, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         HubSlug = hubSlug;
 
         var hubTask = apiClient.GetHubBySlugResultAsync(hubSlug, CommunityContext.CommunitySlug!);

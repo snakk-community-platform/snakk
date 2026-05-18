@@ -4,5 +4,5 @@ using Snakk.Infrastructure.Database.Entities;
 
 public interface IBannerDatabaseRepository : IGenericDatabaseRepository<BannerDatabaseEntity>
 {
-    Task<BannerDatabaseEntity?> GetByPublicIdAsync(string publicId);
+    Task<BannerDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default);
 }

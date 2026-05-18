@@ -14,11 +14,11 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
         ?? throw new InvalidOperationException("JWT SecretKey not configured");
     private readonly string _issuer = configuration["Jwt:Issuer"] ?? "Snakk";
     private readonly string _audience = configuration["Jwt:Audience"] ?? "Snakk";
-    private readonly int _expirationMinutes = configuration.GetValue<int>("Jwt:ExpirationMinutes", 15); // 15 minutes default
+    private readonly int _expirationMinutes = configuration.GetValue<int>("Jwt:ExpirationMinutes", 480); // 8 hours default
 
     private const string RevocationPrefix = "jwt:revoked:";
 
-    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null)
+    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null)
     {
         var jti = Guid.NewGuid().ToString("N");
         var claims = new List<Claim>
@@ -52,6 +52,12 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
         if (needsProfileSetup)
             claims.Add(new("NeedsProfileSetup", "true"));
 
+        if (authVersion > 0)
+            claims.Add(new(Snakk.Application.Auth.CustomClaimTypes.AuthVersion, authVersion.ToString()));
+
+        if (!string.IsNullOrEmpty(sessionId))
+            claims.Add(new(Snakk.Application.Auth.CustomClaimTypes.SessionId, sessionId));
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) { KeyId = "snakk-hmac" };
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -65,7 +71,7 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public string GenerateToken(User user) =>
+    public string GenerateToken(User user, string? sessionId = null) =>
         GenerateToken(
             user.PublicId.Value,
             user.DisplayName,
@@ -76,7 +82,9 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
             user.AvatarFileName,
             user.NeedsProfileSetup,
             user.AvatarThumbnailFileName,
-            user.AvatarMicroFileName);
+            user.AvatarMicroFileName,
+            authVersion: user.AuthVersion,
+            sessionId: sessionId);
 
     public ClaimsPrincipal? ValidateToken(string token)
     {
@@ -94,7 +102,7 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
                 ValidateAudience = true,
                 ValidAudience = _audience,
                 ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = TimeSpan.FromSeconds(30)
             };
 
             var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
@@ -126,7 +134,8 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
             var expiry = jwt.ValidTo - DateTime.UtcNow;
             if (expiry > TimeSpan.Zero)
             {
-                memoryCache.Set(RevocationPrefix + jti, true, expiry);
+                var opts = new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiry, Size = 1 };
+                memoryCache.Set(RevocationPrefix + jti, true, opts);
             }
         }
         catch

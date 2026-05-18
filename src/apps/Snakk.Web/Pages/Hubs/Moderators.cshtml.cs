@@ -15,8 +15,9 @@ public class ModeratorsModel(
     public CommunityInfo? CommunityDetail { get; set; }
     public GetModeratorsResponse? Moderators { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(string slug)
+    public async Task<IActionResult> OnGetAsync(string slug, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var hubResult = await apiClient.GetHubBySlugResultAsync(slug, CommunityContext.CommunitySlug!);
 
         if (!hubResult.IsSuccess)

@@ -1,6 +1,8 @@
 using NSubstitute;
 using Snakk.Application.Repositories;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
+using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Shared.Models;
 
@@ -9,12 +11,15 @@ namespace Snakk.Application.Tests.UseCases;
 public class ModerationUseCaseTests
 {
     private readonly IModerationRepository _moderationRepository = Substitute.For<IModerationRepository>();
+    private readonly IRevocationCache _revocationCache = Substitute.For<IRevocationCache>();
+    private readonly IAuthVersionCache _authVersionCache = Substitute.For<IAuthVersionCache>();
+    private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
     private ModerationUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
-        _useCase = new ModerationUseCase(_moderationRepository);
+        _useCase = new ModerationUseCase(_moderationRepository, _revocationCache, _authVersionCache, _userRepository);
     }
 
     #region AssignRoleAsync Tests

@@ -6,12 +6,12 @@ using Snakk.Shared.Enums;
 
 public interface IBannerRepository
 {
-    Task<Banner?> GetByPublicIdAsync(BannerId publicId);
-    Task<IEnumerable<Banner>> GetByScopeAsync(BannerScopeEnum scope, string scopeEntityId);
-    Task<IEnumerable<Banner>> GetActiveForCommunityAsync(CommunityId communityId);
-    Task<IEnumerable<Banner>> GetActiveForHubAsync(HubId hubId);
-    Task<IEnumerable<Banner>> GetActiveForSpaceAsync(SpaceId spaceId);
-    Task AddAsync(Banner banner);
-    Task UpdateAsync(Banner banner);
-    Task DeleteAsync(BannerId publicId);
+    Task<Banner?> GetByPublicIdAsync(BannerId publicId, CancellationToken ct = default);
+    Task<IEnumerable<Banner>> GetByScopeAsync(BannerScopeEnum scope, string scopeEntityId, CancellationToken ct = default);
+    Task<IEnumerable<Banner>> GetActiveForCommunityAsync(CommunityId communityId, CancellationToken ct = default);
+    Task<IEnumerable<Banner>> GetActiveForHubAsync(HubId hubId, CancellationToken ct = default);
+    Task<IEnumerable<Banner>> GetActiveForSpaceAsync(SpaceId spaceId, CancellationToken ct = default);
+    Task AddAsync(Banner banner, CancellationToken ct = default);
+    Task UpdateAsync(Banner banner, CancellationToken ct = default);
+    Task DeleteAsync(BannerId publicId, CancellationToken ct = default);
 }

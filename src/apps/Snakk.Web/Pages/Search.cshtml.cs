@@ -66,8 +66,9 @@ public class SearchModel(
         return parameters.Count > 0 ? $"/search?{string.Join("&", parameters)}" : "/search";
     }
 
-    public async Task<IActionResult> OnGetAsync(int offset = 0)
+    public async Task<IActionResult> OnGetAsync(int offset = 0, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // Backward compatibility: map old "tab" parameter to new "searchType"
         if (!string.IsNullOrEmpty(Tab))
         {

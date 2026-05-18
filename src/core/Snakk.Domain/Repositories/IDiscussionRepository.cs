@@ -6,15 +6,15 @@ using Snakk.Shared.Models;
 
 public interface IDiscussionRepository
 {
-    Task<Discussion?> GetByIdAsync(int id);
-    Task<Discussion?> GetByPublicIdAsync(DiscussionId publicId);
-    Task<Discussion?> GetBySlugAsync(string slug);
-    Task<IEnumerable<Discussion>> GetBySpaceIdAsync(SpaceId spaceId);
-    Task<PagedResult<Discussion>> GetBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize);
-    Task<PagedResult<Discussion>> GetPagedBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize);
-    Task<IEnumerable<Discussion>> GetRecentAsync(int count = 10);
-    Task AddAsync(Discussion discussion);
-    Task UpdateAsync(Discussion discussion);
+    Task<Discussion?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task<Discussion?> GetByPublicIdAsync(DiscussionId publicId, CancellationToken ct = default);
+    Task<Discussion?> GetBySlugAsync(string slug, CancellationToken ct = default);
+    Task<IEnumerable<Discussion>> GetBySpaceIdAsync(SpaceId spaceId, CancellationToken ct = default);
+    Task<PagedResult<Discussion>> GetBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<Discussion>> GetPagedBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize, CancellationToken ct = default);
+    Task<IEnumerable<Discussion>> GetRecentAsync(int count = 10, CancellationToken ct = default);
+    Task AddAsync(Discussion discussion, CancellationToken ct = default);
+    Task UpdateAsync(Discussion discussion, CancellationToken ct = default);
 
     /// <summary>
     /// Gets top active discussions by post count since a given date
@@ -26,22 +26,23 @@ public interface IDiscussionRepository
         CommunityId? communityId,
         int limit,
         string? userId = null,
-        bool viewerAllowsAdult = false);
+        bool viewerAllowsAdult = false,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Fetches lightweight summaries for multiple discussions in a single query.
     /// </summary>
-    Task<IReadOnlyList<DiscussionSummary>> GetSummariesByPublicIdsAsync(IEnumerable<DiscussionId> publicIds);
+    Task<IReadOnlyList<DiscussionSummary>> GetSummariesByPublicIdsAsync(IEnumerable<DiscussionId> publicIds, CancellationToken ct = default);
 
     /// <summary>
     /// Gets discussion activity counts grouped by date for a specific user
     /// </summary>
-    Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(UserId userId, DateTime startDate);
+    Task<IEnumerable<(DateTime Date, int Count)>> GetActivityByDateAsync(UserId userId, DateTime startDate, CancellationToken ct = default);
 
     /// <summary>
     /// Gets a user's top discussions ranked by engagement (post count + reaction count).
     /// </summary>
-    Task<List<TopDiscussionByUser>> GetTopDiscussionsByUserAsync(UserId userId, int limit);
+    Task<List<TopDiscussionByUser>> GetTopDiscussionsByUserAsync(UserId userId, int limit, CancellationToken ct = default);
 
     /// <summary>
     /// Writes the last-reply preview fields directly. Call on post create with the known values.

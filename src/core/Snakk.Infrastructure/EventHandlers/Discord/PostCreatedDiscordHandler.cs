@@ -10,7 +10,7 @@ public class PostCreatedDiscordHandler(
     IDiscordNotificationService discordService,
     SnakkDbContext context) : IDomainEventHandler<PostCreatedEvent>
 {
-    public async Task HandleAsync(PostCreatedEvent @event)
+    public async Task HandleAsync(PostCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         var data = await context.Posts
             .Where(p => p.PublicId == @event.PostId.Value)
@@ -25,7 +25,7 @@ public class PostCreatedDiscordHandler(
                 AuthorName = p.CreatedByUser.DisplayName ?? "",
                 PostIndex = p.Discussion.Posts.Count(x => x.CreatedAt <= p.CreatedAt)
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         // Skip the opening post — already covered by DiscussionCreatedDiscordHandler
         if (data is null || data.PostIndex <= 1) return;

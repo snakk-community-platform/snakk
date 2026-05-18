@@ -10,14 +10,14 @@ public class UserCreatedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<UserCreatedEvent>
 {
-    public async Task HandleAsync(UserCreatedEvent @event)
+    public async Task HandleAsync(UserCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         var user = await context.Users
             .Where(u => u.PublicId == @event.UserId.Value)
             .Select(u => new {
                 u.DisplayName,
                 u.Email })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (user is null)
             return;

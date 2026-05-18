@@ -9,7 +9,7 @@ public class HubCreatedAvatarGenerationHandler(
     IAvatarGenerationService avatarService,
     ILogger<HubCreatedAvatarGenerationHandler> logger) : IDomainEventHandler<HubCreatedEvent>
 {
-    public async Task HandleAsync(HubCreatedEvent @event)
+    public async Task HandleAsync(HubCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         try
         {

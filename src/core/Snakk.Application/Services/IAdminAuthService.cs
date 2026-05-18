@@ -11,12 +11,12 @@ public interface IAdminAuthService
     /// <param name="email">Admin email</param>
     /// <param name="password">Plain-text password</param>
     /// <returns>JWT token if authentication successful, null otherwise</returns>
-    Task<string?> AuthenticateAsync(string email, string password);
+    Task<string?> AuthenticateAsync(string email, string password, CancellationToken ct = default);
 
     /// <summary>
     /// Verify a JWT token and return the admin user ID
     /// </summary>
     /// <param name="token">JWT token</param>
     /// <returns>Admin user public ID if valid, null otherwise</returns>
-    Task<string?> VerifyTokenAsync(string token);
+    Task<string?> VerifyTokenAsync(string token, CancellationToken ct = default);
 }

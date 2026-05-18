@@ -19,21 +19,21 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
         bool RequireEmailConfirmation,
         DateTime CreatedAt);
 
-    public override async Task<HubDatabaseEntity?> GetByIdAsync(int id) =>
-        await _dbSet.FirstOrDefaultAsync(h => h.Id == id);
+    public override async Task<HubDatabaseEntity?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(h => h.Id == id, ct);
 
-    public async Task<HubDatabaseEntity?> GetForUpdateAsync(string publicId) => await _dbSet
+    public async Task<HubDatabaseEntity?> GetForUpdateAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .AsTracking()
         .Include(h => h.Community)
-        .FirstOrDefaultAsync(h => h.PublicId == publicId);
+        .FirstOrDefaultAsync(h => h.PublicId == publicId, ct);
 
-    public override async Task<IEnumerable<HubDatabaseEntity>> GetAllAsync() =>
+    public override async Task<IEnumerable<HubDatabaseEntity>> GetAllAsync(CancellationToken ct = default) =>
         await _dbSet.AsNoTracking()
             .Include(h => h.Community)
             .Take(1000)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-    public async Task<HubDetailDto?> GetForDisplayAsync(string publicId) => await _dbSet
+    public async Task<HubDetailDto?> GetForDisplayAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .Where(h => h.PublicId == publicId)
         .Select(h => new HubDetailDto(
             h.PublicId,
@@ -44,17 +44,18 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
             h.AllowAnonymousReading,
             h.RequireEmailConfirmation,
             h.CreatedAt))
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(ct);
 
-    public async Task<HubDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
-        await _dbSet.FirstOrDefaultAsync(h => h.PublicId == publicId);
+    public async Task<HubDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(h => h.PublicId == publicId, ct);
 
-    public async Task<HubDatabaseEntity?> GetBySlugAsync(string slug, string communitySlug) =>
-        await _dbSet.FirstOrDefaultAsync(h => h.Slug == slug && h.Community.Slug == communitySlug);
+    public async Task<HubDatabaseEntity?> GetBySlugAsync(string slug, string communitySlug, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(h => h.Slug == slug && h.Community.Slug == communitySlug, ct);
 
     public async Task<PagedResult<HubListDto>> GetFilteredForDisplayAsync(
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
         var items = await _dbSet
             .OrderBy(h => h.Name)
@@ -69,7 +70,7 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
                 h.AllowAnonymousReading,
                 h.RequireEmailConfirmation,
                 h.CreatedAt))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems
@@ -91,7 +92,8 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
         int communityId,
         int offset,
         int pageSize,
-        string? userId = null)
+        string? userId = null,
+        CancellationToken ct = default)
     {
         var query = _dbSet
             .Where(h => h.CommunityId == communityId);
@@ -111,7 +113,7 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
                 h.AllowAnonymousReading,
                 h.RequireEmailConfirmation,
                 h.CreatedAt))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = items.Count > pageSize;
         var resultItems = hasMoreItems
@@ -149,8 +151,8 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
             && (!h.Community.IsRestricted || communityIds.Contains(h.CommunityId)));
     }
 
-    public async Task<int?> GetCommunityDbIdAsync(string communityPublicId) => await _context.Communities
+    public async Task<int?> GetCommunityDbIdAsync(string communityPublicId, CancellationToken ct = default) => await _context.Communities
         .Where(c => c.PublicId == communityPublicId)
         .Select(c => (int?)c.Id)
-        .FirstOrDefaultAsync();
+        .FirstOrDefaultAsync(ct);
 }

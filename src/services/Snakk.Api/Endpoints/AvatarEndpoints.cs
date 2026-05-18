@@ -45,7 +45,8 @@ public static class AvatarEndpoints
     private static async Task<IResult> UploadAvatarAsync(
         HttpContext httpContext,
         IUserRepository userRepository,
-        IFileStorage fileStorage)
+        IFileStorage fileStorage,
+        CancellationToken ct)
     {
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
             return Results.Unauthorized();
@@ -55,7 +56,7 @@ public static class AvatarEndpoints
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdClaim.Value);
-        var user = await userRepository.GetByPublicIdAsync(userId);
+        var user = await userRepository.GetByPublicIdAsync(userId, ct);
         if (user is null)
             return Results.NotFound(new { error = "User not found" });
 
@@ -155,7 +156,7 @@ public static class AvatarEndpoints
             "public, max-age=31536000, immutable");
 
         user.SetAvatarFileName(newFileName, thumbFileName, microFileName);
-        await userRepository.UpdateAsync(user);
+        await userRepository.UpdateAsync(user, ct);
 
         return TypedResults.Ok(new AvatarUploadResponse(
             "Avatar uploaded successfully",
@@ -165,7 +166,8 @@ public static class AvatarEndpoints
     private static async Task<IResult> DeleteAvatarAsync(
         HttpContext httpContext,
         IUserRepository userRepository,
-        IFileStorage fileStorage)
+        IFileStorage fileStorage,
+        CancellationToken ct)
     {
         if (!httpContext.User.Identity?.IsAuthenticated ?? true)
             return Results.Unauthorized();
@@ -175,7 +177,7 @@ public static class AvatarEndpoints
             return Results.Unauthorized();
 
         var userId = UserId.From(userIdClaim.Value);
-        var user = await userRepository.GetByPublicIdAsync(userId);
+        var user = await userRepository.GetByPublicIdAsync(userId, ct);
         if (user is null)
             return Results.NotFound(new { error = "User not found" });
 
@@ -196,7 +198,7 @@ public static class AvatarEndpoints
         }
 
         user.ClearAvatar();
-        await userRepository.UpdateAsync(user);
+        await userRepository.UpdateAsync(user, ct);
 
         return TypedResults.Ok(new MessageResponse("Avatar deleted. Using generated avatar."));
     }
@@ -209,7 +211,8 @@ public static class AvatarEndpoints
         ICommunityRepository communityRepository,
         IHubRepository hubRepository,
         ISpaceRepository spaceRepository,
-        IFileStorage fileStorage)
+        IFileStorage fileStorage,
+        CancellationToken ct)
     {
         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userId is null) return Results.Unauthorized();
@@ -226,7 +229,7 @@ public static class AvatarEndpoints
         if (permissionName is null)
             return Results.BadRequest(new { error = "Invalid entity type. Allowed: community, hub, space" });
 
-        if (!await permissionService.UserHasPermissionAsync(userId, permissionName, scope, entityId))
+        if (!await permissionService.UserHasPermissionAsync(userId, permissionName, scope, entityId, ct))
             return Results.Forbid();
 
         // Read and validate file
@@ -255,7 +258,7 @@ public static class AvatarEndpoints
         {
             case "community":
             {
-                var entity = await communityRepository.GetByPublicIdAsync(CommunityId.From(entityId));
+                var entity = await communityRepository.GetByPublicIdAsync(CommunityId.From(entityId), ct);
                 if (entity is null) return Results.NotFound();
 
                 var (newFileName, thumbFileName, microFileName) = await ProcessAndSaveAvatarAsync(
@@ -263,7 +266,7 @@ public static class AvatarEndpoints
                     entity.AvatarFileName, entity.AvatarThumbnailFileName, entity.AvatarMicroFileName);
 
                 entity.SetAvatarFileName(newFileName, thumbFileName, microFileName);
-                await communityRepository.UpdateAsync(entity);
+                await communityRepository.UpdateAsync(entity, ct);
 
                 return TypedResults.Ok(new AvatarUploadResponse(
                     "Avatar uploaded successfully",
@@ -271,7 +274,7 @@ public static class AvatarEndpoints
             }
             case "hub":
             {
-                var entity = await hubRepository.GetByPublicIdAsync(HubId.From(entityId));
+                var entity = await hubRepository.GetByPublicIdAsync(HubId.From(entityId), ct);
                 if (entity is null) return Results.NotFound();
 
                 var (newFileName, thumbFileName, microFileName) = await ProcessAndSaveAvatarAsync(
@@ -279,7 +282,7 @@ public static class AvatarEndpoints
                     entity.AvatarFileName, entity.AvatarThumbnailFileName, entity.AvatarMicroFileName);
 
                 entity.SetAvatarFileName(newFileName, thumbFileName, microFileName);
-                await hubRepository.UpdateAsync(entity);
+                await hubRepository.UpdateAsync(entity, ct);
 
                 return TypedResults.Ok(new AvatarUploadResponse(
                     "Avatar uploaded successfully",
@@ -287,7 +290,7 @@ public static class AvatarEndpoints
             }
             case "space":
             {
-                var entity = await spaceRepository.GetByPublicIdAsync(SpaceId.From(entityId));
+                var entity = await spaceRepository.GetByPublicIdAsync(SpaceId.From(entityId), ct);
                 if (entity is null) return Results.NotFound();
 
                 var (newFileName, thumbFileName, microFileName) = await ProcessAndSaveAvatarAsync(
@@ -295,7 +298,7 @@ public static class AvatarEndpoints
                     entity.AvatarFileName, entity.AvatarThumbnailFileName, entity.AvatarMicroFileName);
 
                 entity.SetAvatarFileName(newFileName, thumbFileName, microFileName);
-                await spaceRepository.UpdateAsync(entity);
+                await spaceRepository.UpdateAsync(entity, ct);
 
                 return TypedResults.Ok(new AvatarUploadResponse(
                     "Avatar uploaded successfully",
@@ -402,7 +405,8 @@ public static class AvatarEndpoints
         ICommunityRepository communityRepository,
         IHubRepository hubRepository,
         ISpaceRepository spaceRepository,
-        IFileStorage fileStorage)
+        IFileStorage fileStorage,
+        CancellationToken ct)
     {
         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userId is null) return Results.Unauthorized();
@@ -418,14 +422,14 @@ public static class AvatarEndpoints
         if (permissionName is null)
             return Results.BadRequest(new { error = "Invalid entity type" });
 
-        if (!await permissionService.UserHasPermissionAsync(userId, permissionName, scope, entityId))
+        if (!await permissionService.UserHasPermissionAsync(userId, permissionName, scope, entityId, ct))
             return Results.Forbid();
 
         switch (entityType.ToLowerInvariant())
         {
             case "community":
             {
-                var entity = await communityRepository.GetByPublicIdAsync(CommunityId.From(entityId));
+                var entity = await communityRepository.GetByPublicIdAsync(CommunityId.From(entityId), ct);
                 if (entity is null) return Results.NotFound();
 
                 if (!string.IsNullOrEmpty(entity.AvatarFileName))
@@ -445,12 +449,12 @@ public static class AvatarEndpoints
                 }
 
                 entity.ClearAvatar();
-                await communityRepository.UpdateAsync(entity);
+                await communityRepository.UpdateAsync(entity, ct);
                 break;
             }
             case "hub":
             {
-                var entity = await hubRepository.GetByPublicIdAsync(HubId.From(entityId));
+                var entity = await hubRepository.GetByPublicIdAsync(HubId.From(entityId), ct);
                 if (entity is null) return Results.NotFound();
 
                 if (!string.IsNullOrEmpty(entity.AvatarFileName))
@@ -470,12 +474,12 @@ public static class AvatarEndpoints
                 }
 
                 entity.ClearAvatar();
-                await hubRepository.UpdateAsync(entity);
+                await hubRepository.UpdateAsync(entity, ct);
                 break;
             }
             case "space":
             {
-                var entity = await spaceRepository.GetByPublicIdAsync(SpaceId.From(entityId));
+                var entity = await spaceRepository.GetByPublicIdAsync(SpaceId.From(entityId), ct);
                 if (entity is null) return Results.NotFound();
 
                 if (!string.IsNullOrEmpty(entity.AvatarFileName))
@@ -495,7 +499,7 @@ public static class AvatarEndpoints
                 }
 
                 entity.ClearAvatar();
-                await spaceRepository.UpdateAsync(entity);
+                await spaceRepository.UpdateAsync(entity, ct);
                 break;
             }
         }

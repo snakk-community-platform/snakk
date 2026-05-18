@@ -41,8 +41,10 @@ public class DiscussionsModel(
         bool hideCommunity = false,
         bool hideHub = false,
         string? cursor = null,
-        string? sort = null)
+        string? sort = null,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=5";
 
         Sort = sort == "trending" ? "trending" : sort == "new" ? "new" : sort == "my-feed" ? "my-feed" : "recent";
@@ -96,7 +98,7 @@ public class DiscussionsModel(
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (userId is not null)
                 {
-                    var spaceIds = await followedSpacesCache.GetAsync(userId, apiClient.GetFollowedSpacesAsync);
+                    var spaceIds = await followedSpacesCache.GetAsync(userId, ct => apiClient.GetFollowedSpacesAsync(ct), cancellationToken);
                     if (spaceIds.Count > 0)
                     {
                         var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, cursor: cursor, spaceIds: spaceIds, viewerAllowsAdult: viewerAllowsAdult);

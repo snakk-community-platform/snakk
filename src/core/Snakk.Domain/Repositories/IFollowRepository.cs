@@ -5,22 +5,22 @@ using Snakk.Domain.ValueObjects;
 
 public interface IFollowRepository
 {
-    Task<Follow?> GetByUserAndDiscussionAsync(UserId userId, DiscussionId discussionId);
-    Task<Follow?> GetByUserAndSpaceAsync(UserId userId, SpaceId spaceId);
-    Task<Follow?> GetByUserAndFollowedUserAsync(UserId userId, UserId followedUserId);
-    Task<IEnumerable<UserId>> GetFollowersOfDiscussionAsync(DiscussionId discussionId);
-    Task<IEnumerable<UserId>> GetFollowersOfSpaceAsync(SpaceId spaceId);
-    Task<IEnumerable<UserId>> GetFollowersOfUserAsync(UserId userId);
-    Task<int> GetFollowerCountOfUserAsync(UserId userId);
-    Task<int> GetFollowingCountByUserAsync(UserId userId);
-    Task<bool> IsFollowingDiscussionAsync(UserId userId, DiscussionId discussionId);
-    Task<bool> IsFollowingSpaceAsync(UserId userId, SpaceId spaceId);
-    Task<bool> IsFollowingUserAsync(UserId userId, UserId followedUserId);
-    Task<IEnumerable<(UserId UserId, FollowLevel Level)>> GetFollowersOfSpaceWithLevelAsync(SpaceId spaceId);
-    Task<IEnumerable<SpaceId>> GetFollowedSpacesByUserAsync(UserId userId);
-    Task<IEnumerable<DiscussionId>> GetFollowedDiscussionsByUserAsync(UserId userId);
-    Task<IEnumerable<UserId>> GetFollowedUsersByUserAsync(UserId userId);
-    Task AddAsync(Follow follow);
-    Task UpdateAsync(Follow follow);
-    Task<bool> DeleteAsync(Follow follow);
+    Task<Follow?> GetByUserAndDiscussionAsync(UserId userId, DiscussionId discussionId, CancellationToken ct = default);
+    Task<Follow?> GetByUserAndSpaceAsync(UserId userId, SpaceId spaceId, CancellationToken ct = default);
+    Task<Follow?> GetByUserAndFollowedUserAsync(UserId userId, UserId followedUserId, CancellationToken ct = default);
+    Task<IEnumerable<UserId>> GetFollowersOfDiscussionAsync(DiscussionId discussionId, CancellationToken ct = default);
+    Task<IEnumerable<UserId>> GetFollowersOfSpaceAsync(SpaceId spaceId, CancellationToken ct = default);
+    Task<IEnumerable<UserId>> GetFollowersOfUserAsync(UserId userId, CancellationToken ct = default);
+    Task<int> GetFollowerCountOfUserAsync(UserId userId, CancellationToken ct = default);
+    Task<int> GetFollowingCountByUserAsync(UserId userId, CancellationToken ct = default);
+    Task<bool> IsFollowingDiscussionAsync(UserId userId, DiscussionId discussionId, CancellationToken ct = default);
+    Task<bool> IsFollowingSpaceAsync(UserId userId, SpaceId spaceId, CancellationToken ct = default);
+    Task<bool> IsFollowingUserAsync(UserId userId, UserId followedUserId, CancellationToken ct = default);
+    Task<IEnumerable<(UserId UserId, FollowLevel Level)>> GetFollowersOfSpaceWithLevelAsync(SpaceId spaceId, CancellationToken ct = default);
+    Task<IEnumerable<SpaceId>> GetFollowedSpacesByUserAsync(UserId userId, CancellationToken ct = default);
+    Task<IEnumerable<DiscussionId>> GetFollowedDiscussionsByUserAsync(UserId userId, CancellationToken ct = default);
+    Task<IEnumerable<UserId>> GetFollowedUsersByUserAsync(UserId userId, CancellationToken ct = default);
+    Task AddAsync(Follow follow, CancellationToken ct = default);
+    Task UpdateAsync(Follow follow, CancellationToken ct = default);
+    Task<bool> DeleteAsync(Follow follow, CancellationToken ct = default);
 }

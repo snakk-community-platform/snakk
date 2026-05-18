@@ -10,7 +10,7 @@ public class PostCreatedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<PostCreatedEvent>
 {
-    public async Task HandleAsync(PostCreatedEvent @event)
+    public async Task HandleAsync(PostCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         // Get user and discussion details
         var data = await context.Posts
@@ -22,7 +22,7 @@ public class PostCreatedActivityHandler(
                 CommunityName = p.Discussion.Space.Hub.Community.Name,
                 HubName = p.Discussion.Space.Hub.Name,
                 SpaceName = p.Discussion.Space.Name })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (data is null)
             return;

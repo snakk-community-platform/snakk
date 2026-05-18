@@ -5,11 +5,11 @@ using Snakk.Shared.Models;
 
 public interface ICommunityDatabaseRepository : IGenericDatabaseRepository<CommunityDatabaseEntity>
 {
-    Task<CommunityDatabaseEntity?> GetByPublicIdAsync(string publicId);
-    Task<CommunityDatabaseEntity?> GetBySlugAsync(string slug);
-    Task<CommunityDatabaseEntity?> GetByDomainAsync(string domain);
-    Task<PagedResult<CommunityListDto>> GetPublicListedAsync(int offset, int pageSize);
-    Task<PagedResult<CommunityListDto>> GetForPlatformFeedAsync(int offset, int pageSize);
+    Task<CommunityDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default);
+    Task<CommunityDatabaseEntity?> GetBySlugAsync(string slug, CancellationToken ct = default);
+    Task<CommunityDatabaseEntity?> GetByDomainAsync(string domain, CancellationToken ct = default);
+    Task<PagedResult<CommunityListDto>> GetPublicListedAsync(int offset, int pageSize, CancellationToken ct = default);
+    Task<PagedResult<CommunityListDto>> GetForPlatformFeedAsync(int offset, int pageSize, CancellationToken ct = default);
 }
 
 public record CommunityListDto(

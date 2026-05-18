@@ -107,7 +107,8 @@ public static class AdminModerationEndpoints
         HttpContext httpContext,
         ModerationUseCase moderationUseCase,
         IAdminUserService adminUserService,
-        SnakkDbContext context)
+        SnakkDbContext context,
+        CancellationToken ct)
     {
         var adminUserId = GetUserId(httpContext);
 
@@ -125,7 +126,7 @@ public static class AdminModerationEndpoints
             .FirstOrDefaultAsync(b =>
                 b.User.PublicId == userId
                 && b.UnbannedAt == null
-                && (b.ExpiresAt == null || b.ExpiresAt > now));
+                && (b.ExpiresAt == null || b.ExpiresAt > now), ct);
 
         if (activeBan is null)
             return Results.BadRequest(new { error = "User is not currently banned" });
@@ -145,7 +146,8 @@ public static class AdminModerationEndpoints
         HttpContext httpContext,
         ModerationUseCase moderationUseCase,
         IAdminUserService adminUserService,
-        SnakkDbContext context)
+        SnakkDbContext context,
+        CancellationToken ct)
     {
         var adminUserId = GetUserId(httpContext);
 
@@ -154,7 +156,7 @@ public static class AdminModerationEndpoints
 
         // Verify user exists - also need to get database Id for role lookups
         var targetUser = await context.Users
-            .FirstOrDefaultAsync(u => u.PublicId == userId);
+            .FirstOrDefaultAsync(u => u.PublicId == userId, ct);
 
         if (targetUser is null)
             return Results.NotFound(new { error = "User not found" });
@@ -188,7 +190,7 @@ public static class AdminModerationEndpoints
                     && ur.CommunityId == null
                     && ur.HubId == null
                     && ur.SpaceId == null
-                    && ur.RevokedAt == null);
+                    && ur.RevokedAt == null, ct);
 
             if (existingRole is not null)
             {
@@ -208,7 +210,7 @@ public static class AdminModerationEndpoints
                 && ur.CommunityId == null
                 && ur.HubId == null
                 && ur.SpaceId == null
-                && ur.RevokedAt == null);
+                && ur.RevokedAt == null, ct);
 
         // Check the role type
         if (currentRole is not null)
@@ -294,7 +296,8 @@ public static class AdminModerationEndpoints
     private static async Task<IResult> GetReportAsync(
         string id,
         ModerationUseCase moderationUseCase,
-        SnakkDbContext context)
+        SnakkDbContext context,
+        CancellationToken ct)
     {
         var report = await context.Reports
             .Where(r => r.PublicId == id)
@@ -315,7 +318,7 @@ public static class AdminModerationEndpoints
                 ResolverId: r.ResolvedByUser != null ? r.ResolvedByUser.PublicId : null,
                 ResolverUsername: r.ResolvedByUser != null ? r.ResolvedByUser.DisplayName : null,
                 ResolutionNote: r.ResolutionNote))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (report is null)
             return Results.NotFound(new { error = "Report not found" });

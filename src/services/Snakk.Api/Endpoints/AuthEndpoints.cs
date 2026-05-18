@@ -55,7 +55,8 @@ public static class AuthEndpoints
         ITurnstileService turnstileService,
         SnakkDbContext context,
         HttpContext httpContext,
-        ILogger<object> logger)
+        ILogger<object> logger,
+        CancellationToken ct)
     {
         if (!await turnstileService.VerifyAsync(request.TurnstileToken ?? ""))
             return Results.BadRequest(new { error = "Captcha verification failed. Please try again." });
@@ -83,7 +84,7 @@ public static class AuthEndpoints
         var roles = await context.UserRoles
             .Where(r => r.User.PublicId == user.PublicId.Value && r.RevokedAt == null)
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToListAsync();
+            .ToListAsync(ct);
 
         // Generate JWT for immediate login
         var jwt = jwtService.GenerateToken(
@@ -121,7 +122,8 @@ public static class AuthEndpoints
         SnakkDbContext context,
         HttpContext httpContext,
         ILogger<object> logger,
-        IUserGrantsCacheService grantsCache)
+        IUserGrantsCacheService grantsCache,
+        CancellationToken ct)
     {
         if (!await turnstileService.VerifyAsync(request.TurnstileToken ?? ""))
             return Results.BadRequest(new { error = "Captcha verification failed. Please try again." });
@@ -143,7 +145,7 @@ public static class AuthEndpoints
         var roles = await context.UserRoles
             .Where(r => r.User.PublicId == user.PublicId.Value && r.RevokedAt == null)
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToListAsync();
+            .ToListAsync(ct);
 
         // Generate JWT with roles (using first role for backward compatibility with single-role JWT service)
         var jwt = jwtService.GenerateToken(
@@ -211,7 +213,8 @@ public static class AuthEndpoints
         IJwtTokenService jwtService,
         SnakkDbContext context,
         HttpContext httpContext,
-        ILogger<object> logger)
+        ILogger<object> logger,
+        CancellationToken ct)
     {
         var result = await authUseCase.RefreshTokenAsync(request.RefreshToken);
 
@@ -224,7 +227,7 @@ public static class AuthEndpoints
         var roles = await context.UserRoles
             .Where(r => r.User.PublicId == user.PublicId.Value && r.RevokedAt == null)
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,

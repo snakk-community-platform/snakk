@@ -10,7 +10,7 @@ public class PostCreatedAchievementHandler(
     MetricsService metricsService,
     SnakkDbContext context) : IDomainEventHandler<PostCreatedEvent>
 {
-    public async Task HandleAsync(PostCreatedEvent @event)
+    public async Task HandleAsync(PostCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         // Get Space/Hub/Community IDs by querying the discussion
         var discussionContext = await context.Discussions
@@ -19,7 +19,7 @@ public class PostCreatedAchievementHandler(
                 d.SpaceId,
                 d.HubId,
                 d.CommunityId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (discussionContext is null)
             return; // Discussion not found, skip metrics

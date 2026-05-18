@@ -76,6 +76,8 @@ class SnakkPopup {
     private statsCache: Map<string, EntityStats | null> = new Map();
     private resolveCache: Map<string, EntityResolveResult | null> = new Map();
 
+    private fetchAbortController: AbortController | null = null;
+
     private _mouseOverHandler: ((e: Event) => void) | null = null;
     private _mouseOutHandler: ((e: Event) => void) | null = null;
 
@@ -168,7 +170,7 @@ class SnakkPopup {
     /**
      * Fetch stats for an entity
      */
-    async fetchStats(type: string, publicId: string): Promise<EntityStats | null> {
+    async fetchStats(type: string, publicId: string, signal?: AbortSignal): Promise<EntityStats | null> {
         const cacheKey = `${type}:${publicId}`;
         if (this.statsCache.has(cacheKey)) {
             return this.statsCache.get(cacheKey) || null;
@@ -196,7 +198,7 @@ class SnakkPopup {
         }
 
         try {
-            const response = await fetch(endpoint, { credentials: 'include' });
+            const response = await fetch(endpoint, { credentials: 'include', signal });
             if (!response.ok) {
                 return null;
             }
@@ -204,6 +206,7 @@ class SnakkPopup {
             this.statsCache.set(cacheKey, data);
             return data;
         } catch (err) {
+            if (err instanceof Error && err.name === 'AbortError') return null;
             console.error('[SnakkPopup] Error fetching stats:', err);
             return null;
         }
@@ -213,7 +216,7 @@ class SnakkPopup {
      * Resolve an internal entity path to type, publicId, and name.
      * Used for .entity-link elements that don't have data-popup-* attributes.
      */
-    async resolveEntityPath(path: string): Promise<EntityResolveResult | null> {
+    async resolveEntityPath(path: string, signal?: AbortSignal): Promise<EntityResolveResult | null> {
         if (this.resolveCache.has(path)) {
             return this.resolveCache.get(path) || null;
         }
@@ -221,6 +224,7 @@ class SnakkPopup {
         try {
             const response = await fetch(`/bff/entity/resolve?path=${encodeURIComponent(path)}`, {
                 credentials: 'include',
+                signal,
             });
             if (!response.ok) {
                 this.resolveCache.set(path, null);
@@ -230,6 +234,7 @@ class SnakkPopup {
             this.resolveCache.set(path, data);
             return data;
         } catch (err) {
+            if (err instanceof Error && err.name === 'AbortError') return null;
             console.error('[SnakkPopup] Error resolving entity path:', err);
             this.resolveCache.set(path, null);
             return null;
@@ -318,33 +323,46 @@ class SnakkPopup {
         const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
         const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
 
-        // Default: position below and aligned to the left of the trigger
-        let top = rect.bottom + scrollTop + 10;
+        const gap = 10;
+        const edgeMargin = 8;
+
+        // Viewport-space available below and above the trigger
+        const spaceBelow = window.innerHeight - rect.bottom - gap;
+        const spaceAbove = rect.top - gap;
+
+        // Default: position below the trigger
+        let top = rect.bottom + scrollTop + gap;
+        let placeAbove = false;
+
+        // Flip above only when popup doesn't fit below AND actually fits above.
+        // Both conditions must hold so the popup never goes off-screen above,
+        // and never covers the trigger when content grows during load.
+        if (popupRect.height > spaceBelow && popupRect.height <= spaceAbove) {
+            top = rect.top + scrollTop - popupRect.height - gap;
+            placeAbove = true;
+        }
+
+        // Clamp popup height to the available space in the chosen direction.
+        // This prevents content growth between the two positionPopup calls
+        // from pushing the popup boundary over the trigger element.
+        const availableSpace = placeAbove ? spaceAbove : spaceBelow;
+        popup.style.maxHeight = `${Math.max(availableSpace - edgeMargin, 120)}px`;
+
+        // Horizontal: clamp to viewport
         let left = rect.left + scrollLeft;
-
-        // Check if popup would go off the right edge
-        if (left + popupRect.width > window.innerWidth) {
-            left = window.innerWidth - popupRect.width - 16;
+        if (left + popupRect.width > window.innerWidth - edgeMargin) {
+            left = window.innerWidth - popupRect.width - edgeMargin;
         }
-
-        // Check if popup would go off the bottom edge
-        if (top + popupRect.height > scrollTop + window.innerHeight) {
-            // Position above the trigger instead
-            top = rect.top + scrollTop - popupRect.height - 10;
-        }
-
-        // Ensure left is not negative
-        if (left < 8) left = 8;
+        if (left < edgeMargin) left = edgeMargin;
 
         popup.style.top = `${top}px`;
         popup.style.left = `${left}px`;
-
     }
 
     /**
      * Show popup for a trigger element
      */
-    async showPopup(triggerEl: HTMLElement): Promise<void> {
+    async showPopup(triggerEl: HTMLElement, signal?: AbortSignal): Promise<void> {
         const type = triggerEl.dataset.popupType;
         const publicId = triggerEl.dataset.popupId;
         const name = triggerEl.dataset.popupName || triggerEl.textContent?.trim() || '';
@@ -381,8 +399,15 @@ class SnakkPopup {
         popup.style.display = 'block';
         this.positionPopup(popup, triggerEl);
 
+        // Use caller's signal (entity-link flow) or create a fresh one
+        if (!signal) {
+            const controller = new AbortController();
+            this.fetchAbortController = controller;
+            signal = controller.signal;
+        }
+
         // Fetch and display stats
-        const stats = await this.fetchStats(type, publicId);
+        const stats = await this.fetchStats(type, publicId, signal);
 
         // Guard: if popup was hidden while awaiting (e.g. navigation), bail out
         if (this.currentTrigger !== triggerEl) return;
@@ -488,7 +513,10 @@ class SnakkPopup {
         const path = triggerEl.getAttribute('href');
         if (!path) return;
 
-        const resolved = await this.resolveEntityPath(path);
+        const controller = new AbortController();
+        this.fetchAbortController = controller;
+
+        const resolved = await this.resolveEntityPath(path, controller.signal);
         if (!resolved || this.currentTrigger !== triggerEl) return;
 
         // Set popup attributes so showPopup can use the standard flow
@@ -496,7 +524,7 @@ class SnakkPopup {
         triggerEl.dataset.popupId = resolved.publicId;
         triggerEl.dataset.popupName = resolved.name;
 
-        await this.showPopup(triggerEl);
+        await this.showPopup(triggerEl, controller.signal);
     }
 
     /**
@@ -583,6 +611,11 @@ class SnakkPopup {
         this.hideTimeout = null;
         this.currentTrigger = null;
 
+        if (this.fetchAbortController) {
+            this.fetchAbortController.abort();
+            this.fetchAbortController = null;
+        }
+
         if (this.currentPopup) {
             this.currentPopup.style.display = 'none';
         }
@@ -638,6 +671,22 @@ class SnakkPopup {
 
         // Close popup on scroll so it doesn't float detached from its trigger
         window.addEventListener('scroll', () => this.dismissPopup(), { passive: true });
+
+        // Close popup (and cancel fetches) when any link click triggers navigation.
+        // On touch: skip trigger elements — the tap-to-open handler manages those.
+        const dismissOnAnchor = (e: Event) => {
+            if ((e as MouseEvent).button !== undefined && (e as MouseEvent).button !== 0) return;
+            const anchor = (e.target as HTMLElement).closest('a') as HTMLAnchorElement | null;
+            if (!anchor) return;
+            if (this.currentPopup && this.currentPopup.contains(anchor)) return;
+            if (isCoarse && anchor.closest('[data-popup-type], a.entity-link')) return;
+            this.dismissPopup();
+        };
+        document.addEventListener('mousedown', dismissOnAnchor, false);
+        document.addEventListener('click', dismissOnAnchor, false);
+
+        // Close popup on browser back/forward navigation
+        window.addEventListener('popstate', () => this.dismissPopup());
     }
 
     /**
@@ -655,6 +704,11 @@ class SnakkPopup {
         // Clear timeouts
         if (this.showTimeout) clearTimeout(this.showTimeout);
         if (this.hideTimeout) clearTimeout(this.hideTimeout);
+
+        if (this.fetchAbortController) {
+            this.fetchAbortController.abort();
+            this.fetchAbortController = null;
+        }
 
         // Remove event listeners
         if (this._mouseOverHandler) {

@@ -105,8 +105,10 @@ public class DetailModel(
         string slugWithId,
         int offset = 0,
         bool gotoUnread = false,
-        string sort = "")
+        string sort = "",
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         HubSlug = hubSlug;
         SpaceSlug = spaceSlug;
         SlugWithId = slugWithId;
@@ -257,8 +259,9 @@ public class DetailModel(
         return Page();
     }
 
-    public async Task<IActionResult> OnPostAsync(string hubSlug, string spaceSlug, string slugWithId)
+    public async Task<IActionResult> OnPostAsync(string hubSlug, string spaceSlug, string slugWithId, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         HubSlug = hubSlug;
         SpaceSlug = spaceSlug;
         SlugWithId = slugWithId;

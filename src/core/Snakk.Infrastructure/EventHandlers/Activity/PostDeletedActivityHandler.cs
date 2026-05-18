@@ -10,14 +10,14 @@ public class PostDeletedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<PostDeletedEvent>
 {
-    public async Task HandleAsync(PostDeletedEvent @event)
+    public async Task HandleAsync(PostDeletedEvent @event, CancellationToken cancellationToken = default)
     {
         var data = await context.Users
             .Where(u => u.PublicId == @event.DeletedByUserId.Value)
             .Select(u => new {
                 UserId = u.PublicId,
                 Username = u.DisplayName ?? "" })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (data is null)
             return;

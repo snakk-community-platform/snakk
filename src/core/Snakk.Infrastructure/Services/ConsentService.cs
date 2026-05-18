@@ -7,58 +7,58 @@ using Snakk.Infrastructure.Database.Entities;
 
 public class ConsentService(SnakkDbContext db) : IConsentService
 {
-    public async Task<List<ConsentTypeInfo>> GetActiveRequiredConsentsAsync()
+    public async Task<List<ConsentTypeInfo>> GetActiveRequiredConsentsAsync(CancellationToken ct = default)
     {
         // For each active+required consent type, get the latest version
         var types = await db.ConsentTypes
-            .Where(ct => ct.IsActive && ct.IsRequired)
-            .OrderBy(ct => ct.DisplayOrder)
-            .Select(ct => new ConsentTypeInfo(
-                ct.Slug,
-                ct.Name,
-                ct.ShortLabel,
-                ct.LinkUrl,
-                ct.IsRequired,
-                ct.DisplayOrder,
-                ct.Versions.OrderByDescending(v => v.VersionNumber).Select(v => v.Id).FirstOrDefault(),
-                ct.Versions.OrderByDescending(v => v.VersionNumber).Select(v => v.VersionNumber).FirstOrDefault()))
-            .ToListAsync();
+            .Where(ct2 => ct2.IsActive && ct2.IsRequired)
+            .OrderBy(ct2 => ct2.DisplayOrder)
+            .Select(ct2 => new ConsentTypeInfo(
+                ct2.Slug,
+                ct2.Name,
+                ct2.ShortLabel,
+                ct2.LinkUrl,
+                ct2.IsRequired,
+                ct2.DisplayOrder,
+                ct2.Versions.OrderByDescending(v => v.VersionNumber).Select(v => v.Id).FirstOrDefault(),
+                ct2.Versions.OrderByDescending(v => v.VersionNumber).Select(v => v.VersionNumber).FirstOrDefault()))
+            .ToListAsync(ct);
 
         return types.Where(t => t.LatestVersionId > 0).ToList();
     }
 
-    public async Task<ConsentVersionInfo?> GetLatestVersionAsync(string slug) =>
+    public async Task<ConsentVersionInfo?> GetLatestVersionAsync(string slug, CancellationToken ct = default) =>
         await db.ConsentTypeVersions
             .Where(v => v.ConsentType.Slug == slug && v.ConsentType.IsActive)
             .OrderByDescending(v => v.VersionNumber)
             .Select(v => new ConsentVersionInfo(v.Id, v.VersionNumber, v.Text, v.CreatedAt))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
-    public async Task<List<PendingConsent>> GetPendingConsentsAsync(string userPublicId)
+    public async Task<List<PendingConsent>> GetPendingConsentsAsync(string userPublicId, CancellationToken ct = default)
     {
         var userId = await db.Users
             .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
             .Select(u => u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (userId == 0) return [];
 
         // Get latest version ID for each active required type
         var requiredTypes = await db.ConsentTypes
-            .Where(ct => ct.IsActive && ct.IsRequired)
-            .OrderBy(ct => ct.DisplayOrder)
-            .Select(ct => new
+            .Where(ct2 => ct2.IsActive && ct2.IsRequired)
+            .OrderBy(ct2 => ct2.DisplayOrder)
+            .Select(ct2 => new
             {
-                ct.Slug,
-                ct.Name,
-                ct.ShortLabel,
-                ct.LinkUrl,
-                LatestVersionId = ct.Versions
+                ct2.Slug,
+                ct2.Name,
+                ct2.ShortLabel,
+                ct2.LinkUrl,
+                LatestVersionId = ct2.Versions
                     .OrderByDescending(v => v.VersionNumber)
                     .Select(v => v.Id)
                     .FirstOrDefault()
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         if (requiredTypes.Count == 0) return [];
 
@@ -71,7 +71,7 @@ public class ConsentService(SnakkDbContext db) : IConsentService
         var acceptedVersionIds = await db.UserConsents
             .Where(uc => uc.UserId == userId && latestVersionIds.Contains(uc.ConsentTypeVersionId))
             .Select(uc => uc.ConsentTypeVersionId)
-            .ToHashSetAsync();
+            .ToHashSetAsync(ct);
 
         return requiredTypes
             .Where(t => t.LatestVersionId > 0 && !acceptedVersionIds.Contains(t.LatestVersionId))
@@ -79,18 +79,18 @@ public class ConsentService(SnakkDbContext db) : IConsentService
             .ToList();
     }
 
-    public async Task AcceptConsentAsync(string userPublicId, int consentTypeVersionId, string? ipAddress)
+    public async Task AcceptConsentAsync(string userPublicId, int consentTypeVersionId, string? ipAddress, CancellationToken ct = default)
     {
         var userId = await db.Users
             .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
             .Select(u => u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (userId == 0) return;
 
         // Check not already accepted
         var exists = await db.UserConsents
-            .AnyAsync(uc => uc.UserId == userId && uc.ConsentTypeVersionId == consentTypeVersionId);
+            .AnyAsync(uc => uc.UserId == userId && uc.ConsentTypeVersionId == consentTypeVersionId, ct);
 
         if (exists) return;
 
@@ -102,15 +102,15 @@ public class ConsentService(SnakkDbContext db) : IConsentService
             IpAddress = ipAddress
         });
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
     }
 
-    public async Task AcceptConsentsAsync(string userPublicId, IEnumerable<int> consentTypeVersionIds, string? ipAddress)
+    public async Task AcceptConsentsAsync(string userPublicId, IEnumerable<int> consentTypeVersionIds, string? ipAddress, CancellationToken ct = default)
     {
         var userId = await db.Users
             .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
             .Select(u => u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (userId == 0) return;
 
@@ -120,7 +120,7 @@ public class ConsentService(SnakkDbContext db) : IConsentService
         var alreadyAccepted = await db.UserConsents
             .Where(uc => uc.UserId == userId && versionIds.Contains(uc.ConsentTypeVersionId))
             .Select(uc => uc.ConsentTypeVersionId)
-            .ToHashSetAsync();
+            .ToHashSetAsync(ct);
 
         var now = DateTime.UtcNow;
 
@@ -135,12 +135,12 @@ public class ConsentService(SnakkDbContext db) : IConsentService
             });
         }
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(ct);
     }
 
-    public async Task<bool> HasAllRequiredConsentsAsync(string userPublicId)
+    public async Task<bool> HasAllRequiredConsentsAsync(string userPublicId, CancellationToken ct = default)
     {
-        var pending = await GetPendingConsentsAsync(userPublicId);
+        var pending = await GetPendingConsentsAsync(userPublicId, ct);
         return pending.Count == 0;
     }
 }

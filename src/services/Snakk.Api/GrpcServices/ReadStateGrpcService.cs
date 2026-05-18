@@ -13,6 +13,7 @@ public class ReadStateGrpcService(
 {
     public override async Task<ReadStateInfo> GetReadState(GetReadStateRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)
@@ -20,7 +21,8 @@ public class ReadStateGrpcService(
 
         var readState = await readStateRepository.GetAsync(
             userId,
-            DiscussionId.From(request.DiscussionId));
+            DiscussionId.From(request.DiscussionId),
+            ct);
 
         var response = new ReadStateInfo();
 
@@ -38,25 +40,27 @@ public class ReadStateGrpcService(
 
     public override async Task<MarkAsReadResponse> MarkAsRead(MarkAsReadRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
 
         var discussionId = DiscussionId.From(request.DiscussionId);
         var postId = PostId.From(request.LastReadPostId);
 
-        var readState = await readStateRepository.GetAsync(userId, discussionId);
+        var readState = await readStateRepository.GetAsync(userId, discussionId, ct);
 
         if (readState is null)
             readState = DiscussionReadState.Create(userId, discussionId, postId);
         else
             readState.MarkAsRead(postId);
 
-        await readStateRepository.SaveAsync(readState);
+        await readStateRepository.SaveAsync(readState, ct);
 
         return new MarkAsReadResponse { Success = true };
     }
 
     public override async Task<BatchMarkAsReadResponse> BatchMarkAsRead(BatchMarkAsReadRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
 
         var processed = 0;
@@ -68,14 +72,14 @@ public class ReadStateGrpcService(
                 var discussionId = DiscussionId.From(item.DiscussionId);
                 var postId = PostId.From(item.LastReadPostId);
 
-                var readState = await readStateRepository.GetAsync(userId, discussionId);
+                var readState = await readStateRepository.GetAsync(userId, discussionId, ct);
 
                 if (readState is null)
                     readState = DiscussionReadState.Create(userId, discussionId, postId);
                 else
                     readState.MarkAsRead(postId);
 
-                await readStateRepository.SaveAsync(readState);
+                await readStateRepository.SaveAsync(readState, ct);
                 processed++;
             }
             catch

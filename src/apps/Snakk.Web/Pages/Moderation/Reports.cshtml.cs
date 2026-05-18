@@ -39,8 +39,9 @@ public class ReportsModel(
         return parameters.Count > 0 ? $"/moderation/reports?{string.Join("&", parameters)}" : "/moderation/reports";
     }
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         CanModerate = await apiClient.CanModerateAsync();
         if (!CanModerate)
         {

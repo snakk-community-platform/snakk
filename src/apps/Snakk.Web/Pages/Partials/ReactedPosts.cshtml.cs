@@ -16,8 +16,9 @@ public class ReactedPostsModel(
     public int Offset { get; set; }
     public int NextOffset { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 10)
+    public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 10, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
             return Content("", "text/html");
 

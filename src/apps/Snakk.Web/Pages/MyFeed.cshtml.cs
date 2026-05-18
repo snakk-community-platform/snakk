@@ -23,8 +23,9 @@ public class MyFeedModel(
         && string.IsNullOrEmpty(CommunityContext.CommunitySlug)
         && !CommunityContext.IsCustomDomain;
 
-    public async Task OnGetAsync(string? cursor = null)
+    public async Task OnGetAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var statsData = prefetchCache.ResolveOrPrefetch(
             "platform-stats:platform:global",
             () => apiClient.GetPlatformStatsAsync());
@@ -37,7 +38,7 @@ public class MyFeedModel(
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userId is null) return;
 
-        var spaceIds = await followedSpacesCache.GetAsync(userId, apiClient.GetFollowedSpacesAsync);
+        var spaceIds = await followedSpacesCache.GetAsync(userId, ct => apiClient.GetFollowedSpacesAsync(ct), cancellationToken);
         HasFollowedSpaces = spaceIds.Count > 0;
         if (!HasFollowedSpaces) return;
 

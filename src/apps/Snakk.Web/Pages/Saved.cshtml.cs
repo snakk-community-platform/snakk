@@ -27,8 +27,10 @@ public class SavedModel(
 
     public async Task<IActionResult> OnGetAsync(
         [FromQuery] string? tab,
-        [FromQuery] int offset = 0)
+        [FromQuery] int offset = 0,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         IsAuthenticated = HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
         if (!IsAuthenticated) return Page();
 

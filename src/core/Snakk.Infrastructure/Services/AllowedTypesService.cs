@@ -10,30 +10,30 @@ public class AllowedTypesService(SnakkDbContext context) : IAllowedTypesService
     private static readonly List<DiscussionTypeEnum> AllTypes =
         Enum.GetValues<DiscussionTypeEnum>().ToList();
 
-    public async Task<List<DiscussionTypeEnum>> GetCommunityAllowedTypesAsync(string communityPublicId)
+    public async Task<List<DiscussionTypeEnum>> GetCommunityAllowedTypesAsync(string communityPublicId, CancellationToken ct = default)
     {
         var types = await context.CommunityAllowedDiscussionTypes
             .Where(x => x.Community.PublicId == communityPublicId && !x.Community.IsDeleted)
             .Select(x => (DiscussionTypeEnum)x.DiscussionType)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return types.Count == 0 ? AllTypes : types;
     }
 
-    public async Task<List<DiscussionTypeEnum>> GetHubEffectiveAllowedTypesAsync(string hubPublicId)
+    public async Task<List<DiscussionTypeEnum>> GetHubEffectiveAllowedTypesAsync(string hubPublicId, CancellationToken ct = default)
     {
         // Get hub's own allowed types
         var hubTypes = await context.HubAllowedDiscussionTypes
             .Where(x => x.Hub.PublicId == hubPublicId && !x.Hub.IsDeleted)
             .Select(x => (DiscussionTypeEnum)x.DiscussionType)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         // Get parent community's allowed types
         var communityTypes = await context.Hubs
             .Where(h => h.PublicId == hubPublicId && !h.IsDeleted)
             .SelectMany(h => h.Community.AllowedDiscussionTypes)
             .Select(x => (DiscussionTypeEnum)x.DiscussionType)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var effectiveHub = hubTypes.Count == 0 ? AllTypes : hubTypes;
         var effectiveCommunity = communityTypes.Count == 0 ? AllTypes : communityTypes;
@@ -41,52 +41,52 @@ public class AllowedTypesService(SnakkDbContext context) : IAllowedTypesService
         return effectiveHub.Intersect(effectiveCommunity).ToList();
     }
 
-    public async Task<List<DiscussionTypeEnum>> GetSpaceEffectiveAllowedTypesAsync(string spacePublicId)
+    public async Task<List<DiscussionTypeEnum>> GetSpaceEffectiveAllowedTypesAsync(string spacePublicId, CancellationToken ct = default)
     {
         // Get space's own allowed types
         var spaceTypes = await context.SpaceAllowedDiscussionTypes
             .Where(x => x.Space.PublicId == spacePublicId && !x.Space.IsDeleted)
             .Select(x => (DiscussionTypeEnum)x.DiscussionType)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         // Get parent hub's PublicId to compute hub's effective types
         var hubPublicId = await context.Spaces
             .Where(s => s.PublicId == spacePublicId && !s.IsDeleted)
             .Select(s => s.HubPublicId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (hubPublicId is null)
             return spaceTypes.Count == 0 ? AllTypes : spaceTypes;
 
-        var hubEffective = await GetHubEffectiveAllowedTypesAsync(hubPublicId);
+        var hubEffective = await GetHubEffectiveAllowedTypesAsync(hubPublicId, ct);
         var effectiveSpace = spaceTypes.Count == 0 ? AllTypes : spaceTypes;
 
         return effectiveSpace.Intersect(hubEffective).ToList();
     }
 
-    public async Task<List<DiscussionTypeEnum>> GetParentAllowedTypesForHubAsync(string hubPublicId)
+    public async Task<List<DiscussionTypeEnum>> GetParentAllowedTypesForHubAsync(string hubPublicId, CancellationToken ct = default)
     {
         var communityPublicId = await context.Hubs
             .Where(h => h.PublicId == hubPublicId && !h.IsDeleted)
             .Select(h => h.CommunityPublicId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (communityPublicId is null)
             return AllTypes;
 
-        return await GetCommunityAllowedTypesAsync(communityPublicId);
+        return await GetCommunityAllowedTypesAsync(communityPublicId, ct);
     }
 
-    public async Task<List<DiscussionTypeEnum>> GetParentAllowedTypesForSpaceAsync(string spacePublicId)
+    public async Task<List<DiscussionTypeEnum>> GetParentAllowedTypesForSpaceAsync(string spacePublicId, CancellationToken ct = default)
     {
         var hubPublicId = await context.Spaces
             .Where(s => s.PublicId == spacePublicId && !s.IsDeleted)
             .Select(s => s.HubPublicId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (hubPublicId is null)
             return AllTypes;
 
-        return await GetHubEffectiveAllowedTypesAsync(hubPublicId);
+        return await GetHubEffectiveAllowedTypesAsync(hubPublicId, ct);
     }
 }

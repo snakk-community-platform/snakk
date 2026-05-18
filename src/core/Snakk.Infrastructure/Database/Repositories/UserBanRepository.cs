@@ -7,16 +7,16 @@ using Snakk.Infrastructure.Database.Entities;
 public class UserBanRepository(SnakkDbContext context)
     : GenericDatabaseRepository<UserBanDatabaseEntity>(context), IUserBanRepository
 {
-    public async Task<UserBanDatabaseEntity?> GetByPublicIdAsync(string publicId) => await _dbSet
+    public async Task<UserBanDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .Include(ub => ub.User)
         .Include(ub => ub.Community)
         .Include(ub => ub.Hub)
         .Include(ub => ub.Space)
         .Include(ub => ub.BannedByUser)
         .Include(ub => ub.UnbannedByUser)
-        .FirstOrDefaultAsync(ub => ub.PublicId == publicId);
+        .FirstOrDefaultAsync(ub => ub.PublicId == publicId, ct);
 
-    public async Task<IEnumerable<UserBanDatabaseEntity>> GetActiveBansForUserAsync(int userId)
+    public async Task<IEnumerable<UserBanDatabaseEntity>> GetActiveBansForUserAsync(int userId, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
 
@@ -29,14 +29,15 @@ public class UserBanRepository(SnakkDbContext context)
                 ub.UserId == userId
                 && ub.UnbannedAt == null
                 && (ub.ExpiresAt == null || ub.ExpiresAt > now))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     public async Task<UserBanDatabaseEntity?> GetActiveBanForScopeAsync(
         int userId,
         int? communityId = null,
         int? hubId = null,
-        int? spaceId = null)
+        int? spaceId = null,
+        CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
 
@@ -51,7 +52,7 @@ public class UserBanRepository(SnakkDbContext context)
             .FirstOrDefaultAsync(ub =>
                 ub.CommunityId == null
                 && ub.HubId == null
-                && ub.SpaceId == null);
+                && ub.SpaceId == null, ct);
 
         if (platformBan is not null)
             return platformBan;
@@ -60,7 +61,7 @@ public class UserBanRepository(SnakkDbContext context)
         if (communityId.HasValue)
         {
             var communityBan = await query
-                .FirstOrDefaultAsync(ub => ub.CommunityId == communityId);
+                .FirstOrDefaultAsync(ub => ub.CommunityId == communityId, ct);
 
             if (communityBan is not null)
                 return communityBan;
@@ -70,7 +71,7 @@ public class UserBanRepository(SnakkDbContext context)
         if (hubId.HasValue)
         {
             var hubBan = await query
-                .FirstOrDefaultAsync(ub => ub.HubId == hubId);
+                .FirstOrDefaultAsync(ub => ub.HubId == hubId, ct);
 
             if (hubBan is not null)
                 return hubBan;
@@ -79,12 +80,12 @@ public class UserBanRepository(SnakkDbContext context)
             if (!communityId.HasValue)
             {
                 var hub = await _context.Hubs
-                    .FirstOrDefaultAsync(h => h.Id == hubId);
+                    .FirstOrDefaultAsync(h => h.Id == hubId, ct);
 
                 if (hub is not null)
                 {
                     var hubCommunityBan = await query
-                        .FirstOrDefaultAsync(ub => ub.CommunityId == hub.CommunityId);
+                        .FirstOrDefaultAsync(ub => ub.CommunityId == hub.CommunityId, ct);
 
                     if (hubCommunityBan is not null)
                         return hubCommunityBan;
@@ -96,7 +97,7 @@ public class UserBanRepository(SnakkDbContext context)
         if (spaceId.HasValue)
         {
             var spaceBan = await query
-                .FirstOrDefaultAsync(ub => ub.SpaceId == spaceId);
+                .FirstOrDefaultAsync(ub => ub.SpaceId == spaceId, ct);
 
             if (spaceBan is not null)
                 return spaceBan;
@@ -106,20 +107,20 @@ public class UserBanRepository(SnakkDbContext context)
             {
                 var space = await _context.Spaces
                     .Include(s => s.Hub)
-                    .FirstOrDefaultAsync(s => s.Id == spaceId);
+                    .FirstOrDefaultAsync(s => s.Id == spaceId, ct);
 
                 if (space is not null)
                 {
                     // Check hub-level ban
                     var spaceHubBan = await query
-                        .FirstOrDefaultAsync(ub => ub.HubId == space.HubId);
+                        .FirstOrDefaultAsync(ub => ub.HubId == space.HubId, ct);
 
                     if (spaceHubBan is not null)
                         return spaceHubBan;
 
                     // Check community-level ban
                     var spaceCommunityBan = await query
-                        .FirstOrDefaultAsync(ub => ub.CommunityId == space.Hub.CommunityId);
+                        .FirstOrDefaultAsync(ub => ub.CommunityId == space.Hub.CommunityId, ct);
 
                     if (spaceCommunityBan is not null)
                         return spaceCommunityBan;
@@ -134,33 +135,34 @@ public class UserBanRepository(SnakkDbContext context)
         int userId,
         int? communityId = null,
         int? hubId = null,
-        int? spaceId = null)
+        int? spaceId = null,
+        CancellationToken ct = default)
     {
-        var ban = await GetActiveBanForScopeAsync(userId, communityId, hubId, spaceId);
+        var ban = await GetActiveBanForScopeAsync(userId, communityId, hubId, spaceId, ct);
         return ban is not null;
     }
 
-    public async Task<IEnumerable<UserBanDatabaseEntity>> GetBansForCommunityAsync(int communityId) => await _dbSet
+    public async Task<IEnumerable<UserBanDatabaseEntity>> GetBansForCommunityAsync(int communityId, CancellationToken ct = default) => await _dbSet
         .Include(ub => ub.User)
         .Include(ub => ub.BannedByUser)
         .Include(ub => ub.UnbannedByUser)
         .Where(ub => ub.CommunityId == communityId)
         .OrderByDescending(ub => ub.BannedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<IEnumerable<UserBanDatabaseEntity>> GetBansForHubAsync(int hubId) => await _dbSet
+    public async Task<IEnumerable<UserBanDatabaseEntity>> GetBansForHubAsync(int hubId, CancellationToken ct = default) => await _dbSet
         .Include(ub => ub.User)
         .Include(ub => ub.BannedByUser)
         .Include(ub => ub.UnbannedByUser)
         .Where(ub => ub.HubId == hubId)
         .OrderByDescending(ub => ub.BannedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<IEnumerable<UserBanDatabaseEntity>> GetBansForSpaceAsync(int spaceId) => await _dbSet
+    public async Task<IEnumerable<UserBanDatabaseEntity>> GetBansForSpaceAsync(int spaceId, CancellationToken ct = default) => await _dbSet
         .Include(ub => ub.User)
         .Include(ub => ub.BannedByUser)
         .Include(ub => ub.UnbannedByUser)
         .Where(ub => ub.SpaceId == spaceId)
         .OrderByDescending(ub => ub.BannedAt)
-        .ToListAsync();
+        .ToListAsync(ct);
 }

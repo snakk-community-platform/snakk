@@ -11,7 +11,7 @@ public class ReactionAddedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<ReactionAddedEvent>
 {
-    public async Task HandleAsync(ReactionAddedEvent @event)
+    public async Task HandleAsync(ReactionAddedEvent @event, CancellationToken cancellationToken = default)
     {
         var data = await context.PostReactions
             .Where(r => r.PublicId == @event.ReactionId.Value)
@@ -20,7 +20,7 @@ public class ReactionAddedActivityHandler(
                 ReactionType = ((ReactionTypeEnum)r.TypeId).ToString(),
                 TargetId = r.Post.PublicId,
                 DiscussionTitle = r.Post.Discussion.Title })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (data is null)
             return;

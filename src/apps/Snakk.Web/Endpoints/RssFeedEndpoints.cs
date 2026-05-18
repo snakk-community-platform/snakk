@@ -37,46 +37,47 @@ public static class RssFeedEndpoints
     public static void MapRssFeedEndpoints(this IEndpointRouteBuilder app)
     {
         // Site-wide feeds
-        app.MapGet("/feed.xml", (Delegate)(async (HttpContext ctx) => await SiteWideFeedAsync(ctx, FeedFormat.Rss))).ExcludeFromDescription();
-        app.MapGet("/feed.json", (Delegate)(async (HttpContext ctx) => await SiteWideFeedAsync(ctx, FeedFormat.Json))).ExcludeFromDescription();
-        app.MapGet("/feed.atom", (Delegate)(async (HttpContext ctx) => await SiteWideFeedAsync(ctx, FeedFormat.Atom))).ExcludeFromDescription();
+        app.MapGet("/feed.xml", (Delegate)(async (HttpContext ctx, CancellationToken ct) => await SiteWideFeedAsync(ctx, FeedFormat.Rss, ct))).ExcludeFromDescription();
+        app.MapGet("/feed.json", (Delegate)(async (HttpContext ctx, CancellationToken ct) => await SiteWideFeedAsync(ctx, FeedFormat.Json, ct))).ExcludeFromDescription();
+        app.MapGet("/feed.atom", (Delegate)(async (HttpContext ctx, CancellationToken ct) => await SiteWideFeedAsync(ctx, FeedFormat.Atom, ct))).ExcludeFromDescription();
 
         // Community feeds
-        app.MapGet("/c/{communitySlug}/feed.xml", (string communitySlug, HttpContext ctx) => CommunityFeedAsync(communitySlug, ctx, FeedFormat.Rss)).ExcludeFromDescription();
-        app.MapGet("/c/{communitySlug}/feed.json", (string communitySlug, HttpContext ctx) => CommunityFeedAsync(communitySlug, ctx, FeedFormat.Json)).ExcludeFromDescription();
-        app.MapGet("/c/{communitySlug}/feed.atom", (string communitySlug, HttpContext ctx) => CommunityFeedAsync(communitySlug, ctx, FeedFormat.Atom)).ExcludeFromDescription();
+        app.MapGet("/c/{communitySlug}/feed.xml", (string communitySlug, HttpContext ctx, CancellationToken ct) => CommunityFeedAsync(communitySlug, ctx, FeedFormat.Rss, ct)).ExcludeFromDescription();
+        app.MapGet("/c/{communitySlug}/feed.json", (string communitySlug, HttpContext ctx, CancellationToken ct) => CommunityFeedAsync(communitySlug, ctx, FeedFormat.Json, ct)).ExcludeFromDescription();
+        app.MapGet("/c/{communitySlug}/feed.atom", (string communitySlug, HttpContext ctx, CancellationToken ct) => CommunityFeedAsync(communitySlug, ctx, FeedFormat.Atom, ct)).ExcludeFromDescription();
 
         // Hub feeds
-        app.MapGet("/c/{communitySlug}/h/{hubSlug}/feed.xml", (string communitySlug, string hubSlug, HttpContext ctx) => HubFeedAsync(communitySlug, hubSlug, ctx, FeedFormat.Rss)).ExcludeFromDescription();
-        app.MapGet("/c/{communitySlug}/h/{hubSlug}/feed.json", (string communitySlug, string hubSlug, HttpContext ctx) => HubFeedAsync(communitySlug, hubSlug, ctx, FeedFormat.Json)).ExcludeFromDescription();
-        app.MapGet("/c/{communitySlug}/h/{hubSlug}/feed.atom", (string communitySlug, string hubSlug, HttpContext ctx) => HubFeedAsync(communitySlug, hubSlug, ctx, FeedFormat.Atom)).ExcludeFromDescription();
+        app.MapGet("/c/{communitySlug}/h/{hubSlug}/feed.xml", (string communitySlug, string hubSlug, HttpContext ctx, CancellationToken ct) => HubFeedAsync(communitySlug, hubSlug, ctx, FeedFormat.Rss, ct)).ExcludeFromDescription();
+        app.MapGet("/c/{communitySlug}/h/{hubSlug}/feed.json", (string communitySlug, string hubSlug, HttpContext ctx, CancellationToken ct) => HubFeedAsync(communitySlug, hubSlug, ctx, FeedFormat.Json, ct)).ExcludeFromDescription();
+        app.MapGet("/c/{communitySlug}/h/{hubSlug}/feed.atom", (string communitySlug, string hubSlug, HttpContext ctx, CancellationToken ct) => HubFeedAsync(communitySlug, hubSlug, ctx, FeedFormat.Atom, ct)).ExcludeFromDescription();
 
         // Space feeds
-        app.MapGet("/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/feed.xml", (string communitySlug, string hubSlug, string spaceSlug, HttpContext ctx) => SpaceFeedAsync(communitySlug, hubSlug, spaceSlug, ctx, FeedFormat.Rss)).ExcludeFromDescription();
-        app.MapGet("/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/feed.json", (string communitySlug, string hubSlug, string spaceSlug, HttpContext ctx) => SpaceFeedAsync(communitySlug, hubSlug, spaceSlug, ctx, FeedFormat.Json)).ExcludeFromDescription();
-        app.MapGet("/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/feed.atom", (string communitySlug, string hubSlug, string spaceSlug, HttpContext ctx) => SpaceFeedAsync(communitySlug, hubSlug, spaceSlug, ctx, FeedFormat.Atom)).ExcludeFromDescription();
+        app.MapGet("/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/feed.xml", (string communitySlug, string hubSlug, string spaceSlug, HttpContext ctx, CancellationToken ct) => SpaceFeedAsync(communitySlug, hubSlug, spaceSlug, ctx, FeedFormat.Rss, ct)).ExcludeFromDescription();
+        app.MapGet("/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/feed.json", (string communitySlug, string hubSlug, string spaceSlug, HttpContext ctx, CancellationToken ct) => SpaceFeedAsync(communitySlug, hubSlug, spaceSlug, ctx, FeedFormat.Json, ct)).ExcludeFromDescription();
+        app.MapGet("/c/{communitySlug}/h/{hubSlug}/{spaceSlug}/feed.atom", (string communitySlug, string hubSlug, string spaceSlug, HttpContext ctx, CancellationToken ct) => SpaceFeedAsync(communitySlug, hubSlug, spaceSlug, ctx, FeedFormat.Atom, ct)).ExcludeFromDescription();
 
         // Shortcut routes (single-community mode)
-        app.MapGet("/h/{hubSlug}/feed.xml", (string hubSlug, HttpContext ctx) => HubFeedShortcutAsync(hubSlug, ctx, FeedFormat.Rss)).ExcludeFromDescription();
-        app.MapGet("/h/{hubSlug}/feed.json", (string hubSlug, HttpContext ctx) => HubFeedShortcutAsync(hubSlug, ctx, FeedFormat.Json)).ExcludeFromDescription();
-        app.MapGet("/h/{hubSlug}/feed.atom", (string hubSlug, HttpContext ctx) => HubFeedShortcutAsync(hubSlug, ctx, FeedFormat.Atom)).ExcludeFromDescription();
+        app.MapGet("/h/{hubSlug}/feed.xml", (string hubSlug, HttpContext ctx, CancellationToken ct) => HubFeedShortcutAsync(hubSlug, ctx, FeedFormat.Rss, ct)).ExcludeFromDescription();
+        app.MapGet("/h/{hubSlug}/feed.json", (string hubSlug, HttpContext ctx, CancellationToken ct) => HubFeedShortcutAsync(hubSlug, ctx, FeedFormat.Json, ct)).ExcludeFromDescription();
+        app.MapGet("/h/{hubSlug}/feed.atom", (string hubSlug, HttpContext ctx, CancellationToken ct) => HubFeedShortcutAsync(hubSlug, ctx, FeedFormat.Atom, ct)).ExcludeFromDescription();
 
-        app.MapGet("/h/{hubSlug}/{spaceSlug}/feed.xml", (string hubSlug, string spaceSlug, HttpContext ctx) => SpaceFeedShortcutAsync(hubSlug, spaceSlug, ctx, FeedFormat.Rss)).ExcludeFromDescription();
-        app.MapGet("/h/{hubSlug}/{spaceSlug}/feed.json", (string hubSlug, string spaceSlug, HttpContext ctx) => SpaceFeedShortcutAsync(hubSlug, spaceSlug, ctx, FeedFormat.Json)).ExcludeFromDescription();
-        app.MapGet("/h/{hubSlug}/{spaceSlug}/feed.atom", (string hubSlug, string spaceSlug, HttpContext ctx) => SpaceFeedShortcutAsync(hubSlug, spaceSlug, ctx, FeedFormat.Atom)).ExcludeFromDescription();
+        app.MapGet("/h/{hubSlug}/{spaceSlug}/feed.xml", (string hubSlug, string spaceSlug, HttpContext ctx, CancellationToken ct) => SpaceFeedShortcutAsync(hubSlug, spaceSlug, ctx, FeedFormat.Rss, ct)).ExcludeFromDescription();
+        app.MapGet("/h/{hubSlug}/{spaceSlug}/feed.json", (string hubSlug, string spaceSlug, HttpContext ctx, CancellationToken ct) => SpaceFeedShortcutAsync(hubSlug, spaceSlug, ctx, FeedFormat.Json, ct)).ExcludeFromDescription();
+        app.MapGet("/h/{hubSlug}/{spaceSlug}/feed.atom", (string hubSlug, string spaceSlug, HttpContext ctx, CancellationToken ct) => SpaceFeedShortcutAsync(hubSlug, spaceSlug, ctx, FeedFormat.Atom, ct)).ExcludeFromDescription();
 
         // User feeds
-        app.MapGet("/u/{encodedUserId}/feed.xml", (string encodedUserId, HttpContext ctx) => UserFeedAsync(encodedUserId, ctx, FeedFormat.Rss)).ExcludeFromDescription();
-        app.MapGet("/u/{encodedUserId}/feed.json", (string encodedUserId, HttpContext ctx) => UserFeedAsync(encodedUserId, ctx, FeedFormat.Json)).ExcludeFromDescription();
-        app.MapGet("/u/{encodedUserId}/feed.atom", (string encodedUserId, HttpContext ctx) => UserFeedAsync(encodedUserId, ctx, FeedFormat.Atom)).ExcludeFromDescription();
+        app.MapGet("/u/{encodedUserId}/feed.xml", (string encodedUserId, HttpContext ctx, CancellationToken ct) => UserFeedAsync(encodedUserId, ctx, FeedFormat.Rss, ct)).ExcludeFromDescription();
+        app.MapGet("/u/{encodedUserId}/feed.json", (string encodedUserId, HttpContext ctx, CancellationToken ct) => UserFeedAsync(encodedUserId, ctx, FeedFormat.Json, ct)).ExcludeFromDescription();
+        app.MapGet("/u/{encodedUserId}/feed.atom", (string encodedUserId, HttpContext ctx, CancellationToken ct) => UserFeedAsync(encodedUserId, ctx, FeedFormat.Atom, ct)).ExcludeFromDescription();
     }
 
     // ------------------------------------------------------------------
     //  Data-fetching handlers — fetch once, delegate to format builder
     // ------------------------------------------------------------------
 
-    private static async Task<IResult> SiteWideFeedAsync(HttpContext httpContext, FeedFormat format)
+    private static async Task<IResult> SiteWideFeedAsync(HttpContext httpContext, FeedFormat format, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var apiClient = httpContext.RequestServices.GetRequiredService<SnakkApiClient>();
         var community = httpContext.RequestServices.GetRequiredService<ICommunityContext>();
         var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
@@ -97,8 +98,9 @@ public static class RssFeedEndpoints
     }
 
     private static async Task<IResult> CommunityFeedAsync(
-        string communitySlug, HttpContext httpContext, FeedFormat format)
+        string communitySlug, HttpContext httpContext, FeedFormat format, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var apiClient = httpContext.RequestServices.GetRequiredService<SnakkApiClient>();
         var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
 
@@ -123,8 +125,9 @@ public static class RssFeedEndpoints
     }
 
     private static async Task<IResult> HubFeedAsync(
-        string communitySlug, string hubSlug, HttpContext httpContext, FeedFormat format)
+        string communitySlug, string hubSlug, HttpContext httpContext, FeedFormat format, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var apiClient = httpContext.RequestServices.GetRequiredService<SnakkApiClient>();
         var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
 
@@ -151,8 +154,9 @@ public static class RssFeedEndpoints
 
     private static async Task<IResult> SpaceFeedAsync(
         string communitySlug, string hubSlug, string spaceSlug,
-        HttpContext httpContext, FeedFormat format)
+        HttpContext httpContext, FeedFormat format, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var apiClient = httpContext.RequestServices.GetRequiredService<SnakkApiClient>();
         var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
 
@@ -176,28 +180,31 @@ public static class RssFeedEndpoints
     }
 
     private static async Task<IResult> HubFeedShortcutAsync(
-        string hubSlug, HttpContext httpContext, FeedFormat format)
+        string hubSlug, HttpContext httpContext, FeedFormat format, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var community = httpContext.RequestServices.GetRequiredService<ICommunityContext>();
         var communitySlug = community.CommunitySlug;
         if (string.IsNullOrEmpty(communitySlug)) return Results.NotFound();
 
-        return await HubFeedAsync(communitySlug, hubSlug, httpContext, format);
+        return await HubFeedAsync(communitySlug, hubSlug, httpContext, format, ct);
     }
 
     private static async Task<IResult> SpaceFeedShortcutAsync(
-        string hubSlug, string spaceSlug, HttpContext httpContext, FeedFormat format)
+        string hubSlug, string spaceSlug, HttpContext httpContext, FeedFormat format, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var community = httpContext.RequestServices.GetRequiredService<ICommunityContext>();
         var communitySlug = community.CommunitySlug;
         if (string.IsNullOrEmpty(communitySlug)) return Results.NotFound();
 
-        return await SpaceFeedAsync(communitySlug, hubSlug, spaceSlug, httpContext, format);
+        return await SpaceFeedAsync(communitySlug, hubSlug, spaceSlug, httpContext, format, ct);
     }
 
     private static async Task<IResult> UserFeedAsync(
-        string encodedUserId, HttpContext httpContext, FeedFormat format)
+        string encodedUserId, HttpContext httpContext, FeedFormat format, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var apiClient = httpContext.RequestServices.GetRequiredService<SnakkApiClient>();
         var configuration = httpContext.RequestServices.GetRequiredService<IConfiguration>();
 

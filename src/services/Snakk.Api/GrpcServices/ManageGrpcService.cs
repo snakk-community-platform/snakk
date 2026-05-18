@@ -1317,20 +1317,21 @@ public class ManageGrpcService(
 
         // Permission is checked inside the repository methods via CanModerateAsync
         string? reason = request.HasReason ? request.Reason : null;
+        var ct = context.CancellationToken;
 
         switch (request.Action)
         {
             case "Delete" when request.ContentType == "Post":
-                await moderationRepository.ModeratorDeletePostAsync(request.TargetPublicId, userId, reason);
+                await moderationRepository.ModeratorDeletePostAsync(request.TargetPublicId, userId, reason, ct);
                 break;
             case "Delete" when request.ContentType == "Discussion":
             {
                 var spacePublicId = await dbContext.Discussions
                     .Where(d => d.PublicId == request.TargetPublicId)
                     .Select(d => d.Space.PublicId)
-                    .FirstOrDefaultAsync();
+                    .FirstOrDefaultAsync(ct);
 
-                await moderationRepository.ModeratorDeleteDiscussionAsync(request.TargetPublicId, userId, reason);
+                await moderationRepository.ModeratorDeleteDiscussionAsync(request.TargetPublicId, userId, reason, ct);
 
                 if (spacePublicId is not null)
                 {
@@ -1341,10 +1342,10 @@ public class ManageGrpcService(
                 break;
             }
             case "Lock":
-                await moderationRepository.LockDiscussionAsync(request.TargetPublicId, userId, reason);
+                await moderationRepository.LockDiscussionAsync(request.TargetPublicId, userId, reason, ct);
                 break;
             case "Unlock":
-                await moderationRepository.UnlockDiscussionAsync(request.TargetPublicId, userId);
+                await moderationRepository.UnlockDiscussionAsync(request.TargetPublicId, userId, ct);
                 break;
             default:
                 return new ModerateContentResponse { Success = false, ErrorMessage = $"Unknown action: {request.Action}" };

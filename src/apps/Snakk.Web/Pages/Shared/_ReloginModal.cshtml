@@ -1,0 +1,72 @@
+@using Snakk.Web.Helpers
+@{
+    string? hintEmail = null, hintName = null, hintAvatar = null;
+    var hintCookie = Context.Request.Cookies[".Snakk.ReloginHint"];
+    if (!string.IsNullOrEmpty(hintCookie))
+    {
+        try
+        {
+            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(hintCookie));
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            hintEmail  = root.TryGetProperty("e", out var ep) ? ep.GetString() : null;
+            hintName   = root.TryGetProperty("n", out var np) ? np.GetString() : null;
+            hintAvatar = root.TryGetProperty("a", out var ap) ? ap.GetString() : null;
+        }
+        catch { }
+    }
+
+    if (hintEmail is null) return;
+
+    var autoOpen   = Context.Request.Query["session-expired"] == "1";
+    var returnPath = Uri.EscapeDataString(Context.Request.Path.Value ?? "/");
+    var loginUrl   = $"/auth/login?returnUrl={returnPath}";
+    var avatarSrc  = !string.IsNullOrEmpty(hintAvatar) ? $"/media/avatars/{Html.Encode(hintAvatar)}" : null;
+}
+<dialog id="relogin-modal" class="modal modal-bottom sm:modal-middle"
+        @(autoOpen ? "data-auto-open" : "")
+        data-return-path="@Html.Encode(Context.Request.Path.Value ?? "/")">
+    <div class="modal-box max-w-sm text-center flex flex-col items-center gap-3">
+        <form method="dialog">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+        </form>
+
+        @if (avatarSrc is not null)
+        {
+            <img src="@avatarSrc" alt="" class="w-14 h-14 rounded-full object-cover" />
+        }
+        else
+        {
+            <div class="w-14 h-14 rounded-full bg-base-300 flex items-center justify-center">
+                <span class="icon icon-user w-7 h-7 text-base-content/40" aria-hidden="true"></span>
+            </div>
+        }
+
+        <div>
+            <h3 class="font-semibold text-base">@T.Relogin.Title</h3>
+            <p class="text-sm text-base-content/70 mt-1">@T.Relogin.Subtitle</p>
+        </div>
+        @if (!string.IsNullOrEmpty(hintName))
+        {
+            <p class="text-sm font-medium">@hintName</p>
+        }
+
+        <form id="relogin-form" class="w-full flex flex-col gap-3">
+            <input type="hidden" name="email" value="@Html.Encode(hintEmail)" />
+            <input type="password" name="password" id="relogin-password"
+                   class="input input-bordered w-full"
+                   placeholder="@T.Relogin.PasswordPlaceholder"
+                   autocomplete="current-password"
+                   required />
+            <p id="relogin-error" class="text-sm text-error hidden"></p>
+            <button type="submit" id="relogin-submit" class="btn btn-primary btn-sm w-full">
+                @T.Relogin.Submit
+            </button>
+        </form>
+
+        <a href="@loginUrl" class="text-xs text-base-content/60 hover:underline" hx-boost="false">
+            @T.Relogin.OtherAccount
+        </a>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>@T.Nudge.Close</button></form>
+</dialog>

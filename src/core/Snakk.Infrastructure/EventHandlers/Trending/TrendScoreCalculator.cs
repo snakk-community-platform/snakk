@@ -10,7 +10,7 @@ internal static class TrendScoreCalculator
     private const double Gravity = 1.8;
     private const int WindowHours = 48;
 
-    public static async Task RecalculateAsync(SnakkDbContext context, string discussionPublicId)
+    public static async Task RecalculateAsync(SnakkDbContext context, string discussionPublicId, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
         var cutoff = now.AddHours(-WindowHours);
@@ -18,7 +18,7 @@ internal static class TrendScoreCalculator
         var discussion = await context.Discussions
             .AsTracking()
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (discussion is null)
             return;
@@ -26,17 +26,17 @@ internal static class TrendScoreCalculator
         var postTimes = await context.Posts
             .Where(p => p.DiscussionId == discussion.Id && p.CreatedAt >= cutoff && !p.IsDeleted)
             .Select(p => p.CreatedAt)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var reactionTimes = await context.PostReactions
             .Where(r => r.Post.DiscussionId == discussion.Id && r.CreatedAt >= cutoff)
             .Select(r => r.CreatedAt)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         discussion.TrendScore =
             postTimes.Sum(t => PostWeight / Math.Pow((now - t).TotalHours + 2, Gravity))
             + reactionTimes.Sum(t => ReactionWeight / Math.Pow((now - t).TotalHours + 2, Gravity));
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(cancellationToken);
     }
 }

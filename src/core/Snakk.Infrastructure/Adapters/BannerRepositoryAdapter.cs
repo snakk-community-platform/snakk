@@ -11,15 +11,16 @@ public class BannerRepositoryAdapter(
     Infrastructure.Database.Repositories.IBannerDatabaseRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.IBannerRepository
 {
-    public async Task<Banner?> GetByPublicIdAsync(BannerId publicId)
+    public async Task<Banner?> GetByPublicIdAsync(BannerId publicId, CancellationToken ct = default)
     {
-        var entity = await databaseRepository.GetByPublicIdAsync(publicId.Value);
+        var entity = await databaseRepository.GetByPublicIdAsync(publicId.Value, ct);
         return entity?.FromPersistence();
     }
 
     public async Task<IEnumerable<Banner>> GetByScopeAsync(
         BannerScopeEnum scope,
-        string scopeEntityId)
+        string scopeEntityId,
+        CancellationToken ct = default)
     {
         var entities = await context.Banners
             .Where(a =>
@@ -27,12 +28,12 @@ public class BannerRepositoryAdapter(
                 && a.ScopeEntityId == scopeEntityId)
             .OrderBy(a => a.SortOrder)
             .ThenByDescending(a => a.CreatedAt)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return entities.Select(e => e.FromPersistence());
     }
 
-    public async Task<IEnumerable<Banner>> GetActiveForCommunityAsync(CommunityId communityId)
+    public async Task<IEnumerable<Banner>> GetActiveForCommunityAsync(CommunityId communityId, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
 
@@ -44,12 +45,12 @@ public class BannerRepositoryAdapter(
                 && (a.VisibleUntil == null || a.VisibleUntil >= now))
             .OrderBy(a => a.SortOrder)
             .ThenByDescending(a => a.CreatedAt)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return entities.Select(e => e.FromPersistence());
     }
 
-    public async Task<IEnumerable<Banner>> GetActiveForHubAsync(HubId hubId)
+    public async Task<IEnumerable<Banner>> GetActiveForHubAsync(HubId hubId, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
 
@@ -57,7 +58,7 @@ public class BannerRepositoryAdapter(
         var hub = await context.Hubs
             .Where(h => h.PublicId == hubId.Value)
             .Select(h => new { h.PublicId, h.CommunityPublicId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (hub is null)
             return [];
@@ -73,12 +74,12 @@ public class BannerRepositoryAdapter(
                 && (a.VisibleUntil == null || a.VisibleUntil >= now))
             .OrderBy(a => a.SortOrder)
             .ThenByDescending(a => a.CreatedAt)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return entities.Select(e => e.FromPersistence());
     }
 
-    public async Task<IEnumerable<Banner>> GetActiveForSpaceAsync(SpaceId spaceId)
+    public async Task<IEnumerable<Banner>> GetActiveForSpaceAsync(SpaceId spaceId, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
 
@@ -91,7 +92,7 @@ public class BannerRepositoryAdapter(
                 s.HubPublicId,
                 s.CommunityPublicId
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (space is null)
             return [];
@@ -109,16 +110,16 @@ public class BannerRepositoryAdapter(
                 && (a.VisibleUntil == null || a.VisibleUntil >= now))
             .OrderBy(a => a.SortOrder)
             .ThenByDescending(a => a.CreatedAt)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return entities.Select(e => e.FromPersistence());
     }
 
-    public async Task AddAsync(Banner banner)
+    public async Task AddAsync(Banner banner, CancellationToken ct = default)
     {
         var entity = banner.ToPersistence();
 
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == banner.CreatedByUserId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == banner.CreatedByUserId.Value, ct);
 
         if (user is null)
             throw new InvalidOperationException($"User with PublicId '{banner.CreatedByUserId}' not found");
@@ -126,13 +127,13 @@ public class BannerRepositoryAdapter(
         entity.CreatedByUserId = user.Id;
         entity.CreatedByUserPublicId = banner.CreatedByUserId.Value;
 
-        await databaseRepository.AddAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateAsync(Banner banner)
+    public async Task UpdateAsync(Banner banner, CancellationToken ct = default)
     {
-        var entity = await context.Banners.FirstOrDefaultAsync(a => a.PublicId == banner.PublicId.Value);
+        var entity = await context.Banners.FirstOrDefaultAsync(a => a.PublicId == banner.PublicId.Value, ct);
 
         if (entity is null)
             throw new InvalidOperationException($"Banner with PublicId '{banner.PublicId}' not found");
@@ -147,18 +148,18 @@ public class BannerRepositoryAdapter(
         entity.SortOrder = banner.SortOrder;
         entity.LastModifiedAt = banner.LastModifiedAt;
 
-        await databaseRepository.UpdateAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
     }
 
-    public async Task DeleteAsync(BannerId publicId)
+    public async Task DeleteAsync(BannerId publicId, CancellationToken ct = default)
     {
-        var entity = await context.Banners.FirstOrDefaultAsync(a => a.PublicId == publicId.Value);
+        var entity = await context.Banners.FirstOrDefaultAsync(a => a.PublicId == publicId.Value, ct);
 
         if (entity is null)
             throw new InvalidOperationException($"Banner with PublicId '{publicId}' not found");
 
         context.Banners.Remove(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 }

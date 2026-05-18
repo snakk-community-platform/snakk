@@ -4,7 +4,7 @@ using Microsoft.Extensions.Caching.Memory;
 
 public interface IFollowedSpacesCacheService
 {
-    Task<List<string>> GetAsync(string userId, Func<Task<List<string>>> factory);
+    Task<List<string>> GetAsync(string userId, Func<CancellationToken, Task<List<string>>> factory, CancellationToken ct = default);
     void Invalidate(string userId);
 }
 
@@ -12,12 +12,12 @@ public class FollowedSpacesCacheService(IMemoryCache cache) : IFollowedSpacesCac
 {
     private static string Key(string userId) => $"followed-spaces:{userId}";
 
-    public async Task<List<string>> GetAsync(string userId, Func<Task<List<string>>> factory)
+    public async Task<List<string>> GetAsync(string userId, Func<CancellationToken, Task<List<string>>> factory, CancellationToken ct = default)
     {
         return await cache.GetOrCreateAsync(Key(userId), async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(2);
-            return await factory();
+            return await factory(ct);
         }) ?? [];
     }
 

@@ -27,8 +27,9 @@ public class FollowingModel(
     public bool DiscussionsHasMore { get; set; }
     public int DiscussionsNextOffset { get; set; }
 
-    public async Task<IActionResult> OnGetAsync([FromQuery] string? tab)
+    public async Task<IActionResult> OnGetAsync([FromQuery] string? tab, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         IsAuthenticated = HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
         if (!IsAuthenticated) return Page();
 

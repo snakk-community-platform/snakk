@@ -61,12 +61,13 @@ public static class TwoFactorAuthEndpoints
 
     private static async Task<IResult> GetTwoFactorStatusAsync(
         HttpContext httpContext,
-        ITwoFactorAuthService twoFactorService)
+        ITwoFactorAuthService twoFactorService,
+        CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is null) return Results.Unauthorized();
 
-        var status = await twoFactorService.GetTwoFactorStatusAsync(userIdClaim.Value);
+        var status = await twoFactorService.GetTwoFactorStatusAsync(userIdClaim.Value, ct);
         if (status is null)
             return Results.Ok(new { isEnabled = false, unusedBackupCodes = 0 });
 
@@ -79,7 +80,8 @@ public static class TwoFactorAuthEndpoints
 
     private static async Task<IResult> SetupTwoFactorAsync(
         HttpContext httpContext,
-        ITwoFactorAuthService twoFactorService)
+        ITwoFactorAuthService twoFactorService,
+        CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
 
@@ -88,7 +90,7 @@ public static class TwoFactorAuthEndpoints
 
         try
         {
-            var setup = await twoFactorService.SetupTwoFactorAsync(userIdClaim.Value);
+            var setup = await twoFactorService.SetupTwoFactorAsync(userIdClaim.Value, ct);
 
             return TypedResults.Ok(new TwoFactorSetupResponse(
                 setup.Secret,
@@ -108,14 +110,15 @@ public static class TwoFactorAuthEndpoints
     private static async Task<IResult> EnableTwoFactorAsync(
         [FromBody] EnableTwoFactorRequest request,
         HttpContext httpContext,
-        ITwoFactorAuthService twoFactorService)
+        ITwoFactorAuthService twoFactorService,
+        CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
 
         if (userIdClaim is null)
             return Results.Unauthorized();
 
-        var (success, backupCodes, error) = await twoFactorService.EnableTwoFactorAsync(userIdClaim.Value, request.Code);
+        var (success, backupCodes, error) = await twoFactorService.EnableTwoFactorAsync(userIdClaim.Value, request.Code, ct);
 
         if (!success)
             return Results.BadRequest(new { error });
@@ -129,7 +132,8 @@ public static class TwoFactorAuthEndpoints
     private static async Task<IResult> DisableTwoFactorAsync(
         [FromBody] DisableTwoFactorRequest request,
         HttpContext httpContext,
-        ITwoFactorAuthService twoFactorService)
+        ITwoFactorAuthService twoFactorService,
+        CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
 
@@ -140,11 +144,11 @@ public static class TwoFactorAuthEndpoints
         if (string.IsNullOrWhiteSpace(request.TotpCode))
             return Results.BadRequest(new { error = "A valid 2FA code is required to disable 2FA" });
 
-        var (isValid, _) = await twoFactorService.VerifyTwoFactorCodeAsync(userIdClaim.Value, request.TotpCode);
+        var (isValid, _) = await twoFactorService.VerifyTwoFactorCodeAsync(userIdClaim.Value, request.TotpCode, ct: ct);
         if (!isValid)
             return Results.BadRequest(new { error = "Invalid 2FA code" });
 
-        var success = await twoFactorService.DisableTwoFactorAsync(userIdClaim.Value, request.Password);
+        var success = await twoFactorService.DisableTwoFactorAsync(userIdClaim.Value, request.Password, ct);
 
         if (!success)
             return Results.BadRequest(new { error = "Invalid password or 2FA not enabled" });
@@ -161,7 +165,8 @@ public static class TwoFactorAuthEndpoints
         ITrustedDeviceService trustedDeviceService,
         HttpContext httpContext,
         SnakkDbContext context,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        CancellationToken ct)
     {
         // This endpoint is used during login flow
         // User provides email/password first, gets a temporary token, then verifies 2FA
@@ -169,7 +174,7 @@ public static class TwoFactorAuthEndpoints
         var user = await context.Users
             .Include(u => u.TwoFactorBackupCodes)
             .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(u => u.Email == request.Email);
+            .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
 
         if (user is null || !user.TwoFactorEnabled)
             return Results.BadRequest(new { error = "Invalid request" });
@@ -210,7 +215,7 @@ public static class TwoFactorAuthEndpoints
                     backupCode.IsUsed = true;
                     backupCode.UsedAt = DateTime.UtcNow;
                     backupCode.UsedIp = httpContext.Connection.RemoteIpAddress?.ToString();
-                    await context.SaveChangesAsync();
+                    await context.SaveChangesAsync(ct);
 
                     isValid = true;
                     break;
@@ -223,7 +228,7 @@ public static class TwoFactorAuthEndpoints
             user.FailedLoginAttempts++;
             if (user.FailedLoginAttempts >= 5)
                 user.LockoutEnd = DateTime.UtcNow.AddMinutes(15);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
             return Results.BadRequest(new { error = "Invalid 2FA code" });
         }
 
@@ -231,7 +236,7 @@ public static class TwoFactorAuthEndpoints
         user.FailedLoginAttempts = 0;
         user.LockoutEnd = null;
         user.LastLoginAt = DateTime.UtcNow;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         // Generate tokens with 2FA verified claim
         var role = user.Roles
@@ -288,7 +293,8 @@ public static class TwoFactorAuthEndpoints
 
     private static async Task<IResult> GetBackupCodesAsync(
         HttpContext httpContext,
-        ITwoFactorAuthService twoFactorService)
+        ITwoFactorAuthService twoFactorService,
+        CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
 
@@ -297,7 +303,7 @@ public static class TwoFactorAuthEndpoints
 
         try
         {
-            var status = await twoFactorService.GetBackupCodesStatusAsync(userIdClaim.Value);
+            var status = await twoFactorService.GetBackupCodesStatusAsync(userIdClaim.Value, ct);
 
             return TypedResults.Ok(new BackupCodesStatusResponse(
                 status.TotalCount, status.TotalCount - status.UsedCount, status.Codes));
@@ -315,7 +321,8 @@ public static class TwoFactorAuthEndpoints
     private static async Task<IResult> RegenerateBackupCodesAsync(
         [FromBody] RegenerateBackupCodesRequest request,
         HttpContext httpContext,
-        ITwoFactorAuthService twoFactorService)
+        ITwoFactorAuthService twoFactorService,
+        CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
 
@@ -324,7 +331,7 @@ public static class TwoFactorAuthEndpoints
 
         try
         {
-            var backupCodes = await twoFactorService.RegenerateBackupCodesAsync(userIdClaim.Value, request.Password);
+            var backupCodes = await twoFactorService.RegenerateBackupCodesAsync(userIdClaim.Value, request.Password, ct);
 
             return TypedResults.Ok(new RegenerateBackupCodesResponse(
                 "Backup codes regenerated successfully",

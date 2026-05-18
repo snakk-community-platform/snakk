@@ -5,11 +5,11 @@ using Snakk.Domain.ValueObjects;
 
 public interface IUserAchievementRepository
 {
-    Task<UserAchievement?> GetByIdAsync(int id);
-    Task<UserAchievement?> GetByPublicIdAsync(UserAchievementId publicId);
-    Task<IEnumerable<UserAchievement>> GetByUserIdAsync(UserId userId);
-    Task<IEnumerable<UserAchievement>> GetDisplayedByUserIdAsync(UserId userId);
-    Task<bool> HasAchievementAsync(UserId userId, AchievementId achievementId);
-    Task AddAsync(UserAchievement userAchievement);
-    Task UpdateAsync(UserAchievement userAchievement);
+    Task<UserAchievement?> GetByIdAsync(int id, CancellationToken ct = default);
+    Task<UserAchievement?> GetByPublicIdAsync(UserAchievementId publicId, CancellationToken ct = default);
+    Task<IEnumerable<UserAchievement>> GetByUserIdAsync(UserId userId, CancellationToken ct = default);
+    Task<IEnumerable<UserAchievement>> GetDisplayedByUserIdAsync(UserId userId, CancellationToken ct = default);
+    Task<bool> HasAchievementAsync(UserId userId, AchievementId achievementId, CancellationToken ct = default);
+    Task AddAsync(UserAchievement userAchievement, CancellationToken ct = default);
+    Task UpdateAsync(UserAchievement userAchievement, CancellationToken ct = default);
 }

@@ -8,8 +8,9 @@ public class ModeratorsModel(SnakkApiClient apiClient) : PageModel
 {
     public GetModeratorsResponse? Moderators { get; set; }
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Moderators = await apiClient.GetSiteModeratorsAsync();
     }
 }

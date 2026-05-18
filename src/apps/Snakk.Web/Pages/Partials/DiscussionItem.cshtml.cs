@@ -23,8 +23,10 @@ public class DiscussionItemModel(
         string hubSlug,
         string spaceSlug,
         string authorId,
-        string authorName)
+        string authorName,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         HubSlug = hubSlug;
         SpaceSlug = spaceSlug;
         AuthorId = authorId;

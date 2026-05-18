@@ -9,12 +9,12 @@ using Snakk.Infrastructure.Database.Entities;
 
 public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : IDiscussionReadStateRepository
 {
-    public async Task<DiscussionReadState?> GetAsync(UserId userId, DiscussionId discussionId)
+    public async Task<DiscussionReadState?> GetAsync(UserId userId, DiscussionId discussionId, CancellationToken ct = default)
     {
         var entity = await dbContext.DiscussionReadStates
             .FirstOrDefaultAsync(rs =>
                 rs.UserId == userId.Value
-                && rs.DiscussionId == discussionId.Value);
+                && rs.DiscussionId == discussionId.Value, ct);
 
         if (entity is null)
             return null;
@@ -26,12 +26,12 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
             entity.LastReadAt);
     }
 
-    public async Task SaveAsync(DiscussionReadState readState)
+    public async Task SaveAsync(DiscussionReadState readState, CancellationToken ct = default)
     {
         var existing = await dbContext.DiscussionReadStates
             .FirstOrDefaultAsync(rs =>
                 rs.UserId == readState.UserId.Value
-                && rs.DiscussionId == readState.DiscussionId.Value);
+                && rs.DiscussionId == readState.DiscussionId.Value, ct);
 
         if (existing is not null)
         {
@@ -50,10 +50,10 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
             dbContext.DiscussionReadStates.Add(entity);
         }
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(ct);
     }
 
-    public async Task BatchSaveAsync(IEnumerable<DiscussionReadState> readStates)
+    public async Task BatchSaveAsync(IEnumerable<DiscussionReadState> readStates, CancellationToken ct = default)
     {
         var states = readStates.ToList();
         if (states.Count == 0) return;
@@ -63,7 +63,7 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
 
         var existingEntities = await dbContext.DiscussionReadStates
             .Where(rs => rs.UserId == userId && discussionIds.Contains(rs.DiscussionId))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var existingMap = existingEntities.ToDictionary(rs => rs.DiscussionId);
 
@@ -86,18 +86,19 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
             }
         }
 
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(ct);
     }
 
     public async Task<List<ReadStateWithPostNumber>> GetReadStatesForDiscussionsAsync(
         UserId userId,
-        List<string> discussionIds)
+        List<string> discussionIds,
+        CancellationToken ct = default)
     {
         var readStates = await dbContext.DiscussionReadStates
             .Where(rs =>
                 rs.UserId == userId.Value
                 && discussionIds.Contains(rs.DiscussionId))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var results = new List<ReadStateWithPostNumber>();
 
@@ -112,7 +113,7 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
                     p.PublicId == readState.LastReadPostId
                     && p.Discussion.PublicId == readState.DiscussionId)
                 .Select(p => p.CreatedAt)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (lastReadPost == default)
                 continue;
@@ -122,7 +123,7 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
                     p.Discussion.PublicId == readState.DiscussionId
                     && !p.IsDeleted
                     && p.CreatedAt <= lastReadPost)
-                .CountAsync();
+                .CountAsync(ct);
 
             results.Add(new ReadStateWithPostNumber(readState.DiscussionId, postNumber));
         }

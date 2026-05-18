@@ -8,22 +8,22 @@ using Snakk.Shared.Models;
 
 public class SaveRepository(SnakkDbContext context) : ISaveRepository
 {
-    public async Task<bool> ToggleSaveDiscussionAsync(string userId, string discussionPublicId)
+    public async Task<bool> ToggleSaveDiscussionAsync(string userId, string discussionPublicId, CancellationToken ct = default)
     {
-        var user = await context.Users.Where(u => u.PublicId == userId).Select(u => new { u.Id }).FirstOrDefaultAsync();
+        var user = await context.Users.Where(u => u.PublicId == userId).Select(u => new { u.Id }).FirstOrDefaultAsync(ct);
         if (user is null) return false;
 
-        var discussion = await context.Discussions.Where(d => d.PublicId == discussionPublicId).Select(d => new { d.Id }).FirstOrDefaultAsync();
+        var discussion = await context.Discussions.Where(d => d.PublicId == discussionPublicId).Select(d => new { d.Id }).FirstOrDefaultAsync(ct);
         if (discussion is null) return false;
 
         var existing = await context.UserSaves
             .Where(s => s.UserId == user.Id && s.DiscussionId == discussion.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (existing is not null)
         {
             context.UserSaves.Remove(existing);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
             return false;
         }
 
@@ -34,26 +34,26 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
             DiscussionId = discussion.Id,
             CreatedAt = DateTime.UtcNow
         });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
         return true;
     }
 
-    public async Task<bool> ToggleSavePostAsync(string userId, string postPublicId)
+    public async Task<bool> ToggleSavePostAsync(string userId, string postPublicId, CancellationToken ct = default)
     {
-        var user = await context.Users.Where(u => u.PublicId == userId).Select(u => new { u.Id }).FirstOrDefaultAsync();
+        var user = await context.Users.Where(u => u.PublicId == userId).Select(u => new { u.Id }).FirstOrDefaultAsync(ct);
         if (user is null) return false;
 
-        var post = await context.Posts.Where(p => p.PublicId == postPublicId).Select(p => new { p.Id }).FirstOrDefaultAsync();
+        var post = await context.Posts.Where(p => p.PublicId == postPublicId).Select(p => new { p.Id }).FirstOrDefaultAsync(ct);
         if (post is null) return false;
 
         var existing = await context.UserSaves
             .Where(s => s.UserId == user.Id && s.PostId == post.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (existing is not null)
         {
             context.UserSaves.Remove(existing);
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
             return false;
         }
 
@@ -64,35 +64,35 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
             PostId = post.Id,
             CreatedAt = DateTime.UtcNow
         });
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
         return true;
     }
 
-    public async Task<List<string>> GetSavedDiscussionIdsAsync(string userId)
+    public async Task<List<string>> GetSavedDiscussionIdsAsync(string userId, CancellationToken ct = default)
     {
-        var userDbId = await ResolveUserIdAsync(userId);
+        var userDbId = await ResolveUserIdAsync(userId, ct);
         if (userDbId == 0) return [];
 
         return await context.UserSaves
             .Where(s => s.UserId == userDbId && s.DiscussionId != null)
             .Select(s => s.Discussion!.PublicId)
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task<List<string>> GetSavedPostIdsAsync(string userId)
+    public async Task<List<string>> GetSavedPostIdsAsync(string userId, CancellationToken ct = default)
     {
-        var userDbId = await ResolveUserIdAsync(userId);
+        var userDbId = await ResolveUserIdAsync(userId, ct);
         if (userDbId == 0) return [];
 
         return await context.UserSaves
             .Where(s => s.UserId == userDbId && s.PostId != null)
             .Select(s => s.Post!.PublicId)
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetSavedDiscussionsAsync(string userId, int offset, int pageSize)
+    public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetSavedDiscussionsAsync(string userId, int offset, int pageSize, CancellationToken ct = default)
     {
-        var userDbId = await ResolveUserIdAsync(userId);
+        var userDbId = await ResolveUserIdAsync(userId, ct);
         if (userDbId == 0)
             return new PagedResult<Application.Repositories.RecentDiscussionDto>
             {
@@ -136,12 +136,12 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
                 s.Discussion.LastPostPlainTextExcerpt,
                 s.Discussion.IsAdultOnly
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = rawItems.Count > pageSize;
         var page = hasMoreItems ? rawItems.Take(pageSize).ToList() : rawItems;
 
-        var spaceDisplay = await FetchSpaceDisplayAsync(page.Select(x => x.SpaceId));
+        var spaceDisplay = await FetchSpaceDisplayAsync(page.Select(x => x.SpaceId), ct);
 
         return new PagedResult<Application.Repositories.RecentDiscussionDto>
         {
@@ -188,9 +188,9 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
         };
     }
 
-    public async Task<PagedResult<SavedPostDto>> GetSavedPostsAsync(string userId, int offset, int pageSize)
+    public async Task<PagedResult<SavedPostDto>> GetSavedPostsAsync(string userId, int offset, int pageSize, CancellationToken ct = default)
     {
-        var userDbId = await ResolveUserIdAsync(userId);
+        var userDbId = await ResolveUserIdAsync(userId, ct);
         if (userDbId == 0)
             return new PagedResult<SavedPostDto>
             {
@@ -223,7 +223,7 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
                 s.Post.CreatedByUser.DisplayName ?? "",
                 s.Post.CreatedByUser.AvatarFileName,
                 s.CreatedAt))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMoreItems = items.Count > pageSize;
 
@@ -236,34 +236,34 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
         };
     }
 
-    public async Task<(int DiscussionCount, int PostCount)> GetSaveCountsAsync(string userId)
+    public async Task<(int DiscussionCount, int PostCount)> GetSaveCountsAsync(string userId, CancellationToken ct = default)
     {
-        var userDbId = await ResolveUserIdAsync(userId);
+        var userDbId = await ResolveUserIdAsync(userId, ct);
         if (userDbId == 0) return (0, 0);
 
         var discussionCount = await context.UserSaves
             .Where(s => s.UserId == userDbId && s.DiscussionId != null)
-            .CountAsync();
+            .CountAsync(ct);
 
         var postCount = await context.UserSaves
             .Where(s => s.UserId == userDbId && s.PostId != null)
-            .CountAsync();
+            .CountAsync(ct);
 
         return (discussionCount, postCount);
     }
 
-    private Task<int> ResolveUserIdAsync(string userId) =>
+    private Task<int> ResolveUserIdAsync(string userId, CancellationToken ct = default) =>
         context.Users
             .Where(u => u.PublicId == userId)
             .Select(u => u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
     private sealed record SpaceDisplay(
         string Slug, string Name,
         string? HubSlug, string? HubName,
         string? CommunitySlug, string? CommunityName);
 
-    private async Task<Dictionary<int, SpaceDisplay>> FetchSpaceDisplayAsync(IEnumerable<int> spaceIds)
+    private async Task<Dictionary<int, SpaceDisplay>> FetchSpaceDisplayAsync(IEnumerable<int> spaceIds, CancellationToken ct = default)
     {
         var ids = spaceIds.Distinct().ToList();
         if (ids.Count == 0) return [];
@@ -272,6 +272,6 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
             .Select(s => new { s.Id, s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName })
             .ToDictionaryAsync(
                 s => s.Id,
-                s => new SpaceDisplay(s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName));
+                s => new SpaceDisplay(s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName), ct);
     }
 }

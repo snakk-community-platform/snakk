@@ -38,7 +38,7 @@ public class SettingsService : ISettingsService
 
     #region Generic Settings Access
 
-    public async Task<SettingsByCategoryResponse> GetSettingsByCategoryAsync(string category)
+    public async Task<SettingsByCategoryResponse> GetSettingsByCategoryAsync(string category, CancellationToken ct = default)
     {
         var cacheKey = $"settings_category_{category}";
 
@@ -71,16 +71,17 @@ public class SettingsService : ISettingsService
                     Settings = settings
                 };
             },
-            CacheOptions);
+            CacheOptions,
+            cancellationToken: ct);
     }
 
-    public async Task<SettingDto?> GetSettingAsync(string category, string key)
+    public async Task<SettingDto?> GetSettingAsync(string category, string key, CancellationToken ct = default)
     {
         var setting = await _context.SystemSettings
             .Include(s => s.UpdatedBy)
             .FirstOrDefaultAsync(s =>
                 s.Category == category
-                && s.Key == key);
+                && s.Key == key, ct);
 
         if (setting is null)
             return null;
@@ -99,14 +100,14 @@ public class SettingsService : ISettingsService
         };
     }
 
-    public async Task<T?> GetSettingValueAsync<T>(string category, string key)
+    public async Task<T?> GetSettingValueAsync<T>(string category, string key, CancellationToken ct = default)
     {
         try
         {
             var setting = await _context.SystemSettings
                 .FirstOrDefaultAsync(s =>
                     s.Category == category
-                    && s.Key == key);
+                    && s.Key == key, ct);
 
             if (setting is null)
                 return default;
@@ -125,19 +126,20 @@ public class SettingsService : ISettingsService
         string category,
         string key,
         object value,
-        string adminUserId)
+        string adminUserId,
+        CancellationToken ct = default)
     {
         var setting = await _context.SystemSettings
             .AsTracking()
             .Include(s => s.UpdatedBy)
             .FirstOrDefaultAsync(s =>
                 s.Category == category
-                && s.Key == key);
+                && s.Key == key, ct);
 
         if (setting is null)
             throw new InvalidOperationException($"Setting {category}.{key} does not exist");
 
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == adminUserId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == adminUserId, ct);
 
         if (user is null)
             throw new InvalidOperationException($"User {adminUserId} not found");
@@ -147,10 +149,10 @@ public class SettingsService : ISettingsService
         setting.UpdatedById = user.Id;
         setting.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(ct);
 
         // Invalidate cache
-        await _cache.RemoveAsync($"settings_category_{category}");
+        await _cache.RemoveAsync($"settings_category_{category}", ct);
 
         // Audit log
         await _securityService.LogAuditAsync(
@@ -180,10 +182,10 @@ public class SettingsService : ISettingsService
 
     #region Category-Specific Methods
 
-    public async Task<List<OAuthProviderDto>> GetOAuthProvidersAsync()
+    public async Task<List<OAuthProviderDto>> GetOAuthProvidersAsync(CancellationToken ct = default)
     {
         var providers = new[] { "Google", "GitHub", "Discord", "Microsoft", "Facebook", "Apple" };
-        var s = await LoadCategoryAsync("OAuth");
+        var s = await LoadCategoryAsync("OAuth", ct);
         return providers.Select(provider => new OAuthProviderDto
         {
             Provider = provider,
@@ -192,12 +194,12 @@ public class SettingsService : ISettingsService
         }).ToList();
     }
 
-    public async Task UpdateOAuthProviderAsync(string provider, bool enabled, string adminUserId) =>
-        await UpdateSettingAsync("OAuth", $"{provider}.Enabled", enabled, adminUserId);
+    public async Task UpdateOAuthProviderAsync(string provider, bool enabled, string adminUserId, CancellationToken ct = default) =>
+        await UpdateSettingAsync("OAuth", $"{provider}.Enabled", enabled, adminUserId, ct);
 
-    public async Task<EmailConfigDto> GetEmailConfigAsync()
+    public async Task<EmailConfigDto> GetEmailConfigAsync(CancellationToken ct = default)
     {
-        var s = await LoadCategoryAsync("Email");
+        var s = await LoadCategoryAsync("Email", ct);
         return new EmailConfigDto
         {
             Enabled = GetValue<bool>(s, "Enabled"),
@@ -211,24 +213,24 @@ public class SettingsService : ISettingsService
         };
     }
 
-    public async Task UpdateEmailConfigAsync(EmailConfigDto config, string adminUserId)
+    public async Task UpdateEmailConfigAsync(EmailConfigDto config, string adminUserId, CancellationToken ct = default)
     {
-        await UpdateSettingAsync("Email", "Enabled", config.Enabled, adminUserId);
-        await UpdateSettingAsync("Email", "SmtpHost", config.SmtpHost, adminUserId);
-        await UpdateSettingAsync("Email", "SmtpPort", config.SmtpPort, adminUserId);
-        await UpdateSettingAsync("Email", "UseSsl", config.UseSsl, adminUserId);
-        await UpdateSettingAsync("Email", "SmtpUsername", config.SmtpUsername, adminUserId);
-        await UpdateSettingAsync("Email", "SmtpPassword", config.SmtpPassword, adminUserId);
-        await UpdateSettingAsync("Email", "FromEmail", config.FromEmail, adminUserId);
-        await UpdateSettingAsync("Email", "FromName", config.FromName, adminUserId);
+        await UpdateSettingAsync("Email", "Enabled", config.Enabled, adminUserId, ct);
+        await UpdateSettingAsync("Email", "SmtpHost", config.SmtpHost, adminUserId, ct);
+        await UpdateSettingAsync("Email", "SmtpPort", config.SmtpPort, adminUserId, ct);
+        await UpdateSettingAsync("Email", "UseSsl", config.UseSsl, adminUserId, ct);
+        await UpdateSettingAsync("Email", "SmtpUsername", config.SmtpUsername, adminUserId, ct);
+        await UpdateSettingAsync("Email", "SmtpPassword", config.SmtpPassword, adminUserId, ct);
+        await UpdateSettingAsync("Email", "FromEmail", config.FromEmail, adminUserId, ct);
+        await UpdateSettingAsync("Email", "FromName", config.FromName, adminUserId, ct);
     }
 
-    public async Task<SiteInfoDto> GetSiteInfoAsync() =>
+    public async Task<SiteInfoDto> GetSiteInfoAsync(CancellationToken ct = default) =>
         await _cache.GetOrCreateAsync(
             SiteInfoCacheKey,
             async cancel =>
             {
-                var s = await LoadCategoryAsync("General");
+                var s = await LoadCategoryAsync("General", cancel);
                 return new SiteInfoDto
                 {
                     SiteName = GetValue<string>(s, "SiteName") ?? "Snakk",
@@ -238,21 +240,22 @@ public class SettingsService : ISettingsService
                     Language = GetValue<string>(s, "Language") ?? "en"
                 };
             },
-            LongCacheOptions);
+            LongCacheOptions,
+            cancellationToken: ct);
 
-    public async Task UpdateSiteInfoAsync(SiteInfoDto siteInfo, string adminUserId)
+    public async Task UpdateSiteInfoAsync(SiteInfoDto siteInfo, string adminUserId, CancellationToken ct = default)
     {
-        await UpdateSettingAsync("General", "SiteName", siteInfo.SiteName, adminUserId);
-        await UpdateSettingAsync("General", "SiteDescription", siteInfo.SiteDescription, adminUserId);
-        await UpdateSettingAsync("General", "LogoUrl", siteInfo.LogoUrl, adminUserId);
-        await UpdateSettingAsync("General", "Timezone", siteInfo.Timezone, adminUserId);
-        await UpdateSettingAsync("General", "Language", siteInfo.Language, adminUserId);
-        await _cache.RemoveAsync(SiteInfoCacheKey);
+        await UpdateSettingAsync("General", "SiteName", siteInfo.SiteName, adminUserId, ct);
+        await UpdateSettingAsync("General", "SiteDescription", siteInfo.SiteDescription, adminUserId, ct);
+        await UpdateSettingAsync("General", "LogoUrl", siteInfo.LogoUrl, adminUserId, ct);
+        await UpdateSettingAsync("General", "Timezone", siteInfo.Timezone, adminUserId, ct);
+        await UpdateSettingAsync("General", "Language", siteInfo.Language, adminUserId, ct);
+        await _cache.RemoveAsync(SiteInfoCacheKey, ct);
     }
 
-    public async Task<AvatarSettingsDto> GetAvatarSettingsAsync()
+    public async Task<AvatarSettingsDto> GetAvatarSettingsAsync(CancellationToken ct = default)
     {
-        var s = await LoadCategoryAsync("Avatar");
+        var s = await LoadCategoryAsync("Avatar", ct);
         return new AvatarSettingsDto
         {
             DefaultAvatarSize = GetValue<int>(s, "DefaultAvatarSize"),
@@ -262,17 +265,17 @@ public class SettingsService : ISettingsService
         };
     }
 
-    public async Task UpdateAvatarSettingsAsync(AvatarSettingsDto settings, string adminUserId)
+    public async Task UpdateAvatarSettingsAsync(AvatarSettingsDto settings, string adminUserId, CancellationToken ct = default)
     {
-        await UpdateSettingAsync("Avatar", "DefaultAvatarSize", settings.DefaultAvatarSize, adminUserId);
-        await UpdateSettingAsync("Avatar", "MaxUploadSizeMb", settings.MaxUploadSizeMb, adminUserId);
-        await UpdateSettingAsync("Avatar", "AllowUploads", settings.AllowUploads, adminUserId);
-        await UpdateSettingAsync("Avatar", "GenerateOnStartup", settings.GenerateOnStartup, adminUserId);
+        await UpdateSettingAsync("Avatar", "DefaultAvatarSize", settings.DefaultAvatarSize, adminUserId, ct);
+        await UpdateSettingAsync("Avatar", "MaxUploadSizeMb", settings.MaxUploadSizeMb, adminUserId, ct);
+        await UpdateSettingAsync("Avatar", "AllowUploads", settings.AllowUploads, adminUserId, ct);
+        await UpdateSettingAsync("Avatar", "GenerateOnStartup", settings.GenerateOnStartup, adminUserId, ct);
     }
 
-    public async Task<ContentSettingsDto> GetContentSettingsAsync()
+    public async Task<ContentSettingsDto> GetContentSettingsAsync(CancellationToken ct = default)
     {
-        var s = await LoadCategoryAsync("Content");
+        var s = await LoadCategoryAsync("Content", ct);
         var scripts = ParseScriptGroups(s.GetValueOrDefault("AllowedDisplayNameScripts"));
         return new ContentSettingsDto
         {
@@ -285,35 +288,35 @@ public class SettingsService : ISettingsService
         };
     }
 
-    public async Task UpdateContentSettingsAsync(ContentSettingsDto settings, string adminUserId)
+    public async Task UpdateContentSettingsAsync(ContentSettingsDto settings, string adminUserId, CancellationToken ct = default)
     {
-        await UpdateSettingAsync("Content", "PostMaxLength", settings.PostMaxLength, adminUserId);
-        await UpdateSettingAsync("Content", "DiscussionTitleMaxLength", settings.DiscussionTitleMaxLength, adminUserId);
-        await UpdateSettingAsync("Content", "AllowMarkdown", settings.AllowMarkdown, adminUserId);
-        await UpdateSettingAsync("Content", "AllowHtml", settings.AllowHtml, adminUserId);
-        await UpdateSettingAsync("Content", "RequireModeration", settings.RequireModeration, adminUserId);
+        await UpdateSettingAsync("Content", "PostMaxLength", settings.PostMaxLength, adminUserId, ct);
+        await UpdateSettingAsync("Content", "DiscussionTitleMaxLength", settings.DiscussionTitleMaxLength, adminUserId, ct);
+        await UpdateSettingAsync("Content", "AllowMarkdown", settings.AllowMarkdown, adminUserId, ct);
+        await UpdateSettingAsync("Content", "AllowHtml", settings.AllowHtml, adminUserId, ct);
+        await UpdateSettingAsync("Content", "RequireModeration", settings.RequireModeration, adminUserId, ct);
 
         var scripts = (settings.AllowedDisplayNameScripts ?? [])
             .Select(name => Enum.TryParse<ScriptGroup>(name, out var sg) ? (ScriptGroup?)sg : null)
             .Where(sg => sg.HasValue)
             .Select(sg => sg!.Value);
-        await UpdateAllowedDisplayNameScriptsAsync(scripts, adminUserId);
+        await UpdateAllowedDisplayNameScriptsAsync(scripts, adminUserId, ct);
     }
 
-    public async Task<IReadOnlyList<ScriptGroup>> GetAllowedDisplayNameScriptsAsync()
+    public async Task<IReadOnlyList<ScriptGroup>> GetAllowedDisplayNameScriptsAsync(CancellationToken ct = default)
     {
-        var s = await LoadCategoryAsync("Content");
+        var s = await LoadCategoryAsync("Content", ct);
         return ParseScriptGroups(s.GetValueOrDefault("AllowedDisplayNameScripts"));
     }
 
-    public async Task UpdateAllowedDisplayNameScriptsAsync(IEnumerable<ScriptGroup> scripts, string adminUserId)
+    public async Task UpdateAllowedDisplayNameScriptsAsync(IEnumerable<ScriptGroup> scripts, string adminUserId, CancellationToken ct = default)
     {
         var names = scripts.Select(sg => sg.ToString()).ToList();
         if (names.Count == 0) names = [ScriptGroup.Latin.ToString()];
         var serialized = JsonSerializer.Serialize(names);
 
-        await UpsertRawSettingAsync("Content", "AllowedDisplayNameScripts", serialized, "JSON", adminUserId);
-        await _cache.RemoveAsync("settings_category_Content");
+        await UpsertRawSettingAsync("Content", "AllowedDisplayNameScripts", serialized, "JSON", adminUserId, ct);
+        await _cache.RemoveAsync("settings_category_Content", ct);
 
         await _securityService.LogAuditAsync(
             action: "UpdateDisplayNameScripts",
@@ -325,9 +328,9 @@ public class SettingsService : ISettingsService
             severity: AuditLogSeverityEnum.Info);
     }
 
-    public async Task<RateLimitingSettingsDto> GetRateLimitingSettingsAsync()
+    public async Task<RateLimitingSettingsDto> GetRateLimitingSettingsAsync(CancellationToken ct = default)
     {
-        var s = await LoadCategoryAsync("RateLimiting");
+        var s = await LoadCategoryAsync("RateLimiting", ct);
         return new RateLimitingSettingsDto
         {
             AuthPermitLimit = GetValue<int>(s, "AuthPermitLimit"),
@@ -339,23 +342,24 @@ public class SettingsService : ISettingsService
         };
     }
 
-    public async Task UpdateRateLimitingSettingsAsync(RateLimitingSettingsDto settings, string adminUserId)
+    public async Task UpdateRateLimitingSettingsAsync(RateLimitingSettingsDto settings, string adminUserId, CancellationToken ct = default)
     {
-        await UpdateSettingAsync("RateLimiting", "AuthPermitLimit", settings.AuthPermitLimit, adminUserId);
-        await UpdateSettingAsync("RateLimiting", "AuthWindowMinutes", settings.AuthWindowMinutes, adminUserId);
-        await UpdateSettingAsync("RateLimiting", "ApiPermitLimit", settings.ApiPermitLimit, adminUserId);
-        await UpdateSettingAsync("RateLimiting", "ApiWindowMinutes", settings.ApiWindowMinutes, adminUserId);
-        await UpdateSettingAsync("RateLimiting", "ExpensivePermitLimit", settings.ExpensivePermitLimit, adminUserId);
+        await UpdateSettingAsync("RateLimiting", "AuthPermitLimit", settings.AuthPermitLimit, adminUserId, ct);
+        await UpdateSettingAsync("RateLimiting", "AuthWindowMinutes", settings.AuthWindowMinutes, adminUserId, ct);
+        await UpdateSettingAsync("RateLimiting", "ApiPermitLimit", settings.ApiPermitLimit, adminUserId, ct);
+        await UpdateSettingAsync("RateLimiting", "ApiWindowMinutes", settings.ApiWindowMinutes, adminUserId, ct);
+        await UpdateSettingAsync("RateLimiting", "ExpensivePermitLimit", settings.ExpensivePermitLimit, adminUserId, ct);
         await UpdateSettingAsync(
             "RateLimiting",
             "ExpensiveWindowMinutes",
             settings.ExpensiveWindowMinutes,
-            adminUserId);
+            adminUserId,
+            ct);
     }
 
-    public async Task<RegistrationSettingsDto> GetRegistrationSettingsAsync()
+    public async Task<RegistrationSettingsDto> GetRegistrationSettingsAsync(CancellationToken ct = default)
     {
-        var s = await LoadCategoryAsync("Registration");
+        var s = await LoadCategoryAsync("Registration", ct);
         return new RegistrationSettingsDto
         {
             Mode = GetValue<string>(s, "Mode") ?? "Open",
@@ -363,19 +367,19 @@ public class SettingsService : ISettingsService
         };
     }
 
-    public async Task UpdateRegistrationSettingsAsync(RegistrationSettingsDto settings, string adminUserId)
+    public async Task UpdateRegistrationSettingsAsync(RegistrationSettingsDto settings, string adminUserId, CancellationToken ct = default)
     {
-        await UpdateSettingAsync("Registration", "Mode", settings.Mode, adminUserId);
-        await UpdateSettingAsync("Registration", "InviteCode", settings.InviteCode, adminUserId);
+        await UpdateSettingAsync("Registration", "Mode", settings.Mode, adminUserId, ct);
+        await UpdateSettingAsync("Registration", "InviteCode", settings.InviteCode, adminUserId, ct);
     }
 
     #endregion
 
     #region Helper Methods
 
-    private async Task<Dictionary<string, string?>> LoadCategoryAsync(string category)
+    private async Task<Dictionary<string, string?>> LoadCategoryAsync(string category, CancellationToken ct = default)
     {
-        var response = await GetSettingsByCategoryAsync(category);
+        var response = await GetSettingsByCategoryAsync(category, ct);
         return response.Settings.ToDictionary(s => s.Key, s => (string?)s.Value);
     }
 
@@ -462,13 +466,14 @@ public class SettingsService : ISettingsService
     }
 
     private async Task UpsertRawSettingAsync(
-        string category, string key, string serializedValue, string valueType, string adminUserId)
+        string category, string key, string serializedValue, string valueType, string adminUserId,
+        CancellationToken ct = default)
     {
         var existing = await _context.SystemSettings
             .AsTracking()
-            .FirstOrDefaultAsync(s => s.Category == category && s.Key == key);
+            .FirstOrDefaultAsync(s => s.Category == category && s.Key == key, ct);
 
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == adminUserId);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == adminUserId, ct);
 
         if (existing is null)
         {
@@ -491,7 +496,7 @@ public class SettingsService : ISettingsService
             existing.UpdatedAt = DateTime.UtcNow;
         }
 
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(ct);
     }
 
     #endregion

@@ -9,19 +9,19 @@ using Snakk.Shared.Models;
 public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRepository
 {
     public async Task<PagedResult<ReactedPostDto>> GetReactedPostsByUserAsync(
-        string userId, int offset, int pageSize)
+        string userId, int offset, int pageSize, CancellationToken ct = default)
     {
-        return await QueryAsync(userId, offset, pageSize, firstPost: false);
+        return await QueryAsync(userId, offset, pageSize, firstPost: false, ct);
     }
 
     public async Task<PagedResult<ReactedPostDto>> GetReactedDiscussionsByUserAsync(
-        string userId, int offset, int pageSize)
+        string userId, int offset, int pageSize, CancellationToken ct = default)
     {
-        return await QueryAsync(userId, offset, pageSize, firstPost: true);
+        return await QueryAsync(userId, offset, pageSize, firstPost: true, ct);
     }
 
     private async Task<PagedResult<ReactedPostDto>> QueryAsync(
-        string userId, int offset, int pageSize, bool firstPost)
+        string userId, int offset, int pageSize, bool firstPost, CancellationToken ct = default)
     {
         var raw = await context.PostReactions
             .Where(r => r.UserPublicId == userId && r.Post.IsFirstPost == firstPost)
@@ -47,7 +47,7 @@ public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRep
                 ReactedAt = r.CreatedAt,
                 r.TypeId
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var hasMore = raw.Count > pageSize;
         var page = raw.Take(pageSize).ToList();
@@ -63,7 +63,7 @@ public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRep
             : await context.Users
                 .Where(u => authorIds.Contains(u.PublicId))
                 .Select(u => new { u.PublicId, u.DisplayName, u.AvatarFileName })
-                .ToDictionaryAsync(u => u.PublicId!, u => (u.DisplayName, u.AvatarFileName));
+                .ToDictionaryAsync(u => u.PublicId!, u => (u.DisplayName, u.AvatarFileName), ct);
 
         var items = page.Select(r =>
         {

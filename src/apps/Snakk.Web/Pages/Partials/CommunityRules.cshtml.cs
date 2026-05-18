@@ -11,8 +11,9 @@ public class CommunityRulesModel(
     public CommunityRulesResponse? Rules { get; set; }
     public string CacheSource { get; set; } = "unknown";
 
-    public async Task OnGetAsync(string communityId, string rev = "")
+    public async Task OnGetAsync(string communityId, string rev = "", CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=31536000, immutable";
 
         var cacheKey = $"community-rules:{communityId}";

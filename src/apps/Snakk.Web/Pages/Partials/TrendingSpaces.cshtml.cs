@@ -26,8 +26,9 @@ public class TrendingSpacesModel(
         _                       => "posts today"
     };
 
-    public async Task OnGetAsync(string scopeType, string scopeId, string mode = "active", string period = "week")
+    public async Task OnGetAsync(string scopeType, string scopeId, string mode = "active", string period = "week", CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=10";
         Mode = mode;
         Period = period;

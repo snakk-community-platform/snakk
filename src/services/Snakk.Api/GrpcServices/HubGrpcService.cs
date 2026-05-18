@@ -28,12 +28,13 @@ public class HubGrpcService(
 {
     public override async Task<HubInfo> GetHubBySlug(GetHubBySlugRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await hubUseCase.GetHubBySlugAsync(request.Slug, request.CommunitySlug);
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
-        if (!await IsHubAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
+        if (!await IsHubAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
         var info = MapToProto(result.Value);
@@ -44,12 +45,13 @@ public class HubGrpcService(
 
     public override async Task<HubInfo> GetHub(GetHubRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await hubUseCase.GetHubAsync(HubId.From(request.PublicId));
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
-        if (!await IsHubAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
+        if (!await IsHubAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
         var info = MapToProto(result.Value);
@@ -60,8 +62,9 @@ public class HubGrpcService(
 
     public override async Task<PagedHubList> ListHubs(ListHubsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = currentUser.GetCurrentUserId();
-        var result = await searchRepository.GetHubsAsync(request.Offset, request.PageSize, userId);
+        var result = await searchRepository.GetHubsAsync(request.Offset, request.PageSize, userId, ct);
 
         var response = new PagedHubList
         {
@@ -92,6 +95,7 @@ public class HubGrpcService(
 
     public override async Task<PagedHubList> ListHubsByCommunity(ListHubsByCommunityRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = currentUser.GetCurrentUserId();
         var result = await hubUseCase.GetHubsByCommunityAsync(
             CommunityId.From(request.CommunityId),
@@ -103,7 +107,7 @@ public class HubGrpcService(
         var counts = await dbContext.Hubs
             .Where(h => publicIds.Contains(h.PublicId))
             .Select(h => new { h.PublicId, h.SpaceCount, h.DiscussionCount, h.PostCount })
-            .ToDictionaryAsync(h => h.PublicId, context.CancellationToken);
+            .ToDictionaryAsync(h => h.PublicId, ct);
 
         var response = new PagedHubList
         {
@@ -129,6 +133,7 @@ public class HubGrpcService(
 
     public override async Task<HubStats> GetHubStats(GetHubStatsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await statisticsUseCase.GetHubStatsAsync(request.PublicId);
 
         if (!result.IsSuccess || result.Value is null)
@@ -150,7 +155,8 @@ public class HubGrpcService(
 
     public override async Task<HubRulesResponse> GetHubRules(GetHubRulesRequest request, ServerCallContext context)
     {
-        var rules = await ruleService.GetRulesAsync("Hub", request.HubId);
+        var ct = context.CancellationToken;
+        var rules = await ruleService.GetRulesAsync("Hub", request.HubId, ct);
 
         var response = new HubRulesResponse();
 
@@ -167,12 +173,12 @@ public class HubGrpcService(
         return response;
     }
 
-    private async Task<bool> IsHubAccessibleAsync(string hubPublicId, string? userId)
+    private async Task<bool> IsHubAccessibleAsync(string hubPublicId, string? userId, CancellationToken ct = default)
     {
-        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync(ct);
         if (restricted.IsEmpty) return true;
 
-        var h = await hierarchyCache.GetHubHierarchyAsync(hubPublicId);
+        var h = await hierarchyCache.GetHubHierarchyAsync(hubPublicId, ct);
 
         if (h is null) return false;
 
@@ -182,7 +188,7 @@ public class HubGrpcService(
         if (!hubGate && !communityGate) return true;
         if (userId is null) return false;
 
-        var grants = await grantsCache.GetGrantsAsync(userId);
+        var grants = await grantsCache.GetGrantsAsync(userId, ct);
         return (!hubGate || grants.HubIds.Contains(h.Id))
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
     }

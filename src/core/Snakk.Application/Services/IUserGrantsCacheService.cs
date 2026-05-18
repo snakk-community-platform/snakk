@@ -6,20 +6,20 @@ public interface IUserGrantsCacheService
     /// Returns the resolved CanRead grants for the given user.
     /// Results are cached per user with a configurable TTL (default 5 min).
     /// </summary>
-    Task<UserGrants> GetGrantsAsync(string userId);
+    Task<UserGrants> GetGrantsAsync(string userId, CancellationToken ct = default);
 
     /// <summary>
     /// Returns the set of all restricted entity IDs across the platform, grouped by type.
     /// Cached with a short configurable TTL (default 30 sec).
     /// Use <see cref="RestrictedEntitySet.IsEmpty"/> as a platform-level short-circuit.
     /// </summary>
-    Task<RestrictedEntitySet> GetRestrictedEntitiesAsync();
+    Task<RestrictedEntitySet> GetRestrictedEntitiesAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Returns true if any entity in the platform has IsRestricted = true.
     /// Delegates to <see cref="GetRestrictedEntitiesAsync"/> — result shares the same cache.
     /// </summary>
-    Task<bool> AnyRestrictedAsync();
+    Task<bool> AnyRestrictedAsync(CancellationToken ct = default);
 
     /// <summary>Evicts the grant cache for a specific user (e.g. when their group membership changes).</summary>
     void Invalidate(string userId);
@@ -37,7 +37,7 @@ public interface IUserGrantsCacheService
     /// Returns the set of Space IDs whose community has HideAdultDiscussionsFromLists = true.
     /// Cached with a short TTL; invalidated whenever that community setting changes.
     /// </summary>
-    Task<HashSet<int>> GetAdultHidingSpaceIdsAsync();
+    Task<HashSet<int>> GetAdultHidingSpaceIdsAsync(CancellationToken ct = default);
 
     /// <summary>Evicts the adult-hiding-spaces cache (e.g. when a community's HideAdultDiscussionsFromLists changes).</summary>
     void InvalidateAdultHidingSpaces();

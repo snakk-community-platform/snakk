@@ -9,16 +9,17 @@ public class UserAchievementProgressRepository(SnakkDbContext context)
 {
     public async Task<UserAchievementProgressDatabaseEntity?> GetByUserAndAchievementAsync(
         int userId,
-        int achievementId) => await _dbSet
+        int achievementId,
+        CancellationToken ct = default) => await _dbSet
         .FirstOrDefaultAsync(p =>
             p.UserId == userId
-            && p.AchievementId == achievementId);
+            && p.AchievementId == achievementId, ct);
 
-    public async Task<IEnumerable<UserAchievementProgressDatabaseEntity>> GetByUserIdAsync(int userId) => await _dbSet
+    public async Task<IEnumerable<UserAchievementProgressDatabaseEntity>> GetByUserIdAsync(int userId, CancellationToken ct = default) => await _dbSet
         .Where(p => p.UserId == userId)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<IEnumerable<UserAchievementProgressDatabaseEntity>> GetIncompleteByUserIdAsync(int userId) => await _dbSet
+    public async Task<IEnumerable<UserAchievementProgressDatabaseEntity>> GetIncompleteByUserIdAsync(int userId, CancellationToken ct = default) => await _dbSet
         .Where(p => p.UserId == userId && p.CurrentValue < p.TargetValue)
-        .ToListAsync();
+        .ToListAsync(ct);
 }

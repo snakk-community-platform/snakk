@@ -11,7 +11,7 @@ public class HubRepositoryAdapter(
     Infrastructure.Database.Repositories.IHubRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.IHubRepository
 {
-    public async Task<Hub?> GetByIdAsync(int id)
+    public async Task<Hub?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var projection = await context.Hubs
             .Where(h => h.Id == id)
@@ -20,11 +20,11 @@ public class HubRepositoryAdapter(
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
                 h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<Hub?> GetByPublicIdAsync(HubId publicId)
+    public async Task<Hub?> GetByPublicIdAsync(HubId publicId, CancellationToken ct = default)
     {
         var projection = await context.Hubs
             .Where(h => h.PublicId == publicId.Value)
@@ -33,11 +33,11 @@ public class HubRepositoryAdapter(
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
                 h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<Hub?> GetBySlugAsync(string slug, string communitySlug)
+    public async Task<Hub?> GetBySlugAsync(string slug, string communitySlug, CancellationToken ct = default)
     {
         var projection = await context.Hubs
             .Where(h => h.Slug == slug && h.Community.Slug == communitySlug)
@@ -46,11 +46,11 @@ public class HubRepositoryAdapter(
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
                 h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<IEnumerable<Hub>> GetAllAsync()
+    public async Task<IEnumerable<Hub>> GetAllAsync(CancellationToken ct = default)
     {
         var projections = await context.Hubs
             .Select(h => new HubProjection(
@@ -58,14 +58,14 @@ public class HubRepositoryAdapter(
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
                 h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());
     }
 
-    public async Task<PagedResult<Hub>> GetFilteredForDisplayAsync(int offset, int pageSize)
+    public async Task<PagedResult<Hub>> GetFilteredForDisplayAsync(int offset, int pageSize, CancellationToken ct = default)
     {
-        var result = await databaseRepository.GetFilteredForDisplayAsync(offset, pageSize);
+        var result = await databaseRepository.GetFilteredForDisplayAsync(offset, pageSize, ct);
 
         return new PagedResult<Hub>
         {
@@ -90,10 +90,11 @@ public class HubRepositoryAdapter(
         CommunityId communityId,
         int offset,
         int pageSize,
-        string? userId = null)
+        string? userId = null,
+        CancellationToken ct = default)
     {
         // First get the community's database ID
-        var communityDbId = await databaseRepository.GetCommunityDbIdAsync(communityId.Value);
+        var communityDbId = await databaseRepository.GetCommunityDbIdAsync(communityId.Value, ct);
 
         if (communityDbId is null)
         {
@@ -106,7 +107,7 @@ public class HubRepositoryAdapter(
             };
         }
 
-        var result = await databaseRepository.GetByCommunityAsync(communityDbId.Value, offset, pageSize, userId);
+        var result = await databaseRepository.GetByCommunityAsync(communityDbId.Value, offset, pageSize, userId, ct);
 
         return new PagedResult<Hub>
         {
@@ -127,24 +128,24 @@ public class HubRepositoryAdapter(
         };
     }
 
-    public async Task AddAsync(Hub hub)
+    public async Task AddAsync(Hub hub, CancellationToken ct = default)
     {
         // Resolve CommunityId to database ID
-        var communityDbId = await databaseRepository.GetCommunityDbIdAsync(hub.CommunityId.Value);
+        var communityDbId = await databaseRepository.GetCommunityDbIdAsync(hub.CommunityId.Value, ct);
 
         if (communityDbId is null)
             throw new InvalidOperationException($"Community with PublicId '{hub.CommunityId}' not found");
 
         var entity = hub.ToPersistence(communityDbId.Value);
         entity.CommunityPublicId = hub.CommunityId.Value;
-        await databaseRepository.AddAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateAsync(Hub hub)
+    public async Task UpdateAsync(Hub hub, CancellationToken ct = default)
     {
         var entity = await context.Hubs
-            .FirstOrDefaultAsync(h => h.PublicId == hub.PublicId.Value);
+            .FirstOrDefaultAsync(h => h.PublicId == hub.PublicId.Value, ct);
 
         if (entity is null)
             throw new InvalidOperationException($"Hub with PublicId '{hub.PublicId}' not found");
@@ -163,8 +164,8 @@ public class HubRepositoryAdapter(
         entity.AvatarMicroFileName = hub.AvatarMicroFileName;
         entity.AvatarRevision = hub.AvatarRevision;
 
-        await databaseRepository.UpdateAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
 
         if (nameChanged || slugChanged)
         {
@@ -172,7 +173,7 @@ public class HubRepositoryAdapter(
                 .Where(s => s.HubId == entity.Id)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(sp => sp.HubName, entity.Name)
-                    .SetProperty(sp => sp.HubSlug, entity.Slug));
+                    .SetProperty(sp => sp.HubSlug, entity.Slug), ct);
         }
     }
 

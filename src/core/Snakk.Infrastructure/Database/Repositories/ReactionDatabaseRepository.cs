@@ -7,34 +7,34 @@ using Snakk.Infrastructure.Database.Entities;
 public class ReactionDatabaseRepository(SnakkDbContext context)
     : GenericDatabaseRepository<PostReactionDatabaseEntity>(context), IReactionDatabaseRepository
 {
-    public async Task<PostReactionDatabaseEntity?> GetByUserPostAndTypeAsync(int userId, int postId, int typeId) =>
+    public async Task<PostReactionDatabaseEntity?> GetByUserPostAndTypeAsync(int userId, int postId, int typeId, CancellationToken ct = default) =>
         await _dbSet.FirstOrDefaultAsync(r =>
             r.UserId == userId
             && r.PostId == postId
-            && r.TypeId == typeId);
+            && r.TypeId == typeId, ct);
 
-    public async Task<PostReactionDatabaseEntity?> GetByUserAndPostAsync(int userId, int postId) =>
+    public async Task<PostReactionDatabaseEntity?> GetByUserAndPostAsync(int userId, int postId, CancellationToken ct = default) =>
         await _dbSet.FirstOrDefaultAsync(r =>
             r.UserId == userId
-            && r.PostId == postId);
+            && r.PostId == postId, ct);
 
-    public async Task<IEnumerable<PostReactionDatabaseEntity>> GetByPostIdAsync(int postId) =>
+    public async Task<IEnumerable<PostReactionDatabaseEntity>> GetByPostIdAsync(int postId, CancellationToken ct = default) =>
         await _dbSet
             .Where(r => r.PostId == postId)
-            .ToListAsync();
+            .ToListAsync(ct);
 
-    public async Task<Dictionary<int, int>> GetCountsByPostIdAsync(int postId) =>
+    public async Task<Dictionary<int, int>> GetCountsByPostIdAsync(int postId, CancellationToken ct = default) =>
         await _dbSet
             .Where(r => r.PostId == postId)
             .GroupBy(r => r.TypeId)
             .Select(g => new {
                 Type = g.Key,
                 Count = g.Count() })
-            .ToDictionaryAsync(x => x.Type, x => x.Count);
+            .ToDictionaryAsync(x => x.Type, x => x.Count, ct);
 
-    public async Task<List<int>> GetUserReactionTypesForPostAsync(int userId, int postId) =>
+    public async Task<List<int>> GetUserReactionTypesForPostAsync(int userId, int postId, CancellationToken ct = default) =>
         await _dbSet
             .Where(r => r.UserId == userId && r.PostId == postId)
             .Select(r => r.TypeId)
-            .ToListAsync();
+            .ToListAsync(ct);
 }

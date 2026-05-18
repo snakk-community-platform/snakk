@@ -46,7 +46,7 @@ public abstract class NewDiscussionBaseModel(
     /// <summary>URL slug for this type (e.g. "standard", "question", "poll").</summary>
     protected abstract string TypeSlug { get; }
 
-    public async Task<IActionResult> OnGetAsync([FromQuery] string spaceId)
+    public async Task<IActionResult> OnGetAsync([FromQuery] string spaceId, CancellationToken cancellationToken = default)
     {
         SpaceId = spaceId;
 
@@ -59,7 +59,7 @@ public abstract class NewDiscussionBaseModel(
         return await LoadPageData();
     }
 
-    public async Task<IActionResult> OnPostAsync()
+    public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
         SpaceId ??= string.Empty;
 

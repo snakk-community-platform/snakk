@@ -49,9 +49,10 @@ public static class UserEndpoints
     private static async Task<IResult> SearchUsersAsync(
         string query,
         int? limit,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        CancellationToken ct)
     {
-        var users = await userRepository.SearchByDisplayNameAsync(query, limit ?? 5);
+        var users = await userRepository.SearchByDisplayNameAsync(query, limit ?? 5, ct);
 
         var items = users.Select(u => new UserSearchResult(
             PublicId: u.PublicId.Value,

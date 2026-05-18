@@ -12,6 +12,7 @@ public class FollowGrpcService(
 {
     public override async Task<FollowToggleResponse> ToggleDiscussionFollow(ToggleDiscussionFollowRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var result = await followUseCase.ToggleFollowDiscussionAsync(userId, DiscussionId.From(request.DiscussionId));
 
@@ -23,6 +24,7 @@ public class FollowGrpcService(
 
     public override async Task<FollowToggleResponse> GetDiscussionFollowStatus(GetDiscussionFollowStatusRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)
@@ -35,6 +37,7 @@ public class FollowGrpcService(
 
     public override async Task<SpaceFollowToggleResponse> ToggleSpaceFollow(ToggleSpaceFollowRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var level = ParseFollowLevel(request.HasLevel ? request.Level : null);
 
@@ -52,6 +55,7 @@ public class FollowGrpcService(
 
     public override async Task<SpaceFollowStatusResponse> GetSpaceFollowStatus(GetSpaceFollowStatusRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)
@@ -72,6 +76,7 @@ public class FollowGrpcService(
 
     public override async Task<FollowLevelResponse> SetSpaceFollowLevel(SetSpaceFollowLevelRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var level = ParseFollowLevel(request.Level);
 
@@ -85,6 +90,7 @@ public class FollowGrpcService(
 
     public override async Task<FollowToggleResponse> ToggleUserFollow(ToggleUserFollowRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = RequireAuth();
         var result = await followUseCase.ToggleFollowUserAsync(userId, UserId.From(request.UserId));
 
@@ -96,6 +102,7 @@ public class FollowGrpcService(
 
     public override async Task<FollowToggleResponse> GetUserFollowStatus(GetUserFollowStatusRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)
@@ -108,6 +115,7 @@ public class FollowGrpcService(
 
     public override async Task<FollowedIdsResponse> GetFollowedSpaces(GetFollowedSpacesRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)
@@ -123,6 +131,7 @@ public class FollowGrpcService(
 
     public override async Task<FollowedIdsResponse> GetFollowedDiscussions(GetFollowedDiscussionsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)
@@ -138,6 +147,7 @@ public class FollowGrpcService(
 
     public override async Task<FollowedIdsResponse> GetFollowedUsers(GetFollowedUsersRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = TryGetAuthUserId();
 
         if (userId is null)

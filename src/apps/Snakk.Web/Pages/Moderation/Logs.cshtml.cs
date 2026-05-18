@@ -78,8 +78,9 @@ public class LogsModel(
         return parameters.Count > 0 ? $"/moderation/logs?{string.Join("&", parameters)}" : "/moderation/logs";
     }
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         CanModerate = await apiClient.CanModerateAsync();
         if (!CanModerate)
         {

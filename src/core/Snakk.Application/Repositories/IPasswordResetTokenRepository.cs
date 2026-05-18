@@ -7,17 +7,18 @@ public interface IPasswordResetTokenRepository
         string tokenHash,
         DateTime expiresAt,
         string? createdFromIp,
-        string? createdUserAgent);
+        string? createdUserAgent,
+        CancellationToken ct = default);
 
-    Task<PasswordResetTokenLookupDto?> GetByTokenHashAsync(string tokenHash);
+    Task<PasswordResetTokenLookupDto?> GetByTokenHashAsync(string tokenHash, CancellationToken ct = default);
 
-    Task MarkUsedAsync(int tokenId, string? usedFromIp, string? usedUserAgent);
+    Task MarkUsedAsync(int tokenId, string? usedFromIp, string? usedUserAgent, CancellationToken ct = default);
 
     /// <summary>
     /// Invalidates all outstanding (unused, unexpired) tokens for a user.
     /// Called after a successful password reset or change to prevent replay.
     /// </summary>
-    Task InvalidateAllForUserAsync(int userId);
+    Task InvalidateAllForUserAsync(int userId, CancellationToken ct = default);
 }
 
 public record PasswordResetTokenLookupDto(

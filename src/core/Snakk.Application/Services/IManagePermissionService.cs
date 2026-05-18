@@ -11,12 +11,12 @@ public interface IManagePermissionService
     /// <summary>
     /// Get the full permission set for a user at a given scope.
     /// </summary>
-    Task<ManagePermissionSet> GetPermissionsForScopeAsync(string userId, string scopeType, string scopePublicId);
+    Task<ManagePermissionSet> GetPermissionsForScopeAsync(string userId, string scopeType, string scopePublicId, CancellationToken ct = default);
 
     /// <summary>
     /// Check if a user has a specific manage permission at a given scope.
     /// </summary>
-    Task<bool> HasPermissionAsync(string userId, string scopeType, string scopePublicId, ManagePermissionEnum permission);
+    Task<bool> HasPermissionAsync(string userId, string scopeType, string scopePublicId, ManagePermissionEnum permission, CancellationToken ct = default);
 }
 
 /// <summary>

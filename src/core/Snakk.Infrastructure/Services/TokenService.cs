@@ -31,9 +31,10 @@ public class TokenService(
         string deviceFingerprint,
         string ipAddress,
         string userAgent,
-        int expirationDays = 30)
+        int expirationDays = 30,
+        CancellationToken ct = default)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value, ct);
 
         if (user is null)
             throw new InvalidOperationException($"User {userId} not found");
@@ -54,18 +55,18 @@ public class TokenService(
         };
 
         context.RefreshTokens.Add(entity);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         return RefreshToken.Rehydrate(tokenValue, userId, entity.ExpiresAt, entity.CreatedAt, null);
     }
 
-    public async Task<string?> RefreshAccessTokenAsync(string refreshTokenValue, string ipAddress, string? userAgent = null)
+    public async Task<string?> RefreshAccessTokenAsync(string refreshTokenValue, string ipAddress, string? userAgent = null, CancellationToken ct = default)
     {
         var tokenEntity = await context.RefreshTokens
             .AsTracking()
             .Include(t => t.User)
                 .ThenInclude(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(t => t.TokenValue == HashToken(refreshTokenValue));
+            .FirstOrDefaultAsync(t => t.TokenValue == HashToken(refreshTokenValue), ct);
 
         if (tokenEntity is null || !tokenEntity.IsActive)
             return null;
@@ -76,7 +77,7 @@ public class TokenService(
         {
             tokenEntity.RevokedAt = DateTime.UtcNow;
             tokenEntity.RevocationReason = "Device fingerprint mismatch";
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
             return null;
         }
 
@@ -88,7 +89,7 @@ public class TokenService(
             .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
             .FirstOrDefault();
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         return jwtTokenService.GenerateToken(
             user.PublicId,
@@ -99,28 +100,28 @@ public class TokenService(
             role);
     }
 
-    public async Task RevokeRefreshTokenAsync(string tokenValue, string reason)
+    public async Task RevokeRefreshTokenAsync(string tokenValue, string reason, CancellationToken ct = default)
     {
         var token = await context.RefreshTokens
             .AsTracking()
-            .FirstOrDefaultAsync(t => t.TokenValue == HashToken(tokenValue));
+            .FirstOrDefaultAsync(t => t.TokenValue == HashToken(tokenValue), ct);
 
         if (token is not null && !token.IsRevoked)
         {
             token.RevokedAt = DateTime.UtcNow;
             token.RevocationReason = reason;
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
         }
     }
 
-    public async Task RevokeAllUserTokensAsync(UserId userId, string reason)
+    public async Task RevokeAllUserTokensAsync(UserId userId, string reason, CancellationToken ct = default)
     {
         var tokens = await context.RefreshTokens
             .AsTracking()
             .Where(t =>
                 t.User.PublicId == userId.Value
                 && t.RevokedAt == null)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         foreach (var token in tokens)
         {
@@ -128,7 +129,7 @@ public class TokenService(
             token.RevocationReason = reason;
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
     public DateTime? GetTokenExpiration(string token)

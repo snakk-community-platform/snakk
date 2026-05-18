@@ -13,8 +13,9 @@ public class RulesModel(
     public CommunityInfo? CommunityDetail { get; set; }
     public CommunityRulesResponse? Rules { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(string slug)
+    public async Task<IActionResult> OnGetAsync(string slug, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var multiCommunityEnabled = Configuration.GetValue<bool>("Features:MultiCommunityEnabled");
         if (!multiCommunityEnabled)
             return RedirectToPage("/Rules");

@@ -31,8 +31,9 @@ public class IndexModel(
     public SidebarTrendingSpacesVM? InlineTrendingSpaces { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(int offset = 0)
+    public async Task<IActionResult> OnGetAsync(int offset = 0, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!CommunityContext.IsMultiCommunityEnabled)
             return RedirectToPage("/Index");
 

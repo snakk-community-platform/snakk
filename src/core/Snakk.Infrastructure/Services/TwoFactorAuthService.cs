@@ -16,9 +16,9 @@ public class TwoFactorAuthService(
     ITwoFactorSecretProtector secretProtector,
     ILogger<TwoFactorAuthService> logger) : ITwoFactorAuthService
 {
-    public async Task<TwoFactorSetupDto> SetupTwoFactorAsync(string userId)
+    public async Task<TwoFactorSetupDto> SetupTwoFactorAsync(string userId, CancellationToken ct = default)
     {
-        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId);
+        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId, ct);
 
         if (user is null)
             throw new DomainException("User not found");
@@ -36,7 +36,7 @@ public class TwoFactorAuthService(
 
         // Store encrypted secret (will be used when user enables 2FA)
         user.TwoFactorSecret = secretProtector.Protect(secret);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         logger.LogInformation("2FA setup initiated for user {UserId}", userId);
 
@@ -49,9 +49,10 @@ public class TwoFactorAuthService(
 
     public async Task<(bool Success, List<string> BackupCodes, string? Error)> EnableTwoFactorAsync(
         string userId,
-        string code)
+        string code,
+        CancellationToken ct = default)
     {
-        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId);
+        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId, ct);
 
         if (user is null)
             return (false, [], "User not found");
@@ -85,20 +86,20 @@ public class TwoFactorAuthService(
             .ToList();
 
         context.TwoFactorBackupCodes.AddRange(backupCodeEntities);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         logger.LogInformation("2FA enabled for user {UserId}", userId);
 
         return (true, backupCodes, null);
     }
 
-    public async Task<bool> DisableTwoFactorAsync(string userId, string password)
+    public async Task<bool> DisableTwoFactorAsync(string userId, string password, CancellationToken ct = default)
     {
         var user = await context.Users
             .AsTracking()
             .Include(u => u.TwoFactorBackupCodes)
             .Include(u => u.TwoFactorTrustedDevices)
-            .FirstOrDefaultAsync(u => u.PublicId == userId);
+            .FirstOrDefaultAsync(u => u.PublicId == userId, ct);
 
         if (user is null)
         {
@@ -135,14 +136,14 @@ public class TwoFactorAuthService(
             device.RevocationReason = "2FA disabled";
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         logger.LogInformation("2FA disabled for user {UserId}", userId);
 
         return true;
     }
 
-    public async Task<TwoFactorStatusDto?> GetTwoFactorStatusAsync(string userId)
+    public async Task<TwoFactorStatusDto?> GetTwoFactorStatusAsync(string userId, CancellationToken ct = default)
     {
         var status = await context.Users
             .Where(u => u.PublicId == userId)
@@ -151,7 +152,7 @@ public class TwoFactorAuthService(
                 HasBackupCodes = u.TwoFactorBackupCodes.Any(),
                 UsedBackupCodesCount = u.TwoFactorBackupCodes.Count(bc => bc.IsUsed),
                 TotalBackupCodes = u.TwoFactorBackupCodes.Count() })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (status is null)
             return null;
@@ -168,12 +169,13 @@ public class TwoFactorAuthService(
     public async Task<(bool IsValid, bool UsedBackupCode)> VerifyTwoFactorCodeAsync(
         string userId,
         string code,
-        string? ipAddress = null)
+        string? ipAddress = null,
+        CancellationToken ct = default)
     {
         var user = await context.Users
             .AsTracking()
             .Include(u => u.TwoFactorBackupCodes)
-            .FirstOrDefaultAsync(u => u.PublicId == userId);
+            .FirstOrDefaultAsync(u => u.PublicId == userId, ct);
 
         if (user is null || !user.TwoFactorEnabled)
             return (false, false);
@@ -203,7 +205,7 @@ public class TwoFactorAuthService(
                     backupCode.IsUsed = true;
                     backupCode.UsedAt = DateTime.UtcNow;
                     backupCode.UsedIp = ipAddress;
-                    await context.SaveChangesAsync();
+                    await context.SaveChangesAsync(ct);
 
                     isValid = true;
                     usedBackupCode = true;
@@ -216,7 +218,7 @@ public class TwoFactorAuthService(
         return (isValid, usedBackupCode);
     }
 
-    public async Task<BackupCodeStatusDto> GetBackupCodesStatusAsync(string userId)
+    public async Task<BackupCodeStatusDto> GetBackupCodesStatusAsync(string userId, CancellationToken ct = default)
     {
         var status = await context.Users
             .Where(u => u.PublicId == userId)
@@ -227,7 +229,7 @@ public class TwoFactorAuthService(
                     .Select(bc => bc.PublicId)
                     .ToList(),
                 UsedCount = u.TwoFactorBackupCodes.Count(bc => bc.IsUsed) })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (status is null || !status.TwoFactorEnabled)
             throw new DomainException("2FA is not enabled");
@@ -240,12 +242,12 @@ public class TwoFactorAuthService(
         };
     }
 
-    public async Task<List<string>> RegenerateBackupCodesAsync(string userId, string password)
+    public async Task<List<string>> RegenerateBackupCodesAsync(string userId, string password, CancellationToken ct = default)
     {
         var user = await context.Users
             .AsTracking()
             .Include(u => u.TwoFactorBackupCodes)
-            .FirstOrDefaultAsync(u => u.PublicId == userId);
+            .FirstOrDefaultAsync(u => u.PublicId == userId, ct);
 
         if (user is null)
             throw new DomainException("User not found");
@@ -275,7 +277,7 @@ public class TwoFactorAuthService(
             .ToList();
 
         context.TwoFactorBackupCodes.AddRange(backupCodeEntities);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         logger.LogInformation("Backup codes regenerated for user {UserId}", userId);
 
@@ -287,7 +289,8 @@ public class TwoFactorAuthService(
         string deviceFingerprint,
         string deviceName,
         string ipAddress,
-        int? expirationDays)
+        int? expirationDays,
+        CancellationToken ct = default)
     {
         var userIdValueObject = Domain.ValueObjects.UserId.From(userId);
         await trustedDeviceService.TrustDeviceAsync(
@@ -295,21 +298,22 @@ public class TwoFactorAuthService(
             deviceFingerprint,
             deviceName,
             ipAddress,
-            expirationDays);
+            expirationDays,
+            ct);
     }
 
-    public async Task<List<Application.Services.TrustedDeviceDto>> GetTrustedDevicesAsync(string userId)
+    public async Task<List<Application.Services.TrustedDeviceDto>> GetTrustedDevicesAsync(string userId, CancellationToken ct = default)
     {
         var userIdValueObject = Domain.ValueObjects.UserId.From(userId);
-        return await trustedDeviceService.GetTrustedDevicesAsync(userIdValueObject);
+        return await trustedDeviceService.GetTrustedDevicesAsync(userIdValueObject, ct);
     }
 
-    public async Task RevokeDeviceAsync(string deviceId, string reason) =>
-        await trustedDeviceService.RevokeDeviceAsync(deviceId, reason);
+    public async Task RevokeDeviceAsync(string deviceId, string reason, CancellationToken ct = default) =>
+        await trustedDeviceService.RevokeDeviceAsync(deviceId, reason, ct);
 
-    public async Task<bool> IsDeviceTrustedAsync(string userId, string deviceFingerprint)
+    public async Task<bool> IsDeviceTrustedAsync(string userId, string deviceFingerprint, CancellationToken ct = default)
     {
         var userIdValueObject = Domain.ValueObjects.UserId.From(userId);
-        return await trustedDeviceService.IsDeviceTrustedAsync(userIdValueObject, deviceFingerprint);
+        return await trustedDeviceService.IsDeviceTrustedAsync(userIdValueObject, deviceFingerprint, ct);
     }
 }

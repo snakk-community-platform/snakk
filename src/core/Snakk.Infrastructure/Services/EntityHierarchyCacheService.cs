@@ -19,7 +19,7 @@ public class EntityHierarchyCacheService(
         Priority = CacheItemPriority.NeverRemove
     };
 
-    public async Task<DiscussionHierarchy?> GetDiscussionHierarchyAsync(string publicId)
+    public async Task<DiscussionHierarchy?> GetDiscussionHierarchyAsync(string publicId, CancellationToken ct = default)
     {
         var key = $"hierarchy:d:{publicId}";
 
@@ -29,7 +29,7 @@ public class EntityHierarchyCacheService(
         var h = await context.Discussions
             .Where(d => d.PublicId == publicId)
             .Select(d => new DiscussionHierarchy(d.SpaceId, d.HubId, d.CommunityId))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (h is not null)
             cache.Set(key, h, ImmutableOptions);
@@ -37,7 +37,7 @@ public class EntityHierarchyCacheService(
         return h;
     }
 
-    public async Task<SpaceHierarchy?> GetSpaceHierarchyAsync(string publicId)
+    public async Task<SpaceHierarchy?> GetSpaceHierarchyAsync(string publicId, CancellationToken ct = default)
     {
         var key = $"hierarchy:s:{publicId}";
 
@@ -47,7 +47,7 @@ public class EntityHierarchyCacheService(
         var h = await context.Spaces
             .Where(s => s.PublicId == publicId)
             .Select(s => new SpaceHierarchy(s.Id, s.HubId, s.Hub.CommunityId))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (h is not null)
             cache.Set(key, h, ImmutableOptions);
@@ -55,7 +55,7 @@ public class EntityHierarchyCacheService(
         return h;
     }
 
-    public async Task<HubHierarchy?> GetHubHierarchyAsync(string publicId)
+    public async Task<HubHierarchy?> GetHubHierarchyAsync(string publicId, CancellationToken ct = default)
     {
         var key = $"hierarchy:h:{publicId}";
 
@@ -65,7 +65,7 @@ public class EntityHierarchyCacheService(
         var h = await context.Hubs
             .Where(h => h.PublicId == publicId)
             .Select(h => new HubHierarchy(h.Id, h.CommunityId))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (h is not null)
             cache.Set(key, h, ImmutableOptions);
@@ -73,7 +73,7 @@ public class EntityHierarchyCacheService(
         return h;
     }
 
-    public async Task<int?> GetCommunityIdAsync(string publicId)
+    public async Task<int?> GetCommunityIdAsync(string publicId, CancellationToken ct = default)
     {
         var key = $"hierarchy:c:{publicId}";
 
@@ -83,7 +83,7 @@ public class EntityHierarchyCacheService(
         var id = await context.Communities
             .Where(c => c.PublicId == publicId)
             .Select(c => (int?)c.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (id is not null)
             cache.Set(key, id.Value, ImmutableOptions);

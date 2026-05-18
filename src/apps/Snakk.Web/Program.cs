@@ -18,6 +18,7 @@ using Prometheus;
 using Serilog;
 using Snakk.ServiceDefaults;
 using System.Net;
+using System.Security.Claims;
 using System.Text;
 
 // Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
@@ -274,7 +275,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = context =>
             {
-                var token = context.HttpContext.Items[Services.TokenRefreshMiddleware.RefreshedAccessTokenKey] as string
+                var token = context.HttpContext.Items[TokenRefreshMiddleware.RefreshedAccessTokenKey] as string
                     ?? context.Request.Cookies[AuthCookieHelper.AccessCookieName]
                     ?? context.Request.Cookies[AuthCookieHelper.SessionCookieName];
                 if (!string.IsNullOrEmpty(token))
@@ -561,9 +562,56 @@ if (app.Environment.IsDevelopment())
 // Resolve community from URL (must be before routing)
 app.UseCommunityResolution();
 
+// Catch USER_REVOKED from gRPC interceptor — store hint cookie, redirect back with session-expired flag
+app.Use(async (context, next) =>
+{
+    try { await next(); }
+    catch (AuthenticationRevokedException)
+    {
+        // context.User is still populated (UseAuthentication ran on the way in before the exception)
+        var email       = context.User.FindFirst(ClaimTypes.Email)?.Value ?? "";
+        var displayName = context.User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        var avatarThumb = context.User.FindFirst("AvatarThumbnailFileName")?.Value ?? "";
+
+        var hint    = System.Text.Json.JsonSerializer.Serialize(new { e = email, n = displayName, a = avatarThumb });
+        var hintB64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(hint));
+
+        context.Response.Cookies.Append(".Snakk.ReloginHint", hintB64, new CookieOptions
+        {
+            Path        = "/",
+            MaxAge      = TimeSpan.FromMinutes(5),
+            SameSite    = SameSiteMode.Lax,
+            HttpOnly    = false,
+            IsEssential = true
+        });
+
+        // BFF calls expect JSON, not a redirect — return 401 so JS can dispatch snakk:session:expired
+        if (context.Request.Path.StartsWithSegments("/bff"))
+        {
+            context.Response.StatusCode  = 401;
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync("{\"error\":\"session_expired\"}");
+            return;
+        }
+
+        var returnPath = context.Request.Path.Value ?? "/";
+        var dest       = returnPath + "?session-expired=1";
+
+        // HTMX full-page redirect — HX-Redirect header tells HTMX to navigate the whole page
+        if (context.Request.Headers.ContainsKey("HX-Request"))
+        {
+            context.Response.StatusCode          = 200;
+            context.Response.Headers["HX-Redirect"] = dest;
+            return;
+        }
+
+        context.Response.Redirect(dest);
+    }
+});
+
 app.UseRouting();
 
-app.UseMiddleware<Services.TokenRefreshMiddleware>();
+app.UseMiddleware<TokenRefreshMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 if (!disableRateLimiting) app.UseRateLimiter();

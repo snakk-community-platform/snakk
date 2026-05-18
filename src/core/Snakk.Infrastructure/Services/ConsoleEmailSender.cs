@@ -13,7 +13,8 @@ public class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEmailSend
         string toEmail,
         string displayName,
         string verificationToken,
-        string baseUrl)
+        string baseUrl,
+        CancellationToken ct = default)
     {
         // Token is intentionally omitted from logs — use a real email provider in non-Development.
         logger.LogInformation(
@@ -27,7 +28,8 @@ public class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEmailSend
         string toEmail,
         string displayName,
         string resetToken,
-        string baseUrl)
+        string baseUrl,
+        CancellationToken ct = default)
     {
         // Token is intentionally omitted from logs — use a real email provider in non-Development.
         logger.LogInformation(
@@ -37,7 +39,7 @@ public class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEmailSend
         return Task.CompletedTask;
     }
 
-    public Task SendWelcomeEmailAsync(string toEmail, string displayName)
+    public Task SendWelcomeEmailAsync(string toEmail, string displayName, CancellationToken ct = default)
     {
         logger.LogInformation("""
 
@@ -59,7 +61,7 @@ public class ConsoleEmailSender(ILogger<ConsoleEmailSender> logger) : IEmailSend
         return Task.CompletedTask;
     }
 
-    public Task SendEmailAsync(string toEmail, string subject, string body)
+    public Task SendEmailAsync(string toEmail, string subject, string body, CancellationToken ct = default)
     {
         logger.LogInformation("""
 

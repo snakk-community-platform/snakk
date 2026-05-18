@@ -17,8 +17,10 @@ public static class OEmbedEndpoints
         string? format,
         SnakkApiClient apiClient,
         IConfiguration configuration,
-        HttpContext httpContext)
+        HttpContext httpContext,
+        CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(url))
             return Results.NotFound();
 
@@ -33,18 +35,19 @@ public static class OEmbedEndpoints
         var defaultCommunitySlug = configuration["Snakk:DefaultCommunitySlug"] ?? "main";
 
         // Try each entity type in order of specificity (most segments first)
-        return await TryDiscussion(path, url, providerUrl, apiClient)
-            ?? await TrySpace(path, url, providerUrl, apiClient)
-            ?? await TryHub(path, url, providerUrl, apiClient, defaultCommunitySlug)
-            ?? await TryCommunity(path, url, providerUrl, apiClient)
-            ?? await TryUserProfile(path, url, providerUrl, apiClient)
+        return await TryDiscussion(path, url, providerUrl, apiClient, ct)
+            ?? await TrySpace(path, url, providerUrl, apiClient, ct)
+            ?? await TryHub(path, url, providerUrl, apiClient, defaultCommunitySlug, ct)
+            ?? await TryCommunity(path, url, providerUrl, apiClient, ct)
+            ?? await TryUserProfile(path, url, providerUrl, apiClient, ct)
             ?? Results.NotFound();
     }
 
     // Discussion: /h/{hub}/{space}/{slug~id} or /c/{community}/h/{hub}/{space}/{slug~id}
     private static async Task<IResult?> TryDiscussion(
-        string path, string url, string providerUrl, SnakkApiClient apiClient)
+        string path, string url, string providerUrl, SnakkApiClient apiClient, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var match = Regex.Match(path, @"^(?:/c/[^/]+)?/h/[^/]+/[^/]+/([^/]+~[^/]+)$");
         if (!match.Success)
             return null;
@@ -80,8 +83,9 @@ public static class OEmbedEndpoints
 
     // Space: /h/{hub}/{space} or /c/{community}/h/{hub}/{space}
     private static async Task<IResult?> TrySpace(
-        string path, string url, string providerUrl, SnakkApiClient apiClient)
+        string path, string url, string providerUrl, SnakkApiClient apiClient, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var match = Regex.Match(path, @"^(?:/c/[^/]+)?/h/([^/]+)/([^/]+)$");
         if (!match.Success)
             return null;
@@ -109,8 +113,9 @@ public static class OEmbedEndpoints
     // Hub: /h/{hub} or /c/{community}/h/{hub}
     private static async Task<IResult?> TryHub(
         string path, string url, string providerUrl, SnakkApiClient apiClient,
-        string defaultCommunitySlug)
+        string defaultCommunitySlug, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var match = Regex.Match(path, @"^(?:/c/([^/]+))?/h/([^/]+)$");
         if (!match.Success)
             return null;
@@ -137,8 +142,9 @@ public static class OEmbedEndpoints
 
     // Community: /c/{slug}
     private static async Task<IResult?> TryCommunity(
-        string path, string url, string providerUrl, SnakkApiClient apiClient)
+        string path, string url, string providerUrl, SnakkApiClient apiClient, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var match = Regex.Match(path, @"^/c/([^/]+)$");
         if (!match.Success)
             return null;
@@ -159,8 +165,9 @@ public static class OEmbedEndpoints
 
     // User profile: /u/{publicId}
     private static async Task<IResult?> TryUserProfile(
-        string path, string url, string providerUrl, SnakkApiClient apiClient)
+        string path, string url, string providerUrl, SnakkApiClient apiClient, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var match = Regex.Match(path, @"^/u/([^/]+)$");
         if (!match.Success)
             return null;

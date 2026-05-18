@@ -10,7 +10,7 @@ public class DiscussionCreatedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<DiscussionCreatedEvent>
 {
-    public async Task HandleAsync(DiscussionCreatedEvent @event)
+    public async Task HandleAsync(DiscussionCreatedEvent @event, CancellationToken cancellationToken = default)
     {
         var data = await context.Discussions
             .Where(d => d.PublicId == @event.DiscussionId.Value)
@@ -20,7 +20,7 @@ public class DiscussionCreatedActivityHandler(
                 CommunityName = d.Space.Hub.Community.Name,
                 HubName = d.Space.Hub.Name,
                 SpaceName = d.Space.Name })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (data is null)
             return;

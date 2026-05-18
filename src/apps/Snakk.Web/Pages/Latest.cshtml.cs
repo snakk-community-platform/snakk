@@ -31,8 +31,9 @@ public class LatestModel(
     public SidebarLatestSpacesVM? InlineLatestSpaces { get; set; }
     public SidebarLatestContributorsVM? InlineLatestContributors { get; set; }
 
-    public async Task OnGetAsync(int offset = 0, string? cursor = null)
+    public async Task OnGetAsync(int offset = 0, string? cursor = null, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         string? communityId = null;
         if (CommunityContext.IsCustomDomain && !string.IsNullOrEmpty(CommunityContext.CommunitySlug))
         {

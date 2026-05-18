@@ -68,13 +68,14 @@ public static class HubEndpoints
     private static async Task<IResult> GetHubsAsync(
         int offset,
         int pageSize,
-        Application.Repositories.ISearchRepository searchRepo)
+        Application.Repositories.ISearchRepository searchRepo,
+        CancellationToken ct)
     {
         // Clamp pagination parameters
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
         offset = Math.Max(0, offset);
 
-        var result = await searchRepo.GetHubsAsync(offset, pageSize);
+        var result = await searchRepo.GetHubsAsync(offset, pageSize, ct: ct);
 
         var items = result.Items.Select(h => new HubResponse(
             PublicId: h.PublicId,
@@ -143,13 +144,14 @@ public static class HubEndpoints
         string hubId,
         int offset,
         int pageSize,
-        Application.Repositories.ISearchRepository searchRepo)
+        Application.Repositories.ISearchRepository searchRepo,
+        CancellationToken ct)
     {
         // Clamp pagination parameters
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
         offset = Math.Max(0, offset);
 
-        var result = await searchRepo.GetSpacesByHubAsync(hubId, offset, pageSize);
+        var result = await searchRepo.GetSpacesByHubAsync(hubId, offset, pageSize, ct: ct);
 
         var items = result.Items.Select(s =>
         {

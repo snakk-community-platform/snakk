@@ -26,12 +26,13 @@ public class SpaceGrpcService(
 {
     public override async Task<SpaceInfo> GetSpaceBySlug(GetSpaceBySlugRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await spaceUseCase.GetSpaceBySlugAsync(request.Slug, request.HubSlug);
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
-        if (!await IsSpaceAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
+        if (!await IsSpaceAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         var info = MapToProto(result.Value);
@@ -43,12 +44,13 @@ public class SpaceGrpcService(
 
     public override async Task<SpaceInfo> GetSpace(GetSpaceRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await spaceUseCase.GetSpaceAsync(SpaceId.From(request.PublicId));
 
         if (!result.IsSuccess || result.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
-        if (!await IsSpaceAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId()))
+        if (!await IsSpaceAccessibleAsync(result.Value.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         var info = MapToProto(result.Value);
@@ -60,12 +62,14 @@ public class SpaceGrpcService(
 
     public override async Task<PagedSpaceByHubList> ListSpacesByHub(ListSpacesByHubRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = currentUser.GetCurrentUserId();
         var result = await searchRepository.GetSpacesByHubAsync(
             request.HubId,
             request.Offset,
             request.PageSize,
-            userId);
+            userId,
+            ct);
 
         var response = new PagedSpaceByHubList
         {
@@ -116,13 +120,15 @@ public class SpaceGrpcService(
 
     public override async Task<SearchSpacesResponse> SearchSpaces(SearchSpacesRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var userId = currentUser.GetCurrentUserId();
         var items = await searchRepository.SearchSpacesAsync(
             request.HasQuery ? request.Query : null,
             request.HasHubId ? request.HubId : null,
             request.HasCommunityId ? request.CommunityId : null,
             request.Limit > 0 ? request.Limit : 10,
-            userId);
+            userId,
+            ct);
 
         var response = new SearchSpacesResponse();
 
@@ -147,7 +153,8 @@ public class SpaceGrpcService(
 
     public override async Task<SpaceRulesResponse> GetSpaceRules(GetSpaceRulesRequest request, ServerCallContext context)
     {
-        var rules = await ruleService.GetRulesAsync("Space", request.SpaceId);
+        var ct = context.CancellationToken;
+        var rules = await ruleService.GetRulesAsync("Space", request.SpaceId, ct);
 
         var response = new SpaceRulesResponse();
 
@@ -166,6 +173,7 @@ public class SpaceGrpcService(
 
     public override async Task<SpaceStats> GetSpaceStats(GetSpaceStatsRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var result = await statisticsUseCase.GetSpaceStatsAsync(request.PublicId);
 
         if (!result.IsSuccess || result.Value is null)
@@ -185,12 +193,12 @@ public class SpaceGrpcService(
         };
     }
 
-    private async Task<bool> IsSpaceAccessibleAsync(string spacePublicId, string? userId)
+    private async Task<bool> IsSpaceAccessibleAsync(string spacePublicId, string? userId, CancellationToken ct = default)
     {
-        var restricted = await grantsCache.GetRestrictedEntitiesAsync();
+        var restricted = await grantsCache.GetRestrictedEntitiesAsync(ct);
         if (restricted.IsEmpty) return true;
 
-        var h = await hierarchyCache.GetSpaceHierarchyAsync(spacePublicId);
+        var h = await hierarchyCache.GetSpaceHierarchyAsync(spacePublicId, ct);
 
         if (h is null) return false;
 
@@ -201,7 +209,7 @@ public class SpaceGrpcService(
         if (!spaceGate && !hubGate && !communityGate) return true;
         if (userId is null) return false;
 
-        var grants = await grantsCache.GetGrantsAsync(userId);
+        var grants = await grantsCache.GetGrantsAsync(userId, ct);
         return (!spaceGate || grants.SpaceIds.Contains(h.Id))
             && (!hubGate || grants.HubIds.Contains(h.HubId))
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));

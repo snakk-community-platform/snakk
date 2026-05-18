@@ -44,8 +44,9 @@ public class DetailModel(
     public SidebarCommunityRulesVM? InlineCommunityRules { get; set; }
     public SidebarModeratorsVM? InlineModerators { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(string slug, int offset = 0)
+    public async Task<IActionResult> OnGetAsync(string slug, int offset = 0, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var communityResult = await _apiClient.GetCommunityBySlugResultAsync(slug);
 
         if (!communityResult.IsSuccess)

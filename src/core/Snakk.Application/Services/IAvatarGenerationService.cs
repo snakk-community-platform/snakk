@@ -54,5 +54,5 @@ public interface IAvatarGenerationService
     /// This is typically run on application startup.
     /// </summary>
     /// <returns>The total count of avatars generated</returns>
-    Task<int> GenerateAllMissingAvatarsAsync();
+    Task<int> GenerateAllMissingAvatarsAsync(CancellationToken ct = default);
 }

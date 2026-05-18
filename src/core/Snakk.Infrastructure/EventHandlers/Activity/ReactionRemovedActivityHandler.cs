@@ -10,21 +10,21 @@ public class ReactionRemovedActivityHandler(
     IActivityBroadcaster activityBroadcaster,
     SnakkDbContext context) : IDomainEventHandler<ReactionRemovedEvent>
 {
-    public async Task HandleAsync(ReactionRemovedEvent @event)
+    public async Task HandleAsync(ReactionRemovedEvent @event, CancellationToken cancellationToken = default)
     {
         // Reaction is already deleted by the time the handler runs,
         // so we look up user and post separately from event fields.
         var user = await context.Users
             .Where(u => u.PublicId == @event.UserId.Value)
             .Select(u => new { u.DisplayName })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         var post = await context.Posts
             .Where(p => p.PublicId == @event.PostId.Value)
             .Select(p => new {
                 PostId = p.PublicId,
                 DiscussionTitle = p.Discussion.Title })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (user is null || post is null)
             return;

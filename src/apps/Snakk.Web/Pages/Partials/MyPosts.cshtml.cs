@@ -17,8 +17,9 @@ public class MyPostsModel(
     public int Offset { get; set; }
     public int NextOffset { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 20)
+    public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 20, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
             return Content("", "text/html");
 

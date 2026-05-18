@@ -12,7 +12,8 @@ public interface ISearchRepository
         int offset = 0,
         int pageSize = 20,
         string? userId = null,
-        bool viewerAllowsAdult = false);
+        bool viewerAllowsAdult = false,
+        CancellationToken ct = default);
 
     Task<PagedResult<PostSearchResultDto>> SearchPostsAsync(
         string query,
@@ -21,11 +22,12 @@ public interface ISearchRepository
         string? spacePublicId = null,
         int offset = 0,
         int pageSize = 20,
-        string? userId = null);
+        string? userId = null,
+        CancellationToken ct = default);
 
-    Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId);
-    Task<int> GetPostCountByAuthorAsync(string authorPublicId);
-    Task<int> GetDiscussionPostCountAsync(string discussionPublicId);
+    Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId, CancellationToken ct = default);
+    Task<int> GetPostCountByAuthorAsync(string authorPublicId, CancellationToken ct = default);
+    Task<int> GetDiscussionPostCountAsync(string discussionPublicId, CancellationToken ct = default);
 
     /// <summary>
     /// Gets discussions by space with enriched author and count data
@@ -37,7 +39,8 @@ public interface ISearchRepository
         int? typeFilter = null,
         string? userId = null,
         string? cursor = null,
-        bool viewerAllowsAdult = false);
+        bool viewerAllowsAdult = false,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Gets all hubs with their statistics
@@ -45,7 +48,8 @@ public interface ISearchRepository
     Task<PagedResult<HubListItemDto>> GetHubsAsync(
         int offset = 0,
         int pageSize = 20,
-        string? userId = null);
+        string? userId = null,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Gets spaces by hub with their statistics
@@ -54,7 +58,8 @@ public interface ISearchRepository
         string hubPublicId,
         int offset = 0,
         int pageSize = 20,
-        string? userId = null);
+        string? userId = null,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Searches spaces by name, optionally scoped to a hub or community,
@@ -65,12 +70,13 @@ public interface ISearchRepository
         string? hubPublicId = null,
         string? communityPublicId = null,
         int limit = 10,
-        string? userId = null);
+        string? userId = null,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Gets all discussions for sitemap generation
     /// </summary>
-    Task<(List<SitemapDiscussionDto> Items, int TotalCount)> GetSitemapDiscussionsAsync(int page, int pageSize);
+    Task<(List<SitemapDiscussionDto> Items, int TotalCount)> GetSitemapDiscussionsAsync(int page, int pageSize, CancellationToken ct = default);
 
     /// <summary>
     /// Gets recent discussions with detailed information across all communities
@@ -85,7 +91,8 @@ public interface ISearchRepository
         string? userId = null,
         string? authorId = null,
         IReadOnlyList<string>? spaceIds = null,
-        bool viewerAllowsAdult = false);
+        bool viewerAllowsAdult = false,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Gets trending discussions ordered by decay-weighted activity score (TrendScore DESC).
@@ -96,7 +103,8 @@ public interface ISearchRepository
         string? communityId = null,
         string? cursor = null,
         string? userId = null,
-        bool viewerAllowsAdult = false);
+        bool viewerAllowsAdult = false,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Gets top discussions ordered by combined engagement (ReactionCount + PostCount DESC),
@@ -108,7 +116,8 @@ public interface ISearchRepository
         string? communityId = null,
         string? timePeriod = null,
         string? userId = null,
-        bool viewerAllowsAdult = false);
+        bool viewerAllowsAdult = false,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Gets newest discussions ordered by CreatedAt DESC (ignores reply bumps).
@@ -119,18 +128,19 @@ public interface ISearchRepository
         string? communityId = null,
         string? cursor = null,
         string? userId = null,
-        bool viewerAllowsAdult = false);
+        bool viewerAllowsAdult = false,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Fetches preview data for a set of discussions by their public IDs.
     /// Used to enrich saved/followed discussion lists with type-specific previews.
     /// </summary>
-    Task<Dictionary<string, DiscussionPreviewDto>> FetchPreviewsByPublicIdsAsync(IEnumerable<string> publicIds);
+    Task<Dictionary<string, DiscussionPreviewDto>> FetchPreviewsByPublicIdsAsync(IEnumerable<string> publicIds, CancellationToken ct = default);
 
     /// <summary>
     /// Fetches full RecentDiscussionDto (including previews) for a set of public IDs.
     /// </summary>
-    Task<List<RecentDiscussionDto>> GetRecentDiscussionsByPublicIdsAsync(IEnumerable<string> publicIds);
+    Task<List<RecentDiscussionDto>> GetRecentDiscussionsByPublicIdsAsync(IEnumerable<string> publicIds, CancellationToken ct = default);
 }
 
 public record HubListItemDto(

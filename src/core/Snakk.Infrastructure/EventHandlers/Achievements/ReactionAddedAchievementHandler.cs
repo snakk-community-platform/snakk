@@ -10,7 +10,7 @@ public class ReactionAddedAchievementHandler(
     MetricsService metricsService,
     SnakkDbContext context) : IDomainEventHandler<ReactionAddedEvent>
 {
-    public async Task HandleAsync(ReactionAddedEvent @event)
+    public async Task HandleAsync(ReactionAddedEvent @event, CancellationToken cancellationToken = default)
     {
         // Get post context and author
         var postContext = await context.Posts
@@ -20,7 +20,7 @@ public class ReactionAddedAchievementHandler(
                 p.Discussion.SpaceId,
                 p.Discussion.Space.HubId,
                 p.Discussion.Space.Hub.CommunityId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(cancellationToken);
 
         if (postContext is null)
             return;

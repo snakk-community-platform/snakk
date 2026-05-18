@@ -8,7 +8,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
 {
     // === Question ===
 
-    public async Task<QuestionStatus?> GetQuestionStatusAsync(string discussionPublicId)
+    public async Task<QuestionStatus?> GetQuestionStatusAsync(string discussionPublicId, CancellationToken ct = default)
     {
         var question = await context.DiscussionQuestions
             .Where(q => q.Discussion.PublicId == discussionPublicId && !q.Discussion.IsDeleted)
@@ -17,7 +17,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                 q.SolvedAt,
                 AcceptedPostPublicId = q.AcceptedPost != null ? q.AcceptedPost.PublicId : null
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (question is null) return null;
 
@@ -28,13 +28,13 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
     }
 
     public async Task<(bool Success, string? Error)> MarkQuestionSolvedAsync(
-        string discussionPublicId, string postPublicId, string userPublicId)
+        string discussionPublicId, string postPublicId, string userPublicId, CancellationToken ct = default)
     {
         // Verify the user is the discussion author (OP)
         var discussion = await context.Discussions
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
             .Select(d => new { d.Id, CreatedByPublicId = d.CreatedByUserPublicId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (discussion is null)
             return (false, "Discussion not found");
@@ -45,7 +45,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var question = await context.DiscussionQuestions
             .AsTracking()
             .Where(q => q.Discussion.PublicId == discussionPublicId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (question is null)
             return (false, "Not a question discussion");
@@ -53,31 +53,31 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var postId = await context.Posts
             .Where(p => p.PublicId == postPublicId && !p.IsDeleted)
             .Select(p => p.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (postId == 0)
             return (false, "Post not found");
 
         question.AcceptedPostId = postId;
         question.SolvedAt = DateTime.UtcNow;
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         return (true, null);
     }
 
     // === Images ===
 
-    public async Task<(string? Layout, bool IsSpoiler)> GetImagesInfoAsync(string discussionPublicId)
+    public async Task<(string? Layout, bool IsSpoiler)> GetImagesInfoAsync(string discussionPublicId, CancellationToken ct = default)
     {
         var info = await context.DiscussionImages
             .Where(g => g.Discussion.PublicId == discussionPublicId && !g.Discussion.IsDeleted)
             .Select(g => new { g.Layout, g.IsSpoiler })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         return (info?.Layout, info?.IsSpoiler ?? false);
     }
 
-    public async Task<List<ImagesImageInfo>> GetImagesListAsync(string discussionPublicId)
+    public async Task<List<ImagesImageInfo>> GetImagesListAsync(string discussionPublicId, CancellationToken ct = default)
     {
         var images = await context.DiscussionImageAttachments
             .Where(gi => gi.DiscussionTypeImage.Discussion.PublicId == discussionPublicId
@@ -97,7 +97,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                 gi.Image.Width,
                 gi.Image.Height
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return images
             .Select(m => new ImagesImageInfo(
@@ -116,7 +116,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
 
     // === Debate ===
 
-    public async Task<DebateInfo?> GetDebateInfoAsync(string discussionPublicId)
+    public async Task<DebateInfo?> GetDebateInfoAsync(string discussionPublicId, CancellationToken ct = default)
     {
         var debate = await context.DiscussionDebates
             .Where(d => d.Discussion.PublicId == discussionPublicId && !d.Discussion.IsDeleted)
@@ -128,7 +128,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                     .Select(p => new { p.Id, p.Label, p.Index })
                     .ToList()
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (debate is null) return null;
 
@@ -142,7 +142,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                 pp.Post.CreatedAt,
                 PostPublicId = pp.Post.PublicId
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         var positionCounts = allPostPositions
             .GroupBy(x => x.CreatedByUserId)
@@ -164,13 +164,13 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
     }
 
     public async Task<(bool Success, string? Error)> SetPostDebatePositionAsync(
-        string discussionPublicId, string postPublicId, int positionId, string userPublicId)
+        string discussionPublicId, string postPublicId, int positionId, string userPublicId, CancellationToken ct = default)
     {
         // Verify position belongs to this debate
         var debate = await context.DiscussionDebates
             .Include(d => d.Positions)
             .Where(d => d.Discussion.PublicId == discussionPublicId && !d.Discussion.IsDeleted)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (debate is null)
             return (false, "Debate not found");
@@ -181,7 +181,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var post = await context.Posts
             .Where(p => p.PublicId == postPublicId && !p.IsDeleted)
             .Select(p => new { p.Id, CreatedByPublicId = p.CreatedByUserPublicId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (post is null)
             return (false, "Post not found");
@@ -194,7 +194,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         // Upsert position
         var existing = await context.DiscussionDebatePostPositions
             .AsTracking()
-            .FirstOrDefaultAsync(pp => pp.PostId == postId);
+            .FirstOrDefaultAsync(pp => pp.PostId == postId, ct);
 
         if (existing is not null)
         {
@@ -209,18 +209,18 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             });
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
         return (true, null);
     }
 
     // === Link ===
 
-    public async Task<LinkInfo?> GetLinkInfoAsync(string discussionPublicId)
+    public async Task<LinkInfo?> GetLinkInfoAsync(string discussionPublicId, CancellationToken ct = default)
     {
         var link = await context.DiscussionLinks
             .Where(l => l.Discussion.PublicId == discussionPublicId && !l.Discussion.IsDeleted)
             .Select(l => new { l.Url, l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.ImagePath, l.ImageBlurDataUri, l.IsInternal, l.ImageWidth, l.ImageHeight })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (link is null) return null;
 
@@ -229,12 +229,12 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
 
     // === Journal ===
 
-    public async Task<JournalInfo?> GetJournalInfoAsync(string discussionPublicId)
+    public async Task<JournalInfo?> GetJournalInfoAsync(string discussionPublicId, CancellationToken ct = default)
     {
         var journal = await context.DiscussionJournals
             .Where(j => j.Discussion.PublicId == discussionPublicId && !j.Discussion.IsDeleted)
             .Select(j => new { j.Id })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (journal is null) return null;
 
@@ -242,19 +242,19 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             .Where(e => e.JournalId == journal.Id && !e.Post.IsDeleted)
             .OrderBy(e => e.Post.CreatedAt)
             .Select(e => e.Post.PublicId)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return new JournalInfo(entryPostIds);
     }
 
     public async Task<(bool Success, string? Error)> AddJournalEntryAsync(
-        string discussionPublicId, string postPublicId, string userPublicId)
+        string discussionPublicId, string postPublicId, string userPublicId, CancellationToken ct = default)
     {
         // Verify the user is the discussion author (OP)
         var discussion = await context.Discussions
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
             .Select(d => new { CreatedByPublicId = d.CreatedByUserPublicId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (discussion is null)
             return (false, "Discussion not found");
@@ -264,7 +264,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
 
         var journal = await context.DiscussionJournals
             .Where(j => j.Discussion.PublicId == discussionPublicId)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (journal is null)
             return (false, "Not a journal discussion");
@@ -272,14 +272,14 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var postId = await context.Posts
             .Where(p => p.PublicId == postPublicId && !p.IsDeleted)
             .Select(p => p.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (postId == 0)
             return (false, "Post not found");
 
         // Check if already a journal entry
         var exists = await context.DiscussionJournalEntryPosts
-            .AnyAsync(e => e.PostId == postId);
+            .AnyAsync(e => e.PostId == postId, ct);
 
         if (exists)
             return (false, "Post is already a journal entry");
@@ -290,13 +290,13 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             JournalId = journal.Id
         });
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
         return (true, null);
     }
 
     // === IAMA ===
 
-    public async Task<IamaInfo?> GetIamaInfoAsync(string discussionPublicId)
+    public async Task<IamaInfo?> GetIamaInfoAsync(string discussionPublicId, CancellationToken ct = default)
     {
         var iama = await context.DiscussionIamas
             .Where(i => i.Discussion.PublicId == discussionPublicId && !i.Discussion.IsDeleted)
@@ -312,7 +312,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                 i.VerificationNoteHtml,
                 i.Id
             })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (iama is null) return null;
 
@@ -323,13 +323,13 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                 QuestionPublicId = oa.QuestionPost.PublicId,
                 AnswerPublicId = oa.AnswerPost.PublicId
             })
-            .ToDictionaryAsync(x => x.QuestionPublicId, x => x.AnswerPublicId);
+            .ToDictionaryAsync(x => x.QuestionPublicId, x => x.AnswerPublicId, ct);
 
         var bestQuestions = await context.DiscussionIamaBestQuestions
             .Where(bq => bq.IamaId == iama.Id)
             .OrderBy(bq => bq.DisplayOrder)
             .Select(bq => bq.Post.PublicId)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return new IamaInfo(
             iama.Phase,
@@ -345,13 +345,13 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
     }
 
     public async Task<(bool Success, string? Error)> MarkIamaOfficialAnswerAsync(
-        string discussionPublicId, string questionPostPublicId, string answerPostPublicId, string userPublicId)
+        string discussionPublicId, string questionPostPublicId, string answerPostPublicId, string userPublicId, CancellationToken ct = default)
     {
         // Verify the user is the host (discussion creator)
         var discussion = await context.Discussions
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
             .Select(d => new { d.Id, CreatedByPublicId = d.CreatedByUserPublicId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (discussion is null)
             return (false, "Discussion not found");
@@ -362,7 +362,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var iama = await context.DiscussionIamas
             .Where(i => i.DiscussionId == discussion.Id)
             .Select(i => new { i.Id, i.Phase })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (iama is null)
             return (false, "Not an AMA discussion");
@@ -373,7 +373,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var questionPostId = await context.Posts
             .Where(p => p.PublicId == questionPostPublicId && !p.IsDeleted)
             .Select(p => p.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (questionPostId == 0)
             return (false, "Question post not found");
@@ -381,7 +381,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var answerPostId = await context.Posts
             .Where(p => p.PublicId == answerPostPublicId && !p.IsDeleted)
             .Select(p => p.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (answerPostId == 0)
             return (false, "Answer post not found");
@@ -389,7 +389,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         // Upsert: remove existing answer for this question if any
         var existing = await context.DiscussionIamaOfficialAnswers
             .AsTracking()
-            .FirstOrDefaultAsync(oa => oa.IamaId == iama.Id && oa.QuestionPostId == questionPostId);
+            .FirstOrDefaultAsync(oa => oa.IamaId == iama.Id && oa.QuestionPostId == questionPostId, ct);
 
         if (existing is not null)
         {
@@ -405,20 +405,20 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             });
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         if (existing is null)
         {
             await context.DiscussionIamas
                 .Where(i => i.Id == iama.Id)
-                .ExecuteUpdateAsync(s => s.SetProperty(i => i.OfficialAnswerCount, i => i.OfficialAnswerCount + 1));
+                .ExecuteUpdateAsync(s => s.SetProperty(i => i.OfficialAnswerCount, i => i.OfficialAnswerCount + 1), ct);
         }
 
         return (true, null);
     }
 
     public async Task<(bool Success, string? Error)> SetIamaBestQuestionsAsync(
-        string discussionPublicId, List<string> postPublicIds, string userPublicId)
+        string discussionPublicId, List<string> postPublicIds, string userPublicId, CancellationToken ct = default)
     {
         if (postPublicIds.Count > 5)
             return (false, "Cannot mark more than 5 best questions");
@@ -426,7 +426,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var discussion = await context.Discussions
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
             .Select(d => new { d.Id, CreatedByPublicId = d.CreatedByUserPublicId })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (discussion is null)
             return (false, "Discussion not found");
@@ -437,7 +437,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var iama = await context.DiscussionIamas
             .Where(i => i.DiscussionId == discussion.Id)
             .Select(i => new { i.Id })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (iama is null)
             return (false, "Not an AMA discussion");
@@ -445,7 +445,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         // Remove existing best questions
         var existingBest = await context.DiscussionIamaBestQuestions
             .Where(bq => bq.IamaId == iama.Id)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         context.DiscussionIamaBestQuestions.RemoveRange(existingBest);
 
@@ -453,7 +453,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var idMap = await context.Posts
             .Where(p => postPublicIds.Contains(p.PublicId) && !p.IsDeleted)
             .Select(p => new { p.PublicId, p.Id })
-            .ToDictionaryAsync(p => p.PublicId, p => p.Id);
+            .ToDictionaryAsync(p => p.PublicId, p => p.Id, ct);
 
         for (var i = 0; i < postPublicIds.Count; i++)
         {
@@ -468,17 +468,17 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             });
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         await context.DiscussionIamas
             .Where(i => i.Id == iama.Id)
-            .ExecuteUpdateAsync(s => s.SetProperty(i => i.BestQuestionCount, postPublicIds.Count));
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.BestQuestionCount, postPublicIds.Count), ct);
 
         return (true, null);
     }
 
     public async Task<(bool Success, string? Error)> TransitionIamaPhaseAsync(
-        string discussionPublicId, int newPhase, string userPublicId)
+        string discussionPublicId, int newPhase, string userPublicId, CancellationToken ct = default)
     {
         if (newPhase is < 0 or > 3)
             return (false, "Invalid phase");
@@ -487,7 +487,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             .AsTracking()
             .Where(d => d.PublicId == discussionPublicId && !d.IsDeleted)
             .Include(d => d.CreatedByUser)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (discussion is null)
             return (false, "Discussion not found");
@@ -498,7 +498,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         var iama = await context.DiscussionIamas
             .AsTracking()
             .Where(i => i.DiscussionId == discussion.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (iama is null)
             return (false, "Not an AMA discussion");
@@ -517,7 +517,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         if (newPhase >= 2)
             discussion.IsLocked = true;
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
         return (true, null);
     }
 }

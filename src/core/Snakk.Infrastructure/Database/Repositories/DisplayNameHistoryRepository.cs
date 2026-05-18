@@ -7,12 +7,12 @@ using Snakk.Infrastructure.Database.Entities;
 
 public class DisplayNameHistoryRepository(SnakkDbContext context) : IDisplayNameHistoryRepository
 {
-    public async Task AddAsync(string userPublicId, string previousName, string newName, string? changedByUserPublicId = null)
+    public async Task AddAsync(string userPublicId, string previousName, string newName, string? changedByUserPublicId = null, CancellationToken ct = default)
     {
         var userId = await context.Users
             .Where(u => u.PublicId == userPublicId)
             .Select(u => u.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (userId == 0) return;
 
@@ -22,7 +22,7 @@ public class DisplayNameHistoryRepository(SnakkDbContext context) : IDisplayName
             changedByUserId = await context.Users
                 .Where(u => u.PublicId == changedByUserPublicId)
                 .Select(u => u.Id)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
         }
 
         context.UserDisplayNameHistories.Add(new UserDisplayNameHistoryDatabaseEntity
@@ -34,16 +34,16 @@ public class DisplayNameHistoryRepository(SnakkDbContext context) : IDisplayName
             ChangedByUserId = changedByUserId
         });
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task<bool> WasNameEverUsedAsync(string displayName)
+    public async Task<bool> WasNameEverUsedAsync(string displayName, CancellationToken ct = default)
         => await context.UserDisplayNameHistories
             .AnyAsync(h =>
                 h.NewName.ToLower() == displayName.ToLower()
-                || h.PreviousName.ToLower() == displayName.ToLower());
+                || h.PreviousName.ToLower() == displayName.ToLower(), ct);
 
-    public async Task<List<DisplayNameHistoryDto>> GetHistoryForUserAsync(string userPublicId, int limit = 20)
+    public async Task<List<DisplayNameHistoryDto>> GetHistoryForUserAsync(string userPublicId, int limit = 20, CancellationToken ct = default)
         => await context.UserDisplayNameHistories
             .Where(h => h.User.PublicId == userPublicId)
             .OrderByDescending(h => h.ChangedAt)
@@ -53,5 +53,5 @@ public class DisplayNameHistoryRepository(SnakkDbContext context) : IDisplayName
                 h.NewName,
                 h.ChangedAt,
                 h.ChangedByUser != null ? h.ChangedByUser.PublicId : null))
-            .ToListAsync();
+            .ToListAsync(ct);
 }

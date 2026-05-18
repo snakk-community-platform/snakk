@@ -13,33 +13,33 @@ public class DiscussionExtensionService(
     IMarkupParser markupParser,
     Microsoft.Extensions.Logging.ILogger<DiscussionExtensionService> logger) : IDiscussionExtensionService
 {
-    public async Task CreateQuestionAsync(string discussionPublicId)
+    public async Task CreateQuestionAsync(string discussionPublicId, CancellationToken ct = default)
     {
-        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId, ct);
 
         context.DiscussionQuestions.Add(new DiscussionTypeQuestionDatabaseEntity
         {
             DiscussionId = discussionId
         });
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task CreateGuideAsync(string discussionPublicId)
+    public async Task CreateGuideAsync(string discussionPublicId, CancellationToken ct = default)
     {
-        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId, ct);
 
         context.DiscussionGuides.Add(new DiscussionTypeGuideDatabaseEntity
         {
             DiscussionId = discussionId
         });
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task CreateImagesAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null, bool isSpoiler = false)
+    public async Task CreateImagesAsync(string discussionPublicId, string layout = "grid", List<string>? imageUrls = null, bool isSpoiler = false, CancellationToken ct = default)
     {
-        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId, ct);
 
         var images = new DiscussionTypeImageDatabaseEntity
         {
@@ -49,7 +49,7 @@ public class DiscussionExtensionService(
         };
 
         context.DiscussionImages.Add(images);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         // Resolve image URLs to Media records and create ordered links
         if (imageUrls is { Count: > 0 })
@@ -66,7 +66,7 @@ public class DiscussionExtensionService(
                 var mediaRecords = await context.Images
                     .AsTracking()
                     .Where(m => storagePaths.Contains(m.StoragePath) && !m.IsDeleted)
-                    .ToListAsync();
+                    .ToListAsync(ct);
 
                 var mediaByPath = mediaRecords.ToDictionary(m => m.StoragePath, m => m);
 
@@ -90,7 +90,7 @@ public class DiscussionExtensionService(
                     }
                 }
 
-                await context.SaveChangesAsync();
+                await context.SaveChangesAsync(ct);
             }
         }
     }
@@ -105,9 +105,10 @@ public class DiscussionExtensionService(
         bool isSegmented = false,
         string? segmentLabel = null,
         string? segmentOptionA = null,
-        string? segmentOptionB = null)
+        string? segmentOptionB = null,
+        CancellationToken ct = default)
     {
-        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId, ct);
 
         var poll = new DiscussionTypePollDatabaseEntity
         {
@@ -123,7 +124,7 @@ public class DiscussionExtensionService(
         };
 
         context.DiscussionPolls.Add(poll);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         for (var i = 0; i < options.Count; i++)
         {
@@ -135,7 +136,7 @@ public class DiscussionExtensionService(
             });
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task CreateLinkAsync(
@@ -144,16 +145,17 @@ public class DiscussionExtensionService(
         string? title = null,
         string? description = null,
         string? imageUrl = null,
-        string? domain = null)
+        string? domain = null,
+        CancellationToken ct = default)
     {
-        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId, ct);
 
         // Dedup: check if we already have metadata for this exact URL
         var existing = await context.DiscussionLinks
             .AsNoTracking()
             .Where(l => l.Url == url && l.Title != null)
             .Select(l => new { l.Title, l.Description, l.ImageUrl, l.Domain, l.OEmbedHtml, l.ImagePath, l.ImageThumbnailPath, l.ImageBlurDataUri, l.ImageWidth, l.ImageHeight })
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         LinkMetadata? metadata = null;
 
@@ -172,7 +174,7 @@ public class DiscussionExtensionService(
             var effectiveLanguage = await context.Discussions
                 .Where(d => d.PublicId == discussionPublicId)
                 .Select(d => d.Space.LanguageCode ?? d.Space.HubLanguageCode ?? d.Space.CommunityLanguageCode)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             // Fetch fresh metadata
             try
@@ -206,15 +208,16 @@ public class DiscussionExtensionService(
             IsInternal = metadata?.IsInternal ?? false
         });
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task CreateDebateAsync(
         string discussionPublicId,
         List<string> positionLabels,
-        bool allowNeutral = false)
+        bool allowNeutral = false,
+        CancellationToken ct = default)
     {
-        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId, ct);
 
         var debate = new DiscussionTypeDebateDatabaseEntity
         {
@@ -223,7 +226,7 @@ public class DiscussionExtensionService(
         };
 
         context.DiscussionDebates.Add(debate);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
 
         for (var i = 0; i < positionLabels.Count; i++)
         {
@@ -235,21 +238,21 @@ public class DiscussionExtensionService(
             });
         }
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task MarkQuestionSolvedAsync(string discussionPublicId, string acceptedPostPublicId)
+    public async Task MarkQuestionSolvedAsync(string discussionPublicId, string acceptedPostPublicId, CancellationToken ct = default)
     {
         var question = await context.DiscussionQuestions
             .AsTracking()
             .Where(q => q.Discussion.PublicId == discussionPublicId && !q.Discussion.IsDeleted)
-            .FirstOrDefaultAsync()
+            .FirstOrDefaultAsync(ct)
             ?? throw new InvalidOperationException("Question not found");
 
         var postId = await context.Posts
             .Where(p => p.PublicId == acceptedPostPublicId && !p.IsDeleted)
             .Select(p => p.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (postId == 0)
             throw new InvalidOperationException("Post not found");
@@ -257,32 +260,32 @@ public class DiscussionExtensionService(
         question.AcceptedPostId = postId;
         question.SolvedAt = DateTime.UtcNow;
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task CreateJournalAsync(string discussionPublicId)
+    public async Task CreateJournalAsync(string discussionPublicId, CancellationToken ct = default)
     {
-        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId, ct);
 
         context.DiscussionJournals.Add(new DiscussionTypeJournalDatabaseEntity
         {
             DiscussionId = discussionId
         });
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task AddJournalEntryAsync(string discussionPublicId, string postPublicId)
+    public async Task AddJournalEntryAsync(string discussionPublicId, string postPublicId, CancellationToken ct = default)
     {
         var journal = await context.DiscussionJournals
             .Where(j => j.Discussion.PublicId == discussionPublicId && !j.Discussion.IsDeleted)
-            .FirstOrDefaultAsync()
+            .FirstOrDefaultAsync(ct)
             ?? throw new InvalidOperationException("Journal not found");
 
         var postId = await context.Posts
             .Where(p => p.PublicId == postPublicId && !p.IsDeleted)
             .Select(p => p.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (postId == 0)
             throw new InvalidOperationException("Post not found");
@@ -293,7 +296,7 @@ public class DiscussionExtensionService(
             JournalId = journal.Id
         });
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
     public async Task CreateIamaAsync(
@@ -301,9 +304,10 @@ public class DiscussionExtensionService(
         bool isScheduled = false,
         DateTime? scheduledStartUtc = null,
         DateTime? scheduledEndUtc = null,
-        string? verificationNote = null)
+        string? verificationNote = null,
+        CancellationToken ct = default)
     {
-        var discussionId = await GetDiscussionIdAsync(discussionPublicId);
+        var discussionId = await GetDiscussionIdAsync(discussionPublicId, ct);
 
         context.DiscussionIamas.Add(new DiscussionTypeIamaDatabaseEntity
         {
@@ -316,15 +320,15 @@ public class DiscussionExtensionService(
             VerificationNoteHtml = verificationNote != null ? markupParser.ToHtml(verificationNote) : null,
         });
 
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    private async Task<int> GetDiscussionIdAsync(string publicId)
+    private async Task<int> GetDiscussionIdAsync(string publicId, CancellationToken ct = default)
     {
         var id = await context.Discussions
             .Where(d => d.PublicId == publicId && !d.IsDeleted)
             .Select(d => d.Id)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         return id == 0
             ? throw new InvalidOperationException($"Discussion '{publicId}' not found")

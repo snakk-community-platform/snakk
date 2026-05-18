@@ -11,7 +11,8 @@ public class PasswordResetRequestRepository(SnakkDbContext context) : IPasswordR
     public async Task LogAsync(
         string emailHash,
         string ipAddress,
-        PasswordResetRequestOutcomeEnum outcome)
+        PasswordResetRequestOutcomeEnum outcome,
+        CancellationToken ct = default)
     {
         var entity = new PasswordResetRequestDatabaseEntity
         {
@@ -21,16 +22,16 @@ public class PasswordResetRequestRepository(SnakkDbContext context) : IPasswordR
             Outcome = (int)outcome
         };
 
-        await context.PasswordResetRequests.AddAsync(entity);
-        await context.SaveChangesAsync();
+        await context.PasswordResetRequests.AddAsync(entity, ct);
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task<int> CountByIpInWindowAsync(string ipAddress, TimeSpan window)
+    public async Task<int> CountByIpInWindowAsync(string ipAddress, TimeSpan window, CancellationToken ct = default)
     {
         var since = DateTime.UtcNow - window;
         return await context.PasswordResetRequests
             .CountAsync(r =>
                 r.IpAddress == ipAddress
-                && r.RequestedAt >= since);
+                && r.RequestedAt >= since, ct);
     }
 }

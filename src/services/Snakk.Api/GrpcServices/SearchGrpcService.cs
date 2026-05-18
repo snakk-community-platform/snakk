@@ -19,9 +19,10 @@ public class SearchGrpcService(
         if (request.Query?.Length > 500)
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Search query must be 500 characters or less"));
 
+        var ct = context.CancellationToken;
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
-        var result = await searchUseCase.SearchDiscussionsAsync(
+        var result = await searchRepository.SearchDiscussionsAsync(
             request.Query!,
             request.HasAuthorId ? request.AuthorId : null,
             request.HasSpaceId ? request.SpaceId : null,
@@ -29,7 +30,8 @@ public class SearchGrpcService(
             request.Offset,
             pageSize,
             currentUser.GetCurrentUserId(),
-            request.ViewerAllowsAdult);
+            request.ViewerAllowsAdult,
+            ct);
 
         var response = new PagedDiscussionSearchResults
         {
@@ -87,16 +89,18 @@ public class SearchGrpcService(
         if (request.Query?.Length > 500)
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Search query must be 500 characters or less"));
 
+        var ct = context.CancellationToken;
         var pageSize = Math.Clamp(request.PageSize, 1, 100);
 
-        var result = await searchUseCase.SearchPostsAsync(
+        var result = await searchRepository.SearchPostsAsync(
             request.Query!,
             request.HasAuthorId ? request.AuthorId : null,
             request.HasDiscussionId ? request.DiscussionId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.Offset,
             pageSize,
-            currentUser.GetCurrentUserId());
+            currentUser.GetCurrentUserId(),
+            ct);
 
         var response = new PagedPostSearchResults
         {
@@ -148,10 +152,11 @@ public class SearchGrpcService(
 
     public override async Task<SitemapResponse> GetSitemapDiscussions(SitemapRequest request, ServerCallContext context)
     {
+        var ct = context.CancellationToken;
         var page = Math.Max(1, request.Page);
         var pageSize = Math.Clamp(request.PageSize > 0 ? request.PageSize : 25000, 1, 25000);
 
-        var (discussions, totalCount) = await searchRepository.GetSitemapDiscussionsAsync(page, pageSize);
+        var (discussions, totalCount) = await searchRepository.GetSitemapDiscussionsAsync(page, pageSize, ct);
 
         var response = new SitemapResponse { TotalCount = totalCount };
 

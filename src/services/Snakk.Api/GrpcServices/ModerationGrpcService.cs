@@ -400,9 +400,10 @@ public class ModerationGrpcService(
     public override async Task<ContentModResponse> DeletePost(DeletePostRequest request, ServerCallContext context)
     {
         var userId = RequireAuthString();
+        var ct = context.CancellationToken;
 
         var result = await moderationUseCase.ModeratorDeletePostAsync(
-            request.PostId, userId, request.HasReason ? request.Reason : null);
+            request.PostId, userId, request.HasReason ? request.Reason : null, ct);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(
@@ -415,9 +416,10 @@ public class ModerationGrpcService(
     public override async Task<ContentModResponse> DeleteDiscussion(DeleteDiscussionRequest request, ServerCallContext context)
     {
         var userId = RequireAuthString();
+        var ct = context.CancellationToken;
 
         var result = await moderationUseCase.ModeratorDeleteDiscussionAsync(
-            request.DiscussionId, userId, request.HasReason ? request.Reason : null);
+            request.DiscussionId, userId, request.HasReason ? request.Reason : null, ct);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(
@@ -430,9 +432,10 @@ public class ModerationGrpcService(
     public override async Task<ContentModResponse> LockDiscussion(LockDiscussionRequest request, ServerCallContext context)
     {
         var userId = RequireAuthString();
+        var ct = context.CancellationToken;
 
         var result = await moderationUseCase.LockDiscussionAsync(
-            request.DiscussionId, userId, request.HasReason ? request.Reason : null);
+            request.DiscussionId, userId, request.HasReason ? request.Reason : null, ct);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(
@@ -445,9 +448,10 @@ public class ModerationGrpcService(
     public override async Task<ContentModResponse> UnlockDiscussion(UnlockDiscussionRequest request, ServerCallContext context)
     {
         var userId = RequireAuthString();
+        var ct = context.CancellationToken;
 
         var result = await moderationUseCase.UnlockDiscussionAsync(
-            request.DiscussionId, userId);
+            request.DiscussionId, userId, ct);
 
         if (!result.IsSuccess)
             throw new RpcException(new Status(

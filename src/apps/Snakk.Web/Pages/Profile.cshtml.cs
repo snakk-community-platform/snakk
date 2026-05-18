@@ -8,8 +8,9 @@ public class ProfileModel(SnakkApiClient apiClient) : PageModel
 {
     public new UserInfo? User { get; set; }
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var currentUser = await apiClient.GetCurrentUserAsync();
 
         if (currentUser is null)
@@ -29,8 +30,9 @@ public class ProfileModel(SnakkApiClient apiClient) : PageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostLogoutAsync()
+    public async Task<IActionResult> OnPostLogoutAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         await apiClient.LogoutAsync();
 
         // Clear cookies

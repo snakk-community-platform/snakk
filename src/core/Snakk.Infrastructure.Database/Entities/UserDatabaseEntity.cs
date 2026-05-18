@@ -62,6 +62,10 @@ public class UserDatabaseEntity
     public int FailedLoginAttempts { get; set; }
     public DateTime? LockoutEnd { get; set; }
 
+    // Auth version — incremented on ban/logout-all; JWT ver claim must match
+    public long AuthVersion { get; set; } = 1;
+    public DateTime AuthVersionUpdatedAt { get; set; } = DateTime.UtcNow;
+
     // 2FA (Two-Factor Authentication)
     public bool TwoFactorEnabled { get; set; } = false;
     public string? TwoFactorSecret { get; set; } // Base32-encoded TOTP secret

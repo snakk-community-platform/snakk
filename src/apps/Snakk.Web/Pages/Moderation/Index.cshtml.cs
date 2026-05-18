@@ -51,8 +51,9 @@ public class IndexModel(
         _ => action
     };
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         // Check if user can moderate
         CanModerate = await apiClient.CanModerateAsync();
 

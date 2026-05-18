@@ -3,8 +3,8 @@
    Page-specific styles are rendered inside #main-content so they load with the swap. *@
 @{ IgnoreSection("LeftColumn"); }
 @await RenderSectionAsync("Meta", required: false)
-<div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
 <div id="main-content" class="sn-main-body">
+    <div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
     @await RenderSectionAsync("Styles", required: false)
     <div class="sn-center-header">
         <div class="sn-search-wrap" id="sn-search-wrap">

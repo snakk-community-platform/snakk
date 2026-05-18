@@ -29,8 +29,9 @@ public class BansModel(
         return true;
     }
 
-    public async Task<IActionResult> OnGetAsync()
+    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         CanModerate = await apiClient.CanModerateAsync();
         if (!CanModerate)
         {
@@ -46,8 +47,9 @@ public class BansModel(
         return Page();
     }
 
-    public async Task<IActionResult> OnPostBanAsync()
+    public async Task<IActionResult> OnPostBanAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
 
         if (BanRequest is null || string.IsNullOrEmpty(BanRequest.TargetUserId))
@@ -59,8 +61,9 @@ public class BansModel(
         return RedirectToPage(new { UserId = BanRequest.TargetUserId });
     }
 
-    public async Task<IActionResult> OnPostUnbanAsync(string banId, string userId)
+    public async Task<IActionResult> OnPostUnbanAsync(string banId, string userId, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!await apiClient.CanModerateAsync()) return RedirectToPage("/Index");
 
         await apiClient.UnbanUserAsync(banId);

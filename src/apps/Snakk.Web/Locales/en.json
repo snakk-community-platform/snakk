@@ -1229,5 +1229,14 @@
         "shareTelegram":                   "Share on Telegram",
         "shareHackerNews":                 "Hacker News",
         "shareEmail":                      "Send via Email"
+    },
+    "relogin": {
+        "title":              "Session expired",
+        "subtitle":           "Your session has expired. Enter your password to continue.",
+        "passwordPlaceholder": "Password",
+        "submit":             "Log back in",
+        "otherAccount":       "Use a different account",
+        "errorWrongPassword": "Incorrect password. Please try again.",
+        "errorGeneric":       "Something went wrong. Please try again."
     }
 }

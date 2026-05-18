@@ -13,7 +13,7 @@ public class SpaceRepositoryAdapter(
     Infrastructure.Database.Repositories.ISpaceRepository databaseRepository,
     SnakkDbContext context) : Domain.Repositories.ISpaceRepository
 {
-    public async Task<Space?> GetByIdAsync(int id)
+    public async Task<Space?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var projection = await context.Spaces
             .Where(s => s.Id == id)
@@ -23,11 +23,11 @@ public class SpaceRepositoryAdapter(
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
                 s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<Space?> GetByPublicIdAsync(SpaceId publicId)
+    public async Task<Space?> GetByPublicIdAsync(SpaceId publicId, CancellationToken ct = default)
     {
         var projection = await context.Spaces
             .Where(s => s.PublicId == publicId.Value)
@@ -37,11 +37,11 @@ public class SpaceRepositoryAdapter(
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
                 s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
-    public async Task<Space?> GetBySlugAsync(string slug, string hubSlug)
+    public async Task<Space?> GetBySlugAsync(string slug, string hubSlug, CancellationToken ct = default)
     {
         var projection = await context.Spaces
             .Where(s => s.Slug == slug && s.HubSlug == hubSlug)
@@ -51,16 +51,17 @@ public class SpaceRepositoryAdapter(
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
                 s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
 
     public async Task<PagedResult<Space>> GetFilteredForDisplayAsync(
         HubId hubId,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
-        var result = await databaseRepository.GetFilteredForDisplayAsync(hubId.Value, offset, pageSize);
+        var result = await databaseRepository.GetFilteredForDisplayAsync(hubId.Value, offset, pageSize, ct);
 
         return new PagedResult<Space>
         {
@@ -81,7 +82,7 @@ public class SpaceRepositoryAdapter(
         };
     }
 
-    public async Task<IEnumerable<Space>> GetAllAsync()
+    public async Task<IEnumerable<Space>> GetAllAsync(CancellationToken ct = default)
     {
         var projections = await context.Spaces
             .Select(s => new SpaceProjection(
@@ -90,18 +91,18 @@ public class SpaceRepositoryAdapter(
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
                 s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());
     }
 
-    public async Task AddAsync(Space space)
+    public async Task AddAsync(Space space, CancellationToken ct = default)
     {
         var entity = space.ToPersistence();
 
         var hub = await context.Hubs
             .Include(h => h.Community)
-            .FirstOrDefaultAsync(h => h.PublicId == space.HubId.Value);
+            .FirstOrDefaultAsync(h => h.PublicId == space.HubId.Value, ct);
 
         if (hub is null)
             throw new InvalidOperationException($"Hub with PublicId '{space.HubId}' not found");
@@ -114,8 +115,8 @@ public class SpaceRepositoryAdapter(
         entity.CommunitySlug = hub.Community.Slug;
         entity.CommunityName = hub.Community.Name;
 
-        await databaseRepository.AddAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.AddAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
 
         // Seed all discussion types as allowed for new space
         var allowedTypes = Enum.GetValues<DiscussionTypeEnum>()
@@ -126,12 +127,12 @@ public class SpaceRepositoryAdapter(
             });
 
         context.SpaceAllowedDiscussionTypes.AddRange(allowedTypes);
-        await context.SaveChangesAsync();
+        await context.SaveChangesAsync(ct);
     }
 
-    public async Task UpdateAsync(Space space)
+    public async Task UpdateAsync(Space space, CancellationToken ct = default)
     {
-        var entity = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == space.PublicId.Value);
+        var entity = await context.Spaces.FirstOrDefaultAsync(s => s.PublicId == space.PublicId.Value, ct);
 
         if (entity is null)
             throw new InvalidOperationException($"Space with PublicId '{space.PublicId}' not found");
@@ -150,8 +151,8 @@ public class SpaceRepositoryAdapter(
         entity.IsAdultOnly = space.IsAdultOnly;
         entity.AllowsAdultContent = space.AllowsAdultContent;
 
-        await databaseRepository.UpdateAsync(entity);
-        await databaseRepository.SaveChangesAsync();
+        await databaseRepository.UpdateAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
     }
 
     private record SpaceProjection(

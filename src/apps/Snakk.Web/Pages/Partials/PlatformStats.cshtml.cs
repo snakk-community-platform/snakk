@@ -12,8 +12,9 @@ public class PlatformStatsModel(
     public int ReplyCount { get; set; }
     public string CacheSource { get; set; } = "unknown";
 
-    public async Task OnGetAsync(string scopeType, string scopeId)
+    public async Task OnGetAsync(string scopeType, string scopeId, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=10";
 
         if (scopeType == "community")

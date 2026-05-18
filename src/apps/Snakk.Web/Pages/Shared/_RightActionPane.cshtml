@@ -52,15 +52,17 @@
             {
                 <div class="dropdown dropdown-end">
                     <button tabindex="0" class="btn btn-outline btn-sm" aria-label="@T.Actions.Share"
+                            hx-boost="false"
                             hx-get="/partials/share-menu?url=@shareUrlEsc&title=@shareTitleEsc&isPublic=@(shareIsPublic ? "true" : "false")"
                             hx-trigger="click once"
-                            hx-target="next ul"
+                            hx-target="#share-menu-list"
                             hx-swap="innerHTML">
                         <span class="icon icon-share w-3.5 h-3.5" aria-hidden="true"></span>
                         <span>@T.Actions.Share</span>
                     </button>
-                    <ul tabindex="0"
+                    <ul id="share-menu-list" tabindex="0"
                         class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-56 z-200">
+                        <li><span class="text-sm opacity-40 px-2">...</span></li>
                     </ul>
                 </div>
             }

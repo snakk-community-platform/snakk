@@ -50,8 +50,9 @@ public class DetailModel(
     public SidebarSpaceRulesVM? InlineSpaceRules { get; set; }
     public SidebarModeratorsVM? InlineModerators { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(string hubSlug, string slug, int offset = 0)
+    public async Task<IActionResult> OnGetAsync(string hubSlug, string slug, int offset = 0, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         HubSlug = hubSlug;
         Slug = slug;
 

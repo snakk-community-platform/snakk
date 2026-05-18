@@ -7,22 +7,22 @@ using Snakk.Infrastructure.Database.Entities;
 public class AchievementRepository(SnakkDbContext context)
     : GenericDatabaseRepository<AchievementDatabaseEntity>(context), IAchievementRepository
 {
-    public override async Task<AchievementDatabaseEntity?> GetByIdAsync(int id) =>
-        await _dbSet.FirstOrDefaultAsync(a => a.Id == id);
+    public override async Task<AchievementDatabaseEntity?> GetByIdAsync(int id, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(a => a.Id == id, ct);
 
-    public async Task<AchievementDatabaseEntity?> GetByPublicIdAsync(string publicId) =>
-        await _dbSet.FirstOrDefaultAsync(a => a.PublicId == publicId);
+    public async Task<AchievementDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(a => a.PublicId == publicId, ct);
 
-    public async Task<AchievementDatabaseEntity?> GetBySlugAsync(string slug) =>
-        await _dbSet.FirstOrDefaultAsync(a => a.Slug == slug);
+    public async Task<AchievementDatabaseEntity?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
+        await _dbSet.FirstOrDefaultAsync(a => a.Slug == slug, ct);
 
-    public async Task<IEnumerable<AchievementDatabaseEntity>> GetAllActiveAsync() => await _dbSet
+    public async Task<IEnumerable<AchievementDatabaseEntity>> GetAllActiveAsync(CancellationToken ct = default) => await _dbSet
         .Where(a => a.IsActive)
         .OrderBy(a => a.DisplayOrder)
-        .ToListAsync();
+        .ToListAsync(ct);
 
-    public async Task<IEnumerable<AchievementDatabaseEntity>> GetByCategoryIdAsync(int categoryId) => await _dbSet
+    public async Task<IEnumerable<AchievementDatabaseEntity>> GetByCategoryIdAsync(int categoryId, CancellationToken ct = default) => await _dbSet
         .Where(a => a.CategoryId == categoryId && a.IsActive)
         .OrderBy(a => a.DisplayOrder)
-        .ToListAsync();
+        .ToListAsync(ct);
 }

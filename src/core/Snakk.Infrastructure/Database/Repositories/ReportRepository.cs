@@ -10,11 +10,11 @@ using Snakk.Shared.Models;
 public class ReportRepository(SnakkDbContext context)
     : GenericDatabaseRepository<ReportDatabaseEntity>(context), IReportRepository
 {
-    public async Task<ReportDatabaseEntity?> GetByPublicIdAsync(string publicId) => await _dbSet
+    public async Task<ReportDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .Include(r => r.Reason)
-        .FirstOrDefaultAsync(r => r.PublicId == publicId);
+        .FirstOrDefaultAsync(r => r.PublicId == publicId, ct);
 
-    public async Task<ReportDatabaseEntity?> GetByPublicIdWithCommentsAsync(string publicId) => await _dbSet
+    public async Task<ReportDatabaseEntity?> GetByPublicIdWithCommentsAsync(string publicId, CancellationToken ct = default) => await _dbSet
         .Include(r => r.ReporterUser)
         .Include(r => r.ReportedPost)
         .Include(r => r.ReportedDiscussion)
@@ -26,27 +26,29 @@ public class ReportRepository(SnakkDbContext context)
         .Include(r => r.Community)
         .Include(r => r.Comments.Where(c => !c.IsDeleted))
             .ThenInclude(c => c.AuthorUser)
-        .FirstOrDefaultAsync(r => r.PublicId == publicId);
+        .FirstOrDefaultAsync(r => r.PublicId == publicId, ct);
 
     public async Task<PagedResult<ReportListDto>> GetReportsForCommunityAsync(
         int communityId,
         int? statusId,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
         var query = _dbSet.Where(r => r.CommunityId == communityId);
 
         if (statusId.HasValue)
             query = query.Where(r => r.StatusId == statusId.Value);
 
-        return await GetPagedReportsAsync(query, offset, pageSize);
+        return await GetPagedReportsAsync(query, offset, pageSize, ct);
     }
 
     public async Task<PagedResult<ReportListDto>> GetReportsForHubAsync(
         int hubId,
         int? statusId,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
         // Hub mods see reports for their hub AND all spaces within the hub
         var query = _dbSet
@@ -57,31 +59,32 @@ public class ReportRepository(SnakkDbContext context)
         if (statusId.HasValue)
             query = query.Where(r => r.StatusId == statusId.Value);
 
-        return await GetPagedReportsAsync(query, offset, pageSize);
+        return await GetPagedReportsAsync(query, offset, pageSize, ct);
     }
 
     public async Task<PagedResult<ReportListDto>> GetReportsForSpaceAsync(
         int spaceId,
         int? statusId,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
         var query = _dbSet.Where(r => r.SpaceId == spaceId);
 
         if (statusId.HasValue)
             query = query.Where(r => r.StatusId == statusId.Value);
 
-        return await GetPagedReportsAsync(query, offset, pageSize);
+        return await GetPagedReportsAsync(query, offset, pageSize, ct);
     }
 
-    public async Task<int> GetPendingReportCountForModeratorAsync(int userId)
+    public async Task<int> GetPendingReportCountForModeratorAsync(int userId, CancellationToken ct = default)
     {
         // Get user's active roles to determine their scope
         var userRoles = await _context.UserRoles
             .Where(ur =>
                 ur.UserId == userId
                 && ur.RevokedAt == null)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         if (userRoles.Count == 0)
             return 0;
@@ -91,7 +94,7 @@ public class ReportRepository(SnakkDbContext context)
 
         // Check for global admin first (sees everything)
         if (userRoles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin))
-            return await query.CountAsync();
+            return await query.CountAsync(ct);
 
         // Collect scope IDs from all roles
         var communityIds = new HashSet<int>();
@@ -114,25 +117,27 @@ public class ReportRepository(SnakkDbContext context)
         return await query.CountAsync(r =>
             (communityIds.Count > 0 && r.CommunityId.HasValue && communityIds.Contains(r.CommunityId.Value))
             || (hubIds.Count > 0 && (hubIds.Contains(r.HubId ?? 0) || (r.SpaceId != null && hubIds.Contains(r.Space!.HubId))))
-            || (spaceIds.Count > 0 && r.SpaceId.HasValue && spaceIds.Contains(r.SpaceId.Value)));
+            || (spaceIds.Count > 0 && r.SpaceId.HasValue && spaceIds.Contains(r.SpaceId.Value)), ct);
     }
 
     public async Task<PagedResult<ReportListDto>> GetReportsResolvedByUserAsync(
         int userId,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
         var query = _dbSet.Where(r => r.ResolvedByUserId == userId);
 
-        return await GetPagedReportsAsync(query, offset, pageSize);
+        return await GetPagedReportsAsync(query, offset, pageSize, ct);
     }
 
     private async Task<PagedResult<ReportListDto>> GetPagedReportsAsync(
         IQueryable<ReportDatabaseEntity> query,
         int offset,
-        int pageSize)
+        int pageSize,
+        CancellationToken ct = default)
     {
-        var totalCount = await query.CountAsync();
+        var totalCount = await query.CountAsync(ct);
 
         var items = await query
             .OrderByDescending(r => r.CreatedAt)
@@ -167,7 +172,7 @@ public class ReportRepository(SnakkDbContext context)
                 r.Community != null ? r.Community.PublicId : null,
                 r.Community != null ? r.Community.Name : null,
                 r.Comments.Count(c => !c.IsDeleted)))
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return new PagedResult<ReportListDto>
         {

@@ -14,8 +14,9 @@ public static class RealtimeTokenEndpoints
             .RequireAuthorization();
     }
 
-    private static async Task<IResult> GetRealtimeToken(HttpContext context, IConfiguration configuration, SnakkApiClient apiClient)
+    private static async Task<IResult> GetRealtimeToken(HttpContext context, IConfiguration configuration, SnakkApiClient apiClient, CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (string.IsNullOrEmpty(userId))

@@ -348,7 +348,8 @@ public static class ModerationEndpoints
         string postId,
         ModerationActionRequest request,
         HttpContext httpContext,
-        ModerationUseCase moderationUseCase)
+        ModerationUseCase moderationUseCase,
+        CancellationToken ct)
     {
         var moderatorUserId = GetUserId(httpContext);
 
@@ -356,7 +357,7 @@ public static class ModerationEndpoints
             return Results.Unauthorized();
 
         var result = await moderationUseCase.ModeratorDeletePostAsync(
-            postId, moderatorUserId, request.Reason);
+            postId, moderatorUserId, request.Reason, ct);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
@@ -368,7 +369,8 @@ public static class ModerationEndpoints
         string discussionId,
         ModerationActionRequest request,
         HttpContext httpContext,
-        ModerationUseCase moderationUseCase)
+        ModerationUseCase moderationUseCase,
+        CancellationToken ct)
     {
         var moderatorUserId = GetUserId(httpContext);
 
@@ -376,7 +378,7 @@ public static class ModerationEndpoints
             return Results.Unauthorized();
 
         var result = await moderationUseCase.ModeratorDeleteDiscussionAsync(
-            discussionId, moderatorUserId, request.Reason);
+            discussionId, moderatorUserId, request.Reason, ct);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
@@ -388,7 +390,8 @@ public static class ModerationEndpoints
         string discussionId,
         ModerationActionRequest request,
         HttpContext httpContext,
-        ModerationUseCase moderationUseCase)
+        ModerationUseCase moderationUseCase,
+        CancellationToken ct)
     {
         var moderatorUserId = GetUserId(httpContext);
 
@@ -396,7 +399,7 @@ public static class ModerationEndpoints
             return Results.Unauthorized();
 
         var result = await moderationUseCase.LockDiscussionAsync(
-            discussionId, moderatorUserId, request.Reason);
+            discussionId, moderatorUserId, request.Reason, ct);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
@@ -407,7 +410,8 @@ public static class ModerationEndpoints
     private static async Task<IResult> UnlockDiscussionAsync(
         string discussionId,
         HttpContext httpContext,
-        ModerationUseCase moderationUseCase)
+        ModerationUseCase moderationUseCase,
+        CancellationToken ct)
     {
         var moderatorUserId = GetUserId(httpContext);
 
@@ -415,7 +419,7 @@ public static class ModerationEndpoints
             return Results.Unauthorized();
 
         var result = await moderationUseCase.UnlockDiscussionAsync(
-            discussionId, moderatorUserId);
+            discussionId, moderatorUserId, ct);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });

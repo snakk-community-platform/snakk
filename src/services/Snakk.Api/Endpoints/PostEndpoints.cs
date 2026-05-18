@@ -128,14 +128,15 @@ public static class PostEndpoints
         PostUseCase useCase,
         IUserRepository userRepository,
         Snakk.Api.Services.IViewRenderingService viewService,
-        SnakkDbContext dbContext)
+        SnakkDbContext dbContext,
+        CancellationToken ct)
     {
         var isRestricted = await dbContext.Posts
             .Where(p => p.PublicId == publicId && !p.IsDeleted)
             .Select(p => (bool?)(p.Discussion.Space.IsRestricted
                 || p.Discussion.Space.Hub.IsRestricted
                 || p.Discussion.Space.Hub.Community.IsRestricted))
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(ct);
 
         if (isRestricted is null) return Results.NotFound();
         if (isRestricted.Value) return Results.Forbid();
@@ -152,7 +153,7 @@ public static class PostEndpoints
             .Distinct()
             .ToList();
 
-        var editors = await userRepository.GetByPublicIdsAsync(editorIds);
+        var editors = await userRepository.GetByPublicIdsAsync(editorIds, ct);
         var authorNames = editors.ToDictionary(
             u => u.PublicId.Value,
             u => u.DisplayName ?? "");
