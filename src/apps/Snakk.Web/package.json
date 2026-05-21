@@ -41,7 +41,7 @@
     "@types/node": "^25.9.1",
     "concurrently": "^9.2.1",
     "daisyui": "^5.5.20",
-    "dompurify": "^3.4.3",
+    "dompurify": "^3.4.5",
     "esbuild": "^0.28.0",
     "htmx.org": "^2.0.10",
     "sass": "^1.99.0",
