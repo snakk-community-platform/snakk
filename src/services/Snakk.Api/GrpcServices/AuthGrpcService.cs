@@ -1,5 +1,7 @@
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Snakk.Api.Endpoints;
 using Snakk.Api.Helpers;
 using Snakk.Api.Services;
 using Snakk.Application.Repositories;
@@ -11,6 +13,7 @@ using Snakk.Infrastructure.Database;
 using Snakk.Protos.Auth;
 using Snakk.Shared.Enums;
 using Snakk.Shared.Helpers;
+using System.Security.Cryptography;
 
 namespace Snakk.Api.GrpcServices;
 
@@ -25,7 +28,11 @@ public class AuthGrpcService(
     IDisplayNameHistoryRepository displayNameHistoryRepository,
     ITurnstileService turnstileService,
     IConsentService consentService,
-    IUserRepository userRepository) : AuthService.AuthServiceBase
+    IUserRepository userRepository,
+    ITrustedDeviceService trustedDeviceService,
+    IConfiguration configuration,
+    ISessionManagementService sessionManagement,
+    IMemoryCache cache) : AuthService.AuthServiceBase
 {
     public override async Task<AuthTokenResponse> Register(RegisterRequest request, ServerCallContext context)
     {
@@ -92,22 +99,55 @@ public class AuthGrpcService(
         var user = result.Value!;
         var roles = await GetUserRolesAsync(user.PublicId.Value);
 
-        // Check if 2FA is enabled — domain entity doesn't have this, so query DB
-        var has2FA = await context.Users
-            .Where(u => u.PublicId == user.PublicId.Value)
-            .Select(u => u.TwoFactorEnabled)
+        if (configuration.GetValue<bool>("Features:TwoFactorEnabled", true))
+        {
+            // Check if 2FA is enabled — domain entity doesn't have this, so query DB
+            var has2FA = await context.Users
+                .Where(u => u.PublicId == user.PublicId.Value)
+                .Select(u => u.TwoFactorEnabled)
+                .FirstOrDefaultAsync();
+
+            if (has2FA)
+            {
+                var fingerprint = trustedDeviceService.GenerateDeviceFingerprint(request.UserAgent, request.IpAddress);
+                var isTrusted = await trustedDeviceService.IsDeviceTrustedAsync(user.PublicId, fingerprint, ctx.CancellationToken);
+
+                if (!isTrusted)
+                {
+                    logger.LogInformation("Login requires 2FA for {UserId} from {Ip}", user.PublicId.Value, request.IpAddress);
+                    return new AuthTokenResponse
+                    {
+                        TwoFactorRequired = true,
+                        Message = "Two-factor authentication required",
+                        User = BuildUserInfo(user, roles)
+                    };
+                }
+
+                logger.LogInformation("Trusted device bypassing 2FA for {UserId} from {Ip}", user.PublicId.Value, request.IpAddress);
+            }
+        }
+
+        var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
+
+        if (!refreshTokenResult.IsSuccess)
+            throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
+
+        // Store device info on the refresh token and retrieve session PublicId
+        var rawToken = refreshTokenResult.Value!.Value;
+        var tokenHash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(rawToken)));
+        var ipAddress = string.IsNullOrEmpty(request.IpAddress) ? null : request.IpAddress;
+        var userAgent = string.IsNullOrEmpty(request.UserAgent) ? null : request.UserAgent;
+
+        var sessionPublicId = await context.RefreshTokens
+            .Where(t => t.TokenValue == tokenHash)
+            .Select(t => t.PublicId)
             .FirstOrDefaultAsync();
 
-        if (has2FA)
-        {
-            logger.LogInformation("Login requires 2FA for {UserId} from {Ip}", user.PublicId.Value, request.IpAddress);
-            return new AuthTokenResponse
-            {
-                TwoFactorRequired = true,
-                Message = "Two-factor authentication required",
-                User = BuildUserInfo(user, roles)
-            };
-        }
+        await context.RefreshTokens
+            .Where(t => t.TokenValue == tokenHash)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(t => t.IpAddress, ipAddress)
+                .SetProperty(t => t.UserAgent, userAgent));
 
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,
@@ -117,21 +157,19 @@ public class AuthGrpcService(
             user.OAuthProvider,
             roles.FirstOrDefault(),
             user.AvatarFileName,
-            authVersion: user.AuthVersion);
-
-        var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
-
-        if (!refreshTokenResult.IsSuccess)
-            throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
+            authVersion: user.AuthVersion,
+            sessionId: sessionPublicId);
 
         logger.LogInformation("Login succeeded for {UserId} from {Ip}", user.PublicId.Value, request.IpAddress);
+
+        await sessionManagement.LogLoginAsync(user.PublicId.Value, ipAddress, userAgent, success: true, ctx.CancellationToken);
 
         await grantsCache.GetGrantsAsync(user.PublicId.Value);
 
         return new AuthTokenResponse
         {
             AccessToken = jwt,
-            RefreshToken = refreshTokenResult.Value!.Value,
+            RefreshToken = rawToken,
             User = BuildUserInfo(user, roles)
         };
     }
@@ -160,6 +198,13 @@ public class AuthGrpcService(
         var (user, newRefreshToken) = result.Value;
         var roles = await GetUserRolesAsync(user.PublicId.Value);
 
+        var newRawToken = newRefreshToken.Value;
+        var newTokenHash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(newRawToken)));
+        var newSessionPublicId = await context.RefreshTokens
+            .Where(t => t.TokenValue == newTokenHash)
+            .Select(t => t.PublicId)
+            .FirstOrDefaultAsync();
+
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,
             user.DisplayName,
@@ -168,7 +213,8 @@ public class AuthGrpcService(
             user.OAuthProvider,
             roles.FirstOrDefault(),
             user.AvatarFileName,
-            authVersion: user.AuthVersion);
+            authVersion: user.AuthVersion,
+            sessionId: newSessionPublicId);
 
         var needsConsent = !await consentService.HasAllRequiredConsentsAsync(user.PublicId.Value);
 
@@ -268,11 +314,14 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         var userId = UserId.From(userIdValue);
+        var sudoVerified = request.HasSudoToken &&
+            MeEndpoints.ValidateSudoToken(request.SudoToken, userIdValue, cache);
         var result = await authUseCase.UpdateDisplayNameAsync(
             userId,
             request.DisplayName,
             request.HasPassword ? request.Password : null,
-            request.HasTurnstileToken ? request.TurnstileToken : null);
+            request.HasTurnstileToken ? request.TurnstileToken : null,
+            sudoVerified);
 
         if (!result.IsSuccess)
             return new UpdateProfileResponse { Success = false, Message = result.Error ?? "Update failed" };
@@ -367,21 +416,24 @@ public class AuthGrpcService(
         var roles = await GetUserRolesAsync(user.PublicId.Value);
         var isNewUser = (DateTime.UtcNow - user.CreatedAt).TotalSeconds < 30;
 
-        // Check if 2FA is enabled
-        var has2FA = await context.Users
-            .Where(u => u.PublicId == user.PublicId.Value)
-            .Select(u => u.TwoFactorEnabled)
-            .FirstOrDefaultAsync();
-
-        if (has2FA)
+        if (configuration.GetValue<bool>("Features:TwoFactorEnabled", true))
         {
-            logger.LogInformation("OAuth login requires 2FA for {Email} from {Ip}", request.Email, request.IpAddress);
-            return new OAuthCallbackResponse
+            // Check if 2FA is enabled
+            var has2FA = await context.Users
+                .Where(u => u.PublicId == user.PublicId.Value)
+                .Select(u => u.TwoFactorEnabled)
+                .FirstOrDefaultAsync();
+
+            if (has2FA)
             {
-                TwoFactorRequired = true,
-                IsNewUser = isNewUser,
-                User = BuildUserInfo(user, roles)
-            };
+                logger.LogInformation("OAuth login requires 2FA for {Email} from {Ip}", request.Email, request.IpAddress);
+                return new OAuthCallbackResponse
+                {
+                    TwoFactorRequired = true,
+                    IsNewUser = isNewUser,
+                    User = BuildUserInfo(user, roles)
+                };
+            }
         }
 
         var jwt = jwtService.GenerateToken(

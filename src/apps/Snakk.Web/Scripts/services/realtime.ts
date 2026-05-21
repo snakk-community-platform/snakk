@@ -923,6 +923,14 @@ interface Subscriptions {
             } else if (connection?.state === signalR.HubConnectionState.Connected) {
                 connection.invoke('StopTyping', discussionId).catch(() => {});
             }
+        },
+        reconnect(): void {
+            cachedToken = null;
+            if (worker) {
+                worker.port.postMessage({ type: 'reconnect' });
+            } else if (connection) {
+                connection.stop().finally(() => startDirectConnection());
+            }
         }
     };
 

@@ -373,7 +373,25 @@ class SnakkPopup {
 
         const popup = this.getPopup();
 
-        // Set initial content
+        // Render off-screen while fetching so we can measure final dimensions before revealing.
+        // This prevents the popup from visibly jumping as content loads and the size changes.
+        popup.classList.remove('snakk-popup--ready');
+        popup.style.visibility = 'hidden';
+        popup.style.display = 'block';
+
+        // Use caller's signal (entity-link flow) or create a fresh one
+        if (!signal) {
+            const controller = new AbortController();
+            this.fetchAbortController = controller;
+            signal = controller.signal;
+        }
+
+        const stats = await this.fetchStats(type, publicId, signal);
+
+        // Guard: if trigger changed while awaiting (e.g. mouse moved away), bail out
+        if (this.currentTrigger !== triggerEl) return;
+
+        // Populate all content with final data before measuring/positioning
         const avatarSkeleton = popup.querySelector('.snakk-popup-avatar-skeleton') as HTMLElement;
         const avatarImg = popup.querySelector('.snakk-popup-avatar') as HTMLImageElement;
         const nameEl = popup.querySelector('.snakk-popup-name') as HTMLElement;
@@ -383,65 +401,34 @@ class SnakkPopup {
         const statsContainer = popup.querySelector('.snakk-popup-stats') as HTMLElement;
         const gotoLink = popup.querySelector('.snakk-popup-goto') as HTMLAnchorElement;
 
-        // Set loading state — show skeletons, hide real content
-        if (avatarSkeleton) avatarSkeleton.style.display = 'block';
-        if (avatarImg) avatarImg.style.display = 'none';
-        if (nameEl) nameEl.textContent = name;
-        if (typeEl) typeEl.textContent = this.getTypeDisplayName(type);
-        if (descriptionEl) descriptionEl.textContent = '';
-        if (statsContainer) statsContainer.replaceChildren();
-        if (gotoLink) gotoLink.style.display = 'none';
-        if (statsSkeleton) statsSkeleton.style.display = 'block';
-        const bannerElLoading = popup.querySelector('.snakk-popup-banner') as HTMLElement;
-        if (bannerElLoading) bannerElLoading.style.removeProperty('background');
-
-        // Show popup
-        popup.style.display = 'block';
-        this.positionPopup(popup, triggerEl);
-
-        // Use caller's signal (entity-link flow) or create a fresh one
-        if (!signal) {
-            const controller = new AbortController();
-            this.fetchAbortController = controller;
-            signal = controller.signal;
-        }
-
-        // Fetch and display stats
-        const stats = await this.fetchStats(type, publicId, signal);
-
-        // Guard: if popup was hidden while awaiting (e.g. navigation), bail out
-        if (this.currentTrigger !== triggerEl) return;
-
-        // Hide skeletons
         if (statsSkeleton) statsSkeleton.style.display = 'none';
-
-        // Update avatar from API response (includes correct sharded URL)
         if (avatarSkeleton) avatarSkeleton.style.display = 'none';
+
         const popupAvatarUrl = stats?.avatarThumbnailUrl || stats?.avatarUrl;
         if (stats && popupAvatarUrl && avatarImg) {
             avatarImg.src = popupAvatarUrl;
             avatarImg.style.display = 'block';
+        } else if (avatarImg) {
+            avatarImg.style.display = 'none';
         }
 
-        // Apply gradient banner
+        if (nameEl) nameEl.textContent = stats?.name || stats?.displayName || stats?.title || name;
+        if (typeEl) typeEl.textContent = this.getTypeDisplayName(type);
+
         const bannerEl = popup.querySelector('.snakk-popup-banner') as HTMLElement;
-        if (bannerEl && stats?.gradientCss) {
-            bannerEl.style.background = stats.gradientCss;
+        if (bannerEl) {
+            if (stats?.gradientCss) {
+                bannerEl.style.background = stats.gradientCss;
+            } else {
+                bannerEl.style.removeProperty('background');
+            }
         }
 
-        // Update name from API if available
-        if (stats && (stats.name || stats.displayName || stats.title)) {
-            if (nameEl) nameEl.textContent = stats.name || stats.displayName || stats.title || name;
-        }
-
-        // Populate description
-        const descText = stats?.description || stats?.bio || '';
-        if (descriptionEl) descriptionEl.textContent = descText;
+        if (descriptionEl) descriptionEl.textContent = stats?.description || stats?.bio || '';
 
         const statsElements = this.buildStatsElements(type, stats);
         if (statsContainer) statsContainer.replaceChildren(statsElements);
 
-        // Append sparkline as a stat box inside the grid
         const sparklineTypes = new Set(['space', 'hub', 'community', 'discussion', 'user']);
         if (sparklineTypes.has(type)) {
             const grid = statsContainer?.querySelector('.snakk-popup-stats-grid');
@@ -469,7 +456,6 @@ class SnakkPopup {
             }
         }
 
-        // Populate "Go to" link
         if (gotoLink) {
             const href = triggerEl.getAttribute('href');
             const displayName = (stats?.name || stats?.displayName || stats?.title || name).trim();
@@ -477,11 +463,18 @@ class SnakkPopup {
                 gotoLink.href = href;
                 gotoLink.textContent = `Go to ${this.getTypeDisplayName(type)}: ${displayName}`;
                 gotoLink.style.display = '';
+            } else {
+                gotoLink.style.display = 'none';
             }
         }
 
-        // Reposition after content loads (size may have changed)
+        // Position once against final dimensions, then reveal with animation.
+        // Force a reflow between the class removal (above) and addition so the
+        // browser treats them as separate frames and replays the animation.
         this.positionPopup(popup, triggerEl);
+        void popup.offsetHeight;
+        popup.style.visibility = '';
+        popup.classList.add('snakk-popup--ready');
     }
 
     /**
@@ -776,5 +769,120 @@ document.addEventListener('pointerdown', (e: Event) => {
         menu.appendChild(li);
     }
 });
+
+// --- Registration nudge: passkey login ---
+function initNudgePasskey(): void {
+    const btn = document.querySelector<HTMLButtonElement>('[data-nudge-passkey]');
+    if (!btn || btn.dataset['nudgePasskeyInit'] || !window.PublicKeyCredential) return;
+    btn.dataset['nudgePasskeyInit'] = '1';
+    btn.style.display = '';
+    const divider = document.getElementById('nudge-alt-divider');
+    if (divider) divider.style.display = '';
+
+    const errorEl = document.getElementById('nudge-passkey-error');
+    const returnUrl = btn.dataset['returnUrl'] || '/';
+
+    function b64urlToBuffer(s: string): ArrayBuffer {
+        const base64 = s.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
+        const binary = atob(padded);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return bytes.buffer;
+    }
+
+    function bufToB64url(buf: ArrayBuffer): string {
+        const bytes = new Uint8Array(buf);
+        let binary = '';
+        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]!);
+        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    function prepareOptions(optionsJson: string): PublicKeyCredentialRequestOptions {
+        const raw = JSON.parse(optionsJson) as {
+            challenge: string;
+            allowCredentials?: Array<{ id: string; type: string; transports?: AuthenticatorTransport[] }>;
+            timeout?: number;
+            userVerification?: UserVerificationRequirement;
+            rpId?: string;
+        };
+        return {
+            challenge: b64urlToBuffer(raw.challenge),
+            allowCredentials: raw.allowCredentials?.map(c => ({
+                id: b64urlToBuffer(c.id),
+                type: c.type as PublicKeyCredentialType,
+                transports: c.transports
+            })),
+            timeout: raw.timeout,
+            userVerification: raw.userVerification ?? 'required',
+            rpId: raw.rpId
+        };
+    }
+
+    function serializeAssertion(cred: PublicKeyCredential): string {
+        const resp = cred.response as AuthenticatorAssertionResponse;
+        return JSON.stringify({
+            id: cred.id,
+            rawId: bufToB64url(cred.rawId),
+            type: cred.type,
+            response: {
+                authenticatorData: bufToB64url(resp.authenticatorData),
+                clientDataJSON:    bufToB64url(resp.clientDataJSON),
+                signature:         bufToB64url(resp.signature),
+                userHandle:        resp.userHandle ? bufToB64url(resp.userHandle) : null
+            }
+        });
+    }
+
+    btn.addEventListener('click', () => {
+        btn.disabled = true;
+        if (errorEl) { errorEl.textContent = ''; errorEl.classList.add('hidden'); }
+
+        fetch('/auth/passkey/begin-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: null })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('Could not start passkey login');
+            return res.json() as Promise<{ optionsJson: string; challengeId: string }>;
+        })
+        .then(data => navigator.credentials.get({ publicKey: prepareOptions(data.optionsJson) })
+            .then(cred => fetch('/auth/passkey/complete-login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    challengeId: data.challengeId,
+                    assertionResponseJson: serializeAssertion(cred as PublicKeyCredential),
+                    returnUrl
+                })
+            }))
+        )
+        .then(res => {
+            if (!res.ok) return (res.json().catch(() => ({})) as Promise<any>).then((e: any) => { throw new Error(e.error || 'Passkey login failed'); });
+            return res.json() as Promise<{ twoFactorRequired?: boolean; email?: string; redirectUrl?: string }>;
+        })
+        .then(data => {
+            if (data.twoFactorRequired) {
+                window.location.href = '/auth/twofactorverify?email='
+                    + encodeURIComponent(data.email || '')
+                    + '&returnUrl=' + encodeURIComponent(returnUrl);
+                return;
+            }
+            window.location.href = data.redirectUrl || returnUrl;
+        })
+        .catch((err: unknown) => {
+            btn.disabled = false;
+            if (err instanceof Error && err.name === 'NotAllowedError') return;
+            if (errorEl) {
+                errorEl.textContent = err instanceof Error ? err.message : 'Passkey login failed. Please try again.';
+                errorEl.classList.remove('hidden');
+            }
+        });
+    });
+}
+
+initNudgePasskey();
+document.addEventListener('htmx:afterSettle', () => initNudgePasskey());
 
 })();

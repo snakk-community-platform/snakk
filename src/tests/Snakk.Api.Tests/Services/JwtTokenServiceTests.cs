@@ -1,6 +1,7 @@
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using NSubstitute;
 using Snakk.Api.Services;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -35,7 +36,7 @@ public class JwtTokenServiceTests
             .AddInMemoryCollection(configEntries)
             .Build();
 
-        return new JwtTokenService(config, new MemoryCache(new MemoryCacheOptions()));
+        return new JwtTokenService(config, Substitute.For<IDistributedCache>());
     }
 
     [Test]
@@ -144,7 +145,7 @@ public class JwtTokenServiceTests
             })
             .Build();
 
-        var service = new JwtTokenService(config, new MemoryCache(new MemoryCacheOptions()));
+        var service = new JwtTokenService(config, Substitute.For<IDistributedCache>());
         var token = service.GenerateToken("user1", "User One", "user@test.com", true, null);
 
         var principal = service.ValidateToken(token);
@@ -183,7 +184,7 @@ public class JwtTokenServiceTests
             })
             .Build();
 
-        await Assert.That(() => new JwtTokenService(config, new MemoryCache(new MemoryCacheOptions())))
+        await Assert.That(() => new JwtTokenService(config, Substitute.For<IDistributedCache>()))
             .Throws<InvalidOperationException>();
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.DependencyInjection;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Services;
@@ -9,7 +10,8 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class EntityHierarchyCacheServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly IMemoryCache _cache;
+    private readonly ServiceProvider _serviceProvider;
+    private readonly HybridCache _cache;
     private readonly EntityHierarchyCacheService _service;
 
     public EntityHierarchyCacheServiceTests()
@@ -18,7 +20,10 @@ public class EntityHierarchyCacheServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"EntityHierarchyCacheTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _cache = new MemoryCache(new MemoryCacheOptions());
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddHybridCache();
+        _serviceProvider = serviceCollection.BuildServiceProvider();
+        _cache = _serviceProvider.GetRequiredService<HybridCache>();
         _service = new EntityHierarchyCacheService(_context, _cache);
     }
 
@@ -26,7 +31,7 @@ public class EntityHierarchyCacheServiceTests : IDisposable
     {
         _context.Database.EnsureDeleted();
         _context.Dispose();
-        _cache.Dispose();
+        _serviceProvider.Dispose();
     }
 
     private async Task<(CommunityDatabaseEntity community, HubDatabaseEntity hub, SpaceDatabaseEntity space, DiscussionDatabaseEntity discussion)> SetupHierarchy(

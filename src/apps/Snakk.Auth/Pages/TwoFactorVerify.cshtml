@@ -28,20 +28,33 @@
                 <div class="auth-alert-error mb-6">@Model.ErrorMessage</div>
             }
 
-            <form method="post" class="space-y-4">
+            <form method="post" id="totp-form" class="space-y-4">
                 <input type="hidden" name="Email" value="@Model.Email" />
                 <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+                <input type="hidden" asp-for="Input.Code" id="totp-code-hidden" />
 
-                <div>
-                    <label class="auth-label" asp-for="Input.Code">Authentication Code</label>
-                    <input asp-for="Input.Code"
-                           type="text"
+                <div id="totp-digit-section">
+                    <div class="flex gap-2 justify-center">
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code"
+                               class="totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" autofocus />
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                               class="totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                               class="totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                               class="totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                               class="totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                        <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                               class="totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                    </div>
+                </div>
+
+                <div id="backup-code-section" style="display:none">
+                    <input type="text" id="backup-code-input"
                            class="auth-input text-center text-lg tracking-widest"
-                           placeholder="000 000"
-                           autofocus
-                           autocomplete="one-time-code"
-                           inputmode="numeric" />
-                    <span asp-validation-for="Input.Code" class="text-error text-xs mt-1 block"></span>
+                           placeholder="xxxx-xxxx"
+                           autocomplete="off" />
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -51,13 +64,15 @@
                     </label>
                 </div>
 
-                <button type="submit" class="auth-btn-primary">
+                <button type="submit" id="totp-submit-btn" class="auth-btn-primary">
                     Verify
                 </button>
             </form>
 
-            <p class="text-center mt-6 text-xs text-base-content/40">
-                You can also enter a backup code in the field above.
+            <p class="text-center mt-4">
+                <button type="button" id="toggle-backup-btn" class="text-xs text-base-content/40 underline hover:text-base-content/60">
+                    Use a backup code instead
+                </button>
             </p>
 
             <p class="text-center mt-2 text-sm text-base-content/50">
@@ -69,4 +84,98 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+    (function () {
+        'use strict';
+
+        var autoSubmit = @(string.IsNullOrEmpty(Model.ErrorMessage) ? "true" : "false");
+
+        var form    = document.getElementById('totp-form');
+        var hidden  = document.getElementById('totp-code-hidden');
+        var digits  = Array.from(document.querySelectorAll('.totp-digit'));
+        var digitSection  = document.getElementById('totp-digit-section');
+        var backupSection = document.getElementById('backup-code-section');
+        var backupInput   = document.getElementById('backup-code-input');
+        var toggleBtn     = document.getElementById('toggle-backup-btn');
+
+        var inBackupMode = false;
+
+        function getDigitValue() {
+            return digits.map(function (d) { return d.value; }).join('');
+        }
+
+        function allFilled() {
+            return digits.every(function (d) { return d.value.length === 1; });
+        }
+
+        function tryAutoSubmit() {
+            if (autoSubmit && allFilled()) {
+                autoSubmit = false;
+                hidden.value = getDigitValue();
+                form.submit();
+            }
+        }
+
+        digits.forEach(function (input, i) {
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Backspace' && !input.value && i > 0) {
+                    digits[i - 1].value = '';
+                    digits[i - 1].focus();
+                    e.preventDefault();
+                    return;
+                }
+                if (!/^\d$/.test(e.key) && !['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                    e.preventDefault();
+                }
+            });
+
+            input.addEventListener('input', function () {
+                input.value = input.value.replace(/\D/g, '').slice(0, 1);
+                if (input.value && i < digits.length - 1) {
+                    digits[i + 1].focus();
+                }
+                tryAutoSubmit();
+            });
+
+            input.addEventListener('paste', function (e) {
+                e.preventDefault();
+                var pasted = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6 - i);
+                pasted.split('').forEach(function (d, j) {
+                    if (digits[i + j]) digits[i + j].value = d;
+                });
+                var nextEmpty = digits.findIndex(function (d) { return !d.value; });
+                (digits[nextEmpty === -1 ? digits.length - 1 : nextEmpty]).focus();
+                tryAutoSubmit();
+            });
+
+            input.addEventListener('focus', function () { input.select(); });
+        });
+
+        form.addEventListener('submit', function (e) {
+            if (inBackupMode) {
+                hidden.value = backupInput.value.trim().replace(/\s/g, '');
+            } else {
+                hidden.value = getDigitValue();
+            }
+            if (!hidden.value) {
+                e.preventDefault();
+            }
+        });
+
+        toggleBtn.addEventListener('click', function () {
+            inBackupMode = !inBackupMode;
+            if (inBackupMode) {
+                digitSection.style.display = 'none';
+                backupSection.style.display = '';
+                toggleBtn.textContent = 'Use authenticator code instead';
+                backupInput.focus();
+            } else {
+                backupSection.style.display = 'none';
+                digitSection.style.display = '';
+                toggleBtn.textContent = 'Use a backup code instead';
+                digits[0].focus();
+            }
+        });
+    })();
+    </script>
 }

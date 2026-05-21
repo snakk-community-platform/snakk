@@ -1,3 +1,4 @@
+@using System.Security.Claims
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityContext
@@ -16,40 +17,116 @@
     var communityLabel = isSingleCommunity ? T.Nav.Community : T.Nav.Communities;
 }
 <nav class="sn-tabbar" aria-label="Mobile navigation">
-    <a href="/" class="sn-tabbar-item@(Active("/"))">
-        <span class="icon icon-home" aria-hidden="true"></span>
-        <span>@T.Nav.Active</span>
+    <a href="/" class="sn-tabbar-item@(Active("/"))" aria-label="@T.Nav.Active">
+        <img src="/img/logo-square-sm.webp" alt="" class="sn-tabbar-logo" />
     </a>
-    <a href="@communityHref" class="sn-tabbar-item@(Active(communityHref, prefix: true))">
+    <a href="@communityHref" class="sn-tabbar-item@(Active(communityHref, prefix: true))" aria-label="@communityLabel">
         <span class="icon icon-users-group" aria-hidden="true"></span>
-        <span>@communityLabel</span>
     </a>
     <a href="/new" class="sn-tabbar-item sn-tabbar-item--primary@(Active("/new", prefix: true))" aria-label="@T.MobileNav.Post">
         <span class="sn-tabbar-item-icon">
             <span class="icon icon-plus" aria-hidden="true"></span>
         </span>
-        <span>@T.MobileNav.Post</span>
     </a>
     @if (isAuthenticated)
     {
-        <a href="/following" class="sn-tabbar-item@(Active("/following", prefix: true))">
-            <span class="icon icon-bell" aria-hidden="true"></span>
-            <span>@T.Nav.Following</span>
-        </a>
-        <a href="/me" class="sn-tabbar-item@(Active("/me", prefix: true))">
-            <span class="icon icon-user" aria-hidden="true"></span>
-            <span>@T.MobileNav.Me</span>
-        </a>
+        var publicId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        var displayName = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        var emailVerified = User.FindFirst("EmailVerified")?.Value;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        var isModerator = !string.IsNullOrEmpty(role);
+        var isGlobalAdmin = role == "GlobalAdmin";
+        var avatarFileName = User.FindFirst("AvatarFileName")?.Value;
+        var avatarThumbnailFileName = User.FindFirst("AvatarThumbnailFileName")?.Value;
+        var avatarUrl = SnakkUrlHelper.UserAvatarThumbnail(publicId, avatarFileName: avatarFileName, avatarThumbnailFileName: avatarThumbnailFileName);
+
+        <!-- Notification bell -->
+        <div class="dropdown dropdown-top dropdown-end flex-1 flex">
+            <label tabindex="0" class="sn-tabbar-item flex-1" aria-label="@T.AuthNav.Notifications">
+                <span class="relative inline-flex">
+                    <span class="icon icon-bell" aria-hidden="true"></span>
+                    <span class="notification-badge hidden">0</span>
+                </span>
+            </label>
+            <div tabindex="0" class="dropdown-content z-1 mb-2 w-80 max-h-96 overflow-y-auto shadow-lg bg-base-100 border border-subtle rounded-lg">
+                <div class="flex items-center justify-between p-3 border-b border-subtle">
+                    <span class="font-semibold">@T.AuthNav.Notifications</span>
+                    <button data-action="mark-all-notifications-read" class="text-xs text-primary hover:underline">@T.AuthNav.MarkAllRead</button>
+                </div>
+                <div class="notification-list p-2">
+                    <p class="text-sm text-muted text-center py-4">@T.Common.Loading</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- User menu -->
+        <div class="dropdown dropdown-top dropdown-end flex-1 flex">
+            <label tabindex="0" class="sn-tabbar-item flex-1@(Active("/me", prefix: true))" aria-label="@T.MobileNav.Me">
+                <div class="avatar avatar-sm">
+                    <img src="@avatarUrl" alt="@displayName" loading="lazy" />
+                </div>
+            </label>
+            <ul tabindex="0" class="mb-2 z-1 p-2 shadow-lg menu menu-sm dropdown-content bg-base-100 border border-subtle rounded-lg w-52">
+                <li>
+                    <a href="@SnakkUrlHelper.UserProfile(publicId)" class="sn-user-menu-card"
+                       style="--user-grad: @UserGradient(publicId)">
+                        <img src="@avatarUrl" alt="@displayName" class="sn-user-menu-card-avatar" loading="lazy" />
+                        <span class="sn-user-menu-card-name">@displayName</span>
+                        @if (emailVerified != "True")
+                        {
+                            <span class="badge badge-warning badge-xs">@T.AuthNav.Unverified</span>
+                        }
+                    </a>
+                </li>
+                <li>
+                    <a href="/settings">
+                        <span class="icon icon-cog h-4 w-4" aria-hidden="true"></span>
+                        @T.Nav.Settings
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-action="toggle-theme">
+                        <span class="icon icon-moon h-4 w-4" aria-hidden="true"></span>
+                        @T.AuthNav.ToggleTheme
+                    </a>
+                </li>
+                @if (isModerator)
+                {
+                    <li><hr class="my-1 border-subtle" /></li>
+                    <li>
+                        <a href="/moderation">
+                            <span class="icon icon-shield-check h-4 w-4" aria-hidden="true"></span>
+                            @T.AuthNav.Moderation
+                        </a>
+                    </li>
+                    <li><hr class="my-1 border-subtle" /></li>
+                }
+                @if (isGlobalAdmin)
+                {
+                    <li>
+                        <a href="/admin" hx-boost="false">
+                            <span class="icon icon-cog h-4 w-4" aria-hidden="true"></span>
+                            @T.AuthNav.AdminPanel
+                        </a>
+                    </li>
+                    <li><hr class="my-1 border-subtle" /></li>
+                }
+                <li>
+                    <a href="#" data-action="logout">
+                        <span class="icon icon-logout h-4 w-4" aria-hidden="true"></span>
+                        @T.AuthNav.Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
     }
     else
     {
-        <a href="/auth/login" class="sn-tabbar-item@(Active("/auth/login", prefix: true))" hx-boost="false">
+        <a href="/auth/login" class="sn-tabbar-item@(Active("/auth/login", prefix: true))" aria-label="@T.AuthNav.Login" hx-boost="false">
             <span class="icon icon-user" aria-hidden="true"></span>
-            <span>@T.AuthNav.Login</span>
         </a>
-        <a href="/auth/register" class="sn-tabbar-item@(Active("/auth/register", prefix: true))" hx-boost="false">
+        <a href="/auth/register" class="sn-tabbar-item@(Active("/auth/register", prefix: true))" aria-label="@T.AuthNav.SignUp" hx-boost="false">
             <span class="icon icon-user-add" aria-hidden="true"></span>
-            <span>@T.AuthNav.SignUp</span>
         </a>
     }
 </nav>

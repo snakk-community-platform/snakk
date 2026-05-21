@@ -28,6 +28,8 @@ public class DiscussionsModel(
     public string? SpaceId { get; set; }
     public bool HideCommunity { get; set; }
     public bool HideHub { get; set; }
+    public bool HidePath { get; set; }
+    public bool ShowPath { get; set; } = true;
 
 
     public string Sort { get; set; } = "recent";
@@ -40,6 +42,7 @@ public class DiscussionsModel(
         string? spaceId = null,
         bool hideCommunity = false,
         bool hideHub = false,
+        bool hidePath = false,
         string? cursor = null,
         string? sort = null,
         CancellationToken cancellationToken = default)
@@ -53,6 +56,8 @@ public class DiscussionsModel(
         SpaceId = spaceId;
         HideCommunity = hideCommunity;
         HideHub = hideHub;
+        HidePath = hidePath;
+        ShowPath = !hidePath;
         pageSize = Math.Clamp(pageSize, 1, 50);
         Offset = offset;
 

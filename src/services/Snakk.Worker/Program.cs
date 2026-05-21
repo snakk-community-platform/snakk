@@ -40,7 +40,14 @@ builder.Services.AddDbContextPool<SnakkDbContext>(options =>
         .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution),
     poolSize: 32);
 
-// HybridCache for settings and permissions caching (stampede-safe, also registers IMemoryCache)
+// Distributed cache: Valkey on production, in-memory fallback for development
+var valkeyConn = builder.Configuration["Valkey:ConnectionString"];
+if (!string.IsNullOrEmpty(valkeyConn))
+    builder.Services.AddStackExchangeRedisCache(opts => { opts.Configuration = valkeyConn; opts.InstanceName = "snakk:"; });
+else
+    builder.Services.AddDistributedMemoryCache();
+
+// HybridCache uses IDistributedCache above as L2 backing store
 builder.Services.AddHybridCache();
 
 // File Storage for avatars
@@ -57,6 +64,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailProtector, EmailProtector>();
 builder.Services.AddScoped<IUserGrantsCacheService, UserGrantsCacheService>();
 builder.Services.AddScoped<IAvatarGenerationService, AvatarGenerationService>();
+builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddScoped<IWebhookService, WebhookService>();
 builder.Services.AddScoped<AchievementService>();
 builder.Services.AddScoped<MetricsService>();

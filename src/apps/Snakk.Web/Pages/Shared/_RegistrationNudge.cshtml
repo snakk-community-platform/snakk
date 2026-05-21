@@ -21,33 +21,36 @@
     <h3 class="sn-nudge-title">@title</h3>
     <p class="sn-nudge-body">@body</p>
 
-    @if (oauth.HasAny)
-    {
-        <div class="sn-nudge-oauth">
-            @if (oauth.Google)
-            {
-                <a href="@googleUrl" class="sn-nudge-oauth-btn" hx-boost="false">
-                    <span class="icon icon-brand-google w-4 h-4" aria-hidden="true"></span>
-                    @T.Nudge.ContinueGoogle
-                </a>
-            }
-            @if (oauth.GitHub)
-            {
-                <a href="@githubUrl" class="sn-nudge-oauth-btn" hx-boost="false">
-                    <span class="icon icon-brand-github w-4 h-4" aria-hidden="true"></span>
-                    @T.Nudge.ContinueGitHub
-                </a>
-            }
-            @if (oauth.Discord)
-            {
-                <a href="@discordUrl" class="sn-nudge-oauth-btn" hx-boost="false">
-                    <span class="icon icon-brand-discord w-4 h-4" aria-hidden="true"></span>
-                    @T.Nudge.ContinueDiscord
-                </a>
-            }
-        </div>
-        <div class="sn-nudge-divider"><span>@T.Nudge.Or</span></div>
-    }
+    <div class="sn-nudge-oauth">
+        @if (oauth.Google)
+        {
+            <a href="@googleUrl" class="sn-nudge-oauth-btn" hx-boost="false">
+                <span class="icon icon-brand-google w-4 h-4" aria-hidden="true"></span>
+                @T.Nudge.ContinueGoogle
+            </a>
+        }
+        @if (oauth.GitHub)
+        {
+            <a href="@githubUrl" class="sn-nudge-oauth-btn" hx-boost="false">
+                <span class="icon icon-brand-github w-4 h-4" aria-hidden="true"></span>
+                @T.Nudge.ContinueGitHub
+            </a>
+        }
+        @if (oauth.Discord)
+        {
+            <a href="@discordUrl" class="sn-nudge-oauth-btn" hx-boost="false">
+                <span class="icon icon-brand-discord w-4 h-4" aria-hidden="true"></span>
+                @T.Nudge.ContinueDiscord
+            </a>
+        }
+        <button type="button" class="sn-nudge-oauth-btn" style="display:none"
+                data-nudge-passkey data-return-url="@returnPath">
+            <span class="icon icon-finger-print w-4 h-4" aria-hidden="true"></span>
+            @T.Nudge.ContinuePasskey
+        </button>
+    </div>
+    <p id="nudge-passkey-error" class="text-sm text-error hidden mt-1"></p>
+    <div class="sn-nudge-divider" id="nudge-alt-divider"@(oauth.HasAny ? "" : " style=\"display:none\"")><span>@T.Nudge.Or</span></div>
 
     <a href="@registerUrl" class="btn btn-primary btn-sm w-full" hx-boost="false">@T.Nudge.SignUpEmail</a>
     <p class="sn-nudge-login-link">

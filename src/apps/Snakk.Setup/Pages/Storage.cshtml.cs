@@ -16,7 +16,7 @@ public class StorageModel : SetupPageBase
 
     public void OnGet()
     {
-        ViewData["SetupStep"] = 4;
+        ViewData["SetupStep"] = 5;
         var state = GetState();
         AvatarStoragePath = state.AvatarStoragePath;
         StorageProvider = state.StorageProvider;
@@ -29,7 +29,7 @@ public class StorageModel : SetupPageBase
 
     public IActionResult OnPost()
     {
-        ViewData["SetupStep"] = 4;
+        ViewData["SetupStep"] = 5;
 
         // Storage path is always required (used for config file + local fallback)
         if (string.IsNullOrWhiteSpace(AvatarStoragePath))

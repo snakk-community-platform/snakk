@@ -11,7 +11,6 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class SessionManagementServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly ITokenService _tokenService;
     private readonly SessionManagementService _service;
 
     public SessionManagementServiceTests()
@@ -20,10 +19,9 @@ public class SessionManagementServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"SessionManagementServiceTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _tokenService = Substitute.For<ITokenService>();
         _service = new SessionManagementService(
             _context,
-            _tokenService,
+            Substitute.For<IJwtTokenService>(),
             Substitute.For<ILogger<SessionManagementService>>());
     }
 
@@ -265,15 +263,14 @@ public class SessionManagementServiceTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        _tokenService.RevokeRefreshTokenAsync(tokenValue, "User requested revocation")
-            .Returns(Task.CompletedTask);
-
         // Act
         var result = await _service.RevokeSessionAsync(sessionPublicId, "user_revoke_valid");
 
         // Assert
         await Assert.That(result).IsTrue();
-        _tokenService.Received(1).RevokeRefreshTokenAsync(tokenValue, "User requested revocation");
+        var revokedToken = await _context.RefreshTokens.FirstAsync(t => t.PublicId == sessionPublicId);
+        await Assert.That(revokedToken.RevokedAt).IsNotNull();
+        await Assert.That(revokedToken.RevocationReason).IsEqualTo("User requested revocation");
     }
 
     [Test]
@@ -284,7 +281,6 @@ public class SessionManagementServiceTests : IDisposable
 
         // Assert
         await Assert.That(result).IsFalse();
-        _tokenService.DidNotReceive().RevokeRefreshTokenAsync(Arg.Any<string>(), Arg.Any<string>());
     }
 
     [Test]
@@ -327,7 +323,6 @@ public class SessionManagementServiceTests : IDisposable
 
         // Assert
         await Assert.That(result).IsFalse();
-        _tokenService.DidNotReceive().RevokeRefreshTokenAsync(Arg.Any<string>(), Arg.Any<string>());
     }
 
     #endregion

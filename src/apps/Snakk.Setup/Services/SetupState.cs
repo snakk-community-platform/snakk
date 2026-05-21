@@ -17,6 +17,8 @@ public class SetupState
     public string SiteName { get; set; } = "Snakk";
     public string DefaultCommunitySlug { get; set; } = "main";
     public bool MultiCommunityEnabled { get; set; }
+    public bool PasskeysEnabled { get; set; } = true;
+    public bool TwoFactorEnabled { get; set; } = true;
     public string Timezone { get; set; } = "UTC";
     public string Language { get; set; } = "en";
     public List<string> AllowedDisplayNameScripts { get; set; } = ["Latin"];

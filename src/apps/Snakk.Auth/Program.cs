@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
 using Serilog;
 using Snakk.Auth.Data;
+using Snakk.Auth.Endpoints;
 using Snakk.ServiceDefaults;
 using System.Net;
 using System.Text;
@@ -54,6 +55,8 @@ builder.Services.AddScoped(sp =>
     new Snakk.Protos.TwoFactor.TwoFactorService.TwoFactorServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
 builder.Services.AddScoped(sp =>
     new Snakk.Protos.Consent.ConsentService.ConsentServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
+builder.Services.AddScoped(sp =>
+    new Snakk.Protos.Passkey.PasskeyService.PasskeyServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
 
 // Auth database — OpenIddict store (isolated from main domain DB)
 builder.Services.AddDbContext<SnakkAuthDbContext>(options =>
@@ -273,6 +276,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapRazorPages();
+app.MapPasskeyLoginEndpoints();
 
 // Health check for gateway probes (verifies gRPC channel connectivity)
 app.MapGet("/health", (Grpc.Net.Client.GrpcChannel channel) =>

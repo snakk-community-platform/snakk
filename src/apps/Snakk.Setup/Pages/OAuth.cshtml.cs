@@ -13,7 +13,7 @@ public class OAuthModel : SetupPageBase
 
     public void OnGet()
     {
-        ViewData["SetupStep"] = 8;
+        ViewData["SetupStep"] = 9;
         var state = GetState();
         GoogleClientId = state.GoogleClientId;
         GoogleClientSecret = state.GoogleClientSecret;

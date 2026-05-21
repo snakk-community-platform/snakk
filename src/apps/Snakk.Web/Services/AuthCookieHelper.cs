@@ -15,6 +15,25 @@ public static class AuthCookieHelper
     public const string AccessCookieName = ".Snakk.Auth";
     public const string SessionCookieName = ".Snakk.Auth.Session";
     public const string RefreshCookieName = ".Snakk.Auth.Refresh";
+    public const string SudoCookieName = ".Snakk.Sudo";
+
+    public static void SetSudoCookie(HttpContext ctx, string sudoToken, int expiresInSeconds)
+    {
+        ctx.Response.Cookies.Append(SudoCookieName, sudoToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Path = "/bff",
+            MaxAge = TimeSpan.FromSeconds(expiresInSeconds),
+            IsEssential = true
+        });
+    }
+
+    public static void DeleteSudoCookie(HttpContext ctx)
+    {
+        ctx.Response.Cookies.Delete(SudoCookieName, new CookieOptions { Path = "/bff" });
+    }
 
     public static void SetAuthCookies(HttpContext ctx, string accessToken, string refreshToken, bool? rememberMe = null)
     {

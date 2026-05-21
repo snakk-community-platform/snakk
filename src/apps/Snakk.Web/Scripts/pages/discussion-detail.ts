@@ -220,8 +220,6 @@ function initReplyEditor(): Promise<void> {
             const footer = container.querySelector('.milkdown-footer');
             if (submitBtn && footer) {
                 submitBtn.disabled = true;
-                const progressRow = document.getElementById('upload-progress-row');
-                if (progressRow) footer.appendChild(progressRow);
                 footer.appendChild(submitBtn);
                 submitBtn.classList.remove('hidden');
 
@@ -2016,8 +2014,18 @@ async function handleFragmentEntry(
     const scrollSentinel = document.getElementById('scroll-sentinel');
     if (!container || !scrollSentinel) return;
 
-    // Block scroll-down observer during load
+    // Block scroll-down observer and fragment-update listener for the entire load.
+    // Must be set before the DOM clear: removing posts collapses scrollHeight to ~innerHeight,
+    // which triggers the bottom-of-page shortcut in getCurrentPostNumber() and would corrupt
+    // displayedPostNumber if the flag were set any later.
     postsIsLoading = true;
+    suppressFragmentUpdate = true;
+
+    // Reset load-up state from any previous navigation so a stale observer/sentinel
+    // doesn't fire with an incorrect postsStartOffset.
+    loadUpObserver?.disconnect();
+    loadUpObserver = null;
+    document.getElementById('load-up-sentinel')?.classList.add('hidden');
 
     // Clear server-rendered posts
     Array.from(container.querySelectorAll('.post-item')).forEach(p => p.remove());
@@ -2076,26 +2084,34 @@ async function handleFragmentEntry(
             initLoadUpObserver(discussionId, currentUserId, isAuthenticated, isLocked);
         }
 
-        // Scroll to target post
+        // Scroll to target post, then re-enable the endless-scroll observer only after
+        // the animation settles — prevents the sentinel from firing mid-flight and
+        // racing the chunk navigation.
         const targetEl = document.getElementById(`post-${postNumber}`);
         if (targetEl) {
-            suppressFragmentUpdate = true;
             requestAnimationFrame(() => {
-                if (postNumber === 1) {
-                    window.scrollTo({ top: 0, behavior: 'instant' });
+                targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const afterScroll = () => {
+                    suppressFragmentUpdate = false;
+                    if (postsHasMoreItems) initPostsEndlessScroll();
+                };
+                if ('onscrollend' in window) {
+                    window.addEventListener('scrollend' as keyof WindowEventMap, afterScroll, { once: true });
                 } else {
-                    targetEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+                    setTimeout(afterScroll, 600);
                 }
-                setTimeout(() => { suppressFragmentUpdate = false; }, 200);
             });
+        } else {
+            suppressFragmentUpdate = false;
+            if (postsHasMoreItems) initPostsEndlessScroll();
         }
     } catch (err) {
         console.error('Failed to load posts for fragment:', err);
+        suppressFragmentUpdate = false;
+        if (postsHasMoreItems) initPostsEndlessScroll();
     } finally {
         loadingIndicator?.classList.add('hidden');
         postsIsLoading = false;
-        // Re-check if scroll sentinel needs to trigger more loading
-        if (postsHasMoreItems) initPostsEndlessScroll();
     }
 }
 
@@ -2199,7 +2215,7 @@ function initThreadNav(config: DiscussionConfig): void {
     if (!pane) return;
 
     totalPostCount = config.postCount || 0;
-    if (totalPostCount <= 1) {
+    if (totalPostCount <= 1 || !config.postsHasMoreItems) {
         pane.classList.add('hidden');
         return;
     }

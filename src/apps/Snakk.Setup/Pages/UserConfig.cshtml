@@ -1,0 +1,65 @@
+@page "/setup/userconfig"
+@model Snakk.Setup.Pages.UserConfigModel
+
+<h2 class="text-xl font-semibold mb-4">User Configuration</h2>
+<p class="text-base-content/70 mb-6">Configure authentication options and display name policies for your users.</p>
+
+<form method="post" class="space-y-4">
+
+    <div class="form-control">
+        <label class="label cursor-pointer justify-start gap-3">
+            <input type="checkbox" asp-for="PasskeysEnabled" class="toggle toggle-primary" />
+            <span class="label-text">Enable Passkey Login</span>
+        </label>
+        <label class="label"><span class="label-text-alt text-base-content/50">Allow users to sign in with passkeys (biometrics, security keys) instead of passwords</span></label>
+    </div>
+
+    <div class="form-control">
+        <label class="label cursor-pointer justify-start gap-3">
+            <input type="checkbox" asp-for="TwoFactorEnabled" class="toggle toggle-primary" />
+            <span class="label-text">Enable Two-Factor Authentication (2FA)</span>
+        </label>
+        <label class="label"><span class="label-text-alt text-base-content/50">Allow users to secure their accounts with TOTP authenticator apps</span></label>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="form-control">
+        <label class="label"><span class="label-text">Allowed Writing Systems for Display Names</span></label>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-1 mt-1">
+            @foreach (var script in new[] {
+                ("Latin",      "A–Z, a–z, æ ø å é ü ñ"),
+                ("Cyrillic",   "А Б В а б в (Ru/Ua/Bg)"),
+                ("Greek",      "Α Β Γ α β γ"),
+                ("Arabic",     "ا ب ت ث"),
+                ("Hebrew",     "א ב ג ד"),
+                ("Devanagari", "क ख ग घ (Hi)"),
+                ("CjkUnified", "一 二 三 中"),
+                ("Hiragana",   "あ い う え お"),
+                ("Katakana",   "ア イ ウ エ オ"),
+                ("Hangul",     "가 나 다 라"),
+                ("Thai",       "ก ข ค ง"),
+                ("Armenian",   "Ա Բ Գ Դ"),
+                ("Georgian",   "ა ბ გ დ")
+            })
+            {
+                <label class="label cursor-pointer justify-start gap-2">
+                    <input type="checkbox"
+                           name="AllowedDisplayNameScripts"
+                           value="@script.Item1"
+                           class="checkbox checkbox-sm"
+                           @(Model.AllowedDisplayNameScripts.Contains(script.Item1) ? "checked" : "") />
+                    <span class="label-text text-sm"><strong>@script.Item1</strong> — @script.Item2</span>
+                </label>
+            }
+        </div>
+        <p class="text-sm text-base-content/50 mt-1 px-1">Which writing systems users may use in their display names. Latin covers most European languages including Norwegian. Names must use a single system (no mixing), preventing impersonation attacks. This can be changed later in Admin settings.</p>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="flex justify-between">
+        <a asp-page="SiteConfig" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary">Next</button>
+    </div>
+</form>

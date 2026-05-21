@@ -226,7 +226,7 @@ public class AuthenticationUseCase(
     }
 
     public async Task<Result> UpdateDisplayNameAsync(
-        UserId userId, string newDisplayName, string? password = null, string? turnstileToken = null)
+        UserId userId, string newDisplayName, string? password = null, string? turnstileToken = null, bool sudoVerified = false)
     {
         var trimmed = newDisplayName?.Trim() ?? "";
 
@@ -252,19 +252,22 @@ public class AuthenticationUseCase(
                 return Result.Failure($"You can change your display name again in {remaining} day{(remaining == 1 ? "" : "s")}.");
             }
 
-            // Verify password (required for users with a password)
-            if (user.PasswordHash is not null)
+            if (!sudoVerified)
             {
-                if (string.IsNullOrEmpty(password))
-                    return Result.Failure("Password is required to change your display name.");
+                // Verify password (required for users with a password)
+                if (user.PasswordHash is not null)
+                {
+                    if (string.IsNullOrEmpty(password))
+                        return Result.Failure("Password is required to change your display name.");
 
-                if (!passwordHasher.VerifyPassword(password, user.PasswordHash))
-                    return Result.Failure("Incorrect password.");
+                    if (!passwordHasher.VerifyPassword(password, user.PasswordHash))
+                        return Result.Failure("Incorrect password.");
+                }
+
+                // Verify Turnstile captcha
+                if (!await turnstileService.VerifyAsync(turnstileToken ?? ""))
+                    return Result.Failure("Captcha verification failed. Please try again.");
             }
-
-            // Verify Turnstile captcha
-            if (!await turnstileService.VerifyAsync(turnstileToken ?? ""))
-                return Result.Failure("Captcha verification failed. Please try again.");
         }
 
         // Check current uniqueness (among active users)
@@ -476,6 +479,39 @@ public class AuthenticationUseCase(
             return Result.Failure("User not found.");
 
         await socialLinkRepository.ReplaceAllAsync(internalId.Value, normalised);
+        return Result.Success();
+    }
+
+    public async Task<Result> ChangePasswordAsync(UserId userId, string? currentPassword, string newPassword, CancellationToken ct = default)
+    {
+        var user = await userRepository.GetByPublicIdAsync(userId, ct);
+        if (user is null)
+            return Result.Failure("User not found.");
+
+        if (currentPassword is not null)
+        {
+            if (!user.HasPassword())
+                return Result.Failure("No password is set on this account.");
+
+            if (!passwordHasher.VerifyPassword(currentPassword, user.PasswordHash!))
+                return Result.Failure("Current password is incorrect.");
+        }
+
+        if (string.IsNullOrWhiteSpace(newPassword))
+            return Result.Failure("New password is required.");
+        if (newPassword.Length < 8)
+            return Result.Failure("Password must be at least 8 characters.");
+        if (!Regex.IsMatch(newPassword, @"[A-Z]"))
+            return Result.Failure("Password must contain at least one uppercase letter.");
+        if (!Regex.IsMatch(newPassword, @"[a-z]"))
+            return Result.Failure("Password must contain at least one lowercase letter.");
+        if (!Regex.IsMatch(newPassword, @"\d"))
+            return Result.Failure("Password must contain at least one number.");
+        if (!Regex.IsMatch(newPassword, @"[^a-zA-Z0-9]"))
+            return Result.Failure("Password must contain at least one special character.");
+
+        user.SetPasswordHash(passwordHasher.HashPassword(newPassword));
+        await userRepository.UpdateAsync(user, ct);
         return Result.Success();
     }
 }

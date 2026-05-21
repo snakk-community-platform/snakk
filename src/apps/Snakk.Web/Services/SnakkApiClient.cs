@@ -833,13 +833,14 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<UpdateProfileResponse?> UpdateProfileAsync(string displayName, string? password = null, string? turnstileToken = null, CancellationToken ct = default)
+    public virtual async Task<UpdateProfileResponse?> UpdateProfileAsync(string displayName, string? password = null, string? turnstileToken = null, string? sudoToken = null, CancellationToken ct = default)
     {
         try
         {
             var request = new UpdateProfileRequest { DisplayName = displayName };
             if (password is not null) request.Password = password;
             if (turnstileToken is not null) request.TurnstileToken = turnstileToken;
+            if (sudoToken is not null) request.SudoToken = sudoToken;
             return await authClient.UpdateProfileAsync(request, cancellationToken: ct);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }

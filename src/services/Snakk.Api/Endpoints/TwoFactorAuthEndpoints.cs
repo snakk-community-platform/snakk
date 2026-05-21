@@ -2,13 +2,13 @@ namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Snakk.Application.Services;
 using Snakk.Domain;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Application.DTOs.Responses;
 using System.Security.Claims;
-using Microsoft.Extensions.Caching.Memory;
 
 public static class TwoFactorAuthEndpoints
 {
@@ -84,7 +84,6 @@ public static class TwoFactorAuthEndpoints
         CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-
         if (userIdClaim is null)
             return Results.Unauthorized();
 
@@ -130,28 +129,18 @@ public static class TwoFactorAuthEndpoints
     }
 
     private static async Task<IResult> DisableTwoFactorAsync(
-        [FromBody] DisableTwoFactorRequest request,
         HttpContext httpContext,
         ITwoFactorAuthService twoFactorService,
         CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-
         if (userIdClaim is null)
             return Results.Unauthorized();
 
-        // Verify TOTP code first (prevents account takeover via session hijacking)
-        if (string.IsNullOrWhiteSpace(request.TotpCode))
-            return Results.BadRequest(new { error = "A valid 2FA code is required to disable 2FA" });
-
-        var (isValid, _) = await twoFactorService.VerifyTwoFactorCodeAsync(userIdClaim.Value, request.TotpCode, ct: ct);
-        if (!isValid)
-            return Results.BadRequest(new { error = "Invalid 2FA code" });
-
-        var success = await twoFactorService.DisableTwoFactorAsync(userIdClaim.Value, request.Password, ct);
+        var success = await twoFactorService.DisableTwoFactorAsync(userIdClaim.Value, null, ct);
 
         if (!success)
-            return Results.BadRequest(new { error = "Invalid password or 2FA not enabled" });
+            return Results.BadRequest(new { error = "2FA is not enabled" });
 
         return TypedResults.Ok(new MessageResponse("2FA disabled successfully"));
     }
@@ -322,16 +311,19 @@ public static class TwoFactorAuthEndpoints
         [FromBody] RegenerateBackupCodesRequest request,
         HttpContext httpContext,
         ITwoFactorAuthService twoFactorService,
+        IMemoryCache cache,
         CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
-
         if (userIdClaim is null)
             return Results.Unauthorized();
 
+        if (!MeEndpoints.ValidateSudoToken(request.SudoToken, userIdClaim.Value, cache))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
+
         try
         {
-            var backupCodes = await twoFactorService.RegenerateBackupCodesAsync(userIdClaim.Value, request.Password, ct);
+            var backupCodes = await twoFactorService.RegenerateBackupCodesAsync(userIdClaim.Value, null, ct);
 
             return TypedResults.Ok(new RegenerateBackupCodesResponse(
                 "Backup codes regenerated successfully",
@@ -416,7 +408,8 @@ public static class TwoFactorAuthEndpoints
 
 // Request DTOs
 public record EnableTwoFactorRequest(string Code);
-public record DisableTwoFactorRequest(string Password, string TotpCode);
+public record DisableTwoFactorRequest(string SudoToken);
+public record SetupTwoFactorRequest(string? SudoToken);
 public record VerifyTwoFactorRequest(string Email, string Code);
-public record RegenerateBackupCodesRequest(string Password);
+public record RegenerateBackupCodesRequest(string SudoToken);
 public record TrustDeviceRequest(int? ExpirationDays); // 7, 30, 90, or null for never

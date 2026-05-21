@@ -1497,6 +1497,7 @@ const MAX_POST_IMAGES = 12;
 const MAX_FILE_BYTES = 5 * 1024 * 1024; // 5 MB (matches BFF limit)
 
 interface ModalItem {
+    id: number;
     blobUrl: string;   // blob: URL for new files; CDN URL for existing images
     file: File | null; // null = already uploaded
     alt: string;
@@ -1924,12 +1925,53 @@ interface ImagePickerItem {
     oversized: boolean;
 }
 
+const THUMB_MAX_PX = 600;
+
+async function generateThumbnail(file: File): Promise<string> {
+    // Probe natural dimensions off the main thread
+    const probe = await createImageBitmap(file);
+    const { width, height } = probe;
+    probe.close();
+
+    const scale = Math.min(1, THUMB_MAX_PX / Math.max(width, height));
+    const w = Math.round(width * scale);
+    const h = Math.round(height * scale);
+
+    // Decode + resize off the main thread — avoids the expensive ctx.drawImage
+    // scaling that blocks the main thread for 1-2s per large image
+    const bmp = await createImageBitmap(file, { resizeWidth: w, resizeHeight: h, resizeQuality: 'medium' });
+
+    // OffscreenCanvas.convertToBlob encodes JPEG off the main thread (Chrome/FF/Safari 17+)
+    if (typeof OffscreenCanvas !== 'undefined') {
+        const oc = new OffscreenCanvas(w, h);
+        oc.getContext('2d')!.drawImage(bmp, 0, 0);
+        bmp.close();
+        const blob = await oc.convertToBlob({ type: 'image/jpeg', quality: 0.85 });
+        return URL.createObjectURL(blob);
+    }
+
+    // Fallback: drawImage is now just a fast pixel-copy of the already-small bitmap
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    canvas.getContext('2d')!.drawImage(bmp, 0, 0);
+    bmp.close();
+    return new Promise<string>((resolve, reject) => {
+        canvas.toBlob(blob => {
+            if (blob) resolve(URL.createObjectURL(blob));
+            else reject(new Error('toBlob failed'));
+        }, 'image/jpeg', 0.85);
+    });
+}
+
 function createImagePickerWidget(
     container: HTMLElement,
     options: ImagePickerWidgetOptions
 ): ImagePickerWidgetController {
     const cap = options.maxImages ?? MAX_POST_IMAGES;
+    let nextItemId = 0;
     const modalItems: ModalItem[] = (options.initialData?.images ?? []).map(img => ({
+        id: nextItemId++,
         blobUrl: img.src,
         file: null,
         alt: img.alt,
@@ -2049,26 +2091,63 @@ function createImagePickerWidget(
         const effectiveMax = getEffectiveMax();
         let budget = effectiveMax - modalItems.filter(i => !i.oversized).length;
 
+        const toThumbnail: Array<{ item: ModalItem; file: File }> = [];
+
         for (const file of files) {
             if (!file.type.startsWith('image/')) {
                 lastRejections.push(`${file.name} — not an image`);
                 continue;
             }
             if (file.size > MAX_FILE_BYTES) {
-                modalItems.push({ blobUrl: URL.createObjectURL(file), file, alt: '', oversized: true });
+                modalItems.push({ id: nextItemId++, blobUrl: URL.createObjectURL(file), file, alt: '', oversized: true });
                 continue;
             }
             if (budget <= 0) {
                 lastRejections.push(`${file.name} — post limit of ${cap} images reached`);
                 continue;
             }
-            const blobUrl = URL.createObjectURL(file);
-            modalItems.push({ blobUrl, file, alt: '' });
-            options.pendingFiles?.set(blobUrl, file);
+            const item: ModalItem = { id: nextItemId++, blobUrl: '', file, alt: '' };
+            modalItems.push(item);
+            toThumbnail.push({ item, file });
             budget--;
         }
 
+        // Show placeholders immediately — thumbnails swap in as they decode.
+        // Double rAF guarantees at least one frame is painted with skeletons visible
+        // before thumbnail generation starts (setTimeout(0) is not reliable enough).
         renderGrid();
+
+        requestAnimationFrame(() => requestAnimationFrame(() => { for (const { item, file } of toThumbnail) {
+            generateThumbnail(file)
+                .then(thumbUrl => {
+                    if (!modalItems.includes(item)) { URL.revokeObjectURL(thumbUrl); return; }
+                    item.blobUrl = thumbUrl;
+                    options.pendingFiles?.set(thumbUrl, file);
+                    const cell = grid.querySelector<HTMLElement>(`[data-img-id="${item.id}"]`);
+                    if (cell) {
+                        cell.style.backgroundImage = `url("${thumbUrl}")`;
+                        cell.classList.remove('images-upload-item-loading', 'skeleton');
+                        cell.classList.add('images-item-loaded');
+                        const img = cell.querySelector('img');
+                        if (img) img.src = thumbUrl;
+                    }
+                })
+                .catch(() => {
+                    // Fallback: use original file blob directly
+                    if (!modalItems.includes(item)) return;
+                    const blobUrl = URL.createObjectURL(file);
+                    item.blobUrl = blobUrl;
+                    options.pendingFiles?.set(blobUrl, file);
+                    const cell = grid.querySelector<HTMLElement>(`[data-img-id="${item.id}"]`);
+                    if (cell) {
+                        cell.style.backgroundImage = `url("${blobUrl}")`;
+                        cell.classList.remove('images-upload-item-loading', 'skeleton');
+                        cell.classList.add('images-item-loaded');
+                        const img = cell.querySelector('img');
+                        if (img) img.src = blobUrl;
+                    }
+                });
+        } }));
     }
 
     // ── Compare slider for picker context ────────────────────────────────────
@@ -2167,11 +2246,13 @@ function createImagePickerWidget(
 
         function buildCell(item: ModalItem, idx: number): HTMLDivElement {
             const cell = document.createElement('div');
-            cell.className = 'images-upload-item images-item-loaded image-modal-item';
-            cell.style.backgroundImage = `url("${item.blobUrl}")`;
+            const isLoading = !item.blobUrl;
+            cell.className = `images-upload-item ${isLoading ? 'images-upload-item-loading skeleton' : 'images-item-loaded'} image-modal-item`;
+            cell.dataset.imgId = String(item.id);
+            if (!isLoading) cell.style.backgroundImage = `url("${item.blobUrl}")`;
 
             const img = document.createElement('img');
-            img.src = item.blobUrl;
+            if (item.blobUrl) img.src = item.blobUrl;
             img.alt = item.alt;
             cell.appendChild(img);
 
@@ -2396,7 +2477,8 @@ function showImageModal(options: ImageModalOptions): void {
         hideLayout: options.hideLayout,
         onChange: (items) => {
             const hasOversized = items.some(i => i.oversized);
-            insertBtn.disabled = items.length === 0 || hasOversized;
+            const stillLoading = items.some(i => !i.oversized && !i.blobUrl);
+            insertBtn.disabled = items.length === 0 || hasOversized || stillLoading;
         },
     });
 

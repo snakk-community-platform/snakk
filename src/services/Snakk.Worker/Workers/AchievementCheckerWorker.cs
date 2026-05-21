@@ -58,6 +58,7 @@ public class AchievementCheckerWorker(
 
         // Get users with recent metric updates (last 60 seconds)
         var recentlyActiveUsers = await context.UserMetrics
+            .AsNoTracking()
             .Where(m => m.LastUpdated >= DateTime.UtcNow.AddSeconds(-60))
             .Select(m => m.User.PublicId)
             .Distinct()
@@ -94,6 +95,7 @@ public class AchievementCheckerWorker(
         CancellationToken ct)
     {
         var userIdInt = await context.Users
+            .AsNoTracking()
             .Where(u => u.PublicId == userId.Value)
             .Select(u => u.Id)
             .FirstOrDefaultAsync(ct);
@@ -103,15 +105,18 @@ public class AchievementCheckerWorker(
 
         // Get user's global metrics
         var userMetrics = await context.UserMetrics
+            .AsNoTracking()
             .Where(m => m.UserId == userIdInt && m.Scope == "Global")
             .ToDictionaryAsync(m => m.MetricType, m => m.Value, ct);
 
+        // Bulk-load all earned achievements for this user — avoids one DB round-trip per achievement
+        var earnedAchievements = await userAchievementRepo.GetByUserIdAsync(userId, ct);
+        var earnedAchievementIds = earnedAchievements.Select(ua => ua.AchievementId).ToHashSet();
+
         foreach (var achievement in achievements)
         {
-            // Check if user already has this achievement
-            var hasAchievement = await userAchievementRepo.HasAchievementAsync(userId, achievement.PublicId);
-
-            if (hasAchievement)
+            // Check in-memory rather than per-achievement DB round-trip
+            if (earnedAchievementIds.Contains(achievement.PublicId))
                 continue;
 
             // Parse requirement config

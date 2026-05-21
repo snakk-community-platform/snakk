@@ -58,6 +58,15 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
 
             var response = await authClient.OAuthCallbackAsync(oauthRequest);
 
+            if (response.TwoFactorRequired)
+            {
+                var twoFactorReturnUrl = HttpContext.Session.GetString("OAuth_ReturnUrl") ?? "/";
+                HttpContext.Session.Remove("OAuth_ReturnUrl");
+                if (!Url.IsLocalUrl(twoFactorReturnUrl))
+                    twoFactorReturnUrl = "/";
+                return Redirect($"/auth/twofactorverify?email={Uri.EscapeDataString(email)}&returnUrl={Uri.EscapeDataString(twoFactorReturnUrl)}");
+            }
+
             if (string.IsNullOrEmpty(response.AccessToken))
             {
                 return RedirectToPage("/Login", new { error = "oauth_token_missing" });

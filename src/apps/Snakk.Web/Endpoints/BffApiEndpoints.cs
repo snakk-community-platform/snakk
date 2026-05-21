@@ -1,8 +1,10 @@
 namespace Snakk.Web.Endpoints;
 
 using System.Security.Claims;
+using System.Security.Cryptography;
 using Grpc.Core;
 using Microsoft.AspNetCore.Mvc;
+using Snakk.Protos.TwoFactor;
 using Snakk.Web.Helpers;
 using Snakk.Web.Models.Bff;
 using Snakk.Web.Services;
@@ -160,6 +162,21 @@ public static class BffApiEndpoints
             .AllowAnonymous()
             .RequireRateLimiting("flood-post");
 
+        group.MapPost("/auth/sudo", IssueSudoTokenBffAsync)
+            .WithName("BffIssueSudoToken")
+            .RequireAuthorization()
+            .RequireRateLimiting("flood-post");
+
+        group.MapPost("/auth/sudo/passkey/begin", BeginSudoPasskeyBffAsync)
+            .WithName("BffBeginSudoPasskey")
+            .RequireAuthorization()
+            .RequireRateLimiting("flood-post");
+
+        group.MapPost("/auth/sudo/passkey/complete", CompleteSudoPasskeyBffAsync)
+            .WithName("BffCompleteSudoPasskey")
+            .RequireAuthorization()
+            .RequireRateLimiting("flood-post");
+
         // Current user (me) operations
         group.MapGet("/me", GetCurrentUserMeAsync)
             .WithName("BffGetCurrentUser");
@@ -169,6 +186,14 @@ public static class BffApiEndpoints
 
         group.MapPut("/me/preferences", UpdatePreferencesMeAsync)
             .WithName("BffUpdatePreferences");
+
+        group.MapPost("/me/password", ChangePasswordBffAsync)
+            .WithName("BffChangePassword")
+            .RequireAuthorization();
+
+        group.MapPost("/me/verify-credential", VerifyCredentialBffAsync)
+            .WithName("BffVerifyCredential")
+            .RequireAuthorization();
 
         // Adult-content interstitial — anonymous & authed
         group.MapPost("/adult-consent", AdultConsentAsync)
@@ -180,7 +205,8 @@ public static class BffApiEndpoints
             .AllowAnonymous();
 
         group.MapGet("/me/devices", GetMyDevicesAsync)
-            .WithName("BffGetMyDevices");
+            .WithName("BffGetMyDevices")
+            .RequireAuthorization();
 
         group.MapDelete("/me/devices/{deviceId}", RevokeMyDeviceAsync)
             .WithName("BffRevokeMyDevice");
@@ -234,6 +260,17 @@ public static class BffApiEndpoints
             .WithName("BffUnlinkDiscord");
         group.MapGet("/me/discord/status", GetDiscordStatusAsync)
             .WithName("BffGetDiscordStatus");
+
+        group.MapGet("/me/sessions", GetMySessionsBffAsync)
+            .WithName("BffGetMySessions");
+        group.MapDelete("/me/sessions/{sessionId}", RevokeMySessionBffAsync)
+            .WithName("BffRevokeMySession")
+            .RequireRateLimiting("flood-post");
+        group.MapDelete("/me/sessions", RevokeAllOtherSessionsBffAsync)
+            .WithName("BffRevokeAllOtherSessions")
+            .RequireRateLimiting("flood-post");
+        group.MapGet("/me/login-history", GetMyLoginHistoryBffAsync)
+            .WithName("BffGetMyLoginHistory");
 
         // Search operations
         group.MapGet("/search/discussions", SearchDiscussionsAsync)
@@ -996,7 +1033,7 @@ public static class BffApiEndpoints
     }
 
     private static async Task<IResult> UpdateProfileMeAsync(
-        [FromBody] UpdateProfileRequestDto request,
+        [FromBody] UpdateProfileWithSudoDto request,
         SnakkApiClient apiClient,
         HttpContext httpContext,
         CancellationToken ct)
@@ -1004,7 +1041,7 @@ public static class BffApiEndpoints
         ct.ThrowIfCancellationRequested();
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
-        var result = await apiClient.UpdateProfileAsync(request.DisplayName, request.Password, request.TurnstileToken, ct);
+        var result = await apiClient.UpdateProfileAsync(request.DisplayName, ct: ct);
 
         if (result is null)
             return Results.StatusCode(503);
@@ -1036,6 +1073,45 @@ public static class BffApiEndpoints
             AuthCookieHelper.SetTimezoneCookie(httpContext, string.IsNullOrEmpty(request.Timezone) ? null : request.Timezone);
 
         return Results.Ok();
+    }
+
+    private static async Task<IResult> ChangePasswordBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var sudoToken = httpContext.Request.Cookies[AuthCookieHelper.SudoCookieName];
+        if (string.IsNullOrWhiteSpace(sudoToken))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
+
+        // Read client body (newPassword, confirmPassword) and inject sudoToken from cookie
+        using var reader = new System.IO.StreamReader(httpContext.Request.Body);
+        var rawBody = await reader.ReadToEndAsync(ct);
+        System.Text.Json.JsonElement clientJson;
+        try { clientJson = System.Text.Json.JsonDocument.Parse(rawBody).RootElement; }
+        catch { return Results.BadRequest(new { error = "Invalid request body." }); }
+
+        var merged = new System.Collections.Generic.Dictionary<string, object?>
+        {
+            ["sudoToken"] = sudoToken
+        };
+        foreach (var prop in clientJson.EnumerateObject())
+            merged[prop.Name] = prop.Value.Clone();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/me/password");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(merged),
+            System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.SendAsync(request, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
     }
 
     private static async Task<IResult> AdultConsentAsync(
@@ -2232,13 +2308,145 @@ public static class BffApiEndpoints
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
 
+        var sudoToken = httpContext.Request.Cookies[AuthCookieHelper.SudoCookieName];
+        if (string.IsNullOrWhiteSpace(sudoToken))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
+
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/2fa/setup");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(new { sudoToken }),
+            System.Text.Encoding.UTF8, "application/json");
 
         var response = await client.SendAsync(request, ct);
         var body = await response.Content.ReadAsStringAsync(ct);
         return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> VerifyCredentialBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/me/verify-credential");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StreamContent(httpContext.Request.Body);
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var response = await client.SendAsync(request, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<bool> IsSudoValidBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        var sudoToken = httpContext.Request.Cookies[AuthCookieHelper.SudoCookieName];
+        if (string.IsNullOrWhiteSpace(sudoToken)) return false;
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return false;
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var req = new HttpRequestMessage(HttpMethod.Post, "/me/verify-credential");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        req.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(new { sudoToken }),
+            System.Text.Encoding.UTF8, "application/json");
+
+        var response2 = await client.SendAsync(req, ct);
+        return response2.IsSuccessStatusCode;
+    }
+
+    private static async Task<IResult> IssueSudoTokenBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/me/sudo");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StreamContent(httpContext.Request.Body);
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var response = await client.SendAsync(request, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+
+        if (!response.IsSuccessStatusCode)
+            return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(body);
+        var root = doc.RootElement;
+        var token = root.TryGetProperty("sudoToken", out var tp) ? tp.GetString() : null;
+        var expires = root.TryGetProperty("expiresInSeconds", out var ep) ? ep.GetInt32() : 300;
+
+        if (!string.IsNullOrEmpty(token))
+            AuthCookieHelper.SetSudoCookie(httpContext, token, expires);
+
+        return Results.Ok(new { expiresInSeconds = expires });
+    }
+
+    private static async Task<IResult> BeginSudoPasskeyBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/me/sudo/passkey/begin");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StreamContent(httpContext.Request.Body);
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var response = await client.SendAsync(request, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> CompleteSudoPasskeyBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/me/sudo/passkey/complete");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StreamContent(httpContext.Request.Body);
+        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+
+        var response = await client.SendAsync(request, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+
+        if (!response.IsSuccessStatusCode)
+            return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(body);
+        var root = doc.RootElement;
+        var token = root.TryGetProperty("sudoToken", out var tp) ? tp.GetString() : null;
+        var expires = root.TryGetProperty("expiresInSeconds", out var ep) ? ep.GetInt32() : 300;
+
+        if (!string.IsNullOrEmpty(token))
+            AuthCookieHelper.SetSudoCookie(httpContext, token, expires);
+
+        return Results.Ok(new { expiresInSeconds = expires });
     }
 
     private static async Task<IResult> Enable2FABffAsync(
@@ -2270,11 +2478,16 @@ public static class BffApiEndpoints
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
 
+        var sudoToken = httpContext.Request.Cookies[AuthCookieHelper.SudoCookieName];
+        if (string.IsNullOrWhiteSpace(sudoToken))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
+
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/2fa/disable");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        request.Content = new StreamContent(httpContext.Request.Body);
-        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+        request.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(new { sudoToken }),
+            System.Text.Encoding.UTF8, "application/json");
 
         var response = await client.SendAsync(request, ct);
         var body = await response.Content.ReadAsStringAsync(ct);
@@ -2309,11 +2522,16 @@ public static class BffApiEndpoints
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
 
+        var sudoToken = httpContext.Request.Cookies[AuthCookieHelper.SudoCookieName];
+        if (string.IsNullOrWhiteSpace(sudoToken))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
+
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, "/auth/2fa/backup-codes/regenerate");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        request.Content = new StreamContent(httpContext.Request.Body);
-        request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
+        request.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(new { sudoToken }),
+            System.Text.Encoding.UTF8, "application/json");
 
         var response = await client.SendAsync(request, ct);
         var body = await response.Content.ReadAsStringAsync(ct);
@@ -2323,47 +2541,63 @@ public static class BffApiEndpoints
     // --- Device Management ---
 
     private static async Task<IResult> GetMyDevicesAsync(
-        HttpContext httpContext,
-        IHttpClientFactory httpClientFactory,
+        TwoFactorService.TwoFactorServiceClient twoFactorClient,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName]
-            ?? httpContext.Request.Cookies[AuthCookieHelper.SessionCookieName];
-        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+        try
+        {
+            var response = await twoFactorClient.GetTrustedDevicesAsync(
+                new GetTrustedDevicesRequest(), cancellationToken: ct);
 
-        var client = httpClientFactory.CreateClient("InternalApi");
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/auth/2fa/trusted-devices");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            var devices = response.Devices.Select(d => new
+            {
+                publicId = d.PublicId,
+                deviceName = d.DeviceName,
+                trustedAt = d.TrustedAt,
+                expiresAt = string.IsNullOrEmpty(d.ExpiresAt) ? null : d.ExpiresAt,
+                lastUsedAt = string.IsNullOrEmpty(d.LastUsedAt) ? null : d.LastUsedAt,
+                lastUsedIp = string.IsNullOrEmpty(d.LastUsedIp) ? null : d.LastUsedIp,
+                isActive = d.IsActive
+            });
 
-        var response = await client.SendAsync(request, ct);
-        if (!response.IsSuccessStatusCode) return Results.StatusCode((int)response.StatusCode);
-
-        var content = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(content, "application/json");
+            return Results.Ok(devices);
+        }
+        catch (RpcException ex)
+        {
+            return GrpcResult<object>.FromRpcException(ex).Status switch
+            {
+                GrpcStatus.Unauthenticated => Results.Unauthorized(),
+                _ => Results.StatusCode(503)
+            };
+        }
     }
 
     private static async Task<IResult> RevokeMyDeviceAsync(
         string deviceId,
         HttpContext httpContext,
-        IHttpClientFactory httpClientFactory,
+        TwoFactorService.TwoFactorServiceClient twoFactorClient,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         if (!AuthCookieHelper.HasStrictAuthCookie(httpContext))
             return Results.StatusCode(403);
 
-        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
-        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
-
-        var client = httpClientFactory.CreateClient("InternalApi");
-        using var request = new HttpRequestMessage(HttpMethod.Delete, $"/auth/2fa/trusted-devices/{deviceId}");
-        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-
-        var response = await client.SendAsync(request, ct);
-        if (!response.IsSuccessStatusCode) return Results.StatusCode((int)response.StatusCode);
-
-        return Results.Ok();
+        try
+        {
+            await twoFactorClient.RevokeDeviceAsync(
+                new RevokeDeviceRequest { DeviceId = deviceId }, cancellationToken: ct);
+            return Results.Ok();
+        }
+        catch (RpcException ex)
+        {
+            return GrpcResult<object>.FromRpcException(ex).Status switch
+            {
+                GrpcStatus.Unauthenticated => Results.Unauthorized(),
+                GrpcStatus.NotFound => Results.NotFound(),
+                _ => Results.StatusCode(503)
+            };
+        }
     }
 
     private static IResult MapGrpcError(GrpcStatus status, string? error = null) => status switch
@@ -2375,35 +2609,50 @@ public static class BffApiEndpoints
         _ => Results.StatusCode(503)
     };
 
-    private static async Task<IResult> GenerateFeedTokenAsync(SnakkApiClient apiClient,
+    private static async Task<IResult> GenerateFeedTokenAsync(
+        SnakkApiClient apiClient,
         HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
 
         var token = await apiClient.GenerateFeedTokenAsync(ct);
         if (token is null) return Results.StatusCode(503);
         return Results.Ok(new { token });
     }
 
-    private static async Task<IResult> RevokeFeedTokenAsync(SnakkApiClient apiClient,
+    private static async Task<IResult> RevokeFeedTokenAsync(
+        SnakkApiClient apiClient,
         HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
 
         var success = await apiClient.RevokeFeedTokenAsync(ct);
         return success ? Results.Ok() : Results.StatusCode(503);
     }
 
-    private static async Task<IResult> GenerateDiscordLinkTokenAsync(SnakkApiClient apiClient,
+    private static async Task<IResult> GenerateDiscordLinkTokenAsync(
+        SnakkApiClient apiClient,
         HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
 
         var result = await apiClient.GenerateDiscordLinkTokenAsync(ct);
         if (result is null) return Results.StatusCode(503);
@@ -2411,12 +2660,17 @@ public static class BffApiEndpoints
         return Results.Ok(new { token = result.Token, linkUrl });
     }
 
-    private static async Task<IResult> UnlinkDiscordAsync(SnakkApiClient apiClient,
+    private static async Task<IResult> UnlinkDiscordAsync(
+        SnakkApiClient apiClient,
         HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
 
         var success = await apiClient.UnlinkDiscordAsync(ct);
         return success ? Results.Ok() : Results.StatusCode(503);
@@ -2437,6 +2691,105 @@ public static class BffApiEndpoints
             discordUsername = status.HasDiscordUsername ? status.DiscordUsername : null,
             discordUserId = status.HasDiscordUserId ? status.DiscordUserId : null
         });
+    }
+
+    private static async Task<IResult> GetMySessionsBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/sessions/");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var rawRefresh = httpContext.Request.Cookies[AuthCookieHelper.RefreshCookieName];
+        if (!string.IsNullOrEmpty(rawRefresh))
+        {
+            var hash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(rawRefresh)));
+            req.Headers.TryAddWithoutValidation("X-Current-Refresh-Token-Hash", hash);
+        }
+
+        var response = await client.SendAsync(req, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> RevokeMySessionBffAsync(
+        string sessionId,
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
+
+        var sudoToken = httpContext.Request.Cookies[AuthCookieHelper.SudoCookieName];
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var req = new HttpRequestMessage(HttpMethod.Delete, $"/sessions/{Uri.EscapeDataString(sessionId)}");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken!);
+        req.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(new { sudoToken }),
+            System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.SendAsync(req, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> RevokeAllOtherSessionsBffAsync(
+        [FromBody] RevokeAllOtherBffRequest request,
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
+
+        var sudoToken = httpContext.Request.Cookies[AuthCookieHelper.SudoCookieName];
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var req = new HttpRequestMessage(HttpMethod.Delete, "/sessions/");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken!);
+        req.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(new { sudoToken, excludeSessionId = request.ExcludeSessionId }),
+            System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.SendAsync(req, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> GetMyLoginHistoryBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var req = new HttpRequestMessage(HttpMethod.Get, "/sessions/login-history");
+        req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(req, ct);
+        var body = await response.Content.ReadAsStringAsync(ct);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
     }
 
     private static async Task<IResult> ToggleSaveDiscussionAsync(string discussionId,
@@ -2588,6 +2941,8 @@ public record BffCreateReportRequest(string EntityType, string EntityId, string 
 public record ReadStateUpdate(string DiscussionId, string PostId);
 public record BatchUpdateReadStatesRequest(List<ReadStateUpdate> Updates);
 public record UpdateProfileRequestDto(string DisplayName, string? Password = null, string? TurnstileToken = null);
+public record UpdateProfileWithSudoDto(string DisplayName);
 public record ValidateHistoryIdsRequest(IReadOnlyList<string>? Ids);
 public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null, bool ClearAllowAdultContent = false, int? AdultPreviewImageMode = null, bool? HidePresence = null);
 public record ReloginRequest(string Email, string Password);
+public record RevokeAllOtherBffRequest(string ExcludeSessionId);

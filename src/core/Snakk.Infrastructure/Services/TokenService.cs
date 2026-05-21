@@ -97,7 +97,8 @@ public class TokenService(
             user.Email,
             user.EmailVerified,
             user.OAuthProvider,
-            role);
+            role,
+            sessionId: tokenEntity.PublicId);
     }
 
     public async Task RevokeRefreshTokenAsync(string tokenValue, string reason, CancellationToken ct = default)

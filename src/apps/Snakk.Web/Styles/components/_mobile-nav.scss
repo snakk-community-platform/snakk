@@ -20,6 +20,7 @@
     border-radius: 0.375rem;
     cursor: pointer;
     flex-shrink: 0;
+    margin: 0 0.5rem 0 -1rem;
 
     &:hover {
         background: var(--bg-subtle);
@@ -31,7 +32,7 @@
     }
 }
 
-@media (max-width: 1023.98px) {
+@media (max-width: 1315.98px) {
     .sn-nav-hamburger {
         display: inline-flex;
     }
@@ -71,7 +72,7 @@ html.sn-nav-open body {
     z-index: 80;
     height: 3.5rem;
     background: var(--bg-primary);
-    border-top: 1px solid var(--border-subtle);
+    border-top: 1px solid var(--border-secondary);
     padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
@@ -96,6 +97,7 @@ html.sn-nav-open body {
     justify-content: center;
     gap: 0.125rem;
     text-decoration: none;
+    cursor: pointer;
     color: var(--text-secondary);
     font-size: 0.625rem;
     font-weight: 500;
@@ -118,11 +120,17 @@ html.sn-nav-open body {
     }
 }
 
+// Logo image used in the home tab in place of the home icon.
+.sn-tabbar-logo {
+    height: 1.375rem;
+    width: auto;
+}
+
 // Primary/emphasized compose tab — visually lifted, colored background.
 .sn-tabbar-item--primary {
     .sn-tabbar-item-icon {
-        width: 2.5rem;
-        height: 2.5rem;
+        width: 2rem;
+        height: 2rem;
         border-radius: 999px;
         background: var(--link-primary);
         color: #fff;

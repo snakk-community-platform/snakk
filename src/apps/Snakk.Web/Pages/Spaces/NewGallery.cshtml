@@ -84,7 +84,16 @@
 
                     <div class="flex items-center justify-between">
                         <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@T.Pages.SpacesNewGallerySubmit</button>
+                        <div class="flex items-center gap-3">
+                            <div id="upload-progress-row" class="upload-progress-row hidden">
+                                <div id="upload-image-chips" class="upload-image-chips"></div>
+                                <span id="upload-status-text" class="upload-status-text"></span>
+                            </div>
+                            <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">
+                                <span id="new-discussion-submit-label">@T.Pages.SpacesNewGallerySubmit</span>
+                                <span id="new-discussion-submit-spinner" class="loading loading-spinner loading-xs hidden"></span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </form>

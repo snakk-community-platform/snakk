@@ -8,7 +8,7 @@
 @foreach (var discussion in Model.Items)
 {
     @await Html.PartialAsync("Shared/_DiscussionCard",
-        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, Model.ShowHub, Model.ShowSpace))
+        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, Model.ShowHub, Model.ShowSpace, ShowPath: Model.ShowPath))
 }
 
 @if (Model.HasMoreItems
@@ -23,7 +23,7 @@
             ? $"/partials/discussions?sort=new&cursor={Model.NextCursor}&pageSize=20{communityParam}{offsetParam}"
             : Model.Sort == "my-feed"
                 ? $"/partials/discussions?sort=my-feed&cursor={Model.NextCursor}&pageSize=20{offsetParam}"
-                : $"/partials/discussions?cursor={Model.NextCursor}&pageSize=20{communityParam}{(Model.HubId != null ? $"&hubId={Model.HubId}" : "")}{(Model.SpaceId != null ? $"&spaceId={Model.SpaceId}" : "")}{(Model.HideCommunity ? "&hideCommunity=true" : "")}{(Model.HideHub ? "&hideHub=true" : "")}{offsetParam}";
+                : $"/partials/discussions?cursor={Model.NextCursor}&pageSize=20{communityParam}{(Model.HubId != null ? $"&hubId={Model.HubId}" : "")}{(Model.SpaceId != null ? $"&spaceId={Model.SpaceId}" : "")}{(Model.HideCommunity ? "&hideCommunity=true" : "")}{(Model.HideHub ? "&hideHub=true" : "")}{(Model.HidePath ? "&hidePath=true" : "")}{offsetParam}";
     <div hx-get="@nextUrl"
          hx-trigger="revealed once"
          hx-swap="outerHTML"

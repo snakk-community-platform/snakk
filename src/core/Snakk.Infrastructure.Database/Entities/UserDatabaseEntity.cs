@@ -84,4 +84,5 @@ public class UserDatabaseEntity
     public virtual ICollection<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = [];
     public virtual ICollection<UserRoleDatabaseEntity> Roles { get; set; } = [];
     public virtual ICollection<UserSocialLinkDatabaseEntity> SocialLinks { get; set; } = [];
+    public virtual ICollection<PasskeyCredentialDatabaseEntity> PasskeyCredentials { get; set; } = [];
 }

@@ -82,11 +82,12 @@
             },
             onChange: (items: Array<{ blobUrl: string; alt: string; oversized: boolean }>, layout: string) => {
                 currentImages = items
-                    .filter(i => !i.oversized)
+                    .filter(i => !i.oversized && i.blobUrl)
                     .map(i => ({ url: i.blobUrl, alt: i.alt }));
+                const stillLoading = items.some(i => !i.oversized && !i.blobUrl);
                 const layoutInput = document.getElementById('images-layout-hidden') as HTMLInputElement | null;
                 if (layoutInput) layoutInput.value = layout;
-                setBlocker('images', currentImages.length === 0);
+                setBlocker('images', currentImages.length === 0 || stillLoading);
             },
         });
 
@@ -116,20 +117,54 @@
             e.preventDefault();
             setBlocker('flushing', true);
 
+            const btnSpinner = document.getElementById('new-discussion-submit-spinner');
+            const progressRow = document.getElementById('upload-progress-row');
+            const chipsEl = document.getElementById('upload-image-chips');
+            const statusEl = document.getElementById('upload-status-text');
+
+            btnSpinner?.classList.remove('hidden');
+
+            const total = toUpload.length;
+            if (chipsEl) {
+                chipsEl.innerHTML = '';
+                for (let i = 0; i < total; i++) {
+                    const chip = document.createElement('span');
+                    chip.className = 'upload-chip upload-chip-waiting';
+                    chip.id = `upload-chip-${i}`;
+                    chipsEl.appendChild(chip);
+                }
+                const first = document.getElementById('upload-chip-0');
+                if (first) first.className = 'upload-chip upload-chip-uploading';
+            }
+            if (statusEl) statusEl.textContent = `Uploading 1 of ${total}…`;
+            progressRow?.classList.remove('hidden');
+
+            let done = 0;
             try {
                 for (const { url: blobUrl, file } of toUpload) {
                     const cdnUrl = await uploadFile(file);
                     URL.revokeObjectURL(blobUrl);
                     pendingFiles.delete(blobUrl);
                     currentImages = currentImages.map(i => i.url === blobUrl ? { ...i, url: cdnUrl } : i);
+                    done++;
+                    const doneChip = document.getElementById(`upload-chip-${done - 1}`);
+                    if (doneChip) doneChip.className = 'upload-chip upload-chip-done';
+                    const nextChip = document.getElementById(`upload-chip-${done}`);
+                    if (nextChip) nextChip.className = 'upload-chip upload-chip-uploading';
+                    if (statusEl) statusEl.textContent = done < total ? `Uploading ${done + 1} of ${total}…` : `Uploading ${total} of ${total}…`;
                 }
             } catch (err) {
                 console.error('[Gallery] Upload failed:', err);
+                btnSpinner?.classList.add('hidden');
+                progressRow?.classList.add('hidden');
                 setBlocker('flushing', false);
                 return;
             }
 
-            setBlocker('flushing', false);
+            // Success: keep button disabled and progress visible; page navigates away.
+            // Do NOT call setBlocker('flushing', false) here — that would briefly re-enable
+            // the button between this line and requestSubmit(), causing a visible flicker.
+            btnSpinner?.classList.add('hidden');
             deferredSubmitReady = true;
             form.dataset.allowResubmit = 'true';
             form.requestSubmit();

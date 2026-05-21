@@ -67,26 +67,32 @@
             var (icon, label, cssClass) = GetTypeBadge(discussion.Type);
             <span class="sn-card-type-badge @cssClass">@icon @label</span>
         }
-        <span class="sn-card-path">
-            @if (Model.ShowCommunity)
-            {
-                <a href="@communityUrl" class="sn-card-path-link"
-                   data-popup-type="community"
-                   data-popup-id="@discussion.Community.PublicId"
-                   data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
-                <span class="sn-card-path-sep">&rsaquo;</span>
-            }
-            <a href="@hubUrl" class="sn-card-path-link"
-               data-popup-type="hub"
-               data-popup-id="@discussion.Hub.PublicId"
-               data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
-            <span class="sn-card-path-sep">&rsaquo;</span>
-            <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space"
-               style="--space-grad: @SpaceGradient(discussion.Space.PublicId)"
-               data-popup-type="space"
-               data-popup-id="@discussion.Space.PublicId"
-               data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
-        </span>
+        @if (Model.ShowPath)
+        {
+            <span class="sn-card-path">
+                @if (Model.ShowCommunity)
+                {
+                    <a href="@communityUrl" class="sn-card-path-link"
+                       data-popup-type="community"
+                       data-popup-id="@discussion.Community.PublicId"
+                       data-popup-name="@discussion.Community.Name">@discussion.Community.Name</a>
+                    <span class="sn-card-path-sep">&rsaquo;</span>
+                }
+                @if (Model.ShowHub)
+                {
+                    <a href="@hubUrl" class="sn-card-path-link"
+                       data-popup-type="hub"
+                       data-popup-id="@discussion.Hub.PublicId"
+                       data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
+                    <span class="sn-card-path-sep">&rsaquo;</span>
+                }
+                <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space"
+                   style="--space-grad: @SpaceGradient(discussion.Space.PublicId)"
+                   data-popup-type="space"
+                   data-popup-id="@discussion.Space.PublicId"
+                   data-popup-name="@discussion.Space.Name">@discussion.Space.Name</a>
+            </span>
+        }
     </div>
 
     <div class="sn-card-title-row">

@@ -1465,11 +1465,11 @@
                                 </div>
                             </div>
 
+                            <div id="upload-progress-row" class="upload-progress-row hidden">
+                                <div id="upload-image-chips" class="upload-image-chips"></div>
+                                <span id="upload-status-text" class="upload-status-text"></span>
+                            </div>
                             <div class="flex items-center gap-3">
-                                <div id="upload-progress-row" class="upload-progress-row hidden">
-                                    <div id="upload-image-chips" class="upload-image-chips"></div>
-                                    <span id="upload-status-text" class="upload-status-text"></span>
-                                </div>
                                 <button type="submit" id="reply-submit-btn" class="btn btn-primary btn-sm hidden">
                                     <span id="reply-submit-label">@T.Pages.DiscPostReply</span>
                                     <span id="reply-submit-spinner" class="loading loading-spinner loading-xs hidden"></span>
@@ -1482,7 +1482,7 @@
             }
 
         </div> <!-- End sn-center-inner -->
-        @if (Model.Discussion.PostCount > 1)
+        @if (Model.Discussion.PostCount > 1 && Model.Posts?.HasMoreItems == true)
         {
             <!-- Thread Navigation Bar (sticky bottom, inside sn-center but outside sn-center-inner) -->
             <div id="thread-nav" class="thread-nav hidden">

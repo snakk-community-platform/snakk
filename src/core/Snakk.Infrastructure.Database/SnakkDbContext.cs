@@ -51,6 +51,8 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<TwoFactorBackupCodeDatabaseEntity> TwoFactorBackupCodes { get; set; } = null!;
     public DbSet<PasswordResetTokenDatabaseEntity> PasswordResetTokens { get; set; } = null!;
     public DbSet<PasswordResetRequestDatabaseEntity> PasswordResetRequests { get; set; } = null!;
+    public DbSet<PasskeyCredentialDatabaseEntity> PasskeyCredentials { get; set; } = null!;
+    public DbSet<LoginHistoryDatabaseEntity> LoginHistory { get; set; } = null!;
 
     // Settings
     public DbSet<SystemSettingDatabaseEntity> SystemSettings { get; set; } = null!;
@@ -1114,6 +1116,24 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasForeignKey(b => b.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
+        // === Passkey Configuration ===
+
+        modelBuilder.Entity<PasskeyCredentialDatabaseEntity>(entity =>
+        {
+            entity.HasOne(p => p.User)
+                .WithMany(u => u.PasskeyCredentials)
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // CredentialId is a byte[] lookup key — must be unique globally
+            entity.HasIndex(p => p.CredentialId)
+                .IsUnique()
+                .HasDatabaseName("IX_PasskeyCredential_CredentialId");
+
+            entity.HasIndex(p => p.UserId)
+                .HasDatabaseName("IX_PasskeyCredential_UserId");
+        });
+
         // === SystemSettings Configuration ===
 
         modelBuilder.Entity<SystemSettingDatabaseEntity>()
@@ -1783,6 +1803,12 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(u => u.OAuthProviderId)
             .HasFilter("\"OAuthProviderId\" IS NOT NULL")
             .HasDatabaseName("IX_User_OAuthProviderId");
+
+        // AuthVersionSweeper polls this column every 30 seconds — without an index it's a full table scan
+        modelBuilder.Entity<UserDatabaseEntity>()
+            .HasIndex(u => u.AuthVersionUpdatedAt)
+            .HasFilter("\"IsDeleted\" = FALSE")
+            .HasDatabaseName("IX_User_AuthVersionUpdatedAt_NotDeleted");
 
         // Trending feed ordering
         modelBuilder.Entity<DiscussionDatabaseEntity>()

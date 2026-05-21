@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <!-- JWT Authentication -->
+    <PackageReference Include="Fido2.AspNet" Version="4.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7">

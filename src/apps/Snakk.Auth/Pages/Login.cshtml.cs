@@ -23,6 +23,8 @@ public class LoginModel(
     public bool HasGitHub => !string.IsNullOrEmpty(configuration["Authentication:GitHub:ClientId"]);
     public bool HasDiscord => !string.IsNullOrEmpty(configuration["Authentication:Discord:ClientId"]);
     public bool HasAnyOAuth => HasGoogle || HasGitHub || HasDiscord;
+    public bool PasskeysEnabled => configuration.GetValue<bool>("Features:PasskeysEnabled", true);
+    public bool TwoFactorEnabled => configuration.GetValue<bool>("Features:TwoFactorEnabled", true);
     public string? TurnstileSiteKey => configuration["Turnstile:SiteKey"];
 
     public class InputModel

@@ -9,8 +9,11 @@
     max-width: 320px;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,.3);
-    animation: popup-fade-in 0.15s ease;
     overflow-y: auto;
+}
+
+.snakk-popup.snakk-popup--ready {
+    animation: popup-fade-in 0.15s ease;
 }
 
 // Close button — only shown on touch devices where there's no hover dismiss.

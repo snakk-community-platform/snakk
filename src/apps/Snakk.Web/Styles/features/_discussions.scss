@@ -451,6 +451,12 @@
     position: sticky;
     bottom: 0;
     z-index: 40;
+
+    // Sit above .sn-tabbar on mobile. JS (scroll-nav.ts) keeps this in sync
+    // as the tabbar scrolls in/out; 3.5rem is the fallback before JS runs.
+    @media (max-width: 1023.98px) {
+        bottom: 3.5rem;
+    }
     display: inline-block;
     left: 50%;
     transform: translateX(-50%);

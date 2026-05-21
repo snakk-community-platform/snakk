@@ -118,14 +118,14 @@ else
                 @foreach (var discussion in Model.Discussions.Items)
                 {
                     @await Html.PartialAsync("Shared/_DiscussionCard",
-                        new DiscussionListItemVM(discussion, Model.ShowCommunityInBreadcrumb, Model.Community))
+                        new DiscussionListItemVM(discussion, Model.ShowCommunityInBreadcrumb, Model.Community, ShowPath: false))
                 }
 
                 @if (Model.Discussions.HasMoreItems && Model.Discussions.HasNextCursor)
                 {
                     var nextCursor = Model.Discussions.NextCursor;
 
-                    <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20&spaceId=@Model.Space.PublicId"
+                    <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20&spaceId=@Model.Space.PublicId&hidePath=true"
                          hx-trigger="revealed once"
                          hx-swap="outerHTML"
                          hx-target="this"

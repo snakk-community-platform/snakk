@@ -1,4 +1,4 @@
-﻿@page "/settings/privacy"
+@page "/settings/privacy"
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Settings.PrivacyModel
 @{
@@ -25,61 +25,140 @@
         </h2>
         <div class="sn-settings-content">
 
-            <!-- Trusted Devices -->
-            <div id="section-devices" class="sn-settings-section">
-                <h3 class="sn-settings-section-title">@T.Settings.PrivDevicesTitle</h3>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
-                    @T.Settings.PrivDevicesHelp
-                </p>
-                <div id="devices-list">
-                    <div class="flex justify-center py-4">
-                        <span class="loading loading-spinner loading-md"></span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Email -->
-            <div id="section-email" class="sn-settings-section">
-                <h3 class="sn-settings-section-title">@T.Settings.PrivEmailTitle</h3>
-                <div class="flex flex-col gap-2 text-sm">
-                    <div class="flex items-center gap-2">
-                        <span style="color: var(--text-tertiary)">@T.Settings.PrivEmailLabel</span>
-                        <span class="profile-email font-medium"></span>
-                        <span class="profile-email-badge badge badge-sm shrink-0"></span>
-                    </div>
-                    <div class="flex items-center gap-2 profile-oauth-row" style="display: none;">
-                        <span style="color: var(--text-tertiary)">@T.Settings.PrivSignInVia</span>
-                        <span class="capitalize profile-oauth font-medium"></span>
-                    </div>
-                </div>
+            <!-- Presence & Visibility -->
+            <div id="section-presence" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.PrivPresenceTitle</h3>
+                <label class="flex items-center gap-4 cursor-pointer">
+                    <input type="checkbox" id="hide-presence-toggle" class="toggle toggle-primary"
+                           @(Model.HidePresence ? "checked" : "") />
+                    <span>
+                        <span class="font-medium text-sm">@T.Settings.PrivPresenceLabel</span>
+                        <span class="block text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivPresenceHelp</span>
+                    </span>
+                </label>
             </div>
 
             <!-- Password -->
             <div id="section-password" class="sn-settings-section">
-                <h3 class="sn-settings-section-title">@T.Settings.PrivPasswordTitle</h3>
+                <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>@T.Settings.PrivPasswordTitle</span>
+                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                </h3>
                 <p class="text-sm mb-3" style="color: var(--text-tertiary)">
                     @T.Settings.PrivPasswordHelp
                 </p>
-                <form id="change-password-form" class="flex flex-col gap-3">
-                    <input type="password" name="currentPassword" class="input w-full" placeholder="@T.Settings.PrivCurrentPwdPlaceholder" autocomplete="current-password" />
-                    <input type="password" name="newPassword" class="input w-full" placeholder="@T.Settings.PrivNewPwdPlaceholder" autocomplete="new-password" />
-                    <input type="password" name="confirmPassword" class="input w-full" placeholder="@T.Settings.PrivConfirmPwdPlaceholder" autocomplete="new-password" />
-                    <div>
-                        <button type="submit" class="btn btn-primary btn-sm" id="change-password-btn">@T.Settings.PrivChangePwdBtn</button>
-                    </div>
-                </form>
+                <button type="button" id="open-change-password" class="btn btn-primary btn-sm">@T.Settings.PrivChangePwdBtn</button>
             </div>
-            <!-- Presence & Visibility -->
-            <div id="section-presence" class="sn-settings-section">
-                <h3 class="sn-settings-section-title">@T.Settings.PrivPresenceTitle</h3>
-                <label class="flex items-start gap-3 cursor-pointer">
-                    <input type="checkbox" id="hide-presence-toggle" class="checkbox checkbox-sm mt-0.5 shrink-0"
-                           @(Model.HidePresence ? "checked" : "") />
-                    <span class="flex flex-col gap-1">
-                        <span class="font-medium text-sm">@T.Settings.PrivPresenceLabel</span>
-                        <span class="text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivPresenceHelp</span>
-                    </span>
-                </label>
+
+            @if (Model.PasskeysEnabled)
+            {
+            <!-- Passkeys -->
+            <div id="section-passkeys" class="sn-settings-section">
+                <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>@T.Settings.PrivPasskeyTitle</span>
+                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                </h3>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.PrivPasskeyHelp
+                </p>
+                <div id="passkey-list" class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+                    <div class="flex justify-center py-4">
+                        <span class="loading loading-spinner loading-md"></span>
+                    </div>
+                </div>
+                <div id="passkey-add-area" class="mt-4" style="display:none">
+                    <button type="button" id="open-passkey-modal" class="btn btn-primary btn-sm">@T.Settings.PrivPasskeyAdd</button>
+                </div>
+                <p id="passkey-status" class="text-sm mt-2 hidden"></p>
+            </div>
+            }
+
+            @if (Model.TwoFactorEnabled)
+            {
+            <!-- Two-Factor Authentication -->
+            <div id="two-factor-section" class="sn-settings-section">
+                <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>@T.Settings.Priv2faTitle</span>
+                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                </h3>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.Priv2faHelp
+                </p>
+                <div id="2fa-loading" class="flex justify-center py-4">
+                    <span class="loading loading-spinner loading-md"></span>
+                </div>
+                <div id="2fa-status" class="hidden">
+                    <div id="2fa-state-disabled" class="hidden">
+                        <button type="button" id="2fa-setup-btn" class="btn btn-primary btn-sm">@T.Settings.Priv2faEnableBtn</button>
+                    </div>
+                    <div id="2fa-state-enabled" class="hidden">
+                        <div class="callout-node-view callout-node-success mb-4 text-sm" style="border-left:none">
+                            <span class="icon icon-shield-check w-4 h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-success,#10b981)"></span>
+                            <span>@T.Settings.Priv2faEnabledCallout</span>
+                        </div>
+                        <div class="rounded-lg border border-base-300 overflow-hidden mb-4" style="background:#fff;color:#111;">
+                            <div class="sn-device-item">
+                                <div class="sn-device-info">
+                                    <p id="2fa-backup-status" class="text-sm sn-device-meta"></p>
+                                </div>
+                                <button type="button" id="2fa-regen-btn" class="sn-device-revoke sn-device-revoke--success">@T.Settings.Priv2faRegenBtn</button>
+                            </div>
+                        </div>
+                        <!-- Trusted Devices -->
+                        <div id="devices-section">
+                            <h4 class="text-sm font-semibold mb-1">@T.Settings.PrivDevicesTitle</h4>
+                            <p class="text-sm mb-3" style="color: var(--text-tertiary)">
+                                @T.Settings.PrivDevicesHelp
+                            </p>
+                            <div id="devices-list" class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+                                <div class="flex justify-center py-4">
+                                    <span class="loading loading-spinner loading-md"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <button type="button" id="2fa-disable-btn" class="btn btn-error btn-sm">@T.Settings.Priv2faDisableBtn</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            } @* end TwoFactorEnabled *@
+
+            <!-- Active Sessions -->
+            <div id="section-sessions" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.SecSessionsTitle</h3>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.SecSessionsIntro
+                </p>
+                <div class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+                    <div id="sessions-loading" class="flex justify-center py-4">
+                        <span class="loading loading-spinner loading-md"></span>
+                    </div>
+                    <div id="sessions-list" class="hidden"></div>
+                    <p id="sessions-empty" class="hidden text-sm px-4 py-3" style="color: var(--text-tertiary)">
+                        @T.Settings.SecSessionsEmpty
+                    </p>
+                </div>
+                <div id="sessions-actions" class="hidden mt-4">
+                    <button type="button" class="btn btn-ghost btn-sm" style="color: var(--text-tertiary)" id="revoke-all-sessions-btn">
+                        @T.Settings.SecSessionsRevokeAllBtn
+                    </button>
+                </div>
+                <p id="sessions-status" class="text-sm mt-2 hidden"></p>
+            </div>
+
+            <!-- Security Log -->
+            <div id="section-security-log" class="sn-settings-section">
+                <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>@T.Settings.SecLogTitle</span>
+                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                </h3>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.SecLogIntro
+                </p>
+                <button type="button" class="btn btn-primary btn-sm" id="view-security-log-btn">
+                    @T.Settings.SecLogViewBtn
+                </button>
             </div>
 
         </div>
@@ -92,18 +171,206 @@
 <partial name="Shared/_SettingsRightNav" />
 </aside>
 
+@if (User.Identity?.IsAuthenticated == true)
+{
+<!-- ============================================================
+     Modals
+     ============================================================ -->
+
+<partial name="Shared/_SudoModals" />
+
+<!-- Change Password -->
+<div id="modal-change-password" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-pwd-title">
+    <div class="chart-modal" style="max-width:28rem">
+        <div class="chart-modal-header">
+            <span id="modal-pwd-title">@T.Settings.PrivPasswordTitle</span>
+            <button type="button" class="chart-modal-close sn-modal-close" data-modal="modal-change-password" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column">
+            <form id="change-password-form" class="flex flex-col gap-3 w-full">
+                <input type="password" name="newPassword" class="input w-full"
+                       placeholder="@T.Settings.PrivNewPwdPlaceholder" autocomplete="new-password" />
+                <input type="password" name="confirmPassword" class="input w-full"
+                       placeholder="@T.Settings.PrivConfirmPwdPlaceholder" autocomplete="new-password" />
+                <p id="change-password-status" class="text-sm hidden"></p>
+            </form>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel sn-modal-close" data-modal="modal-change-password">@T.Settings.Priv2faCancelBtn</button>
+            <button type="submit" form="change-password-form" class="chart-modal-insert" id="change-password-btn">@T.Settings.PrivChangePwdBtn</button>
+        </div>
+    </div>
+</div>
+
+@if (Model.TwoFactorEnabled)
+{
+<!-- Enable 2FA -->
+<div id="modal-2fa-enable" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-enable-title">
+    <div class="chart-modal" style="max-width:38rem">
+        <div class="chart-modal-header">
+            <span id="modal-2fa-enable-title">@T.Settings.Priv2faEnableBtn</span>
+            <button type="button" class="chart-modal-close sn-modal-close" data-modal="modal-2fa-enable" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column;align-items:center">
+            <p class="text-sm mb-4 w-full" style="color: var(--text-tertiary)">@T.Settings.Priv2faSetupInstructions</p>
+            <img id="2fa-qr-img" src="" alt="QR code" class="w-44 h-44 rounded border border-base-300 mb-3" />
+            <div class="rounded border border-base-300 p-3 mb-5 w-full" style="background:#fff;color:#111;">
+                <div class="flex items-center justify-between mb-1">
+                    <p class="text-xs font-medium" style="color:#666">@T.Settings.Priv2faManualKeyLabel</p>
+                    <button type="button" id="2fa-copy-secret-btn" class="btn btn-ghost btn-xs">Copy</button>
+                </div>
+                <code id="2fa-manual-key" class="font-mono text-sm break-all select-all block"></code>
+            </div>
+            <div class="flex gap-2 justify-center">
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code"
+                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+            </div>
+            <p id="2fa-enable-status" class="text-sm mt-3 hidden"></p>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel sn-modal-close" data-modal="modal-2fa-enable">@T.Settings.Priv2faCancelBtn</button>
+            <button type="button" class="chart-modal-insert" id="2fa-verify-btn">@T.Settings.Priv2faVerifyBtn</button>
+        </div>
+    </div>
+</div>
+
+<!-- Backup Codes (shown after enabling 2FA or after regen) -->
+<div id="modal-2fa-backup-codes" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-backup-codes-title">
+    <div class="chart-modal" style="max-width:38rem">
+        <div class="chart-modal-header">
+            <span id="modal-2fa-backup-codes-title">@T.Settings.Priv2faBackupCodesTitle</span>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column">
+            <div class="rounded border border-base-300 p-4 w-full" style="background:#fff;color:#111;">
+                <p class="text-sm font-medium mb-3">@T.Settings.Priv2faBackupCodesWarning</p>
+                <div id="2fa-codes-grid" class="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-sm"></div>
+            </div>
+            <div class="callout-node-view callout-node-warning mt-3 text-sm" style="border-left:none">
+                <span class="callout-node-icon">⚠️</span>
+                <div class="callout-node-body">@T.Settings.Priv2faCodesOneTimeWarning</div>
+            </div>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel" id="2fa-copy-codes-btn">@T.Settings.Priv2faCopyCodesBtn</button>
+            <button type="button" class="chart-modal-insert" id="2fa-codes-done-btn">@T.Settings.Priv2faCodesDoneBtn</button>
+        </div>
+    </div>
+</div>
+
+<!-- Disable 2FA -->
+<div id="modal-2fa-disable" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-disable-title">
+    <div class="chart-modal" style="max-width:28rem">
+        <div class="chart-modal-header">
+            <span id="modal-2fa-disable-title">@T.Settings.Priv2faDisableBtn</span>
+            <button type="button" class="chart-modal-close sn-modal-close" data-modal="modal-2fa-disable" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column">
+            <p class="text-sm mb-4" style="color: var(--text-tertiary)">@T.Settings.Priv2faDisableHelp</p>
+            <p id="2fa-disable-status" class="text-sm mt-2 hidden"></p>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel sn-modal-close" data-modal="modal-2fa-disable">@T.Settings.Priv2faCancelBtn</button>
+            <button type="button" class="chart-modal-insert" id="2fa-confirm-disable-btn">@T.Settings.Priv2faDisableBtn</button>
+        </div>
+    </div>
+</div>
+
+<!-- Regenerate Backup Codes -->
+<div id="modal-2fa-regen" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-regen-title">
+    <div class="chart-modal" style="max-width:38rem">
+        <div class="chart-modal-header">
+            <span id="modal-2fa-regen-title">@T.Settings.Priv2faRegenBtn</span>
+            <button type="button" class="chart-modal-close sn-modal-close" data-modal="modal-2fa-regen" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column; gap:0.75rem">
+            <p class="text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivRegenCodesHelp</p>
+            <p id="regen-status" class="text-sm hidden"></p>
+            <div id="regen-codes-area" class="rounded border border-base-300 p-4 w-full" style="display:none; background:#fff; color:#111;">
+                <p class="text-sm font-medium mb-3">@T.Settings.Priv2faBackupCodesWarning</p>
+                <div id="regen-codes-grid" class="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-sm"></div>
+            </div>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" id="regen-btn-cancel" class="chart-modal-cancel sn-modal-close" data-modal="modal-2fa-regen">@T.Settings.Priv2faCancelBtn</button>
+            <button type="button" id="regen-confirm-btn" class="chart-modal-insert">@T.Settings.Priv2faRegenBtn</button>
+            <button type="button" id="regen-copy-codes-btn" class="chart-modal-cancel" style="display:none">@T.Settings.Priv2faCopyCodesBtn</button>
+            <button type="button" id="regen-done-btn" class="chart-modal-insert sn-modal-close" data-modal="modal-2fa-regen" style="display:none">@T.Settings.Priv2faCodesDoneBtn</button>
+        </div>
+    </div>
+</div>
+} @* end TwoFactorEnabled modals *@
+
+<!-- Add Passkey -->
+<div id="modal-passkey" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-passkey-title">
+    <div class="chart-modal" style="max-width:28rem">
+        <div class="chart-modal-header">
+            <span id="modal-passkey-title">@T.Settings.PrivPasskeyAdd</span>
+            <button type="button" class="chart-modal-close sn-modal-close" data-modal="modal-passkey" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column">
+            <p class="text-sm mb-3" style="color: var(--text-tertiary)">@T.Settings.PrivPasskeyHelp</p>
+            <input type="text" id="passkey-name-input" class="input w-full mb-3"
+                   placeholder="@T.Settings.PrivPasskeyNamePlaceholder" maxlength="64" required />
+            <p id="passkey-modal-status" class="text-sm mt-2 hidden"></p>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel sn-modal-close" data-modal="modal-passkey">@T.Settings.Priv2faCancelBtn</button>
+            <button type="button" class="chart-modal-insert" id="passkey-register-btn">@T.Settings.PrivPasskeyAdd</button>
+        </div>
+    </div>
+</div>
+
+<!-- Remove Passkey -->
+<div id="modal-passkey-delete" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-passkey-delete-title">
+    <div class="chart-modal" style="max-width:28rem">
+        <div class="chart-modal-header">
+            <span id="modal-passkey-delete-title">@T.Settings.PrivPasskeyDelete</span>
+            <button type="button" class="chart-modal-close sn-modal-close" data-modal="modal-passkey-delete" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column">
+            <p class="text-sm mb-4" style="color: var(--text-tertiary)">@T.Settings.PrivPasskeyRemoveHelp</p>
+            <p id="passkey-delete-status" class="text-sm mt-2 hidden"></p>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel sn-modal-close" data-modal="modal-passkey-delete">@T.Settings.Priv2faCancelBtn</button>
+            <button type="button" class="chart-modal-insert" id="passkey-confirm-delete-btn">@T.Settings.PrivPasskeyDelete</button>
+        </div>
+    </div>
+</div>
+<!-- Security Log -->
+<div id="modal-security-log" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-security-log-title">
+    <div class="chart-modal" style="max-width:32rem">
+        <div class="chart-modal-header">
+            <span id="modal-security-log-title">@T.Settings.SecLogModalTitle</span>
+            <button type="button" class="chart-modal-close" id="security-log-close-btn" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column;max-height:60vh;overflow-y:auto">
+            <div class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+                <div id="security-log-loading" class="flex justify-center py-4">
+                    <span class="loading loading-spinner loading-md"></span>
+                </div>
+                <div id="security-log-list" class="hidden"></div>
+                <p id="security-log-empty" class="hidden text-sm text-center px-4 py-3" style="color: var(--text-tertiary)">
+                    @T.Settings.SecLogEmpty
+                </p>
+            </div>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel" id="security-log-close-btn-footer">@T.Settings.Priv2faCancelBtn</button>
+        </div>
+    </div>
+</div>
+}
+
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>
-<script>
-(function() {
-    var toggle = document.getElementById('hide-presence-toggle');
-    if (!toggle) return;
-    toggle.addEventListener('change', function() {
-        fetch('/bff/me/preferences', {
-            method: 'PUT',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hidePresence: toggle.checked })
-        });
-    });
-})();
-</script>
+<script src="@SnakkUrlHelper.Js("pages/settings-privacy")" asp-append-version="true"></script>

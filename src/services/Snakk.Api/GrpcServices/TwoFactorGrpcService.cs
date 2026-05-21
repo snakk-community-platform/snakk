@@ -18,6 +18,7 @@ public class TwoFactorGrpcService(
     IJwtTokenService jwtService,
     AuthenticationUseCase authUseCase,
     ICurrentUserService currentUser,
+    ITrustedDeviceService trustedDeviceService,
     SnakkDbContext context,
     IUserGrantsCacheService grantsCache,
     ILogger<TwoFactorGrpcService> logger) : TwoFactorService.TwoFactorServiceBase
@@ -98,15 +99,27 @@ public class TwoFactorGrpcService(
             .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
 
         if (user is null || !user.TwoFactorEnabled)
+        {
+            logger.LogWarning("VerifyTwoFactorLogin: {Reason} for email {Email}",
+                user is null ? "user not found" : "2FA not enabled", request.Email);
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid request"));
+        }
 
         var isValid = false;
 
         // Try TOTP code first
         if (!string.IsNullOrEmpty(user.TwoFactorSecret))
         {
-            var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
-            isValid = totpService.VerifyCode(decryptedSecret, request.Code);
+            try
+            {
+                var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
+                isValid = totpService.VerifyCode(decryptedSecret, request.Code);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to decrypt 2FA secret for user {UserId}", user.PublicId);
+                throw new RpcException(new Status(StatusCode.Internal, "2FA configuration error. Please re-enable 2FA."));
+            }
         }
 
         // If TOTP fails, try backup codes
@@ -144,7 +157,8 @@ public class TwoFactorGrpcService(
             user.EmailVerified,
             user.OAuthProvider,
             roles.FirstOrDefault(),
-            user.AvatarFileName);
+            user.AvatarFileName,
+            authVersion: user.AuthVersion);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(UserId.From(user.PublicId));
 
@@ -152,6 +166,13 @@ public class TwoFactorGrpcService(
             throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
 
         logger.LogInformation("2FA login verified for {UserId}", user.PublicId);
+
+        if (request.TrustDevice && !string.IsNullOrEmpty(request.IpAddress))
+        {
+            var fingerprint = trustedDeviceService.GenerateDeviceFingerprint(request.UserAgent, request.IpAddress);
+            var deviceName = trustedDeviceService.GetDeviceName(request.UserAgent);
+            await trustedDeviceService.TrustDeviceAsync(UserId.From(user.PublicId), fingerprint, deviceName, request.IpAddress, 30, ct);
+        }
 
         await grantsCache.GetGrantsAsync(user.PublicId, ct);
 
@@ -231,6 +252,45 @@ public class TwoFactorGrpcService(
             logger.LogError(ex, "Unexpected error in RegenerateBackupCodes for user {UserId}", userId);
             throw new RpcException(new Status(StatusCode.Internal, "An error occurred. Please try again."));
         }
+    }
+
+    public override async Task<GetTrustedDevicesResponse> GetTrustedDevices(
+        GetTrustedDevicesRequest request, ServerCallContext ctx)
+    {
+        var ct = ctx.CancellationToken;
+        var userId = RequireAuth();
+
+        var devices = await trustedDeviceService.GetTrustedDevicesAsync(userId, ct);
+        var response = new GetTrustedDevicesResponse();
+        foreach (var d in devices)
+        {
+            response.Devices.Add(new TrustedDeviceItem
+            {
+                PublicId = d.PublicId,
+                DeviceName = d.DeviceName,
+                TrustedAt = d.TrustedAt.ToString("O"),
+                ExpiresAt = d.ExpiresAt?.ToString("O") ?? "",
+                LastUsedAt = d.LastUsedAt?.ToString("O") ?? "",
+                LastUsedIp = d.LastUsedIp ?? "",
+                IsActive = d.IsActive
+            });
+        }
+        return response;
+    }
+
+    public override async Task<RevokeDeviceResponse> RevokeDevice(
+        RevokeDeviceRequest request, ServerCallContext ctx)
+    {
+        var ct = ctx.CancellationToken;
+        var userId = RequireAuth();
+
+        var success = await trustedDeviceService.RevokeDeviceForUserAsync(
+            request.DeviceId, userId.Value, "User requested revocation", ct);
+
+        if (!success)
+            throw new RpcException(new Status(StatusCode.NotFound, "Device not found"));
+
+        return new RevokeDeviceResponse { Success = true };
     }
 
     private UserId RequireAuth()

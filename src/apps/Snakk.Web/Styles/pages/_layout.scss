@@ -13,12 +13,11 @@
     min-height: 100vh;
 }
 
-// Tablet / small laptop (1024–1315.98px): 2-col — left + wide center,
-// right sidebar hidden. Center takes all space minus the 16rem left column.
+// Tablet / small laptop (1024–1315.98px): 2-col — wide center + right sidebar.
+// Left sidebar becomes an off-canvas drawer (same as smallest viewport).
 @media (min-width: 1024px) and (max-width: 1315.98px) {
     .sn-layout {
-        grid-template-columns: 16rem minmax(0, 1fr);
-        grid-template-rows: 3.5rem auto;
+        grid-template-columns: minmax(0, 1fr) 20rem;
     }
 }
 
@@ -27,7 +26,6 @@
 @media (min-width: 1316px) and (max-width: 1539.98px) {
     .sn-layout {
         grid-template-columns: 16rem minmax(40rem, var(--content-width, 54rem)) 20rem;
-        grid-template-rows: 3.5rem auto;
     }
 }
 
@@ -36,7 +34,6 @@
 @media (min-width: 1540px) {
     .sn-layout {
         grid-template-columns: minmax(16rem, 1fr) var(--content-width, 54rem) minmax(20rem, 1fr);
-        grid-template-rows: 3.5rem auto;
     }
 }
 
@@ -57,26 +54,6 @@
 }
 
 
-// ── Center Column Header (always present) ─────
-.sn-center-header {
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0 1.5rem;
-    background: var(--bg-primary);
-}
-
-@media (min-width: 1024px) {
-    .sn-center-header {
-        grid-column: 2;
-        grid-row: 1;
-    }
-}
-
 // ── Search bar ────────────────────────────────
 .sn-search-wrap {
     position: relative;
@@ -84,6 +61,11 @@
     transition: width 0.2s;
 
     &.sn-search-focused { width: 30rem; }
+
+    @media (max-width: 1023.98px) {
+        width: 100%;
+        &.sn-search-focused { width: 100%; }
+    }
 
     @media (min-width: 1024px) and (max-width: 1315.98px) {
         width: 14rem;
@@ -217,13 +199,19 @@
     background: linear-gradient(to bottom, var(--surface-gradient-top) 3.5rem, var(--surface-gradient-bottom) calc(3.5rem + 2rem)) fixed;
 }
 
-@media (min-width: 1024px) {
+// Smaller (1024–1315.98px): no left column, so center is col 1 and wide spans both.
+@media (min-width: 1024px) and (max-width: 1315.98px) {
     .sn-center {
-        grid-column: 2;
-        grid-row: 2;
+        grid-column: 1;
     }
     .sn-center-wide {
-        grid-row: 2;
+        grid-column: 1 / -1;
+    }
+}
+
+@media (min-width: 1316px) {
+    .sn-center {
+        grid-column: 2;
     }
 }
 

@@ -14,7 +14,7 @@ public class CommunityModel : SetupPageBase
 
     public void OnGet()
     {
-        ViewData["SetupStep"] = 9;
+        ViewData["SetupStep"] = 10;
         var state = GetState();
         CommunityName = state.CommunityName;
         CommunitySlug = state.DefaultCommunitySlug;

@@ -1,6 +1,6 @@
 namespace Snakk.PublicApi.Services;
 
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 
 public interface ITokenDenyListService
 {
@@ -8,12 +8,14 @@ public interface ITokenDenyListService
     void Revoke(string jti, TimeSpan ttl);
 }
 
-public class TokenDenyListService(IMemoryCache cache) : ITokenDenyListService
+public class TokenDenyListService(IDistributedCache cache) : ITokenDenyListService
 {
+    private static readonly byte[] Sentinel = [1];
     private static string Key(string jti) => $"deny:{jti}";
 
-    public bool IsRevoked(string jti) => cache.TryGetValue(Key(jti), out _);
+    public bool IsRevoked(string jti) => cache.Get(Key(jti)) is not null;
 
     public void Revoke(string jti, TimeSpan ttl) =>
-        cache.Set(Key(jti), true, ttl);
+        cache.Set(Key(jti), Sentinel,
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl });
 }

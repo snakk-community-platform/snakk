@@ -2,7 +2,7 @@ namespace Snakk.Api.Endpoints;
 
 using Snakk.Application.DTOs.Responses;
 using Snakk.Application.Services;
-using Snakk.Domain.ValueObjects;
+using Snakk.Application.UseCases;
 using System.Security.Claims;
 
 public static class SessionManagementEndpoints
@@ -14,109 +14,106 @@ public static class SessionManagementEndpoints
             .RequireAuthorization();
 
         group.MapGet("/", GetActiveSessionsAsync)
-            .WithName("GetActiveSessions")
-            .Produces<ActiveSessionsResponse>();
+            .WithName("GetActiveSessions");
 
         group.MapDelete("/{sessionId}", RevokeSessionAsync)
             .WithName("RevokeSession")
-            .Produces<MessageResponse>();
+            .RequireRateLimiting("flood-post");
 
         group.MapPost("/revoke-all", RevokeAllSessionsAsync)
             .WithName("RevokeAllSessions")
-            .Produces<MessageResponse>();
+            .RequireRateLimiting("flood-post");
 
-        group.MapPost("/refresh", RefreshTokenAsync)
-            .WithName("SessionRefreshToken")
-            .Produces<Application.DTOs.Auth.SessionRefreshResponse>()
-            .AllowAnonymous(); // Needs refresh token from cookie
+        group.MapGet("/login-history", GetLoginHistoryAsync)
+            .WithName("GetLoginHistory");
+
+        // Cookie-based token refresh (reads refresh_token cookie)
+        app.MapPost("/sessions/refresh", RefreshTokenFromCookieAsync)
+            .WithName("RefreshSessionToken")
+            .WithTags("Session Management")
+            .RequireRateLimiting("auth")
+            .AllowAnonymous();
     }
 
     private static async Task<IResult> GetActiveSessionsAsync(
         HttpContext httpContext,
-        ISessionManagementService sessionService)
+        ISessionManagementService sessionService,
+        CancellationToken ct)
     {
-        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+        var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Results.Unauthorized();
 
-        if (userIdClaim is null)
-            return Results.Unauthorized();
+        var tokenHash = httpContext.Request.Headers["X-Current-Refresh-Token-Hash"].FirstOrDefault();
+        var result = await sessionService.GetActiveSessionsAsync(userId, tokenHash, ct);
 
-        var currentToken = httpContext.Request.Cookies["refresh_token"];
-        var result = await sessionService.GetActiveSessionsAsync(userIdClaim.Value, currentToken);
-
-        return TypedResults.Ok(new ActiveSessionsResponse(result.ActiveCount, result.Sessions));
+        return Results.Ok(new ActiveSessionsResponse(result.ActiveCount, result.Sessions));
     }
 
     private static async Task<IResult> RevokeSessionAsync(
         string sessionId,
         HttpContext httpContext,
-        ISessionManagementService sessionService)
+        ISessionManagementService sessionService,
+        CancellationToken ct)
     {
-        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+        var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Results.Unauthorized();
 
-        if (userIdClaim is null)
-            return Results.Unauthorized();
+        var success = await sessionService.RevokeSessionAsync(sessionId, userId, ct);
+        if (!success) return Results.NotFound(new { error = "Session not found." });
 
-        var success = await sessionService.RevokeSessionAsync(sessionId, userIdClaim.Value);
-
-        if (!success)
-            return Results.NotFound(new { error = "Session not found" });
-
-        return TypedResults.Ok(new MessageResponse("Session revoked successfully"));
+        return Results.Ok(new MessageResponse("Session revoked."));
     }
 
     private static async Task<IResult> RevokeAllSessionsAsync(
         HttpContext httpContext,
-        ITokenService tokenService)
+        ISessionManagementService sessionService,
+        CancellationToken ct)
     {
-        var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
+        var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Results.Unauthorized();
 
-        if (userIdClaim is null)
-            return Results.Unauthorized();
+        await sessionService.RevokeAllExceptAsync(userId, string.Empty, ct);
 
-        var userId = UserId.From(userIdClaim.Value);
-        await tokenService.RevokeAllUserTokensAsync(userId, "User revoked all sessions");
-
-        // Clear current session cookies
-        httpContext.Response.Cookies.Delete("access_token");
-        httpContext.Response.Cookies.Delete("refresh_token");
-
-        return TypedResults.Ok(new MessageResponse("All sessions revoked successfully. You have been logged out."));
+        return Results.Ok(new MessageResponse("All sessions revoked."));
     }
 
-    private static async Task<IResult> RefreshTokenAsync(
+    private static async Task<IResult> RefreshTokenFromCookieAsync(
         HttpContext httpContext,
-        ITokenService tokenService)
+        AuthenticationUseCase authUseCase,
+        CancellationToken ct)
     {
         var refreshToken = httpContext.Request.Cookies["refresh_token"];
-
-        if (string.IsNullOrEmpty(refreshToken))
+        if (string.IsNullOrWhiteSpace(refreshToken))
             return Results.Unauthorized();
 
-        var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-        var newAccessToken = await tokenService.RefreshAccessTokenAsync(refreshToken, ipAddress, httpContext.Request.Headers.UserAgent.ToString());
-
-        if (newAccessToken is null)
-        {
-            // Refresh token invalid or expired
-            httpContext.Response.Cookies.Delete("access_token");
-            httpContext.Response.Cookies.Delete("refresh_token");
-
+        var result = await authUseCase.RefreshTokenAsync(refreshToken);
+        if (!result.IsSuccess)
             return Results.Unauthorized();
-        }
 
-        // Update access token cookie
-        httpContext.Response.Cookies.Append("access_token", newAccessToken, new CookieOptions
+        return Results.Ok(new
         {
-            HttpOnly = true,
-            Secure = true,
-            SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddMinutes(30)
+            accessToken = result.Value.newRefreshToken.Value,
+            message = "Token refreshed."
         });
+    }
 
-        return TypedResults.Ok(new Application.DTOs.Auth.SessionRefreshResponse
+    private static async Task<IResult> GetLoginHistoryAsync(
+        HttpContext httpContext,
+        ISessionManagementService sessionService,
+        CancellationToken ct)
+    {
+        var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (userId is null) return Results.Unauthorized();
+
+        var result = await sessionService.GetLoginHistoryAsync(userId, limit: 20, ct);
+
+        return Results.Ok(result.Entries.Select(e => new
         {
-            AccessToken = newAccessToken,
-            Message = "Token refreshed successfully"
-        });
+            id = e.Id,
+            createdAt = e.CreatedAt,
+            success = e.Success,
+            ipAddress = e.IpAddress,
+            deviceHint = e.DeviceHint
+        }));
     }
 }

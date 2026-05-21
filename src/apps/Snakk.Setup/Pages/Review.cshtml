@@ -21,6 +21,8 @@
             <tr><td class="font-medium">Site Name</td><td>@Model.State.SiteName</td></tr>
             <tr><td class="font-medium">Default Community</td><td>@Model.State.DefaultCommunitySlug</td></tr>
             <tr><td class="font-medium">Multi-Community</td><td>@(Model.State.MultiCommunityEnabled ? "Enabled" : "Disabled")</td></tr>
+            <tr><td class="font-medium">Passkey Login</td><td>@(Model.State.PasskeysEnabled ? "Enabled" : "Disabled")</td></tr>
+            <tr><td class="font-medium">Two-Factor Auth</td><td>@(Model.State.TwoFactorEnabled ? "Enabled" : "Disabled")</td></tr>
 
             <!-- Storage -->
             <tr><th colspan="2" class="bg-base-200 text-sm uppercase tracking-wide">Storage</th></tr>

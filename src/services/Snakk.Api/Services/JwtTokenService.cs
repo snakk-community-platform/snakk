@@ -1,6 +1,6 @@
 namespace Snakk.Api.Services;
 
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
 using Snakk.Application.Services;
 using System.IdentityModel.Tokens.Jwt;
@@ -8,15 +8,18 @@ using System.Security.Claims;
 using System.Text;
 using Snakk.Domain.Entities;
 
-public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCache) : IJwtTokenService
+public class JwtTokenService(IConfiguration configuration, IDistributedCache cache) : IJwtTokenService
 {
     private readonly string _secretKey = configuration["Jwt:SecretKey"]
         ?? throw new InvalidOperationException("JWT SecretKey not configured");
     private readonly string _issuer = configuration["Jwt:Issuer"] ?? "Snakk";
     private readonly string _audience = configuration["Jwt:Audience"] ?? "Snakk";
-    private readonly int _expirationMinutes = configuration.GetValue<int>("Jwt:ExpirationMinutes", 480); // 8 hours default
+    private readonly int _expirationMinutes = configuration.GetValue<int>("Jwt:ExpirationMinutes", 480);
 
     private const string RevocationPrefix = "jwt:revoked:";
+    private const string SessionRevocationPrefix = "jwt:session-revoked:";
+
+    private static readonly byte[] Sentinel = [1];
 
     public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null)
     {
@@ -90,13 +93,12 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
     {
         try
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_secretKey);
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) { KeyId = "snakk-hmac" };
 
             var validationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key) { KeyId = "snakk-hmac" },
+                IssuerSigningKey = key,
                 ValidateIssuer = true,
                 ValidIssuer = _issuer,
                 ValidateAudience = true,
@@ -105,11 +107,19 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
                 ClockSkew = TimeSpan.FromSeconds(30)
             };
 
-            var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
+            var handler = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler();
+            var result = Task.Run(() => handler.ValidateTokenAsync(token, validationParameters)).GetAwaiter().GetResult();
 
-            // Check if this token has been revoked
+            if (!result.IsValid) return null;
+
+            var principal = new ClaimsPrincipal(result.ClaimsIdentity);
+
             var jti = principal.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
-            if (jti is not null && memoryCache.TryGetValue(RevocationPrefix + jti, out _))
+            if (jti is not null && cache.Get(RevocationPrefix + jti) is { Length: > 0 })
+                return null;
+
+            var sid = principal.FindFirst(Snakk.Application.Auth.CustomClaimTypes.SessionId)?.Value;
+            if (sid is not null && cache.Get(SessionRevocationPrefix + sid) is { Length: > 0 })
                 return null;
 
             return principal;
@@ -130,13 +140,10 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
             var jti = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value;
             if (jti is null) return;
 
-            // Cache the revocation until the token would have expired naturally
             var expiry = jwt.ValidTo - DateTime.UtcNow;
             if (expiry > TimeSpan.Zero)
-            {
-                var opts = new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiry, Size = 1 };
-                memoryCache.Set(RevocationPrefix + jti, true, opts);
-            }
+                cache.Set(RevocationPrefix + jti, Sentinel,
+                    new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiry });
         }
         catch
         {
@@ -145,5 +152,12 @@ public class JwtTokenService(IConfiguration configuration, IMemoryCache memoryCa
     }
 
     public bool IsRevoked(string jti) =>
-        memoryCache.TryGetValue(RevocationPrefix + jti, out _);
+        cache.Get(RevocationPrefix + jti) is not null;
+
+    public void RevokeSession(string sessionPublicId)
+    {
+        var ttl = TimeSpan.FromMinutes(_expirationMinutes);
+        cache.Set(SessionRevocationPrefix + sessionPublicId, Sentinel,
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl });
+    }
 }

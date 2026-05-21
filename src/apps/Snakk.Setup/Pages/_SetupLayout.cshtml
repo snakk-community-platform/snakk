@@ -1,6 +1,6 @@
 @{
     var currentStep = (int)(ViewData["SetupStep"] ?? 1);
-    var stepNames = new[] { "", "Welcome", "Database", "Site Config", "Storage", "Admin Account", "Email", "Security", "OAuth", "Community", "Test Data", "Review", "Installing", "Restarting" };
+    var stepNames = new[] { "", "Welcome", "Database", "Site Config", "User Config", "Storage", "Admin Account", "Email", "Security", "OAuth", "Community", "Test Data", "Review", "Installing", "Restarting" };
 }
 <!DOCTYPE html>
 <html lang="en" data-theme="lofi">
@@ -15,13 +15,13 @@
         <!-- Header -->
         <div class="text-center mb-6">
             <h1 class="text-3xl font-bold">Snakk Setup</h1>
-            @if (currentStep >= 2 && currentStep <= 11)
+            @if (currentStep >= 2 && currentStep <= 12)
             {
-                <p class="text-sm text-muted mt-1">Step @currentStep of 11 — @stepNames[currentStep]</p>
+                <p class="text-sm text-muted mt-1">Step @currentStep of 12 — @stepNames[currentStep]</p>
                 <!-- Progress bar -->
                 <div class="w-full bg-base-300 rounded-full h-2 mt-3">
                     <div class="bg-primary rounded-full h-2 transition-all duration-300"
-                         style="width: @(Math.Round((currentStep - 1) / 10.0 * 100))%"></div>
+                         style="width: @(Math.Round((currentStep - 1) / 11.0 * 100))%"></div>
                 </div>
             }
         </div>

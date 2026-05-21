@@ -10,7 +10,7 @@ public interface ITwoFactorAuthService
     // Setup & Management
     Task<TwoFactorSetupDto> SetupTwoFactorAsync(string userId, CancellationToken ct = default);
     Task<(bool Success, List<string> BackupCodes, string? Error)> EnableTwoFactorAsync(string userId, string code, CancellationToken ct = default);
-    Task<bool> DisableTwoFactorAsync(string userId, string password, CancellationToken ct = default);
+    Task<bool> DisableTwoFactorAsync(string userId, string? password, CancellationToken ct = default);
     Task<TwoFactorStatusDto?> GetTwoFactorStatusAsync(string userId, CancellationToken ct = default);
 
     // Verification
@@ -18,7 +18,7 @@ public interface ITwoFactorAuthService
 
     // Backup Codes
     Task<BackupCodeStatusDto> GetBackupCodesStatusAsync(string userId, CancellationToken ct = default);
-    Task<List<string>> RegenerateBackupCodesAsync(string userId, string password, CancellationToken ct = default);
+    Task<List<string>> RegenerateBackupCodesAsync(string userId, string? password, CancellationToken ct = default);
 
     // Trusted Devices
     Task TrustDeviceAsync(string userId, string deviceFingerprint, string deviceName, string ipAddress, int? expirationDays, CancellationToken ct = default);

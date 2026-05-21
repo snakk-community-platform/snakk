@@ -10,6 +10,7 @@ public record DiscussionListItemVM(
     bool ShowHub = true,
     bool ShowSpace = true,
     bool ShowUser = true,
+    bool ShowPath = true,
     string? UnfollowId = null);
 
 public record SpaceDiscussionListItemVM(

@@ -29,4 +29,9 @@ public interface IJwtTokenService
     void RevokeToken(string token);
 
     bool IsRevoked(string jti);
+
+    /// <summary>
+    /// Marks a session as revoked. Any access token carrying this session ID is rejected until the cache entry expires.
+    /// </summary>
+    void RevokeSession(string sessionPublicId);
 }

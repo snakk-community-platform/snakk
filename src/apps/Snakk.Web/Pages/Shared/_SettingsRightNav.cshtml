@@ -1,7 +1,9 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration NavConfiguration
 @{
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     bool isActive(string page) => currentPage.EndsWith(page, StringComparison.OrdinalIgnoreCase);
     ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    var passkeysEnabled = NavConfiguration.GetValue<bool>("Features:PasskeysEnabled", true);
 }
 <div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
@@ -52,6 +54,13 @@
                 <a href="#section-devices" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavTrustedDevices</a>
                 <a href="#section-email" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavEmail</a>
                 <a href="#section-password" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavPassword</a>
+                <a href="#two-factor-section" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavTwoFactor</a>
+                @if (passkeysEnabled)
+                {
+                <a href="#section-passkeys" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavPasskeys</a>
+                }
+                <a href="#section-sessions" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavActiveSessions</a>
+                <a href="#section-security-log" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavSecurityLog</a>
             }
 
             <a href="/settings/integrations" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Integrations") ? "active" : "")">

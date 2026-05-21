@@ -77,7 +77,9 @@ public class SetupService()
             },
             ["Features"] = new Dictionary<string, object>
             {
-                ["MultiCommunityEnabled"] = state.MultiCommunityEnabled
+                ["MultiCommunityEnabled"] = state.MultiCommunityEnabled,
+                ["PasskeysEnabled"] = state.PasskeysEnabled,
+                ["TwoFactorEnabled"] = state.TwoFactorEnabled
             },
             ["FileStorage"] = BuildFileStorageConfig(state),
             ["Setup"] = new Dictionary<string, string>
@@ -89,6 +91,14 @@ public class SetupService()
             ["Cors"] = new Dictionary<string, string>
             {
                 ["AllowedOrigins"] = $"https://{state.Domain}"
+            },
+            ["Passkey"] = new Dictionary<string, object>
+            {
+                ["RelyingPartyId"] = state.Domain,
+                ["RelyingPartyName"] = state.SiteName,
+                ["Origins"] = IsLocalDomain(state.Domain)
+                    ? new[] { "http://localhost", "https://localhost", "http://localhost:17000", "https://localhost:17000" }
+                    : new[] { $"https://{state.Domain}" }
             }
         };
 
@@ -530,6 +540,12 @@ public class SetupService()
 
         return config;
     }
+
+    private static bool IsLocalDomain(string domain) =>
+        domain.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
+        domain.StartsWith("127.", StringComparison.Ordinal) ||
+        domain.StartsWith("192.168.", StringComparison.Ordinal) ||
+        domain.StartsWith("10.", StringComparison.Ordinal);
 }
 
 /// <summary>

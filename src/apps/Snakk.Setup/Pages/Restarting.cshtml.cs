@@ -2,7 +2,7 @@ namespace Snakk.Setup.Pages;
 
 public class RestartingModel : SetupPageBase
 {
-    public void OnGet() => ViewData["SetupStep"] = 13;
+    public void OnGet() => ViewData["SetupStep"] = 14;
 
     // No restart action needed — the gateway detects conf/snakk-config.json
     // via FileSystemWatcher and starts routing to the web app automatically.

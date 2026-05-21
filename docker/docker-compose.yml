@@ -55,6 +55,14 @@ services:
       # Connection string for DbSeeder on restart (pending migrations)
       ConnectionStrings__DbConnection: "Host=postgres;Port=5432;Database=snakk;Username=snakk;Password=${POSTGRES_PASSWORD}"
       Gateway__DisableHealthChecks: "true"
+      Valkey__ConnectionString: valkey:6379
+
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    command: valkey-server --loglevel warning
+    expose:
+      - "6379"
 
   # --- Monitoring (opt-in: docker compose --profile monitoring up -d) ---
 

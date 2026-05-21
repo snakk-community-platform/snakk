@@ -8,7 +8,7 @@ public class TestDataModel : SetupPageBase
 
     public void OnGet()
     {
-        ViewData["SetupStep"] = 10;
+        ViewData["SetupStep"] = 11;
         var state = GetState();
         SeedTestData = state.SeedTestData;
     }

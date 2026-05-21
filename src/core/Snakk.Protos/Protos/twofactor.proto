@@ -12,6 +12,8 @@ service TwoFactorService {
   rpc GetTwoFactorStatus (GetTwoFactorStatusRequest) returns (GetTwoFactorStatusResponse);
   rpc GetBackupCodesStatus (GetBackupCodesStatusRequest) returns (GetBackupCodesStatusResponse);
   rpc RegenerateBackupCodes (RegenerateBackupCodesRequest) returns (RegenerateBackupCodesResponse);
+  rpc GetTrustedDevices (GetTrustedDevicesRequest) returns (GetTrustedDevicesResponse);
+  rpc RevokeDevice (RevokeDeviceRequest) returns (RevokeDeviceResponse);
 }
 
 // --- Requests ---
@@ -31,6 +33,8 @@ message VerifyTwoFactorLoginRequest {
   string email = 1;
   string code = 2;
   bool trust_device = 3;
+  string ip_address = 4;
+  string user_agent = 5;
 }
 
 message GetTwoFactorStatusRequest {}
@@ -79,4 +83,28 @@ message RegenerateBackupCodesResponse {
   bool success = 1;
   repeated string backup_codes = 2;
   string error = 3;
+}
+
+message GetTrustedDevicesRequest {}
+
+message TrustedDeviceItem {
+  string public_id = 1;
+  string device_name = 2;
+  string trusted_at = 3;
+  string expires_at = 4;
+  string last_used_at = 5;
+  string last_used_ip = 6;
+  bool is_active = 7;
+}
+
+message GetTrustedDevicesResponse {
+  repeated TrustedDeviceItem devices = 1;
+}
+
+message RevokeDeviceRequest {
+  string device_id = 1;
+}
+
+message RevokeDeviceResponse {
+  bool success = 1;
 }

@@ -47,31 +47,30 @@ interface NotificationsResponse {
     }
 
     function updateNotificationBadge(count: number): void {
-        const badge = document.getElementById('notification-badge');
-        if (!badge) return;
-
-        if (count > 0) {
-            badge.textContent = count > 99 ? '99+' : count.toString();
-            badge.classList.remove('hidden');
-        } else {
-            badge.classList.add('hidden');
-        }
+        document.querySelectorAll<HTMLElement>('.notification-badge').forEach(badge => {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count.toString();
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        });
     }
 
     async function loadNotifications(): Promise<void> {
-        const list = document.getElementById('notification-list');
-        if (!list) return;
+        const lists = document.querySelectorAll<HTMLElement>('.notification-list');
+        if (!lists.length) return;
 
         try {
             const response = await fetch('/bff/notifications?offset=0&pageSize=10', { credentials: 'include' });
             const data: NotificationsResponse = await response.json();
 
             if (!data.items || data.items.length === 0) {
-                list.innerHTML = '<p class="text-sm text-muted text-center py-4">No notifications yet</p>';
+                lists.forEach(list => { list.innerHTML = '<p class="text-sm text-muted text-center py-4">No notifications yet</p>'; });
                 return;
             }
 
-            list.innerHTML = data.items.map(n => `
+            const html = data.items.map(n => `
                 <div class="notification-item ${n.isRead ? '' : 'unread'}" data-id="${escapeHtml(n.publicId)}">
                     <div class="flex items-start gap-2 p-2 rounded hover:bg-subtle cursor-pointer"
                          data-action="click-notification"
@@ -88,9 +87,10 @@ interface NotificationsResponse {
                     </div>
                 </div>
             `).join('');
+            lists.forEach(list => { list.innerHTML = html; });
         } catch (err) {
             console.warn('[Auth Navbar] Failed to load notifications:', err);
-            list.innerHTML = '<p class="text-sm text-error text-center py-4">Failed to load</p>';
+            lists.forEach(list => { list.innerHTML = '<p class="text-sm text-error text-center py-4">Failed to load</p>'; });
         }
     }
 

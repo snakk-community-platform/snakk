@@ -94,6 +94,12 @@ async function handleMessage(tabId: number, _port: MessagePort, data: any): Prom
                 connection.invoke(data.method, ...data.args).catch(() => {});
             }
             break;
+
+        case 'reconnect':
+            cachedToken = null;
+            if (connection) await connection.stop();
+            await connect();
+            break;
     }
 }
 

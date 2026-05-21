@@ -11,7 +11,7 @@ public class AdminAccountModel : SetupPageBase
 
     public void OnGet()
     {
-        ViewData["SetupStep"] = 5;
+        ViewData["SetupStep"] = 6;
         var state = GetState();
         AdminEmail = state.AdminEmail;
         AdminDisplayName = state.AdminDisplayName;
@@ -19,7 +19,7 @@ public class AdminAccountModel : SetupPageBase
 
     public IActionResult OnPost()
     {
-        ViewData["SetupStep"] = 5;
+        ViewData["SetupStep"] = 6;
 
         if (string.IsNullOrWhiteSpace(AdminEmail))
             ModelState.AddModelError("AdminEmail", "Email is required.");

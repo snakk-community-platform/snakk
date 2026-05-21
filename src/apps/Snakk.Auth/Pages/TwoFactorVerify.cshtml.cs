@@ -52,7 +52,9 @@ public class TwoFactorVerifyModel(
                 {
                     Email = Email,
                     Code = Input.Code.Trim().Replace(" ", ""),
-                    TrustDevice = Input.TrustDevice
+                    TrustDevice = Input.TrustDevice,
+                    IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
+                    UserAgent = HttpContext.Request.Headers.UserAgent.ToString()
                 });
 
             if (string.IsNullOrEmpty(response.AccessToken))

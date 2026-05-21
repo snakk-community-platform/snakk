@@ -10,8 +10,8 @@
 .sn-left-sticky {
     width: 16rem;
     position: sticky;
-    top: 0;
-    height: 100vh;
+    top: 3.5rem;
+    height: calc(100vh - 3.5rem);
     display: flex;
     flex-direction: column;
 }
@@ -19,16 +19,6 @@
 html.sticky-none .sn-left-sticky {
     position: static;
     height: auto;
-}
-
-.sn-left-header {
-    height: 3.5rem;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 0 1.25rem 0 0.5rem;
-    background: var(--bg-secondary);
 }
 
 .sn-left-logo-link {
@@ -52,11 +42,11 @@ html.sticky-none .sn-left-sticky {
     filter: invert(1) hue-rotate(180deg);
 }
 
-// Below lg: left sidebar becomes an off-canvas drawer that slides in
+// Below 1316px: left sidebar becomes an off-canvas drawer that slides in
 // from the left over the main content. Open state is toggled by adding
 // `is-open` to .sn-left (via mobile-nav.ts). When closed it is removed
 // from flow (display: none) so it doesn't take up grid space.
-@media (max-width: 1023.98px) {
+@media (max-width: 1315.98px) {
     .sn-left {
         position: fixed;
         top: 0;

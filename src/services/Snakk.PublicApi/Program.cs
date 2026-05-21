@@ -40,8 +40,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Token revocation deny list (in-memory, phase 1)
-builder.Services.AddMemoryCache();
+// Distributed cache: Valkey on production, in-memory fallback for development
+var valkeyConn = builder.Configuration["Valkey:ConnectionString"];
+if (!string.IsNullOrEmpty(valkeyConn))
+    builder.Services.AddStackExchangeRedisCache(opts => { opts.Configuration = valkeyConn; opts.InstanceName = "snakk:"; });
+else
+    builder.Services.AddDistributedMemoryCache();
+
+// Token revocation deny list — IDistributedCache backed, shared with Snakk.Api
 builder.Services.AddSingleton<ITokenDenyListService, TokenDenyListService>();
 builder.Services.AddHttpContextAccessor();
 

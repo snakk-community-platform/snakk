@@ -229,7 +229,7 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new Snakk.Protos.Auth.UpdateProfileResponse { Success = true, Message = "OK" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -240,7 +240,7 @@ public class BffAuthTests
 
         // Assert
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
-        await app.MockApiClient.Received(1).UpdateProfileAsync("New Display Name", null, null, Arg.Any<CancellationToken>());
+        await app.MockApiClient.Received(1).UpdateProfileAsync("New Display Name", null, null, null, Arg.Any<CancellationToken>());
     }
 
     [Test]
@@ -249,7 +249,7 @@ public class BffAuthTests
         // Arrange
         await using var app = new TestWebApp();
         app.MockApiClient
-            .UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .UpdateProfileAsync(Arg.Any<string>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(new Snakk.Protos.Auth.UpdateProfileResponse { Success = false, Message = "Failed" });
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);

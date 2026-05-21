@@ -143,5 +143,5 @@ internal class StubCommunityDomainCacheService : ICommunityDomainCacheService
         return Task.FromResult(new CommunityDomainLookupResult(false, null));
     }
 
-    public void InvalidateDomain(string domain) { }
+    public Task InvalidateDomainAsync(string domain) => Task.CompletedTask;
 }

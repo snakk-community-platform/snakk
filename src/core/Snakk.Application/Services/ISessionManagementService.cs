@@ -7,13 +7,9 @@ namespace Snakk.Application.Services;
 /// </summary>
 public interface ISessionManagementService
 {
-    /// <summary>
-    /// Get all active sessions for a user
-    /// </summary>
-    Task<SessionListResponse> GetActiveSessionsAsync(string userId, string? currentRefreshToken = null, CancellationToken ct = default);
-
-    /// <summary>
-    /// Revoke a specific session
-    /// </summary>
+    Task<SessionListResponse> GetActiveSessionsAsync(string userId, string? currentRefreshTokenHash = null, CancellationToken ct = default);
     Task<bool> RevokeSessionAsync(string sessionId, string userId, CancellationToken ct = default);
+    Task<int> RevokeAllExceptAsync(string userId, string excludeSessionId, CancellationToken ct = default);
+    Task LogLoginAsync(string userPublicId, string? ipAddress, string? userAgent, bool success, CancellationToken ct = default);
+    Task<LoginHistoryListResponse> GetLoginHistoryAsync(string userId, int limit = 20, CancellationToken ct = default);
 }

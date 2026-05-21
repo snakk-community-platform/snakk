@@ -1,0 +1,61 @@
+@using Snakk.Web.Helpers
+@if (User.Identity?.IsAuthenticated == true)
+{
+<!-- Sudo step 1 — password or passkey -->
+<div id="modal-sudo-auth" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-sudo-auth-title">
+    <div class="chart-modal" style="max-width:28rem">
+        <div class="chart-modal-header">
+            <span id="modal-sudo-auth-title">@T.Settings.SudoModalTitle</span>
+            <button type="button" class="chart-modal-close" id="sudo-auth-cancel-btn" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column">
+            <p class="text-sm mb-3" style="color: var(--text-tertiary)">@T.Settings.SudoModalHelp</p>
+            <div id="sudo-passkey-section" class="hidden">
+                <button type="button" id="sudo-passkey-btn" class="btn btn-primary w-full mb-2">@T.Settings.SudoPasskeyBtn</button>
+                <button type="button" id="sudo-use-password-link" class="text-xs underline w-full text-center block" style="color:var(--text-tertiary)">@T.Settings.SudoUsePasswordLink</button>
+            </div>
+            <div id="sudo-password-section">
+                <input type="password" id="sudo-password" class="input w-full"
+                       placeholder="@T.Settings.PrivCurrentPwdPlaceholder" autocomplete="current-password" />
+            </div>
+            <p id="sudo-auth-status" class="text-sm mt-2 hidden"></p>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel" id="sudo-auth-cancel-btn-footer">@T.Settings.Priv2faCancelBtn</button>
+            <button type="button" class="chart-modal-insert" id="sudo-auth-confirm-btn">@T.Common.ContinueAction</button>
+        </div>
+    </div>
+</div>
+
+<!-- Sudo step 2 — TOTP (shown only when 2FA is enabled) -->
+<div id="modal-sudo-totp" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-sudo-totp-title">
+    <div class="chart-modal" style="max-width:28rem">
+        <div class="chart-modal-header">
+            <span id="modal-sudo-totp-title">@T.Settings.SudoTotpModalTitle</span>
+            <button type="button" class="chart-modal-close" id="sudo-totp-cancel-btn" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column">
+            <p class="text-sm mb-4" style="color: var(--text-tertiary)">@T.Settings.SudoTotpHelp</p>
+            <div id="sudo-totp-inputs" class="flex gap-2 justify-center">
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code"
+                       class="sudo-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="sudo-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="sudo-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="sudo-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="sudo-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
+                       class="sudo-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+            </div>
+            <p id="sudo-totp-status" class="text-sm mt-3 hidden"></p>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel" id="sudo-totp-cancel-btn-footer">@T.Settings.Priv2faCancelBtn</button>
+            <button type="button" class="chart-modal-insert" id="sudo-totp-confirm-btn">@T.Common.ContinueAction</button>
+        </div>
+    </div>
+</div>
+}

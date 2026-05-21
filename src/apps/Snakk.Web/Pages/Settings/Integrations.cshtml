@@ -50,7 +50,10 @@
                 </div>
 
                 <div style="border-top: 1px solid var(--border-secondary); padding-top: 1rem;">
-                    <span class="font-medium text-sm">@T.Settings.IntgTokenTitle</span>
+                    <span class="font-medium text-sm flex items-center gap-2">
+                        @T.Settings.IntgTokenTitle
+                        <span class="icon icon-lock-closed w-3.5 h-3.5" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
+                    </span>
                     <p class="text-xs mt-1 mb-3" style="color: var(--text-tertiary)">
                         @T.Settings.IntgTokenHelp
                     </p>
@@ -79,7 +82,10 @@
 
             <!-- Discord -->
             <div id="section-discord" class="sn-settings-section">
-                <h3 class="sn-settings-section-title">@T.Settings.IntgDiscordTitle</h3>
+                <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>@T.Settings.IntgDiscordTitle</span>
+                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
+                </h3>
                 <p class="text-sm mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.IntgDiscordIntro
                 </p>
@@ -112,5 +118,7 @@
 <aside class="sn-right">
 <partial name="Shared/_SettingsRightNav" />
 </aside>
+
+<partial name="Shared/_SudoModals" />
 
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

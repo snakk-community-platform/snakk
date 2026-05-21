@@ -219,6 +219,7 @@ public class WebhookService(
         CancellationToken cancellationToken = default)
     {
         var webhook = await dbContext.Webhooks
+            .AsNoTracking()
             .FirstOrDefaultAsync(w => w.Id == webhookId, cancellationToken);
 
         if (webhook is null)
@@ -249,12 +250,14 @@ public class WebhookService(
         CancellationToken cancellationToken = default)
     {
         var webhook = await dbContext.Webhooks
+            .AsNoTracking()
             .FirstOrDefaultAsync(w => w.Id == webhookId, cancellationToken);
 
         if (webhook is null)
             return [];
 
         var logs = await dbContext.WebhookDeliveryLogs
+            .AsNoTracking()
             .Where(wdl => wdl.WebhookId == webhookId)
             .OrderByDescending(wdl => wdl.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -323,6 +326,7 @@ public class WebhookService(
         CancellationToken cancellationToken = default)
     {
         var activeWebhooks = await dbContext.Webhooks
+            .AsNoTracking()
             .Where(w => w.IsActive)
             .ToListAsync(cancellationToken);
 
@@ -379,9 +383,8 @@ public class WebhookService(
                     failedDelivery.Id,
                     failedDelivery.Webhook.MaxRetries);
 
-                // Clear NextRetryAt to prevent future retries
+                // Clear NextRetryAt to prevent future retries (batched save after loop)
                 failedDelivery.NextRetryAt = null;
-                await dbContext.SaveChangesAsync(cancellationToken);
                 continue;
             }
 
@@ -402,6 +405,9 @@ public class WebhookService(
                 logger.LogError(ex, "Failed to retry webhook delivery {DeliveryId}", failedDelivery.Id);
             }
         }
+
+        // Save all accumulated NextRetryAt = null mutations in a single round-trip
+        await dbContext.SaveChangesAsync(cancellationToken);
     }
 
     /// <summary>

@@ -12,7 +12,7 @@ public class SecurityModel : SetupPageBase
 
     public void OnGet()
     {
-        ViewData["SetupStep"] = 7;
+        ViewData["SetupStep"] = 8;
         var state = GetState();
 
         // Auto-generate secrets if not already set
@@ -32,7 +32,7 @@ public class SecurityModel : SetupPageBase
 
     public IActionResult OnPost()
     {
-        ViewData["SetupStep"] = 7;
+        ViewData["SetupStep"] = 8;
 
         if (string.IsNullOrWhiteSpace(JwtSecretKey) || JwtSecretKey.Length < 32)
         {

@@ -98,7 +98,14 @@ builder.Services.AddRazorPages(options =>
 // Add HttpContextAccessor for forwarding auth cookies
 builder.Services.AddHttpContextAccessor();
 
-// HybridCache for caching (stampede-safe, also registers IMemoryCache for domain cache)
+// Distributed cache: Valkey on production, in-memory fallback for development
+var valkeyConn = builder.Configuration["Valkey:ConnectionString"];
+if (!string.IsNullOrEmpty(valkeyConn))
+    builder.Services.AddStackExchangeRedisCache(opts => { opts.Configuration = valkeyConn; opts.InstanceName = "snakk:"; });
+else
+    builder.Services.AddDistributedMemoryCache();
+
+// HybridCache uses IDistributedCache above as L2 backing store
 builder.Services.AddHybridCache();
 
 // Output cache for anonymous visitors — cached responses bypass the full gRPC pipeline
@@ -237,6 +244,8 @@ AddGrpcClient<Snakk.Protos.Markup.MarkupService.MarkupServiceClient>(builder.Ser
 AddGrpcClient<Snakk.Protos.Banner.BannerService.BannerServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.Consent.ConsentService.ConsentServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.Save.SaveService.SaveServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Passkey.PasskeyService.PasskeyServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.TwoFactor.TwoFactorService.TwoFactorServiceClient>(builder.Services);
 
 // Register SnakkApiClient (DI resolves all gRPC clients automatically)
 builder.Services.AddSingleton<SnakkApiClient>();
@@ -689,7 +698,7 @@ app.MapRazorPages();
 
 // BFF API endpoints
 app.MapBffApiEndpoints();
-
+app.MapPasskeyBffEndpoints();
 
 app.MapRealtimeTokenEndpoints();
 

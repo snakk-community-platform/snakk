@@ -13,6 +13,7 @@ using Snakk.Api.Services;
 using Snakk.Api.Validators;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using Fido2NetLib;
 
 public static class ServiceCollectionExtensions
 {
@@ -73,11 +74,17 @@ public static class ServiceCollectionExtensions
             .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
             .SetApplicationName("Snakk");
 
-        // HybridCache for settings/permissions caching (stampede-safe, also registers IMemoryCache)
+        // Distributed cache: Valkey on production, in-memory fallback for development
+        var valkeyConn = configuration["Valkey:ConnectionString"];
+        if (!string.IsNullOrEmpty(valkeyConn))
+            services.AddStackExchangeRedisCache(opts => { opts.Configuration = valkeyConn; opts.InstanceName = "snakk:"; });
+        else
+            services.AddDistributedMemoryCache();
+
+        // HybridCache uses IDistributedCache above as L2 backing store
         services.AddHybridCache();
 
-        // JWT Service (IMemoryCache used for token revocation blacklist)
-        services.AddMemoryCache();
+        // JWT Service (IDistributedCache used for token revocation, shared across Api + PublicApi)
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
 
         // Authentication
@@ -362,6 +369,33 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Application.Services.ITurnstileService, Infrastructure.Services.TurnstileService>();
         services.AddScoped<Application.Services.IConsentService, Infrastructure.Services.ConsentService>();
 
+        // Passkey (WebAuthn/FIDO2)
+        services.AddFido2(opts =>
+        {
+            opts.ServerDomain = configuration["Passkey:RelyingPartyId"] ?? "localhost";
+            opts.ServerName = configuration["Passkey:RelyingPartyName"] ?? "Snakk";
+            var configured = configuration.GetSection("Passkey:Origins").Get<string[]>() ?? [];
+            var origins = new HashSet<string>(configured, StringComparer.OrdinalIgnoreCase);
+
+            // When running against localhost (Docker dev, local testing), accept all common local origins.
+            // snakk-config.json written by the setup wizard only includes https://{domain}, which doesn't
+            // cover http://localhost:17000 used by the Docker port mapping.
+            if (opts.ServerDomain is "localhost" || opts.ServerDomain.StartsWith("127.") || opts.ServerDomain.StartsWith("192.168."))
+            {
+                origins.UnionWith([
+                    "http://localhost", "https://localhost",
+                    "http://localhost:17000", "https://localhost:17000",
+                    "https://localhost:17110", "https://localhost:17112"
+                ]);
+            }
+
+            if (origins.Count == 0)
+                origins.Add($"https://{opts.ServerDomain}");
+
+            opts.Origins = origins;
+        });
+        services.AddScoped<Application.Services.IPasskeyService, Infrastructure.Services.PasskeyService>();
+
         // Admin Services
         services.AddScoped<Application.Services.IAdminUserService, Infrastructure.Services.AdminUserService>();
         services.AddScoped<Application.Services.IAdminContentService, Infrastructure.Services.AdminContentService>();
@@ -425,6 +459,18 @@ public static class ServiceCollectionExtensions
                     factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
                     {
                         PermitLimit = 100,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
+                        QueueLimit = 0
+                    }));
+
+            // Rate limit for mutation endpoints (session revocation, etc.)
+            options.AddPolicy("flood-post", ctx =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: GetRateLimitPartitionKey(ctx),
+                    factory: _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 20,
                         Window = TimeSpan.FromMinutes(1),
                         QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst,
                         QueueLimit = 0

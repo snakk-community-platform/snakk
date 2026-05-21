@@ -59,7 +59,7 @@
                         </div>
                     </div>
 
-                    <div class="flex gap-2">
+                    <div class="flex items-center gap-3 flex-wrap">
                         <button type="submit" class="btn btn-primary btn-sm" id="upload-btn" disabled>
                             @T.Settings.AvatarUpload
                         </button>
@@ -69,6 +69,10 @@
                                 @(hasUploadedAvatar ? "" : "disabled")>
                             @T.Settings.AvatarUseGenerated
                         </button>
+                        <div id="upload-progress-row" class="upload-progress-row hidden">
+                            <div id="upload-image-chips" class="upload-image-chips"></div>
+                            <span id="upload-status-text" class="upload-status-text"></span>
+                        </div>
                     </div>
                 </form>
 
@@ -77,45 +81,15 @@
 
             <!-- Display Name -->
             <div id="section-display-name" class="sn-settings-section">
-                <h3 class="sn-settings-section-title">@T.Settings.DisplayNameTitle</h3>
+                <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>@T.Settings.DisplayNameTitle</span>
+                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
+                </h3>
                 <div id="display-name-status" class="text-sm mb-3 hidden"></div>
-
-                <form id="display-name-form" asp-page-handler="UpdateDisplayName" class="flex flex-col gap-3">
-                    <div>
-                        <input type="text"
-                               name="displayName"
-                               value=""
-                               class="input w-full"
-                               required
-                               minlength="3"
-                               maxlength="20"
-                               placeholder="@T.Settings.DisplayNamePlaceholder" />
-                        <span class="text-xs" style="color: var(--text-tertiary)">@T.Settings.DisplayNameHelp</span>
-                    </div>
-
-                    <div id="password-field">
-                        <input type="password"
-                               name="password"
-                               class="input w-full"
-                               placeholder="@T.Settings.DisplayNamePwdPlaceholder"
-                               autocomplete="current-password" />
-                        <span class="text-xs" style="color: var(--text-tertiary)">@T.Settings.DisplayNamePwdHelp</span>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
-                    {
-                        <div id="turnstile-widget" class="cf-turnstile"
-                             data-sitekey="@Model.TurnstileSiteKey"
-                             data-theme="auto"
-                             data-size="normal"></div>
-                    }
-
-                    <div>
-                        <button type="submit" class="btn btn-primary btn-sm" id="update-name-btn">
-                            @T.Settings.DisplayNameSubmit
-                        </button>
-                    </div>
-                </form>
+                <p id="current-display-name" class="text-sm font-medium mb-3"></p>
+                <button type="button" class="btn btn-primary btn-sm" id="change-name-btn">
+                    @T.Settings.DisplayNameSubmit
+                </button>
             </div>
 
             <!-- Bio -->
@@ -144,8 +118,34 @@
 <partial name="Shared/_SettingsRightNav" />
 </aside>
 
-<script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>
-@if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
+<!-- Display Name Modal -->
+@if (User.Identity?.IsAuthenticated == true)
 {
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<div id="modal-display-name" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-display-name-title">
+    <div class="chart-modal" style="max-width:28rem">
+        <div class="chart-modal-header">
+            <span id="modal-display-name-title">@T.Settings.DisplayNameTitle</span>
+            <button type="button" class="chart-modal-close" id="display-name-modal-cancel-x" aria-label="Close">✕</button>
+        </div>
+        <div class="chart-modal-body" style="flex-direction:column">
+            <input type="text"
+                   id="display-name-input"
+                   class="input w-full"
+                   minlength="3"
+                   maxlength="20"
+                   placeholder="@T.Settings.DisplayNamePlaceholder"
+                   autocomplete="off" />
+            <span class="text-xs mt-1" style="color: var(--text-tertiary)">@T.Settings.DisplayNameHelp</span>
+            <p id="display-name-modal-status" class="text-sm mt-2 hidden"></p>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel" id="display-name-modal-cancel">@T.Settings.Priv2faCancelBtn</button>
+            <button type="button" class="chart-modal-insert" id="display-name-modal-submit">@T.Settings.DisplayNameSubmit</button>
+        </div>
+    </div>
+</div>
 }
+
+<partial name="Shared/_SudoModals" />
+
+<script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

@@ -124,6 +124,7 @@
     <script id="js-relogin"      hx-preserve src="@SnakkUrlHelper.Js("core/relogin-modal")" asp-append-version="true" defer></script>
     <script id="js-auth"         hx-preserve src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
     <script id="js-theme"        hx-preserve src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
+    <script id="js-scroll-nav"   hx-preserve src="@SnakkUrlHelper.Js("core/scroll-nav")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("core/prefs")" asp-append-version="true"></script>
 
     <meta name="realtime-service-url" content="@(Configuration["RealtimeServiceUrl"] ?? "/realtime")" />
@@ -157,17 +158,31 @@
     <script src="@SnakkUrlHelper.Js("components/share")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/sparkline")" asp-append-version="true" defer></script>
 
-    <!-- 3-column layout -->
-    <div class="sn-layout">
-        @await RenderSectionAsync("LeftColumn", required: false)
-        <!-- Persistent right-column auth header — always present, outside the HTMX swap target -->
-        <div class="sn-right-auth-header">
-            <div id="auth-nav" class="flex items-center">
-                <partial name="Shared/_AuthNav" />
+    @{
+        var siteName = CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null
+            ? CommunityContext.CommunityName
+            : "Snakk";
+    }
+    <!-- Persistent unified site header — outside the HTMX swap target -->
+    <header class="sn-header">
+        <div class="sn-header-left">
+            <div class="sn-header-left-inner">
+                <a href="/" class="sn-left-logo-link">
+                    <img src="/img/logo-wide.webp" alt="@siteName" class="sn-left-logo" width="159" height="40" fetchpriority="high" />
+                </a>
             </div>
         </div>
-        <div id="main-content" class="sn-main-body">
-            <div class="sn-center-header">
+        <div class="sn-header-center">
+            <button class="sn-nav-hamburger" data-mobile-nav-toggle type="button" aria-label="Menu">
+                <span class="icon icon-menu" aria-hidden="true"></span>
+            </button>
+<div class="sn-header-center-content">
+                @if (IsSectionDefined("CenterHeader"))
+                {
+                    @await RenderSectionAsync("CenterHeader", required: false)
+                }
+                else
+                {
                 <div class="sn-search-wrap" id="sn-search-wrap">
                     <span class="icon icon-search sn-search-icon" aria-hidden="true"></span>
                     <input type="search" class="sn-search-input" id="sn-search-input"
@@ -195,8 +210,21 @@
                         </div>
                     </div>
                 </div>
+                }
             </div>
-            @{ IgnoreSection("CenterHeader"); }
+        </div>
+        <div class="sn-header-right">
+            <div class="sn-header-right-inner">
+                <div id="auth-nav" class="flex items-center">
+                    <partial name="Shared/_AuthNav" />
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- 3-column layout -->
+    <div class="sn-layout">
+        @await RenderSectionAsync("LeftColumn", required: false)
+        <div id="main-content" class="sn-main-body">
             @RenderBody()
             @* Synchronous (non-deferred) spoiler-reveal restore. Runs after the main
                content is parsed but before first paint so the spoiler overlay

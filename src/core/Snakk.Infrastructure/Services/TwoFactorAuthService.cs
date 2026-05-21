@@ -64,7 +64,16 @@ public class TwoFactorAuthService(
             return (false, [], "2FA setup not initiated. Call /setup first");
 
         // Decrypt and verify the code
-        var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
+        string decryptedSecret;
+        try
+        {
+            decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to decrypt 2FA secret during enable for user {UserId}", userId);
+            return (false, [], "2FA setup has expired. Please restart the setup process.");
+        }
         if (!totpService.VerifyCode(decryptedSecret, code))
             return (false, [], "Invalid verification code");
 
@@ -93,7 +102,7 @@ public class TwoFactorAuthService(
         return (true, backupCodes, null);
     }
 
-    public async Task<bool> DisableTwoFactorAsync(string userId, string password, CancellationToken ct = default)
+    public async Task<bool> DisableTwoFactorAsync(string userId, string? password, CancellationToken ct = default)
     {
         var user = await context.Users
             .AsTracking()
@@ -113,12 +122,15 @@ public class TwoFactorAuthService(
             return false;
         }
 
-        // Require password confirmation
-        if (string.IsNullOrEmpty(user.PasswordHash)
-            || !passwordHasher.VerifyPassword(password, user.PasswordHash))
+        // Password verification is optional; caller must verify TOTP before calling this
+        if (!string.IsNullOrEmpty(password))
         {
-            logger.LogWarning("Invalid password for 2FA disable: {UserId}", userId);
-            return false;
+            if (string.IsNullOrEmpty(user.PasswordHash)
+                || !passwordHasher.VerifyPassword(password, user.PasswordHash))
+            {
+                logger.LogWarning("Invalid password for 2FA disable: {UserId}", userId);
+                return false;
+            }
         }
 
         // Disable 2FA
@@ -186,8 +198,15 @@ public class TwoFactorAuthService(
         // Try TOTP code first (decrypt the stored secret)
         if (!string.IsNullOrEmpty(user.TwoFactorSecret))
         {
-            var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
-            isValid = totpService.VerifyCode(decryptedSecret, code);
+            try
+            {
+                var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
+                isValid = totpService.VerifyCode(decryptedSecret, code);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to decrypt 2FA secret for user {UserId}", userId);
+            }
         }
 
         // If TOTP fails, try backup codes
@@ -242,7 +261,7 @@ public class TwoFactorAuthService(
         };
     }
 
-    public async Task<List<string>> RegenerateBackupCodesAsync(string userId, string password, CancellationToken ct = default)
+    public async Task<List<string>> RegenerateBackupCodesAsync(string userId, string? password, CancellationToken ct = default)
     {
         var user = await context.Users
             .AsTracking()
@@ -255,9 +274,10 @@ public class TwoFactorAuthService(
         if (!user.TwoFactorEnabled)
             throw new DomainException("2FA is not enabled");
 
-        // Require password confirmation
-        if (string.IsNullOrEmpty(user.PasswordHash)
-            || !passwordHasher.VerifyPassword(password, user.PasswordHash))
+        // If password is provided, verify it. null means identity was already verified (e.g. via sudo token).
+        if (password is not null
+            && (string.IsNullOrEmpty(user.PasswordHash)
+                || !passwordHasher.VerifyPassword(password, user.PasswordHash)))
             throw new DomainException("Invalid password");
 
         // Remove old backup codes

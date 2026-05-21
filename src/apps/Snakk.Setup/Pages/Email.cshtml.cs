@@ -14,7 +14,7 @@ public class EmailModel : SetupPageBase
 
     public void OnGet()
     {
-        ViewData["SetupStep"] = 6;
+        ViewData["SetupStep"] = 7;
         var state = GetState();
         SmtpEnabled = state.SmtpEnabled;
         SmtpHost = state.SmtpHost;

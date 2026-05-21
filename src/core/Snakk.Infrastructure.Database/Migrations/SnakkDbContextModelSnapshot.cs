@@ -1562,6 +1562,47 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Image");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.LoginHistoryDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeviceHint")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("character varying(36)");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("LoginHistory");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ModerationLogDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -1650,6 +1691,55 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasDatabaseName("IX_ModerationLog_SpaceId_CreatedAt_Desc");
 
                     b.ToTable("ModerationLog");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PasskeyCredentialDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid>("AaGuid")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("CredentialId")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("PublicKey")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<long>("SignCount")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Transports")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CredentialId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PasskeyCredential_CredentialId");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_PasskeyCredential_UserId");
+
+                    b.ToTable("PasskeyCredential");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PasswordResetRequestDatabaseEntity", b =>
@@ -3175,6 +3265,10 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AuthVersionUpdatedAt")
+                        .HasDatabaseName("IX_User_AuthVersionUpdatedAt_NotDeleted")
+                        .HasFilter("\"IsDeleted\" = FALSE");
+
                     b.HasIndex("DisplayName")
                         .HasDatabaseName("IX_User_DisplayName");
 
@@ -4107,6 +4201,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("UploadedByUser");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.LoginHistoryDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.ModerationLogDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "ActorUser")
@@ -4179,6 +4284,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("TargetUserBan");
 
                     b.Navigation("TargetUserRole");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PasskeyCredentialDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany("PasskeyCredentials")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.PasswordResetTokenDatabaseEntity", b =>
@@ -4971,6 +5087,8 @@ namespace Snakk.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", b =>
                 {
+                    b.Navigation("PasskeyCredentials");
+
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("Roles");

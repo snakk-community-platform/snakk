@@ -19,3 +19,17 @@ public record UpdatePreferencesRequest(
     string? Timezone = null);
 
 public record RefreshTokenRequest(string RefreshToken);
+
+public record ChangePasswordRequest(
+    string NewPassword,
+    string ConfirmPassword,
+    string? SudoToken = null);
+
+public record VerifyCredentialRequest(string? Password, string? TotpCode, string? SudoToken = null);
+
+public record SudoRequest(string? Password, string? TotpCode);
+
+public record SudoPasskeyCompleteRequest(string ChallengeId, string AssertionResponseJson, string? TotpCode = null);
+
+public record RevokeSessionRequest(string? SudoToken);
+public record RevokeAllOtherSessionsRequest(string? SudoToken, string ExcludeSessionId);
