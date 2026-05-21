@@ -40,7 +40,7 @@
     "@types/dompurify": "^3.2.0",
     "@types/node": "^25.6.2",
     "concurrently": "^9.2.1",
-    "daisyui": "^5.0.0",
+    "daisyui": "^5.5.20",
     "dompurify": "^3.4.3",
     "esbuild": "^0.28.0",
     "htmx.org": "^2.0.10",
