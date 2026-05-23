@@ -40,9 +40,6 @@ public class UserRepository(SnakkDbContext context)
     public async Task<UserDatabaseEntity?> GetByEmailAsync(string email, CancellationToken ct = default) =>
         await _dbSet.FirstOrDefaultAsync(u => u.Email == email, ct);
 
-    public async Task<UserDatabaseEntity?> GetByOAuthProviderIdAsync(string oauthProviderId, CancellationToken ct = default) =>
-        await _dbSet.FirstOrDefaultAsync(u => u.OAuthProviderId == oauthProviderId, ct);
-
     public async Task<UserDatabaseEntity?> GetByDisplayNameAsync(string displayName, CancellationToken ct = default) =>
         _context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"
             ? await _dbSet.FirstOrDefaultAsync(u => EF.Functions.ILike(u.DisplayName!, displayName), ct)

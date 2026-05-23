@@ -285,6 +285,35 @@
             </div>
         }
 
+        <!-- Social Links -->
+        @if (Model.SocialLinks is { Count: > 0 })
+        {
+            <div class="sn-right-section">
+                <div class="sn-right-title">Links</div>
+                <div class="flex flex-col gap-1.5">
+                    @foreach (var link in Model.SocialLinks)
+                    {
+                        if (link.Url is not null)
+                        {
+                            <a href="@link.Url" target="_blank" rel="noopener noreferrer"
+                               class="flex items-center justify-between gap-2 min-w-0"
+                               style="color:var(--text-primary);text-decoration:none">
+                                <span class="text-sm font-medium shrink-0">@link.DisplayName</span>
+                                <span class="truncate text-xs" style="color:var(--text-tertiary)">@link.Username</span>
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="flex items-center justify-between gap-2 min-w-0">
+                                <span class="text-sm font-medium shrink-0">@link.DisplayName</span>
+                                <span class="truncate text-xs" style="color:var(--text-tertiary)">@link.Username</span>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+
         <!-- Most Active Spaces -->
         @if (Model.Profile.TopSpaces.Count > 0)
         {

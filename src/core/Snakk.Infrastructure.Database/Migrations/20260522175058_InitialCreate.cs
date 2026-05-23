@@ -177,6 +177,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                     PasswordHash = table.Column<string>(type: "text", nullable: true),
                     EmailVerified = table.Column<bool>(type: "boolean", nullable: false),
                     EmailVerificationToken = table.Column<string>(type: "text", nullable: true),
+                    EmailVerificationTokenCreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     OAuthProvider = table.Column<string>(type: "text", nullable: true),
                     OAuthProviderId = table.Column<string>(type: "text", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
@@ -205,6 +206,8 @@ namespace Snakk.Infrastructure.Database.Migrations
                     NeedsProfileSetup = table.Column<bool>(type: "boolean", nullable: false),
                     FailedLoginAttempts = table.Column<int>(type: "integer", nullable: false),
                     LockoutEnd = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    AuthVersion = table.Column<long>(type: "bigint", nullable: false),
+                    AuthVersionUpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     TwoFactorEnabled = table.Column<bool>(type: "boolean", nullable: false),
                     TwoFactorSecret = table.Column<string>(type: "text", nullable: true),
                     TwoFactorEnabledAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
@@ -515,6 +518,58 @@ namespace Snakk.Infrastructure.Database.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "LoginHistory",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    PublicId = table.Column<string>(type: "character varying(36)", maxLength: 36, nullable: false),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Success = table.Column<bool>(type: "boolean", nullable: false),
+                    IpAddress = table.Column<string>(type: "character varying(45)", maxLength: 45, nullable: true),
+                    UserAgent = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    DeviceHint = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_LoginHistory", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_LoginHistory_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PasskeyCredential",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    CredentialId = table.Column<byte[]>(type: "bytea", nullable: false),
+                    PublicKey = table.Column<byte[]>(type: "bytea", nullable: false),
+                    SignCount = table.Column<long>(type: "bigint", nullable: false),
+                    Transports = table.Column<string>(type: "text", nullable: true),
+                    AaGuid = table.Column<Guid>(type: "uuid", nullable: false),
+                    FriendlyName = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    LastUsedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PasskeyCredential", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PasskeyCredential_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PasswordResetToken",
                 columns: table => new
                 {
@@ -758,6 +813,30 @@ namespace Snakk.Infrastructure.Database.Migrations
                     table.PrimaryKey("PK_UserMetric", x => new { x.UserId, x.MetricType, x.Scope, x.ScopeId });
                     table.ForeignKey(
                         name: "FK_UserMetric_User_UserId",
+                        column: x => x.UserId,
+                        principalTable: "User",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserOAuthConnection",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<int>(type: "integer", nullable: false),
+                    Provider = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    ProviderUserId = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    ConnectedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Require2FA = table.Column<bool>(type: "boolean", nullable: false),
+                    LastLoginAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserOAuthConnection", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_UserOAuthConnection_User_UserId",
                         column: x => x.UserId,
                         principalTable: "User",
                         principalColumn: "Id",
@@ -2711,12 +2790,18 @@ namespace Snakk.Infrastructure.Database.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Image_Sha256Hash",
                 table: "Image",
-                column: "Sha256Hash");
+                column: "Sha256Hash",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Image_UploadedByUserId",
                 table: "Image",
                 column: "UploadedByUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_LoginHistory_UserId",
+                table: "LoginHistory",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Mention_MentionedUserId",
@@ -2831,6 +2916,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                 name: "IX_Notification_SourceSpaceId",
                 table: "Notification",
                 column: "SourceSpaceId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasskeyCredential_CredentialId",
+                table: "PasskeyCredential",
+                column: "CredentialId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasskeyCredential_UserId",
+                table: "PasskeyCredential",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PasswordResetRequest_IpAddress_RequestedAt",
@@ -2973,9 +3069,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                 column: "PostId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Reaction_PostId_UserId_TypeId",
+                name: "IX_Reaction_PostId_UserId",
                 table: "Reaction",
-                columns: new[] { "PostId", "UserId", "TypeId" },
+                columns: new[] { "PostId", "UserId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -3268,6 +3364,12 @@ namespace Snakk.Infrastructure.Database.Migrations
                 columns: new[] { "UserId", "DeviceFingerprint" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_User_AuthVersionUpdatedAt_NotDeleted",
+                table: "User",
+                column: "AuthVersionUpdatedAt",
+                filter: "\"IsDeleted\" = FALSE");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_User_DisplayName",
                 table: "User",
                 column: "DisplayName");
@@ -3397,6 +3499,23 @@ namespace Snakk.Infrastructure.Database.Migrations
                 name: "IX_UserMetric_UserId_Scope_ScopeId",
                 table: "UserMetric",
                 columns: new[] { "UserId", "Scope", "ScopeId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserOAuthConnection_Provider_ProviderUserId",
+                table: "UserOAuthConnection",
+                columns: new[] { "Provider", "ProviderUserId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserOAuthConnection_UserId",
+                table: "UserOAuthConnection",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserOAuthConnection_UserId_Provider",
+                table: "UserOAuthConnection",
+                columns: new[] { "UserId", "Provider" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserRole_AssignedByUserId",
@@ -3562,6 +3681,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                 name: "HubAllowedDiscussionType");
 
             migrationBuilder.DropTable(
+                name: "LoginHistory");
+
+            migrationBuilder.DropTable(
                 name: "Mention");
 
             migrationBuilder.DropTable(
@@ -3569,6 +3691,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "Notification");
+
+            migrationBuilder.DropTable(
+                name: "PasskeyCredential");
 
             migrationBuilder.DropTable(
                 name: "PasswordResetRequest");
@@ -3623,6 +3748,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserMetric");
+
+            migrationBuilder.DropTable(
+                name: "UserOAuthConnection");
 
             migrationBuilder.DropTable(
                 name: "UserSocialLink");

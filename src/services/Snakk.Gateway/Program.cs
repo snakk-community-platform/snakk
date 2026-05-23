@@ -181,9 +181,19 @@ builder.Services.AddReverseProxy()
         }
     });
 
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestMethod
+        | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestPath
+        | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.ResponseStatusCode
+        | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.Duration;
+});
+builder.Logging.AddFilter("Microsoft.AspNetCore.HttpLogging", LogLevel.Information);
+
 var app = builder.Build();
 
 //app.UseSerilogRequestLogging();
+app.UseHttpLogging();
 
 // Honor X-Forwarded-* from the external proxy before anything reads Request.Host/Scheme.
 // Must run before YARP so X-Forwarded-Host gets propagated downstream with the public domain.

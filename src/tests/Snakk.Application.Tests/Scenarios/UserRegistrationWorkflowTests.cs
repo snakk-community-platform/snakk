@@ -22,6 +22,8 @@ public class UserRegistrationWorkflowTests
     private readonly ITurnstileService _turnstileService = Substitute.For<ITurnstileService>();
     private readonly IUserSocialLinkRepository _socialLinkRepository = Substitute.For<IUserSocialLinkRepository>();
     private readonly ISettingsService _settingsService = Substitute.For<ISettingsService>();
+    private readonly IPasswordResetTokenRepository _passwordResetTokenRepository = Substitute.For<IPasswordResetTokenRepository>();
+    private readonly IPasswordResetRequestRepository _passwordResetRequestRepository = Substitute.For<IPasswordResetRequestRepository>();
     private AuthenticationUseCase _useCase = null!;
 
     [Before(Test)]
@@ -40,7 +42,9 @@ public class UserRegistrationWorkflowTests
             _displayNameHistoryRepository,
             _turnstileService,
             _socialLinkRepository,
-            new DisplayNameValidator(_settingsService));
+            new DisplayNameValidator(_settingsService),
+            _passwordResetTokenRepository,
+            _passwordResetRequestRepository);
     }
 
     [Test]
@@ -200,7 +204,7 @@ public class UserRegistrationWorkflowTests
         const string email = "oauth@example.com";
         const string displayName = "OAuthUser";
 
-        _userRepository.GetByOAuthProviderIdAsync(oauthProviderId)
+        _userRepository.GetByOAuthConnectionAsync(oauthProvider, oauthProviderId, Arg.Any<CancellationToken>())
             .Returns((User?)null);
         _userRepository.GetByEmailAsync(email)
             .Returns((User?)null);
@@ -214,12 +218,11 @@ public class UserRegistrationWorkflowTests
         await Assert.That(loginResult.IsSuccess).IsTrue();
         var user = loginResult.Value!;
         await Assert.That(user.Email).IsEqualTo(email);
-        await Assert.That(user.OAuthProvider).IsEqualTo(oauthProvider);
-        await Assert.That(user.OAuthProviderId).IsEqualTo(oauthProviderId);
         await Assert.That(user.EmailVerified).IsTrue();
         await Assert.That(user.HasPassword()).IsFalse();
 
         await _userRepository.Received(1).AddAsync(Arg.Any<User>());
+        await _userRepository.Received(1).AddOAuthConnectionAsync(Arg.Any<UserOAuthConnection>());
         await _emailSender.Received(1).SendWelcomeEmailAsync(email, Arg.Any<string>());
     }
 
@@ -229,10 +232,13 @@ public class UserRegistrationWorkflowTests
         // Arrange
         const string oauthProvider = "github";
         const string oauthProviderId = "github_456";
-        var existingUser = User.CreateWithOAuth("existing@example.com", oauthProvider, oauthProviderId);
+        var existingUser = User.CreateWithOAuth("existing@example.com");
+        var connection = UserOAuthConnection.Create(existingUser.PublicId.Value, oauthProvider, oauthProviderId);
 
-        _userRepository.GetByOAuthProviderIdAsync(oauthProviderId)
+        _userRepository.GetByOAuthConnectionAsync(oauthProvider, oauthProviderId, Arg.Any<CancellationToken>())
             .Returns(existingUser);
+        _userRepository.GetOAuthConnectionsAsync(existingUser.PublicId.Value, Arg.Any<CancellationToken>())
+            .Returns([connection]);
 
         // Act
         var loginResult = await _useCase.LoginWithOAuthAsync(oauthProvider, oauthProviderId, "existing@example.com", "ExistingUser");

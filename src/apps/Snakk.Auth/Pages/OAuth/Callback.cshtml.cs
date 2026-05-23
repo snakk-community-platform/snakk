@@ -34,10 +34,88 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
             var name = claims?.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
             var nameIdentifier = claims?.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
 
-            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(nameIdentifier))
+            // Steam OpenID 2.0 returns nameIdentifier as full URL — extract numeric SteamID64
+            if (Provider.Equals("Steam", StringComparison.OrdinalIgnoreCase) &&
+                nameIdentifier?.StartsWith("https://steamcommunity.com/openid/id/", StringComparison.OrdinalIgnoreCase) == true)
             {
-                logger.LogWarning("Missing required OAuth claims");
+                nameIdentifier = nameIdentifier.Split('/').Last();
+            }
+
+            if (string.IsNullOrEmpty(nameIdentifier))
+            {
+                logger.LogWarning("Missing nameIdentifier claim from {Provider}", Provider);
                 return RedirectToPage("/Login", new { error = "oauth_claims_missing" });
+            }
+
+            // ── Connect-mode branch ──────────────────────────────────────
+            if (HttpContext.Session.GetString("OAuth_ConnectMode") == "true")
+            {
+                HttpContext.Session.Remove("OAuth_ConnectMode");
+                var connectUserId = HttpContext.Session.GetString("OAuth_ConnectUserId") ?? "";
+                HttpContext.Session.Remove("OAuth_ConnectUserId");
+
+                var connectReturnUrl = HttpContext.Session.GetString("OAuth_ReturnUrl") ?? "/settings/connected-accounts";
+                HttpContext.Session.Remove("OAuth_ReturnUrl");
+                if (!Url.IsLocalUrl(connectReturnUrl)) connectReturnUrl = "/settings/connected-accounts";
+
+                try
+                {
+                    var connectReq = new ConnectOAuthProviderRequest
+                    {
+                        Provider = Provider.ToLowerInvariant(),
+                        ProviderUserId = nameIdentifier,
+                        UserPublicId = connectUserId
+                    };
+                    var connectResp = await authClient.ConnectOAuthProviderAsync(connectReq);
+                    if (connectResp.Success)
+                        return Redirect($"{connectReturnUrl}?connected={Uri.EscapeDataString(Provider.ToLowerInvariant())}");
+                    return Redirect($"/settings/connected-accounts?error={Uri.EscapeDataString(connectResp.ErrorCode ?? "CONNECT_FAILED")}");
+                }
+                catch (RpcException ex)
+                {
+                    logger.LogWarning(ex, "ConnectOAuthProvider gRPC error for user {UserId}", connectUserId);
+                    return Redirect($"/settings/connected-accounts?error=CONNECT_FAILED");
+                }
+            }
+
+            // ── Sudo re-auth mode branch ─────────────────────────────────
+            if (HttpContext.Session.GetString("OAuth_SudoMode") == "true")
+            {
+                HttpContext.Session.Remove("OAuth_SudoMode");
+                var sudoUserId = HttpContext.Session.GetString("OAuth_SudoUserId") ?? "";
+                HttpContext.Session.Remove("OAuth_SudoUserId");
+
+                try
+                {
+                    var nonceReq = new GenerateOAuthSudoNonceRequest
+                    {
+                        UserPublicId = sudoUserId,
+                        Provider = Provider.ToLowerInvariant(),
+                        ProviderUserId = nameIdentifier
+                    };
+                    var nonceResp = await authClient.GenerateOAuthSudoNonceAsync(nonceReq);
+                    var nonce = nonceResp.Nonce;
+
+                    // Return a minimal page that posts the nonce to the parent window and closes
+                    var html = $$"""
+                        <!DOCTYPE html><html><body><script>
+                        window.opener && window.opener.postMessage({type:'snakk:sudo:oauth-complete',nonce:'{{nonce}}'}, window.location.origin);
+                        window.close();
+                        </script></body></html>
+                        """;
+                    return Content(html, "text/html");
+                }
+                catch (RpcException ex)
+                {
+                    logger.LogWarning(ex, "GenerateOAuthSudoNonce gRPC error for user {UserId}", sudoUserId);
+                    var html = """
+                        <!DOCTYPE html><html><body><script>
+                        window.opener && window.opener.postMessage({type:'snakk:sudo:oauth-failed'}, window.location.origin);
+                        window.close();
+                        </script></body></html>
+                        """;
+                    return Content(html, "text/html");
+                }
             }
 
             // Call API via gRPC to login or create account with OAuth
@@ -56,7 +134,22 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
             if (!string.IsNullOrEmpty(inviteCode))
                 oauthRequest.InviteCode = inviteCode;
 
-            var response = await authClient.OAuthCallbackAsync(oauthRequest);
+            OAuthCallbackResponse response;
+            try
+            {
+                response = await authClient.OAuthCallbackAsync(oauthRequest);
+            }
+            catch (RpcException ex) when (string.IsNullOrEmpty(email) && ex.StatusCode == Grpc.Core.StatusCode.InvalidArgument)
+            {
+                // New user — provider didn't supply an email address
+                logger.LogInformation("OAuth {Provider} did not return email — new user, redirecting to email entry", Provider);
+                HttpContext.Session.SetString("OAuthEmail_Provider", Provider);
+                HttpContext.Session.SetString("OAuthEmail_ProviderUserId", nameIdentifier);
+                HttpContext.Session.SetString("OAuthEmail_DisplayName", name ?? "");
+                if (!string.IsNullOrEmpty(inviteCode))
+                    HttpContext.Session.SetString("OAuth_InviteCode", inviteCode);
+                return RedirectToPage("/SetupEmail");
+            }
 
             if (response.TwoFactorRequired)
             {
@@ -64,7 +157,9 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
                 HttpContext.Session.Remove("OAuth_ReturnUrl");
                 if (!Url.IsLocalUrl(twoFactorReturnUrl))
                     twoFactorReturnUrl = "/";
-                return Redirect($"/auth/twofactorverify?email={Uri.EscapeDataString(email)}&returnUrl={Uri.EscapeDataString(twoFactorReturnUrl)}");
+                // Use DB email when the provider (e.g. Steam) doesn't supply one
+                var twoFactorEmail = !string.IsNullOrEmpty(email) ? email : response.User.Email;
+                return Redirect($"/auth/twofactorverify?email={Uri.EscapeDataString(twoFactorEmail)}&returnUrl={Uri.EscapeDataString(twoFactorReturnUrl)}");
             }
 
             if (string.IsNullOrEmpty(response.AccessToken))

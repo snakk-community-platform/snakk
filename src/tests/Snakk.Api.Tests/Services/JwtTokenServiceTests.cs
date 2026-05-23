@@ -100,7 +100,7 @@ public class JwtTokenServiceTests
     public async Task GenerateToken_WithRole_ContainsRoleClaim()
     {
         var service = CreateService();
-        var token = service.GenerateToken("user1", "User One", "user@test.com", true, null, "Admin");
+        var token = service.GenerateToken("user1", "User One", "user@test.com", true, "Admin");
         var principal = service.ValidateToken(token);
 
         await Assert.That(principal).IsNotNull();
@@ -109,22 +109,10 @@ public class JwtTokenServiceTests
     }
 
     [Test]
-    public async Task GenerateToken_WithOAuthProvider_ContainsProviderClaim()
-    {
-        var service = CreateService();
-        var token = service.GenerateToken("user1", "User One", "user@test.com", true, "Google");
-        var principal = service.ValidateToken(token);
-
-        await Assert.That(principal).IsNotNull();
-        var provider = principal!.FindFirst("OAuthProvider")?.Value;
-        await Assert.That(provider).IsEqualTo("Google");
-    }
-
-    [Test]
     public async Task ValidateToken_ValidToken_ReturnsPrincipal()
     {
         var service = CreateService();
-        var token = service.GenerateToken("user1", "User One", "user@test.com", true, null, "Admin");
+        var token = service.GenerateToken("user1", "User One", "user@test.com", true, "Admin");
         var principal = service.ValidateToken(token);
 
         await Assert.That(principal).IsNotNull();

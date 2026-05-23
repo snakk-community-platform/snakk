@@ -13,8 +13,8 @@
     const PRISM_VERSION = '1.30.0';
     let loadPromise: Promise<any> | null = null;
 
-    const EXPAND_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4V1h3M8 1h3v3M11 8v3H8M4 11H1V8"/></svg>';
-    const COLLAPSE_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1v3H1M11 4H8V1M8 11V8h3M1 8h3v3"/></svg>';
+    const EXPAND_SVG = '<span class="icon icon-code-expand" style="width:12px;height:12px" aria-hidden="true"></span>';
+    const COLLAPSE_SVG = '<span class="icon icon-code-collapse" style="width:12px;height:12px" aria-hidden="true"></span>';
 
     let expandedWrapper: HTMLElement | null = null;
     let expandedBtn: HTMLElement | null = null;
@@ -213,16 +213,16 @@
                 copyBtn.className = 'code-copy-btn';
                 copyBtn.title = 'Copy code';
                 copyBtn.setAttribute('aria-label', 'Copy code');
-                copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                copyBtn.innerHTML = '<span class="icon icon-copy" style="width:14px;height:14px" aria-hidden="true"></span>';
                 copyBtn.addEventListener('click', async () => {
                     const code = block.textContent || '';
                     try {
                         await navigator.clipboard.writeText(code);
                         copyBtn.classList.add('code-copy-btn-copied');
-                        copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                        copyBtn.innerHTML = '<span class="icon icon-check" style="width:14px;height:14px" aria-hidden="true"></span>';
                         setTimeout(() => {
                             copyBtn.classList.remove('code-copy-btn-copied');
-                            copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                            copyBtn.innerHTML = '<span class="icon icon-copy" style="width:14px;height:14px" aria-hidden="true"></span>';
                         }, 1500);
                     } catch { /* ignore */ }
                 });

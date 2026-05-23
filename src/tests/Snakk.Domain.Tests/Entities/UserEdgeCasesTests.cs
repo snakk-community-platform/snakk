@@ -20,23 +20,6 @@ public class UserEdgeCasesTests
         // Assert
         await Assert.That(user.DisplayName).IsEqualTo("Anonymous User");
         await Assert.That(user.Email).IsNull();
-        await Assert.That(user.OAuthProviderId).IsNull();
-    }
-
-    [Test]
-    public async Task Anonymize_OAuthUser_ClearsOAuthProviderId()
-    {
-        // Arrange
-        var user = User.CreateWithOAuth("jane@example.com", "Google", "google-id-12345");
-        await Assert.That(user.OAuthProviderId).IsEqualTo("google-id-12345");
-
-        // Act
-        user.Anonymize();
-
-        // Assert
-        await Assert.That(user.OAuthProviderId).IsNull();
-        await Assert.That(user.DisplayName).IsEqualTo("Anonymous User");
-        await Assert.That(user.Email).IsNull();
     }
 
     [Test]
@@ -160,11 +143,11 @@ public class UserEdgeCasesTests
         // Arrange & Act
         var user = User.Rehydrate(
             UserId.New(), "testuser", "test@example.com", "hash",
-            true, null, null, null, null, "avatar.jpg",
+            true, null, null, "avatar.jpg",
             avatarThumbnailFileName: null, avatarMicroFileName: null,
             avatarRevision: 5,
             autoFollowOnReply: true,
-            DateTime.UtcNow);
+            createdAt: DateTime.UtcNow);
 
         // Assert
         await Assert.That(user.AvatarRevision).IsEqualTo(5);
@@ -225,7 +208,7 @@ public class UserEdgeCasesTests
     public async Task CreateWithOAuth_SetsDefaultPreferences()
     {
         // Arrange & Act
-        var user = User.CreateWithOAuth("test@example.com", "Google", "google-id");
+        var user = User.CreateWithOAuth("test@example.com");
 
         // Assert
         await Assert.That(user.AutoFollowOnReply).IsTrue();
@@ -364,7 +347,7 @@ public class UserEdgeCasesTests
     public async Task HasPassword_ForOAuthUser_ReturnsFalse()
     {
         // Arrange
-        var user = User.CreateWithOAuth("oauth@example.com", "Google", "google-id");
+        var user = User.CreateWithOAuth("oauth@example.com");
 
         // Act & Assert
         await Assert.That(user.HasPassword()).IsFalse();
@@ -381,30 +364,10 @@ public class UserEdgeCasesTests
     }
 
     [Test]
-    public async Task IsOAuthUser_WhenOAuthProviderSet_ReturnsTrue()
+    public async Task OAuthUser_ThenSetPassword_HasPasswordBecomesTrue()
     {
         // Arrange
-        var user = User.CreateWithOAuth("oauth@example.com", "Google", "google-id");
-
-        // Act & Assert
-        await Assert.That(user.IsOAuthUser()).IsTrue();
-    }
-
-    [Test]
-    public async Task IsOAuthUser_WhenNoOAuthProvider_ReturnsFalse()
-    {
-        // Arrange
-        var user = User.CreateWithEmail("emailuser", "email@example.com", "hash123", "token");
-
-        // Act & Assert
-        await Assert.That(user.IsOAuthUser()).IsFalse();
-    }
-
-    [Test]
-    public async Task OAuthUser_ThenSetPassword_BothAreTrueForHybridUser()
-    {
-        // Arrange
-        var user = User.CreateWithOAuth("hybrid@example.com", "Google", "google-id");
+        var user = User.CreateWithOAuth("hybrid@example.com");
         await Assert.That(user.HasPassword()).IsFalse();
 
         // Act
@@ -412,7 +375,6 @@ public class UserEdgeCasesTests
 
         // Assert
         await Assert.That(user.HasPassword()).IsTrue();
-        await Assert.That(user.IsOAuthUser()).IsTrue();
     }
 
     #endregion
@@ -482,8 +444,6 @@ public class UserEdgeCasesTests
             passwordHash: null,
             emailVerified: false,
             emailVerificationToken: null,
-            oauthProvider: null,
-            oauthProviderId: null,
             role: null,
             avatarFileName: null,
             avatarThumbnailFileName: null,
@@ -499,8 +459,6 @@ public class UserEdgeCasesTests
         await Assert.That(user.Email).IsNull();
         await Assert.That(user.PasswordHash).IsNull();
         await Assert.That(user.EmailVerificationToken).IsNull();
-        await Assert.That(user.OAuthProvider).IsNull();
-        await Assert.That(user.OAuthProviderId).IsNull();
         await Assert.That(user.Role).IsNull();
         await Assert.That(user.AvatarFileName).IsNull();
         await Assert.That(user.LastModifiedAt).IsNull();
@@ -523,8 +481,6 @@ public class UserEdgeCasesTests
             passwordHash: "hashed-pass",
             emailVerified: true,
             emailVerificationToken: "some-token",
-            oauthProvider: "GitHub",
-            oauthProviderId: "github-123",
             role: "admin",
             avatarFileName: "admin-avatar.png",
             avatarThumbnailFileName: null,
@@ -543,8 +499,6 @@ public class UserEdgeCasesTests
         await Assert.That(user.PasswordHash).IsEqualTo("hashed-pass");
         await Assert.That(user.EmailVerified).IsTrue();
         await Assert.That(user.EmailVerificationToken).IsEqualTo("some-token");
-        await Assert.That(user.OAuthProvider).IsEqualTo("GitHub");
-        await Assert.That(user.OAuthProviderId).IsEqualTo("github-123");
         await Assert.That(user.Role).IsEqualTo("admin");
         await Assert.That(user.AvatarFileName).IsEqualTo("admin-avatar.png");
         await Assert.That(user.AvatarRevision).IsEqualTo(3);
@@ -559,7 +513,7 @@ public class UserEdgeCasesTests
     {
         // Arrange & Act
         var user = User.Rehydrate(
-            UserId.New(), "testuser", null, null, false, null, null, null, null, null,
+            UserId.New(), "testuser", null, null, false, null, null, null,
             null, null, 0, true, DateTime.UtcNow);
 
         // Assert

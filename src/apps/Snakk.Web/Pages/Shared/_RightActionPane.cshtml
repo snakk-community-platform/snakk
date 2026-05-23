@@ -27,11 +27,16 @@
 
     var oauth       = OAuthOptions.Value;
     var returnUrl   = Uri.EscapeDataString(ViewContext.HttpContext.Request.Path.Value ?? "/");
+    var providerCount = (oauth.Google ? 1 : 0) + (oauth.GitHub ? 1 : 0) + (oauth.Discord ? 1 : 0)
+                      + (oauth.Facebook ? 1 : 0) + (oauth.Microsoft ? 1 : 0) + (oauth.Steam ? 1 : 0);
     var loginUrl    = $"/auth/login?returnUrl={returnUrl}";
     var registerUrl = $"/auth/register?returnUrl={returnUrl}";
     var googleUrl   = $"/auth/oauth/Google/challenge?returnUrl={returnUrl}";
     var githubUrl   = $"/auth/oauth/GitHub/challenge?returnUrl={returnUrl}";
     var discordUrl  = $"/auth/oauth/Discord/challenge?returnUrl={returnUrl}";
+    var facebookUrl  = $"/auth/oauth/Facebook/challenge?returnUrl={returnUrl}";
+    var microsoftUrl = $"/auth/oauth/Microsoft/challenge?returnUrl={returnUrl}";
+    var steamUrl     = $"/auth/oauth/Steam/challenge?returnUrl={returnUrl}";
 }
 <div class="sn-right-action-pane">
     <div class="sn-right-action-box">
@@ -156,26 +161,47 @@
 
         @if (oauth.HasAny)
         {
-            <div class="sn-nudge-oauth">
+            <div class="sn-nudge-oauth @(providerCount > 2 ? "sn-nudge-oauth--grid" : "")">
                 @if (oauth.Google)
                 {
                     <a href="@googleUrl" class="sn-nudge-oauth-btn" hx-boost="false">
                         <span class="icon icon-brand-google w-4 h-4" aria-hidden="true"></span>
-                        @T.Nudge.ContinueGoogle
+                        <span class="oauth-text-full">@T.Nudge.ContinueGoogle</span><span class="oauth-text-short">Google</span>
                     </a>
                 }
                 @if (oauth.GitHub)
                 {
                     <a href="@githubUrl" class="sn-nudge-oauth-btn" hx-boost="false">
                         <span class="icon icon-brand-github w-4 h-4" aria-hidden="true"></span>
-                        @T.Nudge.ContinueGitHub
+                        <span class="oauth-text-full">@T.Nudge.ContinueGitHub</span><span class="oauth-text-short">GitHub</span>
                     </a>
                 }
                 @if (oauth.Discord)
                 {
                     <a href="@discordUrl" class="sn-nudge-oauth-btn" hx-boost="false">
                         <span class="icon icon-brand-discord w-4 h-4" aria-hidden="true"></span>
-                        @T.Nudge.ContinueDiscord
+                        <span class="oauth-text-full">@T.Nudge.ContinueDiscord</span><span class="oauth-text-short">Discord</span>
+                    </a>
+                }
+                @if (oauth.Facebook)
+                {
+                    <a href="@facebookUrl" class="sn-nudge-oauth-btn" hx-boost="false">
+                        <span class="icon icon-brand-facebook w-4 h-4" aria-hidden="true"></span>
+                        <span class="oauth-text-full">@T.Nudge.ContinueFacebook</span><span class="oauth-text-short">Facebook</span>
+                    </a>
+                }
+                @if (oauth.Microsoft)
+                {
+                    <a href="@microsoftUrl" class="sn-nudge-oauth-btn" hx-boost="false">
+                        <span class="icon icon-brand-microsoft w-4 h-4 shrink-0" aria-hidden="true"></span>
+                        <span class="oauth-text-full">@T.Nudge.ContinueMicrosoft</span><span class="oauth-text-short">Microsoft</span>
+                    </a>
+                }
+                @if (oauth.Steam)
+                {
+                    <a href="@steamUrl" class="sn-nudge-oauth-btn" hx-boost="false">
+                        <span class="icon icon-brand-steam w-4 h-4 shrink-0" aria-hidden="true"></span>
+                        <span class="oauth-text-full">@T.Nudge.ContinueSteam</span><span class="oauth-text-short">Steam</span>
                     </a>
                 }
             </div>

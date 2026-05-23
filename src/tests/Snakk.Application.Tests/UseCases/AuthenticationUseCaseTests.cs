@@ -20,6 +20,8 @@ public class AuthenticationUseCaseTests
     private readonly ITurnstileService _turnstileService = Substitute.For<ITurnstileService>();
     private readonly IUserSocialLinkRepository _socialLinkRepository = Substitute.For<IUserSocialLinkRepository>();
     private readonly ISettingsService _settingsService = Substitute.For<ISettingsService>();
+    private readonly IPasswordResetTokenRepository _passwordResetTokenRepository = Substitute.For<IPasswordResetTokenRepository>();
+    private readonly IPasswordResetRequestRepository _passwordResetRequestRepository = Substitute.For<IPasswordResetRequestRepository>();
     private AuthenticationUseCase _useCase = null!;
 
     [Before(Test)]
@@ -32,7 +34,8 @@ public class AuthenticationUseCaseTests
         _useCase = new AuthenticationUseCase(
             _userRepository, _passwordHasher, _emailSender, _refreshTokenRepository,
             _eventDispatcher, _displayNameHistoryRepository, _turnstileService, _socialLinkRepository,
-            new DisplayNameValidator(_settingsService));
+            new DisplayNameValidator(_settingsService), _passwordResetTokenRepository,
+            _passwordResetRequestRepository);
     }
 
     #region RegisterWithEmailAsync Tests
@@ -233,7 +236,7 @@ public class AuthenticationUseCaseTests
     public async Task LoginWithEmailAsync_WithOAuthUser_ReturnsFailure()
     {
         const string email = "oauth@example.com";
-        var oauthUser = User.CreateWithOAuth(email, "google", "google123");
+        var oauthUser = User.CreateWithOAuth(email);
         _userRepository.GetByEmailAsync(email).Returns(oauthUser);
 
         var result = await _useCase.LoginWithEmailAsync(email, "AnyPassword");
@@ -250,8 +253,10 @@ public class AuthenticationUseCaseTests
     public async Task LoginWithOAuthAsync_WithExistingOAuthUser_ReturnsUser()
     {
         const string oauthProviderId = "google123";
-        var existingUser = User.CreateWithOAuth("test@example.com", "google", oauthProviderId);
-        _userRepository.GetByOAuthProviderIdAsync(oauthProviderId).Returns(existingUser);
+        var existingUser = User.CreateWithOAuth("test@example.com");
+        var connection = UserOAuthConnection.Create(existingUser.PublicId.Value, "google", oauthProviderId);
+        _userRepository.GetByOAuthConnectionAsync("google", oauthProviderId, Arg.Any<CancellationToken>()).Returns(existingUser);
+        _userRepository.GetOAuthConnectionsAsync(existingUser.PublicId.Value, Arg.Any<CancellationToken>()).Returns([connection]);
 
         var result = await _useCase.LoginWithOAuthAsync("google", oauthProviderId, "test@example.com", "TestUser");
 
@@ -269,7 +274,7 @@ public class AuthenticationUseCaseTests
         const string oauthProvider = "google";
         const string oauthProviderId = "google456";
 
-        _userRepository.GetByOAuthProviderIdAsync(oauthProviderId).Returns((User?)null);
+        _userRepository.GetByOAuthConnectionAsync(oauthProvider, oauthProviderId, Arg.Any<CancellationToken>()).Returns((User?)null);
         _userRepository.GetByEmailAsync(email).Returns((User?)null);
         _userRepository.GetAllAsync().Returns([]);
 
@@ -280,6 +285,7 @@ public class AuthenticationUseCaseTests
         await Assert.That(result.Value!.Email).IsEqualTo(email);
         await Assert.That(result.Value.EmailVerified).IsTrue();
         await _userRepository.Received(1).AddAsync(Arg.Any<User>());
+        await _userRepository.Received(1).AddOAuthConnectionAsync(Arg.Any<UserOAuthConnection>());
         await _emailSender.Received(1).SendWelcomeEmailAsync(email, Arg.Any<string>());
     }
 
@@ -288,7 +294,7 @@ public class AuthenticationUseCaseTests
     {
         const string email = "existing@example.com";
         var existingEmailUser = User.CreateWithEmail("ExistingUser", email, "hash", "token");
-        _userRepository.GetByOAuthProviderIdAsync(Arg.Any<string>()).Returns((User?)null);
+        _userRepository.GetByOAuthConnectionAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((User?)null);
         _userRepository.GetByEmailAsync(email).Returns(existingEmailUser);
 
         var result = await _useCase.LoginWithOAuthAsync("google", "google789", email, "DisplayName");

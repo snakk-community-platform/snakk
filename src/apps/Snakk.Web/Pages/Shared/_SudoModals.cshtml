@@ -14,6 +14,10 @@
                 <button type="button" id="sudo-passkey-btn" class="btn btn-primary w-full mb-2">@T.Settings.SudoPasskeyBtn</button>
                 <button type="button" id="sudo-use-password-link" class="text-xs underline w-full text-center block" style="color:var(--text-tertiary)">@T.Settings.SudoUsePasswordLink</button>
             </div>
+            <div id="sudo-oauth-section" class="hidden">
+                <p class="text-xs mb-2" style="color: var(--text-tertiary)">@T.Settings.SudoOauthLabel</p>
+                <div id="sudo-oauth-buttons" class="flex flex-col gap-2"></div>
+            </div>
             <div id="sudo-password-section">
                 <input type="password" id="sudo-password" class="input w-full"
                        placeholder="@T.Settings.PrivCurrentPwdPlaceholder" autocomplete="current-password" />

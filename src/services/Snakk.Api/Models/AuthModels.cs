@@ -33,3 +33,5 @@ public record SudoPasskeyCompleteRequest(string ChallengeId, string AssertionRes
 
 public record RevokeSessionRequest(string? SudoToken);
 public record RevokeAllOtherSessionsRequest(string? SudoToken, string ExcludeSessionId);
+
+public record OAuthSudoNonceRequest(string Nonce);

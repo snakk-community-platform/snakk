@@ -62,7 +62,6 @@ public class AuthGrpcService(
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion);
@@ -154,7 +153,6 @@ public class AuthGrpcService(
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion,
@@ -210,7 +208,6 @@ public class AuthGrpcService(
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion,
@@ -277,7 +274,6 @@ public class AuthGrpcService(
             DisplayName = user.DisplayName,
             Email = user.Email,
             EmailVerified = user.EmailVerified,
-            OauthProvider = user.OAuthProvider ?? "",
             AutoFollowOnReply = user.AutoFollowOnReply,
             Timezone = user.Timezone ?? "",
             IsDisplayNameLocked = user.IsDisplayNameLocked,
@@ -286,6 +282,7 @@ public class AuthGrpcService(
             AdultPreviewImageMode = user.AdultPreviewImageMode,
             HidePresence = user.HidePresence,
         };
+        response.ConnectedProviders.AddRange(user.ConnectedProviders);
 
         if (user.AllowAdultContent.HasValue)
             response.AllowAdultContent = user.AllowAdultContent.Value;
@@ -339,7 +336,6 @@ public class AuthGrpcService(
                 user.DisplayName,
                 user.Email,
                 user.EmailVerified,
-                user.OAuthProvider,
                 roles.FirstOrDefault(),
                 user.AvatarFileName,
                 authVersion: user.AuthVersion);
@@ -353,6 +349,38 @@ public class AuthGrpcService(
         }
 
         return new UpdateProfileResponse { Success = true, Message = "Display name updated successfully" };
+    }
+
+    public override async Task<SetEmailResponse> SetEmail(SetEmailRequest request, ServerCallContext ctx)
+    {
+        if (!currentUser.IsAuthenticated())
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var userIdValue = currentUser.GetCurrentUserId()
+            ?? throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var userId = UserId.From(userIdValue);
+        var result = await authUseCase.SetEmailAsync(userId, request.Email);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Failed to set email"));
+
+        var userResult = await authUseCase.GetUserByIdAsync(userId);
+        if (!userResult.IsSuccess)
+            throw new RpcException(new Status(StatusCode.Internal, "Failed to retrieve updated user"));
+
+        var user = userResult.Value!;
+        var roles = await GetUserRolesAsync(user.PublicId.Value);
+        var newToken = jwtService.GenerateToken(
+            user.PublicId.Value,
+            user.DisplayName,
+            user.Email,
+            user.EmailVerified,
+            roles.FirstOrDefault(),
+            user.AvatarFileName,
+            authVersion: user.AuthVersion);
+
+        return new SetEmailResponse { Token = newToken };
     }
 
     public override async Task<Protos.Auth.MessageResponse> UpdatePreferences(UpdatePreferencesRequest request, ServerCallContext ctx)
@@ -394,16 +422,18 @@ public class AuthGrpcService(
 
     public override async Task<OAuthCallbackResponse> OAuthCallback(OAuthCallbackRequest request, ServerCallContext ctx)
     {
+        var provider = request.Provider.ToLowerInvariant();
+
         // Gate: only check for users who don't already have an account
-        var userAlreadyExists = await context.Users
-            .AnyAsync(u => u.OAuthProviderId == request.ProviderUserId);
+        var userAlreadyExists = await context.UserOAuthConnections
+            .AnyAsync(c => c.Provider == provider && c.ProviderUserId == request.ProviderUserId);
         if (!userAlreadyExists)
             await EnforceRegistrationGateAsync(request.HasInviteCode ? request.InviteCode : null);
 
         bool? allowAdult = request.HasAllowAdultContent ? request.AllowAdultContent : null;
 
         var result = await authUseCase.LoginWithOAuthAsync(
-            request.Provider,
+            provider,
             request.ProviderUserId,
             request.Email,
             request.DisplayName,
@@ -416,15 +446,26 @@ public class AuthGrpcService(
         var roles = await GetUserRolesAsync(user.PublicId.Value);
         var isNewUser = (DateTime.UtcNow - user.CreatedAt).TotalSeconds < 30;
 
-        if (configuration.GetValue<bool>("Features:TwoFactorEnabled", true))
-        {
-            // Check if 2FA is enabled
-            var has2FA = await context.Users
+        // Discord always requires 2FA; other providers check global flag and per-connection flag
+        var globalTwoFAEnabled = configuration.GetValue<bool>("Features:TwoFactorEnabled", true);
+        var perConnectionRequire2FA = !isNewUser && await context.UserOAuthConnections
+            .Where(c => c.User.PublicId == user.PublicId.Value && c.Provider == provider)
+            .Select(c => c.Require2FA)
+            .FirstOrDefaultAsync();
+
+        var requires2FA = provider == "discord"
+            || (globalTwoFAEnabled && await context.Users
                 .Where(u => u.PublicId == user.PublicId.Value)
                 .Select(u => u.TwoFactorEnabled)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync())
+            || perConnectionRequire2FA;
 
-            if (has2FA)
+        if (requires2FA)
+        {
+            var fingerprint = trustedDeviceService.GenerateDeviceFingerprint(request.UserAgent, request.IpAddress);
+            var isTrusted = !isNewUser && await trustedDeviceService.IsDeviceTrustedAsync(user.PublicId, fingerprint, ctx.CancellationToken);
+
+            if (!isTrusted)
             {
                 logger.LogInformation("OAuth login requires 2FA for {Email} from {Ip}", request.Email, request.IpAddress);
                 return new OAuthCallbackResponse
@@ -441,7 +482,6 @@ public class AuthGrpcService(
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion);
@@ -619,6 +659,124 @@ public class AuthGrpcService(
         if (discord.DiscordAvatarHash is not null)
             response.DiscordAvatarHash = discord.DiscordAvatarHash;
         return response;
+    }
+
+    public override async Task<Protos.Auth.MessageResponse> RequestPasswordReset(
+        RequestPasswordResetRequest request, ServerCallContext ctx)
+    {
+        var ipAddress = string.IsNullOrEmpty(request.IpAddress) ? null : request.IpAddress;
+        var userAgent = string.IsNullOrEmpty(request.UserAgent) ? null : request.UserAgent;
+
+        await authUseCase.RequestPasswordResetAsync(
+            request.Email, request.BaseUrl, ipAddress, userAgent, ctx.CancellationToken);
+
+        return new Protos.Auth.MessageResponse { Message = "If an account with that email exists, a reset link has been sent." };
+    }
+
+    public override async Task<Protos.Auth.MessageResponse> ResetPassword(
+        ResetPasswordRequest request, ServerCallContext ctx)
+    {
+        var ipAddress = string.IsNullOrEmpty(request.IpAddress) ? null : request.IpAddress;
+        var userAgent = string.IsNullOrEmpty(request.UserAgent) ? null : request.UserAgent;
+
+        var result = await authUseCase.CompletePasswordResetAsync(
+            request.Token, request.NewPassword, ipAddress, userAgent, ctx.CancellationToken);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Password reset failed."));
+
+        return new Protos.Auth.MessageResponse { Message = "Password reset successfully." };
+    }
+
+    public override async Task<GetOAuthConnectionsResponse> GetOAuthConnections(
+        GetOAuthConnectionsRequest request, ServerCallContext ctx)
+    {
+        var userId = RequireAuth();
+        var result = await authUseCase.GetOAuthConnectionsAsync(userId.Value, ctx.CancellationToken);
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.Internal, result.Error ?? "Failed to get connections"));
+
+        var response = new GetOAuthConnectionsResponse();
+        foreach (var conn in result.Value!)
+        {
+            var info = new OAuthConnectionInfo
+            {
+                Provider = conn.Provider,
+                ConnectedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                    DateTime.SpecifyKind(conn.ConnectedAt, DateTimeKind.Utc)),
+                Require2Fa = conn.Require2FA
+            };
+            if (conn.LastLoginAt.HasValue)
+                info.LastLoginAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(
+                    DateTime.SpecifyKind(conn.LastLoginAt.Value, DateTimeKind.Utc));
+            response.Connections.Add(info);
+        }
+        return response;
+    }
+
+    public override async Task<ConnectOAuthProviderResponse> ConnectOAuthProvider(
+        ConnectOAuthProviderRequest request, ServerCallContext ctx)
+    {
+        // Server-to-server (Snakk.Auth) passes user_public_id explicitly; BFF callers use JWT
+        var userPublicId = request.HasUserPublicId
+            ? request.UserPublicId
+            : RequireAuth().Value;
+
+        var result = await authUseCase.ConnectOAuthProviderAsync(
+            userPublicId, request.Provider, request.ProviderUserId, ctx.CancellationToken);
+
+        return new ConnectOAuthProviderResponse
+        {
+            Success = result.IsSuccess,
+            ErrorCode = result.IsSuccess ? null : result.Error
+        };
+    }
+
+    public override async Task<Protos.Auth.MessageResponse> DisconnectOAuthProvider(
+        DisconnectOAuthProviderRequest request, ServerCallContext ctx)
+    {
+        var userId = RequireAuth();
+        var result = await authUseCase.DisconnectOAuthProviderAsync(
+            userId.Value, request.Provider, ctx.CancellationToken);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.FailedPrecondition, result.Error ?? "Cannot disconnect"));
+
+        return new Protos.Auth.MessageResponse { Message = "Provider disconnected" };
+    }
+
+    public override async Task<Protos.Auth.MessageResponse> SetOAuthConnectionRequire2FA(
+        SetOAuthConnectionRequire2FARequest request, ServerCallContext ctx)
+    {
+        var userId = RequireAuth();
+        var result = await authUseCase.SetOAuthConnectionRequire2FAAsync(
+            userId.Value, request.Provider, request.Require2Fa, ctx.CancellationToken);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Update failed"));
+
+        return new Protos.Auth.MessageResponse { Message = "2FA requirement updated" };
+    }
+
+    public override async Task<GenerateOAuthSudoNonceResponse> GenerateOAuthSudoNonce(
+        GenerateOAuthSudoNonceRequest request, ServerCallContext ctx)
+    {
+        // Verify the provider+providerUserId matches a connection for this user
+        var connection = await context.UserOAuthConnections
+            .FirstOrDefaultAsync(c =>
+                c.User.PublicId == request.UserPublicId &&
+                c.Provider == request.Provider &&
+                c.ProviderUserId == request.ProviderUserId,
+                ctx.CancellationToken);
+
+        if (connection is null)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "OAuth connection not found for user"));
+
+        var nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+        var cacheKey = $"sudo-oauth-nonce:{request.UserPublicId}:{nonce}";
+        cache.Set(cacheKey, true, TimeSpan.FromSeconds(60));
+
+        return new GenerateOAuthSudoNonceResponse { Nonce = nonce };
     }
 
     private UserId RequireAuth()

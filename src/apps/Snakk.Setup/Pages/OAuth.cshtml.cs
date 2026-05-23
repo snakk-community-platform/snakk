@@ -10,6 +10,11 @@ public class OAuthModel : SetupPageBase
     [BindProperty] public string GitHubClientSecret { get; set; } = "";
     [BindProperty] public string DiscordClientId { get; set; } = "";
     [BindProperty] public string DiscordClientSecret { get; set; } = "";
+    [BindProperty] public string FacebookClientId { get; set; } = "";
+    [BindProperty] public string FacebookClientSecret { get; set; } = "";
+    [BindProperty] public string MicrosoftClientId { get; set; } = "";
+    [BindProperty] public string MicrosoftClientSecret { get; set; } = "";
+    [BindProperty] public string SteamApiKey { get; set; } = "";
 
     public void OnGet()
     {
@@ -21,6 +26,11 @@ public class OAuthModel : SetupPageBase
         GitHubClientSecret = state.GitHubClientSecret;
         DiscordClientId = state.DiscordClientId;
         DiscordClientSecret = state.DiscordClientSecret;
+        FacebookClientId = state.FacebookClientId;
+        FacebookClientSecret = state.FacebookClientSecret;
+        MicrosoftClientId = state.MicrosoftClientId;
+        MicrosoftClientSecret = state.MicrosoftClientSecret;
+        SteamApiKey = state.SteamApiKey;
     }
 
     public IActionResult OnPost()
@@ -32,6 +42,11 @@ public class OAuthModel : SetupPageBase
         state.GitHubClientSecret = GitHubClientSecret?.Trim() ?? "";
         state.DiscordClientId = DiscordClientId?.Trim() ?? "";
         state.DiscordClientSecret = DiscordClientSecret?.Trim() ?? "";
+        state.FacebookClientId = FacebookClientId?.Trim() ?? "";
+        state.FacebookClientSecret = FacebookClientSecret?.Trim() ?? "";
+        state.MicrosoftClientId = MicrosoftClientId?.Trim() ?? "";
+        state.MicrosoftClientSecret = MicrosoftClientSecret?.Trim() ?? "";
+        state.SteamApiKey = SteamApiKey?.Trim() ?? "";
         SaveState(state);
 
         return RedirectToPage("Community");

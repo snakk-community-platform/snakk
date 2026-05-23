@@ -18,11 +18,15 @@ public class LoginModel(
     public string? ReturnUrl { get; set; }
 
     public string? ErrorMessage { get; set; }
+    public string? SuccessMessage { get; set; }
 
-    public bool HasGoogle => !string.IsNullOrEmpty(configuration["Authentication:Google:ClientId"]);
-    public bool HasGitHub => !string.IsNullOrEmpty(configuration["Authentication:GitHub:ClientId"]);
-    public bool HasDiscord => !string.IsNullOrEmpty(configuration["Authentication:Discord:ClientId"]);
-    public bool HasAnyOAuth => HasGoogle || HasGitHub || HasDiscord;
+    public bool HasGoogle    => !string.IsNullOrEmpty(configuration["Authentication:Google:ClientId"]);
+    public bool HasGitHub    => !string.IsNullOrEmpty(configuration["Authentication:GitHub:ClientId"]);
+    public bool HasDiscord   => !string.IsNullOrEmpty(configuration["Authentication:Discord:ClientId"]);
+    public bool HasFacebook  => !string.IsNullOrEmpty(configuration["Authentication:Facebook:ClientId"]);
+    public bool HasMicrosoft => !string.IsNullOrEmpty(configuration["Authentication:Microsoft:ClientId"]);
+    public bool HasSteam     => !string.IsNullOrEmpty(configuration["Authentication:Steam:ApiKey"]);
+    public bool HasAnyOAuth  => HasGoogle || HasGitHub || HasDiscord || HasFacebook || HasMicrosoft || HasSteam;
     public bool PasskeysEnabled => configuration.GetValue<bool>("Features:PasskeysEnabled", true);
     public bool TwoFactorEnabled => configuration.GetValue<bool>("Features:TwoFactorEnabled", true);
     public string? TurnstileSiteKey => configuration["Turnstile:SiteKey"];
@@ -44,11 +48,15 @@ public class LoginModel(
         public string? ReturnUrl { get; set; }
     }
 
-    public IActionResult OnGet(string? error)
+    public IActionResult OnGet(string? error, string? passwordReset)
     {
         var accessToken = Request.Cookies[".Snakk.Auth"];
         if (!string.IsNullOrEmpty(accessToken) && IsTokenValid(accessToken))
-            return Redirect("/");
+        {
+            var dest = ReturnUrl;
+            if (string.IsNullOrEmpty(dest) || !Url.IsLocalUrl(dest)) dest = "/";
+            return Redirect(dest);
+        }
 
         // Token is missing, expired or malformed — delete stale auth cookies
         // so the user starts from a clean state before logging in.
@@ -64,6 +72,9 @@ public class LoginModel(
 
         Input.ReturnUrl = ReturnUrl;
 
+        if (!string.IsNullOrEmpty(passwordReset))
+            SuccessMessage = "Your password has been reset. You can now sign in with your new password.";
+
         if (!string.IsNullOrEmpty(error))
         {
             ErrorMessage = error switch
@@ -74,6 +85,9 @@ public class LoginModel(
                 "oauth_token_missing" => "Authentication succeeded but no token was returned.",
                 "oauth_server_error" => "A server error occurred during authentication.",
                 "oauth_error" => "An error occurred during authentication.",
+                "facebook_email_required"  => "Your Facebook account doesn't have a verified email address. Please add and verify an email on Facebook, then try again.",
+                "google_email_required"    => "Your Google account doesn't have an email address associated with it. Please use a different sign-in method.",
+                "microsoft_email_required" => "Your Microsoft account didn't provide an email address. Please ensure your Microsoft account has an email address and try again.",
                 _ => Uri.UnescapeDataString(error)
             };
         }

@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npm run build:locales && npm run build:ts && npm run build:css && npm run build:editor && npm run build:prism && npm run build:charts",
-    "build:locales": "node Locales/gen-strings.mjs && node Locales/gen-ts.mjs",
+    "build:locales": "node Locales/gen-strings.mjs && node Locales/gen-ts.mjs && node gen-social-icons.mjs",
     "build:ts": "tsc && node esbuild.minify.mjs",
     "build:css": "npm run build:tailwind && npm run build:tailwind-dark && npm run build:custom",
     "build:tailwind": "tailwindcss -i ./Styles/input.css -o ./wwwroot/css/vendor/tailwind.css --minify",
@@ -45,6 +45,7 @@
     "esbuild": "^0.28.0",
     "htmx.org": "^2.0.10",
     "sass": "^1.99.0",
+    "simple-icons": "^16.20.0",
     "typescript": "^6.0.3"
   },
   "dependencies": {

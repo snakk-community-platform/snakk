@@ -20,7 +20,8 @@ public static class PasskeyLoginEndpoints
                 if (!string.IsNullOrWhiteSpace(body?.Email))
                     request.Email = body.Email;
 
-                var response = await passkeyClient.BeginPasskeyLoginAsync(request, cancellationToken: ct);
+                var callOptions = new CallOptions(deadline: DateTime.UtcNow.AddSeconds(10), cancellationToken: ct);
+                var response = await passkeyClient.BeginPasskeyLoginAsync(request, callOptions);
                 return Results.Ok(new { optionsJson = response.OptionsJson, challengeId = response.ChallengeId });
             }
             catch (RpcException ex)

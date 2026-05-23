@@ -1,0 +1,57 @@
+@page "/oauth/setup-email"
+@model Snakk.Auth.Pages.SetupEmailModel
+@{
+    ViewData["Title"] = "Enter your email";
+}
+
+<div class="min-h-screen flex flex-col lg:flex-row">
+    <!-- Brand Panel -->
+    <div class="auth-brand-panel lg:w-[45%] xl:w-[50%] flex items-center justify-center px-8 py-12 lg:py-0 shrink-0">
+        <div class="auth-brand-content text-center lg:text-left">
+            <div class="auth-brand-wordmark">snakk</div>
+            <p class="auth-brand-tagline mt-3 mx-auto lg:mx-0">
+                Where communities come together to discuss, share, and connect.
+            </p>
+        </div>
+    </div>
+
+    <!-- Form Panel -->
+    <div class="auth-form-panel flex-1 px-6 py-12 lg:py-0">
+        <div class="auth-form-card p-8">
+            <h1 class="text-xl font-bold tracking-tight text-center mb-2">One more step</h1>
+            <p class="text-center text-sm text-base-content/60 mb-8">
+                @if (Model.IsPostAuthFlow)
+                {
+                    <span>Your account doesn't have an email address yet. Add one to continue.</span>
+                }
+                else
+                {
+                    <span>@Model.ProviderName didn't share your email address. Enter it below to complete sign-in.</span>
+                }
+            </p>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="auth-alert-error mb-6">@Model.ErrorMessage</div>
+            }
+
+            <form method="post" class="space-y-4">
+                <div>
+                    <label class="auth-label" asp-for="Input.Email">Email address</label>
+                    <input asp-for="Input.Email" type="email" class="auth-input" placeholder="you@example.com" autofocus />
+                    <span asp-validation-for="Input.Email" class="text-error text-xs mt-1 block"></span>
+                </div>
+
+                <button type="submit" class="auth-btn-primary">Continue</button>
+            </form>
+
+            <p class="text-center mt-6 text-sm text-base-content/50">
+                <a href="/auth/login" class="auth-link">Sign in with a different method</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

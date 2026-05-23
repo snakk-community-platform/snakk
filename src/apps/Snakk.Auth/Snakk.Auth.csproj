@@ -24,7 +24,10 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
 
     <!-- OAuth Providers -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="10.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="10.0.3" />
+    <PackageReference Include="AspNet.Security.OpenId.Steam" Version="10.0.0" />
     <PackageReference Include="AspNet.Security.OAuth.GitHub" Version="10.0.0" />
     <PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.0" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.3" />

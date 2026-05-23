@@ -27,17 +27,15 @@ public class UserMapperTests
         await Assert.That(entity.PasswordHash).IsEqualTo("password_hash");
         await Assert.That(entity.EmailVerified).IsFalse();
         await Assert.That(entity.EmailVerificationToken).IsEqualTo("verification_token");
-        await Assert.That(entity.OAuthProvider).IsNull();
-        await Assert.That(entity.OAuthProviderId).IsNull();
         await Assert.That(entity.AvatarFileName).IsNull();
         await Assert.That((DateTime.UtcNow - entity.CreatedAt).TotalSeconds).IsLessThan(1);
     }
 
     [Test]
-    public async Task ToPersistence_WithOAuthUser_MapsOAuthProperties()
+    public async Task ToPersistence_WithOAuthUser_MapsEmailAndVerifiedProperties()
     {
         // Arrange
-        var user = User.CreateWithOAuth("oauth@example.com", "google", "google_123");
+        var user = User.CreateWithOAuth("oauth@example.com");
 
         // Act
         var entity = user.ToPersistence();
@@ -49,8 +47,6 @@ public class UserMapperTests
         await Assert.That(entity.PasswordHash).IsNull();
         await Assert.That(entity.EmailVerified).IsTrue();
         await Assert.That(entity.EmailVerificationToken).IsNull();
-        await Assert.That(entity.OAuthProvider).IsEqualTo("google");
-        await Assert.That(entity.OAuthProviderId).IsEqualTo("google_123");
     }
 
     [Test]
@@ -63,8 +59,6 @@ public class UserMapperTests
             "admin@example.com",
             "hash",
             true,
-            null,
-            null,
             null,
             "Admin", // Admin role
             null,
@@ -96,8 +90,6 @@ public class UserMapperTests
             "hash",
             true,
             null,
-            null,
-            null,
             "Mod", // Mod role
             null,
             null, // avatarThumbnailFileName
@@ -127,8 +119,6 @@ public class UserMapperTests
             "admin@example.com",
             "hash",
             true,
-            null,
-            null,
             null,
             "ADMIN", // Uppercase
             null,
@@ -173,8 +163,6 @@ public class UserMapperTests
             "user@example.com",
             "hash",
             true,
-            null,
-            null,
             null,
             "InvalidRole", // Not a valid role
             null,
@@ -245,8 +233,6 @@ public class UserMapperTests
         await Assert.That(user.PasswordHash).IsEqualTo("hash");
         await Assert.That(user.EmailVerified).IsFalse();
         await Assert.That(user.EmailVerificationToken).IsEqualTo("token");
-        await Assert.That(user.OAuthProvider).IsNull();
-        await Assert.That(user.OAuthProviderId).IsNull();
         await Assert.That(user.Role).IsNull();
         await Assert.That(user.AvatarFileName).IsNull();
     }
@@ -276,8 +262,6 @@ public class UserMapperTests
         var user = entity.FromPersistence();
 
         // Assert
-        await Assert.That(user.OAuthProvider).IsEqualTo("google");
-        await Assert.That(user.OAuthProviderId).IsEqualTo("google_123");
         await Assert.That(user.PasswordHash).IsNull();
         await Assert.That(user.EmailVerified).IsTrue();
     }
@@ -423,8 +407,6 @@ public class UserMapperTests
         await Assert.That(reconstructedUser.PasswordHash).IsEqualTo(originalUser.PasswordHash);
         await Assert.That(reconstructedUser.EmailVerified).IsEqualTo(originalUser.EmailVerified);
         await Assert.That(reconstructedUser.EmailVerificationToken).IsEqualTo(originalUser.EmailVerificationToken);
-        await Assert.That(reconstructedUser.OAuthProvider).IsEqualTo(originalUser.OAuthProvider);
-        await Assert.That(reconstructedUser.OAuthProviderId).IsEqualTo(originalUser.OAuthProviderId);
         await Assert.That(reconstructedUser.Role).IsEqualTo(originalUser.Role);
         await Assert.That(reconstructedUser.AvatarFileName).IsEqualTo(originalUser.AvatarFileName);
     }
@@ -433,7 +415,7 @@ public class UserMapperTests
     public async Task RoundTrip_WithOAuthUser_PreservesAllData()
     {
         // Arrange
-        var originalUser = User.CreateWithOAuth("oauth@example.com", "github", "github_456");
+        var originalUser = User.CreateWithOAuth("oauth@example.com");
 
         // Act
         var entity = originalUser.ToPersistence();
@@ -443,8 +425,6 @@ public class UserMapperTests
         await Assert.That(reconstructedUser.PublicId).IsEqualTo(originalUser.PublicId);
         await Assert.That(reconstructedUser.DisplayName).IsEqualTo(originalUser.DisplayName);
         await Assert.That(reconstructedUser.Email).IsEqualTo(originalUser.Email);
-        await Assert.That(reconstructedUser.OAuthProvider).IsEqualTo(originalUser.OAuthProvider);
-        await Assert.That(reconstructedUser.OAuthProviderId).IsEqualTo(originalUser.OAuthProviderId);
         await Assert.That(reconstructedUser.EmailVerified).IsTrue();
     }
 
@@ -458,8 +438,6 @@ public class UserMapperTests
             "admin@example.com",
             "hash",
             true,
-            null,
-            null,
             null,
             "Admin",
             null,
@@ -491,8 +469,6 @@ public class UserMapperTests
             "admin@example.com",
             "hash",
             true,
-            null,
-            null,
             null,
             "Admin",
             null,

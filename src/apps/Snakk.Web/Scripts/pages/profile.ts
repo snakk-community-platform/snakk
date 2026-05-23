@@ -120,7 +120,7 @@ interface ActivityDataPoint {
                                 </div>
                                 <div class="topic-meta">
                                     <span class="topic-meta-link">${escapeHtml(p.hubName)}</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                                    <span class="icon icon-chevron-right-sm" style="width:12px;height:12px" aria-hidden="true"></span>
                                     <span class="topic-meta-link">${escapeHtml(p.spaceName)}</span>
                                     <span class="topic-meta-separator">&middot;</span>
                                     <span>${formatRelativeTime(p.createdAt)}</span>
@@ -130,9 +130,7 @@ interface ActivityDataPoint {
                                 </div>
                             </div>
                             <a href="${sanitizeUrl(p.url)}" class="topic-latest-link" title="Go to discussion">
-                                <svg class="chevron-right" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
+                                <span class="icon icon-chevron-down chevron-right" style="width:18px;height:18px" aria-hidden="true"></span>
                             </a>
                         </div>
                     </div>
@@ -179,9 +177,7 @@ interface ActivityDataPoint {
             if (!data || data.length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-12">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-muted mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                        </svg>
+                        <span class="icon icon-chart-bar h-16 w-16 mx-auto text-muted mb-4" aria-hidden="true"></span>
                         <h3 class="font-semibold mb-2">No activity yet</h3>
                         <p class="text-sm text-muted">Activity will appear here once this user starts contributing</p>
                     </div>
@@ -312,9 +308,7 @@ interface ActivityDataPoint {
                     // Viewing own profile
                     container.innerHTML = `
                         <a href="/settings" class="btn btn-outline btn-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
+                            <span class="icon icon-pencil h-4 w-4" aria-hidden="true"></span>
                             Edit Profile
                         </a>
                     `;
@@ -333,9 +327,7 @@ interface ActivityDataPoint {
                             data-user-id="${userId}"
                             class="btn btn-outline btn-sm"
                             id="follow-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${followData.isFollowing ? 'M5 13l4 4L19 7' : 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'}" />
-                        </svg>
+                        ${followData.isFollowing ? '<span class="icon icon-check h-4 w-4" aria-hidden="true"></span>' : '<span class="icon icon-user-follow h-4 w-4" aria-hidden="true"></span>'}
                         <span id="follow-btn-text">${followData.isFollowing ? 'Following' : 'Follow'}</span>
                     </button>
                 `;

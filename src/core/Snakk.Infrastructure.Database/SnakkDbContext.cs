@@ -53,6 +53,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<PasswordResetRequestDatabaseEntity> PasswordResetRequests { get; set; } = null!;
     public DbSet<PasskeyCredentialDatabaseEntity> PasskeyCredentials { get; set; } = null!;
     public DbSet<LoginHistoryDatabaseEntity> LoginHistory { get; set; } = null!;
+    public DbSet<UserOAuthConnectionDatabaseEntity> UserOAuthConnections { get; set; } = null!;
 
     // Settings
     public DbSet<SystemSettingDatabaseEntity> SystemSettings { get; set; } = null!;
@@ -1132,6 +1133,27 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
             entity.HasIndex(p => p.UserId)
                 .HasDatabaseName("IX_PasskeyCredential_UserId");
+        });
+
+        // === UserOAuthConnection Configuration ===
+
+        modelBuilder.Entity<UserOAuthConnectionDatabaseEntity>(entity =>
+        {
+            entity.HasOne(c => c.User)
+                .WithMany(u => u.OAuthConnections)
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(c => c.UserId)
+                .HasDatabaseName("IX_UserOAuthConnection_UserId");
+
+            entity.HasIndex(c => new { c.UserId, c.Provider })
+                .IsUnique()
+                .HasDatabaseName("IX_UserOAuthConnection_UserId_Provider");
+
+            entity.HasIndex(c => new { c.Provider, c.ProviderUserId })
+                .IsUnique()
+                .HasDatabaseName("IX_UserOAuthConnection_Provider_ProviderUserId");
         });
 
         // === SystemSettings Configuration ===

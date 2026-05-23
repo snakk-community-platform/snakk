@@ -1,9 +1,12 @@
 @inject Microsoft.Extensions.Configuration.IConfiguration NavConfiguration
+@inject Microsoft.Extensions.Options.IOptions<Snakk.Web.Services.OAuthProvidersOptions> NavOAuthOptions
 @{
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     bool isActive(string page) => currentPage.EndsWith(page, StringComparison.OrdinalIgnoreCase);
     ViewData["RightPane.NewDiscussionUrl"] = "/new";
     var passkeysEnabled = NavConfiguration.GetValue<bool>("Features:PasskeysEnabled", true);
+    var twoFactorEnabled = NavConfiguration.GetValue<bool>("Features:TwoFactorEnabled", true);
+    var oauthEnabled = NavOAuthOptions.Value.HasAny;
 }
 <div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
@@ -23,6 +26,7 @@
                 <a href="#section-avatar" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavAvatar</a>
                 <a href="#section-display-name" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavDisplayName</a>
                 <a href="#section-bio" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavBio</a>
+                <a href="#section-social" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.TitleSocial</a>
             }
 
             <a href="/settings/display" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Display") ? "active" : "")">
@@ -51,13 +55,20 @@
             </a>
             @if (isActive("Privacy"))
             {
-                <a href="#section-devices" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavTrustedDevices</a>
                 <a href="#section-email" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavEmail</a>
                 <a href="#section-password" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavPassword</a>
+                @if (twoFactorEnabled)
+                {
                 <a href="#two-factor-section" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavTwoFactor</a>
+                <a href="#section-devices" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavTrustedDevices</a>
+                }
                 @if (passkeysEnabled)
                 {
                 <a href="#section-passkeys" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavPasskeys</a>
+                }
+                @if (oauthEnabled)
+                {
+                <a href="#section-connected-accounts" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.ConnAccNav</a>
                 }
                 <a href="#section-sessions" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavActiveSessions</a>
                 <a href="#section-security-log" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavSecurityLog</a>

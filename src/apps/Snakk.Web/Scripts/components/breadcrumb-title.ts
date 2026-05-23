@@ -88,8 +88,8 @@
                 function syncFollow(): void {
                     const isFollowing = followBtn!.classList.contains('btn-primary');
                     bcFollow.innerHTML = isFollowing
-                        ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'
-                        : '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>';
+                        ? '<span class="icon icon-check h-4 w-4" aria-hidden="true"></span>'
+                        : '<span class="icon icon-bell h-4 w-4" aria-hidden="true"></span>';
                     bcFollow.classList.toggle('active', isFollowing);
                     bcFollow.title = isFollowing ? 'Unfollow discussion' : 'Follow discussion';
                 }
@@ -107,7 +107,7 @@
                 bcShare.className = 'breadcrumb-action-btn';
                 bcShare.type = 'button';
                 bcShare.title = 'Share';
-                bcShare.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>';
+                bcShare.innerHTML = '<span class="icon icon-share h-4 w-4" aria-hidden="true"></span>';
                 bcShare.addEventListener('click', () => shareBtn.focus());
                 actionsWrapper.appendChild(bcShare);
             }

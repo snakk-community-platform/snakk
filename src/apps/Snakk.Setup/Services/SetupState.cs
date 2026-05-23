@@ -67,6 +67,11 @@ public class SetupState
     public string GitHubClientSecret { get; set; } = "";
     public string DiscordClientId { get; set; } = "";
     public string DiscordClientSecret { get; set; } = "";
+    public string FacebookClientId { get; set; } = "";
+    public string FacebookClientSecret { get; set; } = "";
+    public string MicrosoftClientId { get; set; } = "";
+    public string MicrosoftClientSecret { get; set; } = "";
+    public string SteamApiKey { get; set; } = "";
 
     // Step 9: First Community
     public string CommunityName { get; set; } = "";

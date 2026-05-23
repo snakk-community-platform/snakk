@@ -171,8 +171,6 @@ public class BannerUseCaseTests
             "hashed-password",
             emailVerified: true,
             emailVerificationToken: null,
-            oauthProvider: null,
-            oauthProviderId: null,
             role: null,
             avatarFileName: null,
             avatarThumbnailFileName: null,

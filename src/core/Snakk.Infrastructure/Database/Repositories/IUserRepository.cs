@@ -9,7 +9,6 @@ public interface IUserRepository : IGenericDatabaseRepository<UserDatabaseEntity
     Task<UserDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default);
     Task<IEnumerable<UserDatabaseEntity>> GetByPublicIdsAsync(IEnumerable<string> publicIds, CancellationToken ct = default);
     Task<UserDatabaseEntity?> GetByEmailAsync(string email, CancellationToken ct = default);
-    Task<UserDatabaseEntity?> GetByOAuthProviderIdAsync(string oauthProviderId, CancellationToken ct = default);
     Task<UserDatabaseEntity?> GetByDisplayNameAsync(string displayName, CancellationToken ct = default);
     Task<IEnumerable<UserDatabaseEntity>> SearchByDisplayNameAsync(string query, int limit, CancellationToken ct = default);
 }

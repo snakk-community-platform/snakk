@@ -10,7 +10,6 @@ public interface IJwtTokenService
         string? displayName,
         string? email,
         bool emailVerified,
-        string? oAuthProvider,
         string? role = null,
         string? avatarFileName = null,
         bool needsProfileSetup = false,

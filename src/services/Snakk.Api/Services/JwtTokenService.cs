@@ -21,7 +21,7 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
 
     private static readonly byte[] Sentinel = [1];
 
-    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? oAuthProvider, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null)
+    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null)
     {
         var jti = Guid.NewGuid().ToString("N");
         var claims = new List<Claim>
@@ -36,9 +36,6 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
 
         if (!string.IsNullOrEmpty(email))
             claims.Add(new(ClaimTypes.Email, email));
-
-        if (!string.IsNullOrEmpty(oAuthProvider))
-            claims.Add(new("OAuthProvider", oAuthProvider));
 
         if (!string.IsNullOrEmpty(role))
             claims.Add(new(ClaimTypes.Role, role));
@@ -80,7 +77,6 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             user.Role,
             user.AvatarFileName,
             user.NeedsProfileSetup,

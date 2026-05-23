@@ -92,7 +92,6 @@ public static class AuthEndpoints
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             roles.FirstOrDefault());
 
         // Generate refresh token
@@ -153,7 +152,6 @@ public static class AuthEndpoints
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             roles.FirstOrDefault());
 
         // Generate refresh token
@@ -234,7 +232,6 @@ public static class AuthEndpoints
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             roles.FirstOrDefault());
 
         var ipAddress = AuthAuditLogger.GetClientIp(httpContext);

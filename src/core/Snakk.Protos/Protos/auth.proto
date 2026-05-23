@@ -23,6 +23,7 @@ service AuthService {
   rpc GetDisplayNameHistory (GetDisplayNameHistoryRequest) returns (DisplayNameHistoryResponse);
   rpc UpdateProfile (UpdateProfileRequest) returns (UpdateProfileResponse);
   rpc UpdatePreferences (UpdatePreferencesRequest) returns (MessageResponse);
+  rpc SetEmail (SetEmailRequest) returns (SetEmailResponse);
 
   // RSS feed token
   rpc GenerateFeedToken (GenerateFeedTokenRequest) returns (FeedTokenResponse);
@@ -37,8 +38,21 @@ service AuthService {
   // OAuth (server-to-server only — challenge/callback stay as HTTP redirects)
   rpc OAuthCallback (OAuthCallbackRequest) returns (OAuthCallbackResponse);
 
+  // OAuth connected accounts management
+  rpc GetOAuthConnections          (GetOAuthConnectionsRequest)          returns (GetOAuthConnectionsResponse);
+  rpc ConnectOAuthProvider         (ConnectOAuthProviderRequest)         returns (ConnectOAuthProviderResponse);
+  rpc DisconnectOAuthProvider      (DisconnectOAuthProviderRequest)      returns (MessageResponse);
+  rpc SetOAuthConnectionRequire2FA (SetOAuthConnectionRequire2FARequest) returns (MessageResponse);
+
+  // OAuth sudo re-authentication nonce (called by Snakk.Auth after popup callback)
+  rpc GenerateOAuthSudoNonce (GenerateOAuthSudoNonceRequest) returns (GenerateOAuthSudoNonceResponse);
+
   // Public site settings (no auth required)
   rpc GetPublicSettings (GetPublicSettingsRequest) returns (PublicSettingsResponse);
+
+  // Password recovery (no auth required)
+  rpc RequestPasswordReset (RequestPasswordResetRequest) returns (MessageResponse);
+  rpc ResetPassword (ResetPasswordRequest) returns (MessageResponse);
 }
 
 // --- Request Messages ---
@@ -144,7 +158,7 @@ message CurrentUserResponse {
   string display_name = 2;
   string email = 3;
   bool email_verified = 4;
-  optional string oauth_provider = 5;
+  repeated string connected_providers = 5;
   bool auto_follow_on_reply = 7;
   bool is_authenticated = 8; // False when anonymous — mirrors AuthStatusResponse pattern
   optional string timezone = 9;
@@ -233,9 +247,73 @@ message CompleteDiscordLinkResponse {
 
 message UnlinkDiscordRequest {}
 message GetDiscordStatusRequest {}
+
+// Password recovery
+message RequestPasswordResetRequest {
+  string email = 1;
+  string base_url = 2;
+  string ip_address = 3;
+  string user_agent = 4;
+}
+
+message ResetPasswordRequest {
+  string token = 1;
+  string new_password = 2;
+  string ip_address = 3;
+  string user_agent = 4;
+}
 message DiscordStatusResponse {
   bool is_linked = 1;
   optional string discord_username = 2;
   optional string discord_user_id = 3;
   optional string discord_avatar_hash = 4;
+}
+
+// OAuth connected accounts
+message OAuthConnectionInfo {
+  string provider = 1;
+  google.protobuf.Timestamp connected_at = 2;
+  optional google.protobuf.Timestamp last_login_at = 3;
+  bool require_2fa = 4;
+}
+
+message GetOAuthConnectionsRequest {}
+message GetOAuthConnectionsResponse {
+  repeated OAuthConnectionInfo connections = 1;
+}
+
+message ConnectOAuthProviderRequest {
+  string provider = 1;
+  string provider_user_id = 2;
+  optional string user_public_id = 3; // set by Snakk.Auth (server-to-server); omit for BFF calls (uses JWT)
+}
+message ConnectOAuthProviderResponse {
+  bool success = 1;
+  optional string error_code = 2;
+}
+
+message DisconnectOAuthProviderRequest {
+  string provider = 1;
+}
+
+message SetOAuthConnectionRequire2FARequest {
+  string provider = 1;
+  bool require_2fa = 2;
+}
+
+// OAuth sudo nonce
+message GenerateOAuthSudoNonceRequest {
+  string user_public_id = 1;
+  string provider = 2;
+  string provider_user_id = 3;
+}
+message GenerateOAuthSudoNonceResponse {
+  string nonce = 1;
+}
+
+message SetEmailRequest {
+  string email = 1;
+}
+message SetEmailResponse {
+  string token = 1;
 }

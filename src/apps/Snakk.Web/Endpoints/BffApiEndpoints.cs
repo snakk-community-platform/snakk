@@ -994,7 +994,7 @@ public static class BffApiEndpoints
             displayName = apiResult.DisplayName,
             email = apiResult.Email,
             emailVerified = apiResult.EmailVerified,
-            oAuthProvider = apiResult.OauthProvider,
+            connectedProviders = apiResult.ConnectedProviders,
             autoFollowOnReply = apiResult.AutoFollowOnReply,
             timezone = timezone,
             displayNameChangedAt = apiResult.DisplayNameChangedAt != null

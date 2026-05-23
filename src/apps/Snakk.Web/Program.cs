@@ -89,6 +89,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, Snakk.Web.Models.Bff.BffJsonContext.Default);
 });
 
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestMethod
+        | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestPath
+        | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.ResponseStatusCode
+        | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.Duration;
+});
+
 // Add services to the container
 builder.Services.AddRazorPages(options =>
 {
@@ -150,9 +158,12 @@ builder.Services.AddOutputCache(options =>
 builder.Services.Configure<OAuthProvidersOptions>(opts =>
 {
     var c = builder.Configuration;
-    opts.Google  = !string.IsNullOrEmpty(c["Authentication:Google:ClientId"]);
-    opts.GitHub  = !string.IsNullOrEmpty(c["Authentication:GitHub:ClientId"]);
-    opts.Discord = !string.IsNullOrEmpty(c["Authentication:Discord:ClientId"]);
+    opts.Google   = !string.IsNullOrEmpty(c["Authentication:Google:ClientId"]);
+    opts.GitHub   = !string.IsNullOrEmpty(c["Authentication:GitHub:ClientId"]);
+    opts.Discord  = !string.IsNullOrEmpty(c["Authentication:Discord:ClientId"]);
+    opts.Facebook   = !string.IsNullOrEmpty(c["Authentication:Facebook:ClientId"]);
+    opts.Microsoft  = !string.IsNullOrEmpty(c["Authentication:Microsoft:ClientId"]);
+    opts.Steam      = !string.IsNullOrEmpty(c["Authentication:Steam:ApiKey"]);
 });
 
 // Community context (scoped per request)
@@ -373,6 +384,7 @@ builder.Services.AddHsts(options =>
 var app = builder.Build();
 
 //app.UseSerilogRequestLogging();
+app.UseHttpLogging();
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
@@ -652,6 +664,20 @@ app.Use(async (context, next) =>
 // Redirect unauthenticated users to SSO login for protected actions
 app.UseAuthRedirect();
 
+// Force authenticated users with no email address to the email entry page
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true
+        && context.User.FindFirst(System.Security.Claims.ClaimTypes.Email) is null
+        && !context.Request.Path.StartsWithSegments("/bff"))
+    {
+        context.Response.Redirect("/auth/oauth/setup-email");
+        return;
+    }
+
+    await next();
+});
+
 // Force users who haven't set their display name to the setup page
 app.Use(async (context, next) =>
 {
@@ -699,6 +725,7 @@ app.MapRazorPages();
 // BFF API endpoints
 app.MapBffApiEndpoints();
 app.MapPasskeyBffEndpoints();
+app.MapOAuthConnectionBffEndpoints();
 
 app.MapRealtimeTokenEndpoints();
 

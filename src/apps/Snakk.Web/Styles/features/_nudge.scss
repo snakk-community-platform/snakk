@@ -34,20 +34,32 @@
     margin: 0;
 }
 
+.oauth-text-short { display: none; }
+
 .sn-nudge-oauth {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
     width: 100%;
     margin-top: 0.25rem;
+
+    &.sn-nudge-oauth--grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+
+        .oauth-text-full { display: none; }
+        .oauth-text-short { display: inline; }
+
+        [data-nudge-passkey] { grid-column: span 2; justify-content: center; }
+    }
 }
 
 .sn-nudge-oauth-btn {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
+    height: 2.75rem;
+    padding: 0 1rem;
     border-radius: 0.375rem;
     border: 1px solid var(--border-secondary);
     background: var(--bg-primary);
@@ -55,6 +67,7 @@
     font-size: 0.875rem;
     font-weight: 500;
     text-decoration: none;
+    cursor: pointer;
     transition: background 0.15s;
 
     &:hover { background: var(--bg-secondary); }

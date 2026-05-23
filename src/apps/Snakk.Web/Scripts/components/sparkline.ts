@@ -48,7 +48,7 @@
             inner += `<polygon points="${left} ${polylinePoints} ${right}" fill="${strokeColor}" fill-opacity="0.12" stroke="none"/>`;
         }
 
-        container.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" preserveAspectRatio="none" class="sn-sparkline-svg">${inner}</svg>`;
+        container.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" class="sn-sparkline-svg">${inner}</svg>`;
     }
 
     async function fetchAndRender(container: HTMLElement): Promise<void> {

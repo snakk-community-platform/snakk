@@ -1073,10 +1073,7 @@ function toggleMuteDiscussion(discussionId: string): void {
         banner.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-base-100 border border-subtle px-4 py-3 rounded-lg shadow-lg z-50';
         banner.innerHTML = `
             <div class="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                </svg>
+                <span class="icon icon-volume-off h-5 w-5 text-muted" aria-hidden="true"></span>
                 <p class="text-sm">Discussion muted. You won't see it in your feed.</p>
             </div>
         `;
@@ -1172,9 +1169,7 @@ function hidePostsFromUser(userId: string, userName: string): void {
         banner.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-base-100 border border-subtle px-4 py-3 rounded-lg shadow-lg z-50';
         banner.innerHTML = `
             <div class="flex items-center gap-3">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                </svg>
+                <span class="icon icon-eye-slash h-5 w-5 text-muted" aria-hidden="true"></span>
                 <div>
                     <p class="text-sm font-medium">Posts from ${escapeHtml(userName)} are now hidden</p>
                     <button data-action="unhide-user" data-author-id="${userId}" class="text-xs text-primary underline">Undo</button>
@@ -1340,10 +1335,10 @@ function showToast(message: string, type: 'error' | 'success' | 'info' = 'error'
     toast.style.transform = 'translateX(400px)';
 
     const icon = type === 'error'
-        ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>'
+        ? '<span class="icon icon-exclamation-circle h-5 w-5 shrink-0" aria-hidden="true"></span>'
         : type === 'success'
-        ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>'
-        : '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+        ? '<span class="icon icon-check h-5 w-5 shrink-0" aria-hidden="true"></span>'
+        : '<span class="icon icon-info-circle h-5 w-5 shrink-0" aria-hidden="true"></span>';
 
     toast.innerHTML = `
         ${icon}
@@ -1584,9 +1579,7 @@ function createNecroSeparator(previousCreatedAt: string, necroCreatedAt: string)
         <li>
             <hr class="bg-base-content/20" />
             <div class="timeline-middle">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-base-content/40">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z" clip-rule="evenodd" />
-                </svg>
+                <span class="icon icon-clock-solid w-4 h-4 text-base-content/40" aria-hidden="true"></span>
             </div>
             <div class="timeline-end text-xs font-semibold text-base-content/50 uppercase tracking-wide">${escapeHtml(label)}</div>
             <hr class="bg-base-content/20" />
@@ -1617,9 +1610,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
             if (post.author.isDeleted) {
                 authorPaneHtml += `
                     <div class="post-avatar post-avatar-deleted">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
+                        <span class="icon icon-user h-5 w-5" aria-hidden="true"></span>
                     </div>
                     <span class="post-author-name deleted">${escapeHtml(post.author.displayName)}</span>`;
             } else {
@@ -1663,9 +1654,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                     data-author-name="${escapeHtml(post.author.displayName)}"
                     class="subtle-btn"
                     aria-label="Reply to ${escapeHtml(post.author.displayName)}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                </svg>
+                <span class="icon icon-reply h-4 w-4" aria-hidden="true"></span>
                 Reply
             </button>
             <button data-action="quote-post"
@@ -1674,9 +1663,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                     data-author-name="${escapeHtml(post.author.displayName)}"
                     class="subtle-btn"
                     aria-label="Quote post by ${escapeHtml(post.author.displayName)}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                </svg>
+                <span class="icon icon-chat-square h-4 w-4" aria-hidden="true"></span>
                 Quote
             </button>
             </div>`;
@@ -1716,9 +1703,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
     const dropdownHtml = `
         <div class="dropdown dropdown-end">
             <button tabindex="0" class="subtle-btn" aria-label="Post options">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
-                </svg>
+                <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
             </button>
             <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-20">
                 <li>

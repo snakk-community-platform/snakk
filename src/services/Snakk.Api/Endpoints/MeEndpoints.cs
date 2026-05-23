@@ -51,6 +51,10 @@ public static class MeEndpoints
         group.MapPost("/sudo/passkey/complete", CompleteSudoPasskeyAsync)
             .WithName("CompleteSudoPasskey")
             .RequireRateLimiting("auth");
+
+        group.MapPost("/sudo/oauth", IssueSudoTokenFromOAuthNonceAsync)
+            .WithName("IssueSudoTokenFromOAuth")
+            .RequireRateLimiting("auth");
     }
 
     internal static bool ValidateSudoToken(string? sudoToken, string userId, IMemoryCache cache)
@@ -74,15 +78,21 @@ public static class MeEndpoints
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
 
+        var user = result.Value!;
+        var connectionsResult = await authUseCase.GetOAuthConnectionsAsync(user.PublicId.Value);
+        var providers = connectionsResult.IsSuccess
+            ? connectionsResult.Value!.Select(c => c.Provider).ToList()
+            : new List<string>();
+
         return TypedResults.Ok(new CurrentUserResponse(
-            PublicId: result.Value!.PublicId.Value,
-            DisplayName: result.Value.DisplayName ?? "",
-            Email: result.Value.Email ?? "",
-            EmailVerified: result.Value.EmailVerified,
-            OAuthProvider: result.Value.OAuthProvider,
-            AutoFollowOnReply: result.Value.AutoFollowOnReply,
-            Timezone: result.Value.Timezone,
-            HasPassword: result.Value.HasPassword()));
+            PublicId: user.PublicId.Value,
+            DisplayName: user.DisplayName ?? "",
+            Email: user.Email ?? "",
+            EmailVerified: user.EmailVerified,
+            ConnectedProviders: providers,
+            AutoFollowOnReply: user.AutoFollowOnReply,
+            Timezone: user.Timezone,
+            HasPassword: user.HasPassword()));
     }
 
     private static async Task<IResult> UpdateProfileAsync(
@@ -124,7 +134,6 @@ public static class MeEndpoints
                 user.DisplayName,
                 user.Email,
                 user.EmailVerified,
-                user.OAuthProvider,
                 roles.FirstOrDefault());
 
             return TypedResults.Ok(new UpdateProfileResponse("Profile updated successfully", newToken));
@@ -252,8 +261,6 @@ public static class MeEndpoints
         [FromBody] SudoPasskeyCompleteRequest request,
         ICurrentUserService currentUser,
         IPasskeyService passkeyService,
-        ITwoFactorAuthService twoFactorService,
-        SnakkDbContext context,
         IMemoryCache cache,
         CancellationToken ct)
     {
@@ -273,20 +280,25 @@ public static class MeEndpoints
         if (!string.Equals(assertion.PublicId, userIdValue, StringComparison.OrdinalIgnoreCase))
             return Results.BadRequest(new { error = "Passkey does not belong to this account." });
 
-        var twoFactorEnabled = await context.Users
-            .Where(u => u.PublicId == userIdValue)
-            .Select(u => u.TwoFactorEnabled)
-            .FirstOrDefaultAsync(ct);
+        var token = System.Security.Cryptography.RandomNumberGenerator.GetHexString(64);
+        cache.Set($"sudo:{userIdValue}:{token}", true, TimeSpan.FromMinutes(5));
+        return Results.Ok(new { sudoToken = token, expiresInSeconds = 300 });
+    }
 
-        if (twoFactorEnabled)
-        {
-            if (string.IsNullOrWhiteSpace(request.TotpCode))
-                return Results.BadRequest(new { error = "2FA code is required." });
+    private static IResult IssueSudoTokenFromOAuthNonceAsync(
+        [FromBody] OAuthSudoNonceRequest request,
+        ICurrentUserService currentUser,
+        IMemoryCache cache)
+    {
+        var userIdValue = currentUser.GetCurrentUserId();
+        if (userIdValue is null)
+            return Results.Unauthorized();
 
-            var (isValid, _) = await twoFactorService.VerifyTwoFactorCodeAsync(userIdValue, request.TotpCode, ct: ct);
-            if (!isValid)
-                return Results.BadRequest(new { error = "Invalid 2FA code." });
-        }
+        var cacheKey = $"sudo-oauth-nonce:{userIdValue}:{request.Nonce}";
+        if (!cache.TryGetValue(cacheKey, out _))
+            return Results.BadRequest(new { error = "Invalid or expired nonce." });
+
+        cache.Remove(cacheKey);
 
         var token = System.Security.Cryptography.RandomNumberGenerator.GetHexString(64);
         cache.Set($"sudo:{userIdValue}:{token}", true, TimeSpan.FromMinutes(5));

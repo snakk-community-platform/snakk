@@ -142,7 +142,7 @@ interface PollData {
             html += '<div class="poll-option-label">';
 
             if (showResults && isSelected) {
-                html += '<svg class="poll-option-check" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+                html += '<span class="icon icon-check poll-option-check" aria-hidden="true"></span>';
             } else if (!showResults && clickable) {
                 const inputType = pollData.allowMultiple ? 'checkbox' : 'radio';
                 html += `<input type="${inputType}" ${isLocalSelected || isSelected ? 'checked' : ''} class="poll-option-input" tabindex="-1" />`;

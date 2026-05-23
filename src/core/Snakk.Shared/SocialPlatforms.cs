@@ -99,14 +99,6 @@ public static class SocialPlatformRegistry
         return long.TryParse(input, out _) ? input : null;
     }
 
-    private static string? ParseWebsite(string input)
-    {
-        input = input.Trim();
-        if (string.IsNullOrEmpty(input)) return null;
-        if (!input.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return null;
-        return Uri.TryCreate(input, UriKind.Absolute, out _) ? input : null;
-    }
-
     private static string? ParseDiscordId(string input)
     {
         var trimmed = input.Trim();
@@ -175,8 +167,6 @@ public static class SocialPlatformRegistry
             ["discord"]      = new("discord",      "Discord",       "Messaging", "https://discord.com/users/{0}",       @"^\d{17,20}$",                      "User ID (Developer Mode → right-click profile → Copy User ID)", ParseDiscordId),
             ["telegram"]     = new("telegram",     "Telegram",      "Messaging", "https://t.me/{0}",                    @"^[A-Za-z][A-Za-z0-9_]{4,31}$",     "username",                    i => PathUsername(i, "t.me", "telegram.me")),
 
-            // Personal
-            ["website"]      = new("website",      "Website",       "Personal",  "{0}",                                 @"^https://[^\s]{3,500}$",            "https://yoursite.com",        ParseWebsite),
         };
 
     public static bool IsValidKey(string key) => All.ContainsKey(key);

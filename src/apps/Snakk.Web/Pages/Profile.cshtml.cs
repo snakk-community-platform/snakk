@@ -24,7 +24,7 @@ public class ProfileModel(SnakkApiClient apiClient) : PageModel
             DisplayName = currentUser.DisplayName,
             Email = currentUser.Email,
             EmailVerified = currentUser.EmailVerified,
-            OAuthProvider = currentUser.OauthProvider
+            OAuthProvider = currentUser.ConnectedProviders.FirstOrDefault()
         };
 
         return Page();

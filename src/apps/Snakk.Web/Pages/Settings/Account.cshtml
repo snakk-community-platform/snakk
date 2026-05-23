@@ -108,6 +108,24 @@
                     <button type="button" class="btn btn-primary btn-sm" id="save-bio-btn">@T.Settings.BioSave</button>
                 </div>
             </div>
+
+            <!-- Social Links -->
+            <div id="section-social" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.TitleSocial</h3>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.SocialIntro
+                </p>
+                <div id="social-links-container" class="rounded-lg border border-base-300 overflow-hidden mb-4 hidden" style="background:#fff;color:#111">
+                    <div id="social-links-loading" class="flex justify-center py-4">
+                        <span class="loading loading-spinner loading-md"></span>
+                    </div>
+                    <div id="social-links-list" class="hidden"></div>
+                </div>
+                <button type="button" id="social-add-btn" class="btn btn-primary btn-sm">
+                    <span class="icon icon-plus w-4 h-4" aria-hidden="true"></span>
+                    @T.Settings.SocialAddLinkBtn
+                </button>
+            </div>
         </div>
         } @* end IsAuthenticated *@
     </div>
@@ -146,6 +164,48 @@
 </div>
 }
 
+<!-- Add Social Link Modal -->
+@if (User.Identity?.IsAuthenticated == true)
+{
+<div id="modal-add-social" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-add-social-title">
+    <div class="chart-modal social-picker-modal">
+        <div class="chart-modal-header">
+            <span id="modal-add-social-title">@T.Settings.SocialAddLinkBtn</span>
+            <button type="button" class="chart-modal-close" id="social-modal-close" aria-label="Close">✕</button>
+        </div>
+        <div class="social-picker-body">
+            <div class="social-picker-search">
+                <span class="icon icon-search social-picker-search-icon" aria-hidden="true"></span>
+                <input type="text" id="social-search" class="social-picker-input"
+                       placeholder="@T.Settings.SocialSearchPlaceholder" autocomplete="off" />
+                <button type="button" id="social-search-clear" class="social-picker-clear hidden" aria-label="Clear">✕</button>
+            </div>
+            <div id="social-results" class="social-picker-results" role="listbox" aria-label="Platforms"></div>
+            <div id="social-input-section" class="social-picker-input-section hidden">
+                <button type="button" id="social-deselect-btn" class="social-picker-back" aria-label="Back">
+                    <span class="icon icon-chevron-left w-4 h-4" aria-hidden="true"></span>
+                </button>
+                <div id="social-selected-header" class="social-picker-selected-header">
+                    <span id="social-selected-icon" class="social-picker-selected-icon"></span>
+                    <span id="social-selected-name" class="social-picker-selected-name"></span>
+                </div>
+                <div class="social-picker-value-wrap">
+                    <input type="text" id="social-value-input" class="input w-full" autocomplete="off" />
+                    <p id="social-input-hint" class="text-xs mt-1 hidden" style="color: var(--text-tertiary)"></p>
+                    <p id="social-add-error" class="text-xs mt-1 hidden" style="color: var(--color-error)"></p>
+                </div>
+            </div>
+        </div>
+        <div class="chart-modal-footer">
+            <button type="button" class="chart-modal-cancel" id="social-modal-cancel">@T.Settings.SocialCancel</button>
+            <button type="button" class="chart-modal-insert" id="social-modal-add" disabled>@T.Settings.SocialAdd</button>
+        </div>
+    </div>
+</div>
+}
+
 <partial name="Shared/_SudoModals" />
 
+<script id="platforms-data" type="application/json">@Html.Raw(Model.PlatformsJson)</script>
+<script src="@SnakkUrlHelper.Js("data/social-icons")" asp-append-version="true"></script>
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

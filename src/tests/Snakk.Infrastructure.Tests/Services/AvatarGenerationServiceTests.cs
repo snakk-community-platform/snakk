@@ -410,8 +410,7 @@ public class AvatarGenerationServiceTests
     {
         return User.Create(
             $"Test User {publicId}",
-            $"user-{publicId}@test.com",
-            null);
+            $"user-{publicId}@test.com");
     }
 
     private Hub CreateHub(string publicId)

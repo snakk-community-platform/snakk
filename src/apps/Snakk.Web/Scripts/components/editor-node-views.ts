@@ -127,9 +127,8 @@ const LANG_LABELS: Record<string, string> = {
     r: 'R', ruby: 'Ruby', rust: 'Rust',
 };
 
-// Inline SVGs
-const SVG_CHEVRON_LEFT = `<svg width="14" height="14" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6.5 2L3.5 5l3 3"/></svg>`;
-const SVG_CHEVRON_RIGHT = `<svg width="14" height="14" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3.5 2L6.5 5l-3 3"/></svg>`;
+const SVG_CHEVRON_LEFT = '<span class="icon icon-chevron-left" style="width:14px;height:14px" aria-hidden="true"></span>';
+const SVG_CHEVRON_RIGHT = '<span class="icon icon-chevron-right" style="width:14px;height:14px" aria-hidden="true"></span>';
 
 function isNonTypeableBlock(node: PNode): boolean {
     return node.type.name === 'code_block' || node.type.name === 'horizontal_rule';

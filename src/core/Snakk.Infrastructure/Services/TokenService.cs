@@ -96,7 +96,6 @@ public class TokenService(
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             role,
             sessionId: tokenEntity.PublicId);
     }

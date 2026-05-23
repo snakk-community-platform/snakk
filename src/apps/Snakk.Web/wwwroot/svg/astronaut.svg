@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="130" height="110" viewBox="0 0 130 110">
+  <!-- Stars scattered in the void -->
+  <circle cx="12" cy="18" r="1" fill="currentColor" opacity="0.3" />
+  <circle cx="108" cy="12" r="1.2" fill="currentColor" opacity="0.4" />
+  <circle cx="25" cy="85" r="0.8" fill="currentColor" opacity="0.2" />
+  <circle cx="118" cy="70" r="1" fill="currentColor" opacity="0.3" />
+  <circle cx="8" cy="55" r="0.8" fill="currentColor" opacity="0.25" />
+  <circle cx="95" cy="95" r="1" fill="currentColor" opacity="0.2" />
+  <circle cx="50" cy="8" r="0.8" fill="currentColor" opacity="0.3" />
+  <circle cx="120" cy="40" r="0.6" fill="currentColor" opacity="0.2" />
+
+  <!-- Small planet with ring -->
+  <circle cx="22" cy="35" r="6" stroke="currentColor" stroke-width="1" fill="none" />
+  <ellipse cx="22" cy="35" rx="11" ry="3" stroke="currentColor" stroke-width="0.8" fill="none" />
+
+  <!-- Astronaut — helmet -->
+  <circle cx="65" cy="40" r="9" stroke="currentColor" stroke-width="1.5" fill="none" />
+  <!-- Visor -->
+  <path d="M59 37 Q65 33 71 37 Q71 43 65 44 Q59 43 59 37Z" stroke="currentColor" stroke-width="1" fill="none" />
+  <!-- Antenna on helmet -->
+  <line x1="65" y1="31" x2="65" y2="26" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+  <circle cx="65" cy="25" r="1.5" fill="currentColor" opacity="0.5" />
+
+  <!-- Body / suit -->
+  <rect x="57" y="49" width="16" height="16" rx="4" stroke="currentColor" stroke-width="1.5" fill="none" />
+  <!-- Backpack (life support) -->
+  <rect x="73" y="51" width="5" height="12" rx="2" stroke="currentColor" stroke-width="1" fill="none" />
+
+  <!-- Arms floating outward -->
+  <line x1="57" y1="53" x2="47" y2="48" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="47" y1="48" x2="43" y2="44" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="73" y1="55" x2="83" y2="52" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="83" y1="52" x2="87" y2="56" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- Legs floating -->
+  <line x1="61" y1="65" x2="56" y2="76" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="56" y1="76" x2="54" y2="80" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+  <line x1="69" y1="65" x2="74" y2="75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  <line x1="74" y1="75" x2="77" y2="79" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" />
+
+  <!-- Tether cord drifting away -->
+  <path d="M73 58 Q85 65 90 72 Q95 80 105 85" stroke="currentColor" stroke-width="1" fill="none" stroke-dasharray="3 2" stroke-linecap="round" />
+</svg>

@@ -20,7 +20,6 @@ interface SettingsPageConfig {
     const SUDO_EXPIRES_KEY = 'snakk:sudo-expires';
     let sudoExpiresAt: number = 0;
     let sudoCallback: (() => void) | null = null;
-    let sudoMode: 'password' | 'passkey-pending-totp' = 'password';
     let pendingPasskeyChallenge: { challengeId: string; assertionJson: string } | null = null;
     let pendingPassword: string | null = null;
     let sudoTotpAutoSubmit = true;
@@ -143,7 +142,10 @@ interface SettingsPageConfig {
         document.querySelectorAll('.profile-userid').forEach(el => el.textContent = data.publicId);
 
         const snakkSettings = (window as any).snakkSettings;
-        if (snakkSettings) snakkSettings.hasPassword = data.hasPassword !== false;
+        if (snakkSettings) {
+            snakkSettings.hasPassword = data.hasPassword !== false;
+            snakkSettings.connectedProviders = Array.isArray(data.connectedProviders) ? data.connectedProviders : [];
+        }
     }
 
     function showStatus(message: string, isError: boolean = false): void {
@@ -1147,7 +1149,7 @@ interface SettingsPageConfig {
 
     // Expose for other scripts on the same page
     (window as any).snakkModal = { open: openModal, close: closeModal };
-    (window as any).snakkSettings = { twoFactorEnabled: false, hasPassword: true };
+    (window as any).snakkSettings = { twoFactorEnabled: false, hasPassword: true, connectedProviders: [] as string[] };
 
     // ===== Sudo Modal =====
 
@@ -1214,15 +1216,16 @@ interface SettingsPageConfig {
     }
 
     function openSudoModal(): void {
-        const settings = (window as any).snakkSettings as { hasPasskeys?: boolean } | undefined;
+        const settings = (window as any).snakkSettings as { hasPasskeys?: boolean; connectedProviders?: string[] } | undefined;
         const pwdInput = document.getElementById('sudo-password') as HTMLInputElement | null;
         const pwdSection = document.getElementById('sudo-password-section');
         const passkeySection = document.getElementById('sudo-passkey-section');
+        const oauthSection = document.getElementById('sudo-oauth-section');
+        const oauthButtons = document.getElementById('sudo-oauth-buttons');
 
         if (pwdInput) pwdInput.value = '';
         pendingPassword = null;
         clearModalStatus('sudo-auth-status');
-        sudoMode = 'password';
         pendingPasskeyChallenge = null;
 
         if (settings?.hasPasskeys) {
@@ -1231,6 +1234,24 @@ interface SettingsPageConfig {
         } else {
             passkeySection?.classList.add('hidden');
             pwdSection?.classList.remove('hidden');
+        }
+
+        const providers = settings?.connectedProviders ?? [];
+        if (providers.length > 0 && oauthSection && oauthButtons) {
+            oauthButtons.innerHTML = '';
+            for (const p of providers) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-ghost btn-sm sudo-oauth-btn w-full';
+                btn.dataset.provider = p;
+                btn.textContent = (window as any).T?.settings?.sudoContinueWith
+                    ? `${(window as any).T.settings.sudoContinueWith} ${p.charAt(0).toUpperCase() + p.slice(1)}`
+                    : `Continue with ${p.charAt(0).toUpperCase() + p.slice(1)}`;
+                oauthButtons.appendChild(btn);
+            }
+            oauthSection.classList.remove('hidden');
+        } else {
+            oauthSection?.classList.add('hidden');
         }
 
         openModal('modal-sudo-auth');
@@ -1315,18 +1336,7 @@ interface SettingsPageConfig {
                 assertionJson: serializeAssertion(cred as PublicKeyCredential)
             };
 
-            const settings = (window as any).snakkSettings as { twoFactorEnabled?: boolean } | undefined;
-            if (settings?.twoFactorEnabled) {
-                sudoMode = 'passkey-pending-totp';
-                sudoTotpAutoSubmit = true;
-                closeModal('modal-sudo-auth');
-                clearModalStatus('sudo-totp-status');
-                clearSudoTotpInputs();
-                openModal('modal-sudo-totp');
-                setTimeout(() => focusSudoTotpFirst(), 50);
-            } else {
-                await completeSudoPasskey();
-            }
+            await completeSudoPasskey();
         } catch (err) {
             if (err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'AbortError')) return;
             showModalStatus('sudo-auth-status', 'Passkey verification failed', true);
@@ -1336,53 +1346,33 @@ interface SettingsPageConfig {
     }
 
     async function completeSudoPasskey(): Promise<void> {
-        const statusId = sudoMode === 'passkey-pending-totp' ? 'sudo-totp-status' : 'sudo-auth-status';
-        if (!pendingPasskeyChallenge) { showModalStatus(statusId, 'No pending passkey challenge', true); return; }
-
-        const btn = document.getElementById('sudo-totp-confirm-btn') as HTMLButtonElement | null;
-        const totp = sudoMode === 'passkey-pending-totp' ? getSudoTotpValue() : '';
-
-        if (sudoMode === 'passkey-pending-totp' && totp.length < 6) {
-            showModalStatus('sudo-totp-status', 'Enter your 2FA code', true);
-            return;
-        }
-
-        if (btn) btn.disabled = true;
+        if (!pendingPasskeyChallenge) { showModalStatus('sudo-auth-status', 'No pending passkey challenge', true); return; }
 
         try {
-            const body: Record<string, string> = {
-                challengeId: pendingPasskeyChallenge.challengeId,
-                assertionResponseJson: pendingPasskeyChallenge.assertionJson
-            };
-            if (totp) body['totpCode'] = totp;
-
             const response = await fetch('/bff/auth/sudo/passkey/complete', {
                 method: 'POST',
                 credentials: 'include',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
+                body: JSON.stringify({
+                    challengeId: pendingPasskeyChallenge.challengeId,
+                    assertionResponseJson: pendingPasskeyChallenge.assertionJson
+                })
             });
             const data = await response.json();
             if (!response.ok) {
-                sudoTotpAutoSubmit = false;
-                showModalStatus(statusId, data.error || 'Authentication failed', true);
+                showModalStatus('sudo-auth-status', data.error || 'Authentication failed', true);
                 return;
             }
 
             setSudoExpiry(data.expiresInSeconds ?? 300);
             pendingPasskeyChallenge = null;
-            const wasTotp = sudoMode === 'passkey-pending-totp';
-            sudoMode = 'password';
 
-            closeModal(wasTotp ? 'modal-sudo-totp' : 'modal-sudo-auth');
+            closeModal('modal-sudo-auth');
             const cb = sudoCallback;
             sudoCallback = null;
             cb?.();
         } catch {
-            sudoTotpAutoSubmit = false;
-            showModalStatus(statusId, 'Network error', true);
-        } finally {
-            if (btn) btn.disabled = false;
+            showModalStatus('sudo-auth-status', 'Network error', true);
         }
     }
 
@@ -1464,11 +1454,6 @@ interface SettingsPageConfig {
     }
 
     async function handleSudoTotpConfirm(): Promise<void> {
-        if (sudoMode === 'passkey-pending-totp') {
-            await completeSudoPasskey();
-            return;
-        }
-
         const btn = document.getElementById('sudo-totp-confirm-btn') as HTMLButtonElement | null;
         const totp = getSudoTotpValue();
 
@@ -1509,6 +1494,10 @@ interface SettingsPageConfig {
         document.getElementById('sudo-auth-cancel-btn')?.addEventListener('click', () => closeModal('modal-sudo-auth'));
         document.getElementById('sudo-auth-cancel-btn-footer')?.addEventListener('click', () => closeModal('modal-sudo-auth'));
         document.getElementById('sudo-passkey-btn')?.addEventListener('click', beginSudoPasskey);
+        document.getElementById('sudo-oauth-buttons')?.addEventListener('click', (e) => {
+            const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.sudo-oauth-btn');
+            if (btn?.dataset.provider) beginSudoOAuth(btn.dataset.provider);
+        });
         document.getElementById('sudo-use-password-link')?.addEventListener('click', () => {
             document.getElementById('sudo-passkey-section')?.classList.add('hidden');
             document.getElementById('sudo-password-section')?.classList.remove('hidden');
@@ -2116,13 +2105,496 @@ interface SettingsPageConfig {
         return date.toLocaleDateString();
     }
 
+    // ─── OAuth Sudo Re-auth ───────────────────────────────────────────────────
+
+    function beginSudoOAuth(provider: string): void {
+        const w = 600, h = 700;
+        const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
+        const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
+        const popup = window.open(
+            `/auth/oauth/${encodeURIComponent(provider)}/challenge?sudoMode=true`,
+            'snakk-sudo-oauth',
+            `width=${w},height=${h},left=${left},top=${top},toolbar=no,menubar=no,location=no`
+        );
+        if (!popup) {
+            showModalStatus('sudo-auth-status', 'Could not open popup. Check your pop-up blocker.', true);
+        }
+    }
+
+    async function completeSudoOAuth(nonce: string): Promise<void> {
+        try {
+            const res = await fetch('/bff/auth/sudo/oauth', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nonce })
+            });
+            if (!res.ok) {
+                showModalStatus('sudo-auth-status', 'OAuth re-authentication failed. Please try again.', true);
+                return;
+            }
+            const data = await res.json();
+            const expiresIn: number = data.expiresInSeconds ?? 300;
+            sudoExpiresAt = Date.now() + expiresIn * 1000;
+            try { sessionStorage.setItem(SUDO_EXPIRES_KEY, String(sudoExpiresAt)); } catch { /* ignore */ }
+
+            closeModal('modal-sudo-auth');
+            const cb = sudoCallback;
+            sudoCallback = null;
+            cb?.();
+        } catch {
+            showModalStatus('sudo-auth-status', 'OAuth re-authentication failed. Please try again.', true);
+        }
+    }
+
+    // Global postMessage handler for OAuth sudo popup
+    window.addEventListener('message', (event: MessageEvent) => {
+        if (event.origin !== window.location.origin) return;
+        if (!event.data || event.data.type !== 'snakk:sudo:oauth-complete') return;
+        const nonce: string = event.data.nonce;
+        if (nonce) completeSudoOAuth(nonce);
+    });
+
+    // ─── Connected Accounts ───────────────────────────────────────────────────
+
+    const PROVIDER_NAMES: Record<string, string> = {
+        google: 'Google', github: 'GitHub', discord: 'Discord',
+        facebook: 'Facebook', microsoft: 'Microsoft', steam: 'Steam'
+    };
+
+    const PROVIDER_ICONS: Record<string, string> = {
+        google:    `<img src="/icons/brand-google-color.svg"    width="20" height="20" aria-hidden="true" style="flex-shrink:0" alt="">`,
+        github:    `<img src="/icons/brand-github.svg"         width="20" height="20" aria-hidden="true" style="flex-shrink:0" alt="">`,
+        discord:   `<img src="/icons/brand-discord-color.svg"  width="20" height="20" aria-hidden="true" style="flex-shrink:0" alt="">`,
+        facebook:  `<img src="/icons/brand-facebook-color.svg" width="20" height="20" aria-hidden="true" style="flex-shrink:0" alt="">`,
+        microsoft: `<img src="/icons/brand-microsoft-color.svg" width="20" height="20" aria-hidden="true" style="flex-shrink:0" alt="">`,
+        steam:     `<img src="/icons/brand-steam.svg"          width="20" height="20" aria-hidden="true" style="flex-shrink:0" alt="">`
+    };
+
+    async function initConnectedAccounts(): Promise<void> {
+        const list = document.getElementById('connected-accounts-list');
+        if (!list) return;
+
+        let connections: any[] = [];
+        try {
+            const res = await fetch('/bff/settings/oauth-connections', { credentials: 'include' });
+            if (res.ok) connections = await res.json();
+        } catch { /* ignore */ }
+
+        const connectedMap = new Map(connections.map((c: any) => [c.provider, c]));
+        const allProviders = ['google', 'github', 'discord', 'facebook', 'microsoft', 'steam'];
+
+        list.innerHTML = '';
+
+        for (const provider of allProviders) {
+            const conn = connectedMap.get(provider);
+            const row = document.createElement('div');
+            row.className = 'sn-device-item';
+
+            // Logo + name/status
+            const left = document.createElement('div');
+            left.style.cssText = 'display:flex;align-items:center;gap:0.625rem;flex:1;min-width:0';
+
+            const iconWrap = document.createElement('span');
+            iconWrap.innerHTML = PROVIDER_ICONS[provider] ?? '';
+            left.appendChild(iconWrap);
+
+            const info = document.createElement('div');
+            info.className = 'sn-device-info';
+
+            const nameEl = document.createElement('p');
+            nameEl.style.cssText = 'font-weight:500;font-size:0.875rem';
+            if (!conn) nameEl.style.color = 'var(--text-tertiary)';
+            nameEl.textContent = PROVIDER_NAMES[provider] ?? provider;
+            info.appendChild(nameEl);
+
+            if (conn) {
+                const meta = document.createElement('p');
+                meta.className = 'sn-device-meta';
+                meta.textContent = `Connected ${new Date(conn.connectedAt).toLocaleDateString()}`;
+                info.appendChild(meta);
+            }
+
+            left.appendChild(info);
+            row.appendChild(left);
+
+            // Actions
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display:flex;align-items:center;gap:0.75rem';
+
+            if (conn) {
+                if (provider !== 'discord') {
+                    const toggle = document.createElement('label');
+                    toggle.className = 'flex items-center gap-1.5 text-xs cursor-pointer';
+                    toggle.style.color = 'var(--text-tertiary)';
+                    const chk = document.createElement('input');
+                    chk.type = 'checkbox';
+                    chk.className = 'checkbox checkbox-xs';
+                    chk.checked = conn.require2FA;
+                    chk.addEventListener('change', async () => {
+                        await fetch(`/bff/settings/oauth-connections/${provider}/require-2fa`, {
+                            method: 'PATCH', credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ require: chk.checked })
+                        });
+                    });
+                    const span = document.createElement('span');
+                    span.textContent = '2FA';
+                    toggle.appendChild(chk);
+                    toggle.appendChild(span);
+                    actions.appendChild(toggle);
+                }
+
+                const disconnectBtn = document.createElement('button');
+                disconnectBtn.type = 'button';
+                disconnectBtn.className = 'sn-device-revoke';
+                disconnectBtn.textContent = 'Disconnect';
+                disconnectBtn.addEventListener('click', () => ensureSudo(async () => {
+                    disconnectBtn.disabled = true;
+                    const r = await fetch(`/bff/settings/oauth-connections/${provider}`, {
+                        method: 'DELETE', credentials: 'include'
+                    });
+                    if (r.ok) {
+                        window.location.href = '/settings/privacy';
+                    } else {
+                        const e = await r.json().catch(() => ({}));
+                        if (e.error === 'LAST_AUTH_METHOD') {
+                            window.location.href = '/settings/privacy?error=LAST_AUTH_METHOD#section-connected-accounts';
+                        } else {
+                            disconnectBtn.disabled = false;
+                        }
+                    }
+                }));
+                actions.appendChild(disconnectBtn);
+            } else {
+                const connectUrl = `/auth/oauth/${provider}/challenge?connectMode=true&returnUrl=/settings/privacy`;
+                const connectBtn = document.createElement('button');
+                connectBtn.type = 'button';
+                connectBtn.className = 'btn btn-primary btn-sm';
+                connectBtn.textContent = 'Connect';
+                connectBtn.addEventListener('click', () => ensureSudo(() => { window.location.href = connectUrl; }));
+                actions.appendChild(connectBtn);
+            }
+
+            row.appendChild(actions);
+            list.appendChild(row);
+        }
+    }
+
+    // ─── Account – Social Links ───────────────────────────────────────────────
+
+    function initAccountSocialLinks(): void {
+        const section = document.getElementById('section-social');
+        if (!section) return;
+
+        interface PlatformDef {
+            key: string;
+            displayName: string;
+            category: string;
+            placeholder: string;
+            usernamePattern: string;
+            hasUrl: boolean;
+        }
+
+        interface SocialLink {
+            platform: string;
+            displayName: string;
+            username: string;
+            url: string | null;
+        }
+
+        const platforms: PlatformDef[] = JSON.parse(
+            document.getElementById('platforms-data')?.textContent || '[]'
+        );
+        interface SocialIconDef { path: string; hex: string; }
+        const icons: Record<string, SocialIconDef> = (window as any).snakkSocialIcons ?? {};
+
+        let links: SocialLink[] = [];
+        let selectedPlatform: PlatformDef | null = null;
+
+        const loadingEl    = document.getElementById('social-links-loading')!;
+        const listEl       = document.getElementById('social-links-list')!;
+        const containerEl  = document.getElementById('social-links-container')!;
+        const addBtn       = document.getElementById('social-add-btn')!;
+        const searchInput  = document.getElementById('social-search') as HTMLInputElement;
+        const searchClear  = document.getElementById('social-search-clear')!;
+        const resultsEl    = document.getElementById('social-results')!;
+        const inputSection = document.getElementById('social-input-section')!;
+        const deselectBtn  = document.getElementById('social-deselect-btn')!;
+        const selectedIconEl  = document.getElementById('social-selected-icon')!;
+        const selectedNameEl  = document.getElementById('social-selected-name')!;
+        const valueInput   = document.getElementById('social-value-input') as HTMLInputElement;
+        const inputHint    = document.getElementById('social-input-hint')!;
+        const addError     = document.getElementById('social-add-error')!;
+        const modalAddBtn  = document.getElementById('social-modal-add') as HTMLButtonElement;
+
+        function makeSvg(path: string): SVGSVGElement {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('aria-hidden', 'true');
+            const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            p.setAttribute('d', path);
+            svg.appendChild(p);
+            return svg;
+        }
+
+        function renderResults(query: string): void {
+            resultsEl.innerHTML = '';
+            const q = query.trim().toLowerCase();
+            const used = new Set(links.map(l => l.platform));
+            const filtered = platforms.filter(p =>
+                !used.has(p.key) &&
+                (!q || p.displayName.toLowerCase().includes(q) || p.key.toLowerCase().includes(q) || p.category.toLowerCase().includes(q))
+            );
+
+            if (filtered.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'social-picker-empty';
+                empty.textContent = q ? 'No platforms match your search.' : 'All platforms have been added.';
+                resultsEl.appendChild(empty);
+                return;
+            }
+
+            if (q) {
+                for (const p of filtered) renderItem(p);
+            } else {
+                const byCategory = new Map<string, PlatformDef[]>();
+                for (const p of filtered) {
+                    const group = byCategory.get(p.category) ?? [];
+                    group.push(p);
+                    byCategory.set(p.category, group);
+                }
+                for (const [cat, items] of byCategory) {
+                    const divider = document.createElement('div');
+                    divider.className = 'social-picker-category-divider';
+                    divider.textContent = cat;
+                    resultsEl.appendChild(divider);
+                    for (const p of items) renderItem(p);
+                }
+            }
+        }
+
+        function renderItem(p: PlatformDef): void {
+            const item = document.createElement('div');
+            item.className = 'social-picker-item';
+            item.setAttribute('role', 'option');
+
+            const iconWrap = document.createElement('div');
+            iconWrap.className = 'social-picker-item-icon';
+            const iconDef = icons[p.key];
+            if (iconDef) {
+                iconWrap.style.color = `#${iconDef.hex}`;
+                iconWrap.appendChild(makeSvg(iconDef.path));
+            }
+
+            const name = document.createElement('span');
+            name.className = 'social-picker-item-name';
+            name.textContent = p.displayName;
+
+            item.appendChild(iconWrap);
+            item.appendChild(name);
+            item.addEventListener('click', () => selectPlatform(p));
+            resultsEl.appendChild(item);
+        }
+
+        function selectPlatform(p: PlatformDef): void {
+            selectedPlatform = p;
+
+            selectedIconEl.innerHTML = '';
+            selectedIconEl.style.color = '';
+            const selectedIconDef = icons[p.key];
+            if (selectedIconDef) {
+                selectedIconEl.style.color = `#${selectedIconDef.hex}`;
+                selectedIconEl.appendChild(makeSvg(selectedIconDef.path));
+            }
+            selectedNameEl.textContent = p.displayName;
+
+            valueInput.value = '';
+            valueInput.placeholder = p.placeholder;
+            inputHint.textContent = p.hasUrl
+                ? 'You can paste a full profile URL or just your username.'
+                : 'Enter your username only.';
+            inputHint.classList.remove('hidden');
+            addError.classList.add('hidden');
+            modalAddBtn.disabled = false;
+
+            resultsEl.classList.add('hidden');
+            inputSection.classList.remove('hidden');
+            valueInput.focus();
+        }
+
+        function resetModal(): void {
+            selectedPlatform = null;
+            searchInput.value = '';
+            searchClear.classList.add('hidden');
+            resultsEl.classList.remove('hidden');
+            inputSection.classList.add('hidden');
+            addError.classList.add('hidden');
+            modalAddBtn.disabled = true;
+            valueInput.value = '';
+            renderResults('');
+        }
+
+        async function doAdd(): Promise<void> {
+            if (!selectedPlatform) return;
+            const raw = valueInput.value.trim();
+            if (!raw) {
+                addError.textContent = 'Please enter a username or profile URL.';
+                addError.classList.remove('hidden');
+                return;
+            }
+            if (links.some(l => l.platform === selectedPlatform!.key)) {
+                addError.textContent = `You already have a ${selectedPlatform.displayName} link.`;
+                addError.classList.remove('hidden');
+                return;
+            }
+            if (links.length >= 10) {
+                addError.textContent = 'Maximum 10 social links allowed.';
+                addError.classList.remove('hidden');
+                return;
+            }
+
+            links.push({ platform: selectedPlatform.key, displayName: selectedPlatform.displayName, username: raw, url: null });
+            closeModal('modal-add-social');
+            renderLinks();
+            await saveLinks();
+        }
+
+        async function saveLinks(): Promise<void> {
+            const payload = { links: links.map(l => ({ platform: l.platform, value: l.username })) };
+            try {
+                const res = await fetch('/bff/me/social', {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (res.ok) await loadLinks();
+            } catch { /* silent — list already updated optimistically */ }
+        }
+
+        async function loadLinks(): Promise<void> {
+            try {
+                const res = await fetch('/bff/me/social', { credentials: 'include' });
+                if (!res.ok) { loadingEl.classList.add('hidden'); containerEl.classList.add('hidden'); return; }
+                const data = await res.json();
+                links = data.links || [];
+            } catch {
+                loadingEl.classList.add('hidden');
+                containerEl.classList.add('hidden');
+                return;
+            }
+            renderLinks();
+        }
+
+        function renderLinks(): void {
+            loadingEl.classList.add('hidden');
+            listEl.innerHTML = '';
+            if (links.length === 0) {
+                listEl.classList.add('hidden');
+                containerEl.classList.add('hidden');
+            } else {
+                containerEl.classList.remove('hidden');
+                for (const link of links) listEl.appendChild(buildLinkRow(link));
+                listEl.classList.remove('hidden');
+            }
+        }
+
+        function buildLinkRow(link: SocialLink): HTMLElement {
+            const item = document.createElement('div');
+            item.className = 'sn-device-item';
+
+            const left = document.createElement('div');
+            left.style.cssText = 'display:flex;align-items:center;gap:0.625rem;flex:1;min-width:0';
+
+            const iconWrap = document.createElement('div');
+            iconWrap.style.cssText = 'width:1.25rem;height:1.25rem;flex-shrink:0';
+            const rowIconDef = icons[link.platform];
+            if (rowIconDef) {
+                iconWrap.style.color = `#${rowIconDef.hex}`;
+                const svg = makeSvg(rowIconDef.path);
+                svg.style.cssText = 'width:1.25rem;height:1.25rem;fill:currentColor';
+                iconWrap.appendChild(svg);
+            }
+            left.appendChild(iconWrap);
+
+            const info = document.createElement('div');
+            info.className = 'sn-device-info';
+
+            const nameRow = document.createElement('div');
+            nameRow.style.cssText = 'font-weight:500;font-size:0.875rem';
+            nameRow.textContent = link.displayName;
+
+            const meta = document.createElement('div');
+            meta.className = 'sn-device-meta';
+            if (link.url) {
+                const a = document.createElement('a');
+                a.href = link.url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.textContent = link.username;
+                meta.appendChild(a);
+            } else {
+                meta.textContent = link.username;
+            }
+
+            info.appendChild(nameRow);
+            info.appendChild(meta);
+            left.appendChild(info);
+            item.appendChild(left);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'sn-device-revoke';
+            removeBtn.textContent = 'Remove';
+            removeBtn.addEventListener('click', async () => {
+                links = links.filter(l => l.platform !== link.platform);
+                renderLinks();
+                await saveLinks();
+            });
+            item.appendChild(removeBtn);
+
+            return item;
+        }
+
+        // Wire up
+        addBtn.addEventListener('click', () => { resetModal(); openModal('modal-add-social'); });
+        deselectBtn.addEventListener('click', () => {
+            selectedPlatform = null;
+            resultsEl.classList.remove('hidden');
+            inputSection.classList.add('hidden');
+            modalAddBtn.disabled = true;
+            valueInput.value = '';
+            addError.classList.add('hidden');
+            searchInput.focus();
+        });
+        searchInput.addEventListener('input', () => {
+            const q = searchInput.value;
+            searchClear.classList.toggle('hidden', !q);
+            renderResults(q);
+        });
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            searchClear.classList.add('hidden');
+            renderResults('');
+            searchInput.focus();
+        });
+        document.getElementById('social-modal-close')?.addEventListener('click', () => closeModal('modal-add-social'));
+        document.getElementById('social-modal-cancel')?.addEventListener('click', () => closeModal('modal-add-social'));
+        modalAddBtn.addEventListener('click', () => doAdd());
+        valueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+        valueInput.addEventListener('input', () => { if (valueInput.value.trim()) addError.classList.add('hidden'); });
+
+        loadLinks();
+    }
+
     // ─── Boot ─────────────────────────────────────────────────────────────────
 
     function boot(): void {
         restoreSudoExpiry();
         const isAuthenticated = !!document.querySelector('meta[name="current-user-id"]');
         if (isAuthenticated) {
-            initProfileSettings().then(() => { attachEventListeners(); loadDevices(); init2FA(); initScrollspy(); loadDiscordStatus(); initPasskeyStatus(); initSecurity(); });
+            initProfileSettings().then(() => { attachEventListeners(); loadDevices(); init2FA(); initScrollspy(); loadDiscordStatus(); initPasskeyStatus(); initSecurity(); initConnectedAccounts(); initAccountSocialLinks(); });
         } else {
             initDisplayPreferences();
             initSidebarStickiness();

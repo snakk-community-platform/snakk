@@ -17,7 +17,7 @@ public record CurrentUserResponse(
     string DisplayName,
     string Email,
     bool EmailVerified,
-    string? OAuthProvider,
+    IReadOnlyList<string> ConnectedProviders,
     bool AutoFollowOnReply,
     string? Timezone = null,
     bool HasPassword = false);

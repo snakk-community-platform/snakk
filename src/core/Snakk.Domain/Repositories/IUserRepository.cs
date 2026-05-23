@@ -39,7 +39,7 @@ public record CurrentUserSlim(
     string? DisplayName,
     string? Email,
     bool EmailVerified,
-    string? OAuthProvider,
+    IReadOnlyList<string> ConnectedProviders,
     bool AutoFollowOnReply,
     string? Timezone,
     bool IsDisplayNameLocked,
@@ -62,11 +62,18 @@ public interface IUserRepository
     Task<UserProfileSlim?> GetProfileSlimByPublicIdAsync(UserId publicId, CancellationToken ct = default);
     Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId, CancellationToken ct = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
-    Task<User?> GetByOAuthProviderIdAsync(string oauthProviderId, CancellationToken ct = default);
+    Task<User?> GetByOAuthConnectionAsync(string provider, string providerUserId, CancellationToken ct = default);
+    Task<List<UserOAuthConnection>> GetOAuthConnectionsAsync(string userPublicId, CancellationToken ct = default);
+    Task AddOAuthConnectionAsync(UserOAuthConnection connection, CancellationToken ct = default);
+    Task UpdateOAuthConnectionAsync(UserOAuthConnection connection, CancellationToken ct = default);
+    Task RemoveOAuthConnectionAsync(string userPublicId, string provider, CancellationToken ct = default);
+    Task<bool> OAuthConnectionExistsAsync(string provider, string providerUserId, CancellationToken ct = default);
+    Task<bool> HasAnyAuthMethodAsync(string userPublicId, CancellationToken ct = default);
     Task<User?> GetByDisplayNameAsync(string displayName, CancellationToken ct = default);
     Task<User?> GetByEmailVerificationTokenAsync(string token, CancellationToken ct = default);
     Task<IEnumerable<User>> SearchByDisplayNameAsync(string query, int limit, CancellationToken ct = default);
     Task<IEnumerable<User>> GetAllAsync(CancellationToken ct = default);
+    Task<int?> GetInternalIdByPublicIdAsync(string publicId, CancellationToken ct = default);
     Task AddAsync(User user, CancellationToken ct = default);
     Task UpdateAsync(User user, CancellationToken ct = default);
 }

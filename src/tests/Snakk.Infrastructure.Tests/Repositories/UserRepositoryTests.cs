@@ -156,32 +156,6 @@ public class UserRepositoryIntegrationTests : IDisposable
 
     #endregion
 
-    #region GetByOAuthProviderIdAsync Tests
-
-    [Test]
-    public async Task GetByOAuthProviderIdAsync_ExistingProviderId_ReturnsEntity()
-    {
-        var user = await _builder.CreateUserAsync("OAuthUser");
-        user.OAuthProviderId = "google_12345";
-        await _db.Context.SaveChangesAsync();
-
-        var result = await _repository.GetByOAuthProviderIdAsync("google_12345");
-
-        await Assert.That(result).IsNotNull();
-        await Assert.That(result!.OAuthProviderId).IsEqualTo("google_12345");
-        await Assert.That(result.DisplayName).IsEqualTo("OAuthUser");
-    }
-
-    [Test]
-    public async Task GetByOAuthProviderIdAsync_NonExistentProviderId_ReturnsNull()
-    {
-        var result = await _repository.GetByOAuthProviderIdAsync("nonexistent_provider_id");
-
-        await Assert.That(result).IsNull();
-    }
-
-    #endregion
-
     #region GetByDisplayNameAsync Tests
 
     [Test]

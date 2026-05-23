@@ -237,7 +237,6 @@ public static class TwoFactorAuthEndpoints
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             role);
 
         // Check if device should be trusted

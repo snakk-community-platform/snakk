@@ -25,6 +25,17 @@
         </h2>
         <div class="sn-settings-content">
 
+            <!-- Registered Email -->
+            @if (!string.IsNullOrEmpty(Model.Email))
+            {
+            <div id="section-email" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.PrivEmailTitle</h3>
+                <p class="text-sm" style="color: var(--text-tertiary)">
+                    @string.Format(T.Settings.PrivEmailRegistered, Model.Email)
+                </p>
+            </div>
+            }
+
             <!-- Presence & Visibility -->
             <div id="section-presence" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.PrivPresenceTitle</h3>
@@ -58,8 +69,11 @@
                     <span>@T.Settings.PrivPasskeyTitle</span>
                     <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
                 </h3>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                <p class="text-sm mb-2" style="color: var(--text-tertiary)">
                     @T.Settings.PrivPasskeyHelp
+                </p>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.PrivPasskey2faNote
                 </p>
                 <div id="passkey-list" class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
                     <div class="flex justify-center py-4">
@@ -124,6 +138,53 @@
             </div>
             } @* end TwoFactorEnabled *@
 
+            @if (Model.OAuthProvidersEnabled)
+            {
+            <!-- Connected Accounts -->
+            <div id="section-connected-accounts" class="sn-settings-section">
+                <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>@T.Settings.ConnAccHeading</span>
+                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                </h3>
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.ConnAccIntro
+                </p>
+                @if (!string.IsNullOrEmpty(Model.ConnectedProvider))
+                {
+                    <div class="callout-node-view callout-node-success mb-4 text-sm" style="border-left:none">
+                        <span class="icon icon-check-circle w-4 h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-success,#10b981)"></span>
+                        <span>@T.Settings.ConnAccConnectSuccess</span>
+                    </div>
+                }
+                @if (Model.ErrorCode == "LAST_AUTH_METHOD")
+                {
+                    <div class="callout-node-view callout-node-warning mb-4 text-sm" style="border-left:none">
+                        <span class="callout-node-icon">⚠️</span>
+                        <span>@T.Settings.ConnAccLastAuthMethodError</span>
+                    </div>
+                }
+                else if (Model.ErrorCode == "PROVIDER_TAKEN_BY_OTHER")
+                {
+                    <div class="callout-node-view callout-node-error mb-4 text-sm" style="border-left:none">
+                        <span class="icon icon-x-circle w-4 h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-error,#ef4444)"></span>
+                        <span>@T.Settings.ConnAccProviderTakenError</span>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(Model.ErrorCode))
+                {
+                    <div class="callout-node-view callout-node-error mb-4 text-sm" style="border-left:none">
+                        <span class="icon icon-x-circle w-4 h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-error,#ef4444)"></span>
+                        <span>@T.Settings.ConnAccConnectFailed</span>
+                    </div>
+                }
+                <div id="connected-accounts-list" class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+                    <div class="flex justify-center py-4">
+                        <span class="loading loading-spinner loading-md"></span>
+                    </div>
+                </div>
+            </div>
+            } @* end OAuthProvidersEnabled *@
+
             <!-- Active Sessions -->
             <div id="section-sessions" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.SecSessionsTitle</h3>
@@ -151,7 +212,7 @@
             <div id="section-security-log" class="sn-settings-section">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
                     <span>@T.Settings.SecLogTitle</span>
-                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNoteView" style="color:var(--text-tertiary);cursor:default"></span>
                 </h3>
                 <p class="text-sm mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.SecLogIntro

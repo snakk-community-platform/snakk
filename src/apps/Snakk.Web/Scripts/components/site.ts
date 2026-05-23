@@ -751,9 +751,9 @@ document.addEventListener('pointerdown', (e: Event) => {
 
     const base = btn.dataset.feedBase || '';
     const items = [
-        { href: `${base}.xml`,  label: 'RSS',  color: 'text-orange-500', icon: '<path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20C5 20 4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 5.66a9.9 9.9 0 0 1 9.9 9.9h-2.83A7.07 7.07 0 0 0 4 12.93V10.1z"/>', fill: true },
-        { href: `${base}.atom`, label: 'Atom', color: 'text-purple-500', icon: '<circle cx="12" cy="12" r="2.5"/><ellipse cx="12" cy="12" rx="10" ry="4"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4" transform="rotate(120 12 12)"/>', fill: false },
-        { href: `${base}.json`, label: 'JSON', color: 'text-green-500', icon: '<path d="M7 4a2 2 0 0 0-2 2v3a2 2 0 0 1-2 2 2 2 0 0 1 2 2v3a2 2 0 0 0 2 2"/><path d="M17 4a2 2 0 0 1 2 2v3a2 2 0 0 0 2 2 2 2 0 0 0-2 2v3a2 2 0 0 1-2 2"/>', fill: false },
+        { href: `${base}.xml`,  label: 'RSS',  iconClass: 'icon-rss',       color: 'text-orange-500' },
+        { href: `${base}.atom`, label: 'Atom', iconClass: 'icon-atom',      color: 'text-purple-500' },
+        { href: `${base}.json`, label: 'JSON', iconClass: 'icon-json-feed', color: 'text-green-500'  },
     ];
 
     for (const item of items) {
@@ -762,9 +762,7 @@ document.addEventListener('pointerdown', (e: Event) => {
         a.href = item.href;
         a.target = '_blank';
         a.rel = 'noopener';
-        const strokeAttr = item.fill ? '' : ' fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"';
-        const fillAttr = item.fill ? ' fill="currentColor"' : '';
-        a.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ${item.color} shrink-0" viewBox="0 0 24 24"${fillAttr}${strokeAttr}>${item.icon}</svg>${item.label}`;
+        a.innerHTML = `<span class="icon ${item.iconClass} h-4 w-4 shrink-0 ${item.color}" aria-hidden="true"></span>${item.label}`;
         li.appendChild(a);
         menu.appendChild(li);
     }
@@ -847,17 +845,23 @@ function initNudgePasskey(): void {
             if (!res.ok) throw new Error('Could not start passkey login');
             return res.json() as Promise<{ optionsJson: string; challengeId: string }>;
         })
-        .then(data => navigator.credentials.get({ publicKey: prepareOptions(data.optionsJson) })
-            .then(cred => fetch('/auth/passkey/complete-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    challengeId: data.challengeId,
-                    assertionResponseJson: serializeAssertion(cred as PublicKeyCredential),
-                    returnUrl
-                })
-            }))
-        )
+        .then(data => {
+            if (errorEl) {
+                errorEl.style.color = 'var(--text-secondary)';
+                errorEl.textContent = (window as any).T?.nudge?.passkeyPromptHint ?? '';
+                errorEl.classList.remove('hidden');
+            }
+            return navigator.credentials.get({ publicKey: prepareOptions(data.optionsJson) })
+                .then(cred => fetch('/auth/passkey/complete-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        challengeId: data.challengeId,
+                        assertionResponseJson: serializeAssertion(cred as PublicKeyCredential),
+                        returnUrl
+                    })
+                }));
+        })
         .then(res => {
             if (!res.ok) return (res.json().catch(() => ({})) as Promise<any>).then((e: any) => { throw new Error(e.error || 'Passkey login failed'); });
             return res.json() as Promise<{ twoFactorRequired?: boolean; email?: string; redirectUrl?: string }>;
@@ -873,6 +877,7 @@ function initNudgePasskey(): void {
         })
         .catch((err: unknown) => {
             btn.disabled = false;
+            if (errorEl) { errorEl.style.color = ''; errorEl.classList.add('hidden'); }
             if (err instanceof Error && err.name === 'NotAllowedError') return;
             if (errorEl) {
                 errorEl.textContent = err instanceof Error ? err.message : 'Passkey login failed. Please try again.';

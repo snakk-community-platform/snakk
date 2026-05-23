@@ -130,8 +130,6 @@ public class UserRepositoryAdapterTests : IDisposable
             passwordHash: null,
             emailVerified: false,
             emailVerificationToken: null,
-            oauthProvider: null,
-            oauthProviderId: null,
             role: null,
             avatarFileName: null,
             avatarThumbnailFileName: null,

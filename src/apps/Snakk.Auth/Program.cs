@@ -212,6 +212,41 @@ if (!string.IsNullOrEmpty(discordClientId))
     });
 }
 
+var facebookClientId = builder.Configuration["Authentication:Facebook:ClientId"];
+if (!string.IsNullOrEmpty(facebookClientId))
+{
+    builder.Services.AddAuthentication().AddFacebook(options =>
+    {
+        options.ClientId = facebookClientId;
+        options.ClientSecret = builder.Configuration["Authentication:Facebook:ClientSecret"] ?? "";
+        options.CallbackPath = "/oauth/facebook/callback";
+        options.Events.OnRemoteFailure = OnRemoteFailure("Facebook");
+    });
+}
+
+var microsoftClientId = builder.Configuration["Authentication:Microsoft:ClientId"];
+if (!string.IsNullOrEmpty(microsoftClientId))
+{
+    builder.Services.AddAuthentication().AddMicrosoftAccount(options =>
+    {
+        options.ClientId = microsoftClientId;
+        options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"] ?? "";
+        options.CallbackPath = "/oauth/microsoft/callback";
+        options.Events.OnRemoteFailure = OnRemoteFailure("Microsoft");
+    });
+}
+
+var steamApiKey = builder.Configuration["Authentication:Steam:ApiKey"];
+if (!string.IsNullOrEmpty(steamApiKey))
+{
+    builder.Services.AddAuthentication().AddSteam(options =>
+    {
+        options.ApplicationKey = steamApiKey;
+        options.CallbackPath = "/oauth/steam/callback";
+        options.Events.OnRemoteFailure = OnRemoteFailure("Steam");
+    });
+}
+
 // Configure forwarded headers — trust only internal Docker/private networks, not any source
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {

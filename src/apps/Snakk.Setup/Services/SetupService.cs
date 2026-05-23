@@ -152,6 +152,29 @@ public class SetupService()
                 ["ClientSecret"] = state.DiscordClientSecret
             };
         }
+        if (!string.IsNullOrWhiteSpace(state.FacebookClientId))
+        {
+            auth["Facebook"] = new Dictionary<string, string>
+            {
+                ["ClientId"] = state.FacebookClientId,
+                ["ClientSecret"] = state.FacebookClientSecret
+            };
+        }
+        if (!string.IsNullOrWhiteSpace(state.MicrosoftClientId))
+        {
+            auth["Microsoft"] = new Dictionary<string, string>
+            {
+                ["ClientId"] = state.MicrosoftClientId,
+                ["ClientSecret"] = state.MicrosoftClientSecret
+            };
+        }
+        if (!string.IsNullOrWhiteSpace(state.SteamApiKey))
+        {
+            auth["Steam"] = new Dictionary<string, string>
+            {
+                ["ApiKey"] = state.SteamApiKey
+            };
+        }
         if (auth.Count > 0)
             config["Authentication"] = auth;
 

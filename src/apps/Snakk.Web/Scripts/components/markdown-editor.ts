@@ -941,8 +941,8 @@ function buildChartForm(type: string, form: HTMLElement, initial?: Partial<Chart
         makeChartInput('My Chart', initial?.title ?? '', 'chart-title-input'),
     ));
 
-    const CHECK_ICON = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>';
-    const WARN_ICON = '<svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/></svg>';
+    const CHECK_ICON = '<span class="icon icon-check" style="width:12px;height:12px" aria-hidden="true"></span>';
+    const WARN_ICON = '<span class="icon icon-exclamation-triangle" style="width:12px;height:12px" aria-hidden="true"></span>';
 
     if (type === 'pie' || type === 'donut') {
         const listWrap = document.createElement('div');
@@ -3980,8 +3980,8 @@ function closeMarkdownHelp(): void {
 // Editor Expand / Collapse
 // ============================================================================
 
-const EXPAND_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M1 4V1h3M8 1h3v3M11 8v3H8M4 11H1V8"/></svg>';
-const COLLAPSE_SVG = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1v3H1M11 4H8V1M8 11V8h3M1 8h3v3"/></svg>';
+const EXPAND_SVG = '<span class="icon icon-code-expand" style="width:12px;height:12px" aria-hidden="true"></span>';
+const COLLAPSE_SVG = '<span class="icon icon-code-collapse" style="width:12px;height:12px" aria-hidden="true"></span>';
 
 // Shared expand/collapse button for all modals (code, image, table, chart editor).
 // Returns a button sized like .chart-modal-close that toggles .chart-modal-expanded
@@ -4712,9 +4712,9 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
             if (height) sourceTextarea.style.minHeight = height;
 
             // Eye icon (visual) / code icon (source)
-            const eyeIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>';
-            const codeIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>';
-            const helpIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+            const eyeIcon = '<span class="icon icon-eye" style="width:14px;height:14px" aria-hidden="true"></span>';
+            const codeIcon = '<span class="icon icon-code" style="width:14px;height:14px" aria-hidden="true"></span>';
+            const helpIcon = '<span class="icon icon-question-circle" style="width:14px;height:14px" aria-hidden="true"></span>';
 
             const modeJoin = document.createElement('div');
             modeJoin.className = 'join';

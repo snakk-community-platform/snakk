@@ -155,7 +155,6 @@ public class TwoFactorGrpcService(
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            user.OAuthProvider,
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion);

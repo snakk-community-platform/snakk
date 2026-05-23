@@ -3507,6 +3507,52 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Notification");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserOAuthConnectionDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ConnectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("ProviderUserId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("Require2FA")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UserOAuthConnection_UserId");
+
+                    b.HasIndex("Provider", "ProviderUserId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserOAuthConnection_Provider_ProviderUserId");
+
+                    b.HasIndex("UserId", "Provider")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserOAuthConnection_UserId_Provider");
+
+                    b.ToTable("UserOAuthConnection");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserRoleDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -4878,6 +4924,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("SourceSpace");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserOAuthConnectionDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany("OAuthConnections")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserRoleDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "AssignedByUser")
@@ -5087,6 +5144,8 @@ namespace Snakk.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", b =>
                 {
+                    b.Navigation("OAuthConnections");
+
                     b.Navigation("PasskeyCredentials");
 
                     b.Navigation("RefreshTokens");

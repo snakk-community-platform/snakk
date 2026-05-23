@@ -41,8 +41,6 @@ public class PostHtmlRendererTests
             passwordHash: "hash",
             emailVerified: true,
             emailVerificationToken: null,
-            oauthProvider: null,
-            oauthProviderId: null,
             role: null,
             avatarFileName: null,
             avatarThumbnailFileName: null,

@@ -23,11 +23,6 @@ public interface ICurrentUserService
     bool IsAuthenticated();
 
     /// <summary>
-    /// Gets the OAuth provider used by current user
-    /// </summary>
-    string? GetOAuthProvider();
-
-    /// <summary>
     /// Gets whether the current user's email is verified
     /// </summary>
     bool IsEmailVerified();

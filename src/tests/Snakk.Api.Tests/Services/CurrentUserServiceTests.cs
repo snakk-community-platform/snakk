@@ -103,17 +103,6 @@ public class CurrentUserServiceTests
     }
 
     [Test]
-    public async Task GetOAuthProvider_WithClaim_ReturnsProvider()
-    {
-        var user = CreateAuthenticatedUser(
-            new Claim("OAuthProvider", "Google"));
-        var service = CreateService(user);
-
-        var provider = service.GetOAuthProvider();
-        await Assert.That(provider).IsEqualTo("Google");
-    }
-
-    [Test]
     public async Task IsEmailVerified_TrueClaim_ReturnsTrue()
     {
         var user = CreateAuthenticatedUser(

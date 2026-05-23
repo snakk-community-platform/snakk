@@ -55,6 +55,53 @@
         </div>
     </div>
 
+    <!-- Facebook -->
+    <div class="collapse collapse-arrow bg-base-200">
+        <input type="checkbox" />
+        <div class="collapse-title font-medium">Facebook</div>
+        <div class="collapse-content space-y-3">
+            <p class="text-sm text-base-content/60">Requires a verified email address on the user's Facebook account. Users without one will be blocked at login.</p>
+            <div class="form-control">
+                <label class="label"><span class="label-text">App ID</span></label>
+                <input type="text" asp-for="FacebookClientId" class="input input-sm w-full" autocomplete="off" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">App Secret</span></label>
+                <input type="password" asp-for="FacebookClientSecret" class="input input-sm w-full" autocomplete="new-password" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Steam -->
+    <div class="collapse collapse-arrow bg-base-200">
+        <input type="checkbox" />
+        <div class="collapse-title font-medium">Steam</div>
+        <div class="collapse-content space-y-3">
+            <p class="text-sm text-base-content/60">Uses Steam OpenID 2.0. Users without a verified email are prompted to enter one on first sign-in. Get your Web API key at <span class="font-mono">steamcommunity.com/dev/apikey</span>.</p>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Web API Key</span></label>
+                <input type="password" asp-for="SteamApiKey" class="input input-sm w-full" autocomplete="new-password" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Microsoft -->
+    <div class="collapse collapse-arrow bg-base-200">
+        <input type="checkbox" />
+        <div class="collapse-title font-medium">Microsoft</div>
+        <div class="collapse-content space-y-3">
+            <p class="text-sm text-base-content/60">Requires an email address on the user's Microsoft account. Register your app in the Azure portal.</p>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Client ID</span></label>
+                <input type="text" asp-for="MicrosoftClientId" class="input input-sm w-full" autocomplete="off" />
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Client Secret</span></label>
+                <input type="password" asp-for="MicrosoftClientSecret" class="input input-sm w-full" autocomplete="new-password" />
+            </div>
+        </div>
+    </div>
+
     <div class="divider"></div>
 
     <div class="flex justify-between">

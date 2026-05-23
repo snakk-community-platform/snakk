@@ -27,8 +27,6 @@ public class UserTests
         await Assert.That(user.PasswordHash).IsEqualTo(passwordHash);
         await Assert.That(user.EmailVerified).IsFalse();
         await Assert.That(user.EmailVerificationToken).IsEqualTo(token);
-        await Assert.That(user.OAuthProvider).IsNull();
-        await Assert.That(user.OAuthProviderId).IsNull();
         await Assert.That(user.Role).IsNull();
         await Assert.That(user.AvatarFileName).IsNull();
         await Assert.That(user.CreatedAt).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
@@ -74,11 +72,9 @@ public class UserTests
     {
         // Arrange
         const string email = "oauth@example.com";
-        const string provider = "Google";
-        const string providerId = "google-user-id-123";
 
         // Act
-        var user = User.CreateWithOAuth(email, provider, providerId);
+        var user = User.CreateWithOAuth(email);
 
         // Assert
         await Assert.That(user).IsNotNull();
@@ -88,8 +84,6 @@ public class UserTests
         await Assert.That(user.PasswordHash).IsNull();
         await Assert.That(user.EmailVerified).IsTrue(); // OAuth emails are pre-verified
         await Assert.That(user.EmailVerificationToken).IsNull();
-        await Assert.That(user.OAuthProvider).IsEqualTo(provider);
-        await Assert.That(user.OAuthProviderId).IsEqualTo(providerId);
         await Assert.That(user.Role).IsNull();
     }
 
@@ -100,7 +94,7 @@ public class UserTests
     public async Task CreateWithOAuth_WithInvalidEmail_ThrowsArgumentException(string? invalidEmail)
     {
         // Act & Assert
-        await Assert.That(() => User.CreateWithOAuth(invalidEmail!, "Google", "id")).Throws<ArgumentException>();
+        await Assert.That(() => User.CreateWithOAuth(invalidEmail!)).Throws<ArgumentException>();
     }
 
     #endregion
@@ -119,7 +113,6 @@ public class UserTests
         await Assert.That(user.Email).IsNull();
         await Assert.That(user.PasswordHash).IsNull();
         await Assert.That(user.EmailVerified).IsFalse();
-        await Assert.That(user.OAuthProvider).IsNull();
     }
 
     [Test]
@@ -212,7 +205,6 @@ public class UserTests
         // Assert
         await Assert.That(user.DisplayName).IsEqualTo("Anonymous User");
         await Assert.That(user.Email).IsNull();
-        await Assert.That(user.OAuthProviderId).IsNull();
         await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }
 
@@ -238,7 +230,7 @@ public class UserTests
     public async Task SetPasswordHash_WithValidHash_UpdatesPasswordHash()
     {
         // Arrange
-        var user = User.CreateWithOAuth("oauth@example.com", "Google", "id");
+        var user = User.CreateWithOAuth("oauth@example.com");
         await Assert.That(user.PasswordHash).IsNull();
 
         // Act
@@ -320,40 +312,10 @@ public class UserTests
     public async Task HasPassword_WithoutPasswordHash_ReturnsFalse()
     {
         // Arrange
-        var user = User.CreateWithOAuth("test@example.com", "Google", "id");
+        var user = User.CreateWithOAuth("test@example.com");
 
         // Act
         var result = user.HasPassword();
-
-        // Assert
-        await Assert.That(result).IsFalse();
-    }
-
-    #endregion
-
-    #region IsOAuthUser Tests
-
-    [Test]
-    public async Task IsOAuthUser_WithOAuthProvider_ReturnsTrue()
-    {
-        // Arrange
-        var user = User.CreateWithOAuth("test@example.com", "Google", "id");
-
-        // Act
-        var result = user.IsOAuthUser();
-
-        // Assert
-        await Assert.That(result).IsTrue();
-    }
-
-    [Test]
-    public async Task IsOAuthUser_WithoutOAuthProvider_ReturnsFalse()
-    {
-        // Arrange
-        var user = User.CreateWithEmail("testuser", "test@example.com", "hash", "token");
-
-        // Act
-        var result = user.IsOAuthUser();
 
         // Assert
         await Assert.That(result).IsFalse();
@@ -454,8 +416,6 @@ public class UserTests
             "passwordhash",
             true,
             null,
-            "Google",
-            "google-id",
             "admin",
             "avatar.jpg",
             null,
@@ -474,8 +434,6 @@ public class UserTests
         await Assert.That(user.PasswordHash).IsEqualTo("passwordhash");
         await Assert.That(user.EmailVerified).IsTrue();
         await Assert.That(user.EmailVerificationToken).IsNull();
-        await Assert.That(user.OAuthProvider).IsEqualTo("Google");
-        await Assert.That(user.OAuthProviderId).IsEqualTo("google-id");
         await Assert.That(user.Role).IsEqualTo("admin");
         await Assert.That(user.AvatarFileName).IsEqualTo("avatar.jpg");
         await Assert.That(user.CreatedAt).IsEqualTo(createdAt);

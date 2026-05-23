@@ -6,6 +6,7 @@ using Snakk.Infrastructure.Database;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
+using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Mappers;
 using Snakk.Shared.Enums;
 
@@ -89,12 +90,13 @@ public class UserRepositoryAdapter(
 
     public async Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId, CancellationToken ct = default)
     {
-        return await context.Users
+        var raw = await context.Users
             .Where(u => u.PublicId == publicId.Value)
             .Select(u => new CurrentUserSlim(
                 u.PublicId, u.DisplayName,
                 u.Email, u.EmailVerified,
-                u.OAuthProvider, u.AutoFollowOnReply,
+                u.OAuthConnections.Select(c => c.Provider).ToList(),
+                u.AutoFollowOnReply,
                 u.Timezone, u.IsDisplayNameLocked,
                 u.PasswordHash != null,
                 u.AvatarFileName, u.Bio, u.FeedToken,
@@ -102,6 +104,11 @@ public class UserRepositoryAdapter(
                 u.DisplayNameChangedAt,
                 u.HidePresence))
             .FirstOrDefaultAsync(ct);
+
+        if (raw is null) return null;
+
+        var decryptedEmail = raw.Email is not null ? emailProtector.Unprotect(raw.Email) : null;
+        return raw with { Email = decryptedEmail };
     }
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)
@@ -109,15 +116,6 @@ public class UserRepositoryAdapter(
         var hash = emailProtector.ComputeHash(email);
         var projection = await context.Users
             .Where(u => u.EmailHash == hash)
-            .Select(u => new UserProjection(u))
-            .FirstOrDefaultAsync(ct);
-        return projection?.ToDomain(emailProtector);
-    }
-
-    public async Task<User?> GetByOAuthProviderIdAsync(string oauthProviderId, CancellationToken ct = default)
-    {
-        var projection = await context.Users
-            .Where(u => u.OAuthProviderId == oauthProviderId)
             .Select(u => new UserProjection(u))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain(emailProtector);
@@ -161,6 +159,12 @@ public class UserRepositoryAdapter(
         return projections.Select(p => p.ToDomain(emailProtector));
     }
 
+    public async Task<int?> GetInternalIdByPublicIdAsync(string publicId, CancellationToken ct = default) =>
+        await context.Users
+            .Where(u => u.PublicId == publicId)
+            .Select(u => (int?)u.Id)
+            .FirstOrDefaultAsync(ct);
+
     public async Task AddAsync(User user, CancellationToken ct = default)
     {
         var plainEmail = user.Email;
@@ -191,6 +195,7 @@ public class UserRepositoryAdapter(
             entity.Email = emailProtector.Protect(plainEmail);
             entity.EmailHash = emailProtector.ComputeHash(plainEmail);
         }
+        entity.PasswordHash = user.PasswordHash;
         entity.AvatarFileName = user.AvatarFileName;
         entity.AvatarThumbnailFileName = user.AvatarThumbnailFileName;
         entity.AvatarMicroFileName = user.AvatarMicroFileName;
@@ -236,6 +241,85 @@ public class UserRepositoryAdapter(
         }
     }
 
+    public async Task<User?> GetByOAuthConnectionAsync(string provider, string providerUserId, CancellationToken ct = default)
+    {
+        var userId = await context.UserOAuthConnections
+            .Where(c => c.Provider == provider && c.ProviderUserId == providerUserId)
+            .Select(c => c.UserId)
+            .FirstOrDefaultAsync(ct);
+
+        if (userId == 0) return null;
+
+        var projection = await context.Users
+            .Where(u => u.Id == userId)
+            .Select(u => new UserProjection(u))
+            .FirstOrDefaultAsync(ct);
+        return projection?.ToDomain(emailProtector);
+    }
+
+    public async Task<List<UserOAuthConnection>> GetOAuthConnectionsAsync(string userPublicId, CancellationToken ct = default)
+    {
+        var entities = await context.UserOAuthConnections
+            .Where(c => c.User.PublicId == userPublicId)
+            .ToListAsync(ct);
+
+        return entities.Select(e => UserOAuthConnection.Rehydrate(
+            e.Id, userPublicId, e.Provider, e.ProviderUserId,
+            e.ConnectedAt, e.Require2FA, e.LastLoginAt)).ToList();
+    }
+
+    public async Task AddOAuthConnectionAsync(UserOAuthConnection connection, CancellationToken ct = default)
+    {
+        var userId = await context.Users
+            .Where(u => u.PublicId == connection.UserPublicId)
+            .Select(u => u.Id)
+            .FirstAsync(ct);
+
+        var entity = new UserOAuthConnectionDatabaseEntity
+        {
+            UserId = userId,
+            Provider = connection.Provider,
+            ProviderUserId = connection.ProviderUserId,
+            ConnectedAt = connection.ConnectedAt,
+            Require2FA = connection.Require2FA,
+            LastLoginAt = connection.LastLoginAt
+        };
+
+        context.UserOAuthConnections.Add(entity);
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateOAuthConnectionAsync(UserOAuthConnection connection, CancellationToken ct = default)
+    {
+        var entity = await context.UserOAuthConnections.FindAsync([connection.Id], ct);
+        if (entity is null) return;
+
+        entity.Require2FA = connection.Require2FA;
+        entity.LastLoginAt = connection.LastLoginAt;
+        await context.SaveChangesAsync(ct);
+    }
+
+    public async Task RemoveOAuthConnectionAsync(string userPublicId, string provider, CancellationToken ct = default)
+    {
+        await context.UserOAuthConnections
+            .Where(c => c.User.PublicId == userPublicId && c.Provider == provider)
+            .ExecuteDeleteAsync(ct);
+    }
+
+    public async Task<bool> OAuthConnectionExistsAsync(string provider, string providerUserId, CancellationToken ct = default) =>
+        await context.UserOAuthConnections
+            .AnyAsync(c => c.Provider == provider && c.ProviderUserId == providerUserId, ct);
+
+    public async Task<bool> HasAnyAuthMethodAsync(string userPublicId, CancellationToken ct = default)
+    {
+        var user = await context.Users
+            .Where(u => u.PublicId == userPublicId)
+            .Select(u => new { HasPassword = u.PasswordHash != null, HasConnections = u.OAuthConnections.Any() })
+            .FirstOrDefaultAsync(ct);
+
+        return user is not null && (user.HasPassword || user.HasConnections);
+    }
+
     private record UserProjection
     {
         public string PublicId { get; init; }
@@ -245,8 +329,6 @@ public class UserRepositoryAdapter(
         public bool EmailVerified { get; init; }
         public string? EmailVerificationToken { get; init; }
         public DateTime? EmailVerificationTokenCreatedAt { get; init; }
-        public string? OAuthProvider { get; init; }
-        public string? OAuthProviderId { get; init; }
         public bool HasGlobalAdminRole { get; init; }
         public string? AvatarFileName { get; init; }
         public string? AvatarThumbnailFileName { get; init; }
@@ -278,8 +360,6 @@ public class UserRepositoryAdapter(
             EmailVerified = u.EmailVerified;
             EmailVerificationToken = u.EmailVerificationToken;
             EmailVerificationTokenCreatedAt = u.EmailVerificationTokenCreatedAt;
-            OAuthProvider = u.OAuthProvider;
-            OAuthProviderId = u.OAuthProviderId;
             HasGlobalAdminRole = u.Roles.Any(r =>
                 r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin
                 && r.RevokedAt is null);
@@ -313,7 +393,6 @@ public class UserRepositoryAdapter(
                 UserId.From(PublicId),
                 DisplayName, decryptedEmail, PasswordHash,
                 EmailVerified, EmailVerificationToken,
-                OAuthProvider, OAuthProviderId,
                 HasGlobalAdminRole ? "Admin" : null,
                 AvatarFileName, AvatarThumbnailFileName, AvatarMicroFileName, AvatarRevision,
                 AutoFollowOnReply,

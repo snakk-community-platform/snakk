@@ -69,6 +69,14 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
 
 }
 
+builder.Services.AddHttpLogging(options =>
+{
+    options.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestMethod
+        | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.RequestPath
+        | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.ResponseStatusCode
+        | Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.Duration;
+});
+
 // Add services to the container
 builder.Services.AddOpenApi();
 builder.Services.AddGrpc(o => o.Interceptors.Add<Snakk.Api.Interceptors.AuthValidationInterceptor>());
@@ -102,6 +110,7 @@ Snakk.Shared.Helpers.AvatarHelper.UploadedAvatarBaseUrl =
         : "";
 
 //app.UseSerilogRequestLogging();
+app.UseHttpLogging();
 
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())

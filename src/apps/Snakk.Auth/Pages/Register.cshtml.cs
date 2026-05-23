@@ -22,10 +22,13 @@ public class RegisterModel(
     public string? SuccessMessage { get; set; }
     public string RegistrationMode { get; set; } = "Open";
 
-    public bool HasGoogle => !string.IsNullOrEmpty(configuration["Authentication:Google:ClientId"]);
-    public bool HasGitHub => !string.IsNullOrEmpty(configuration["Authentication:GitHub:ClientId"]);
-    public bool HasDiscord => !string.IsNullOrEmpty(configuration["Authentication:Discord:ClientId"]);
-    public bool HasAnyOAuth => HasGoogle || HasGitHub || HasDiscord;
+    public bool HasGoogle    => !string.IsNullOrEmpty(configuration["Authentication:Google:ClientId"]);
+    public bool HasGitHub    => !string.IsNullOrEmpty(configuration["Authentication:GitHub:ClientId"]);
+    public bool HasDiscord   => !string.IsNullOrEmpty(configuration["Authentication:Discord:ClientId"]);
+    public bool HasFacebook  => !string.IsNullOrEmpty(configuration["Authentication:Facebook:ClientId"]);
+    public bool HasMicrosoft => !string.IsNullOrEmpty(configuration["Authentication:Microsoft:ClientId"]);
+    public bool HasSteam     => !string.IsNullOrEmpty(configuration["Authentication:Steam:ApiKey"]);
+    public bool HasAnyOAuth  => HasGoogle || HasGitHub || HasDiscord || HasFacebook || HasMicrosoft || HasSteam;
     public string? TurnstileSiteKey => configuration["Turnstile:SiteKey"];
 
     public List<Snakk.Protos.Consent.ConsentTypeInfo> RequiredConsents { get; set; } = [];

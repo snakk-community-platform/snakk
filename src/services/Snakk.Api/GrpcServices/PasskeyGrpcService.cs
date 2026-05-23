@@ -79,19 +79,11 @@ public class PasskeyGrpcService(
                     u.DisplayName,
                     u.Email,
                     u.EmailVerified,
-                    u.OAuthProvider,
                     u.AvatarFileName,
-                    u.AuthVersion,
-                    u.TwoFactorEnabled
+                    u.AuthVersion
                 })
                 .FirstOrDefaultAsync(ctx.CancellationToken)
                 ?? throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
-
-            if (user.TwoFactorEnabled)
-            {
-                logger.LogInformation("Passkey login requires 2FA for user {PublicId}", publicId);
-                return new PasskeyLoginResponse { TwoFactorRequired = true, Email = user.Email ?? "" };
-            }
 
             var roles = await context.UserRoles
                 .Where(r => r.User.PublicId == publicId && r.RevokedAt == null)
@@ -103,7 +95,6 @@ public class PasskeyGrpcService(
                 user.DisplayName,
                 user.Email,
                 user.EmailVerified,
-                user.OAuthProvider,
                 roles.FirstOrDefault(),
                 user.AvatarFileName,
                 authVersion: user.AuthVersion);

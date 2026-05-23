@@ -1,5 +1,6 @@
 namespace Snakk.Application.UseCases;
 
+using Snakk.Application.DTOs.Auth;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Domain;
@@ -9,6 +10,7 @@ using Snakk.Domain.ValueObjects;
 using Snakk.Shared;
 using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
 public class AuthenticationUseCase(
@@ -20,7 +22,9 @@ public class AuthenticationUseCase(
     IDisplayNameHistoryRepository displayNameHistoryRepository,
     ITurnstileService turnstileService,
     IUserSocialLinkRepository socialLinkRepository,
-    DisplayNameValidator displayNameValidator) : UseCaseBase
+    DisplayNameValidator displayNameValidator,
+    IPasswordResetTokenRepository passwordResetTokenRepository,
+    IPasswordResetRequestRepository passwordResetRequestRepository) : UseCaseBase
 {
     // Dummy BCrypt hash for timing equalization (prevents email enumeration)
     private static readonly string DummyPasswordHash = "$2a$12$LJ3m4ys3Gy2e1mGFBgHnMeZOp5xDz4MBpUmLhMYkP5K8xA2YUCIi";
@@ -146,49 +150,109 @@ public class AuthenticationUseCase(
         string displayName,
         bool? allowAdultContent = null)
     {
-        // Try to find existing user by OAuth provider ID
-        var user = await userRepository.GetByOAuthProviderIdAsync(oauthProviderId);
+        var provider = oauthProvider.ToLowerInvariant();
+
+        // Try to find existing user by connection table
+        var user = await userRepository.GetByOAuthConnectionAsync(provider, oauthProviderId);
 
         if (user is not null)
         {
-            // Existing OAuth user - update last login
+            var connections = await userRepository.GetOAuthConnectionsAsync(user.PublicId.Value);
+            var conn = connections.FirstOrDefault(c => c.Provider == provider);
+            if (conn is not null)
+            {
+                conn.RecordLogin();
+                await userRepository.UpdateOAuthConnectionAsync(conn);
+            }
             user.UpdateLastLogin();
             await userRepository.UpdateAsync(user);
-
             return Result<User>.Success(user);
         }
 
-        // Check if email is already registered (link accounts)
+        // Email collision guard — don't auto-link; require explicit connect flow
         user = await userRepository.GetByEmailAsync(email);
-
         if (user is not null)
-        {
-            // Email exists - this could be a security issue
-            // For now, don't auto-link - require user to login with password first
             return Result<User>.Failure($"An account with {email} already exists. Please login with your password to link your {oauthProvider} account.");
-        }
 
-        // Create new user with OAuth (no display name — set during profile setup)
+        // Validate email before creating account
         var (oauthEmailIsValid, oauthEmailError) = DisposableEmailValidator.Validate(email);
         if (!oauthEmailIsValid)
             return Result<User>.Failure(oauthEmailError!);
 
-        user = User.CreateWithOAuth(
-            email,
-            oauthProvider,
-            oauthProviderId,
-            allowAdultContent);
-
+        user = User.CreateWithOAuth(email, allowAdultContent);
         await userRepository.AddAsync(user);
 
-        // Dispatch domain events
+        var connection = UserOAuthConnection.Create(user.PublicId.Value, provider, oauthProviderId);
+        await userRepository.AddOAuthConnectionAsync(connection);
+
         await eventDispatcher.DispatchAsync(user.DomainEvents);
         user.ClearDomainEvents();
 
-        // Send welcome email
         await emailSender.SendWelcomeEmailAsync(email, user.DisplayName ?? "there");
 
         return Result<User>.Success(user);
+    }
+
+    public async Task<Result<List<OAuthConnectionDto>>> GetOAuthConnectionsAsync(string userPublicId, CancellationToken ct = default)
+    {
+        var connections = await userRepository.GetOAuthConnectionsAsync(userPublicId, ct);
+        var dtos = connections.Select(c => new OAuthConnectionDto(
+            c.Provider, c.ConnectedAt, c.LastLoginAt, c.Require2FA)).ToList();
+        return Result<List<OAuthConnectionDto>>.Success(dtos);
+    }
+
+    public async Task<Result> ConnectOAuthProviderAsync(
+        string userPublicId, string provider, string providerUserId, CancellationToken ct = default)
+    {
+        var normalized = provider.ToLowerInvariant();
+
+        if (await userRepository.OAuthConnectionExistsAsync(normalized, providerUserId, ct))
+            return Result.Failure("PROVIDER_TAKEN_BY_OTHER");
+
+        var existing = await userRepository.GetOAuthConnectionsAsync(userPublicId, ct);
+        if (existing.Any(c => c.Provider == normalized))
+            return Result.Failure("ALREADY_CONNECTED");
+
+        var connection = UserOAuthConnection.Create(userPublicId, normalized, providerUserId);
+        await userRepository.AddOAuthConnectionAsync(connection, ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> DisconnectOAuthProviderAsync(
+        string userPublicId, string provider, CancellationToken ct = default)
+    {
+        var normalized = provider.ToLowerInvariant();
+
+        var user = await userRepository.GetByPublicIdAsync(UserId.From(userPublicId), ct);
+        if (user is null)
+            return Result.Failure("User not found.");
+
+        var connections = await userRepository.GetOAuthConnectionsAsync(userPublicId, ct);
+        var remainingConnections = connections.Count(c => c.Provider != normalized);
+
+        if (!user.HasPassword() && remainingConnections == 0)
+            return Result.Failure("LAST_AUTH_METHOD");
+
+        await userRepository.RemoveOAuthConnectionAsync(userPublicId, normalized, ct);
+        return Result.Success();
+    }
+
+    public async Task<Result> SetOAuthConnectionRequire2FAAsync(
+        string userPublicId, string provider, bool require, CancellationToken ct = default)
+    {
+        var normalized = provider.ToLowerInvariant();
+
+        if (normalized == "discord")
+            return Result.Failure("Discord always requires 2FA and cannot be configured.");
+
+        var connections = await userRepository.GetOAuthConnectionsAsync(userPublicId, ct);
+        var conn = connections.FirstOrDefault(c => c.Provider == normalized);
+        if (conn is null)
+            return Result.Failure("Connection not found.");
+
+        conn.SetRequire2FA(require);
+        await userRepository.UpdateOAuthConnectionAsync(conn, ct);
+        return Result.Success();
     }
 
     public async Task<Result> VerifyEmailAsync(string token)
@@ -285,6 +349,28 @@ public class AuthenticationUseCase(
         await userRepository.UpdateAsync(user);
         await displayNameHistoryRepository.AddAsync(user.PublicId.Value, previousName, trimmed);
 
+        return Result.Success();
+    }
+
+    public async Task<Result> SetEmailAsync(UserId userId, string email, CancellationToken ct = default)
+    {
+        var trimmed = email?.Trim().ToLowerInvariant() ?? "";
+        if (string.IsNullOrWhiteSpace(trimmed))
+            return Result.Failure("Email is required");
+
+        var existing = await userRepository.GetByEmailAsync(trimmed, ct);
+        if (existing is not null && existing.PublicId != userId)
+            return Result.Failure("EMAIL_TAKEN");
+
+        var user = await userRepository.GetByPublicIdAsync(userId, ct);
+        if (user is null)
+            return Result.Failure("User not found");
+
+        if (!string.IsNullOrEmpty(user.Email))
+            return Result.Failure("EMAIL_ALREADY_SET");
+
+        user.SetEmail(trimmed);
+        await userRepository.UpdateAsync(user, ct);
         return Result.Success();
     }
 
@@ -479,6 +565,109 @@ public class AuthenticationUseCase(
             return Result.Failure("User not found.");
 
         await socialLinkRepository.ReplaceAllAsync(internalId.Value, normalised);
+        return Result.Success();
+    }
+
+    public async Task<Result> RequestPasswordResetAsync(
+        string email, string baseUrl, string? ipAddress, string? userAgent, CancellationToken ct = default)
+    {
+        var emailHash = Convert.ToHexString(
+            SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(email.ToLowerInvariant().Trim())));
+
+        var requestCount = await passwordResetRequestRepository.CountByIpInWindowAsync(
+            ipAddress ?? "", TimeSpan.FromHours(1), ct);
+
+        if (requestCount >= 5)
+        {
+            await passwordResetRequestRepository.LogAsync(
+                emailHash, ipAddress ?? "", PasswordResetRequestOutcomeEnum.RateLimited, ct);
+            return Result.Success(); // Never reveal rate limiting to callers
+        }
+
+        var user = await userRepository.GetByEmailAsync(email, ct);
+
+        if (user is null)
+        {
+            await passwordResetRequestRepository.LogAsync(
+                emailHash, ipAddress ?? "", PasswordResetRequestOutcomeEnum.UserNotFound, ct);
+            return Result.Success(); // Never reveal whether the email is registered
+        }
+
+        if (!user.HasPassword())
+        {
+            await passwordResetRequestRepository.LogAsync(
+                emailHash, ipAddress ?? "", PasswordResetRequestOutcomeEnum.OAuthOnly, ct);
+            return Result.Success(); // Never reveal that the account is OAuth-only
+        }
+
+        var internalId = await userRepository.GetInternalIdByPublicIdAsync(user.PublicId.Value, ct);
+        if (internalId is null)
+            return Result.Success();
+
+        await passwordResetTokenRepository.InvalidateAllForUserAsync(internalId.Value, ct);
+
+        var rawTokenBytes = new byte[32];
+        RandomNumberGenerator.Fill(rawTokenBytes);
+        var rawToken = Convert.ToBase64String(rawTokenBytes)
+            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+
+        var tokenHash = Convert.ToHexString(
+            SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(rawToken)));
+
+        await passwordResetTokenRepository.CreateAsync(
+            internalId.Value, tokenHash, DateTime.UtcNow.AddHours(1), ipAddress, userAgent, ct);
+
+        await passwordResetRequestRepository.LogAsync(
+            emailHash, ipAddress ?? "", PasswordResetRequestOutcomeEnum.UserFound, ct);
+
+        await emailSender.SendPasswordResetAsync(
+            user.Email!, user.DisplayName ?? "there", rawToken, baseUrl, ct);
+
+        return Result.Success();
+    }
+
+    public async Task<Result> CompletePasswordResetAsync(
+        string rawToken, string newPassword, string? ipAddress, string? userAgent, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(rawToken))
+            return Result.Failure("Reset token is required.");
+
+        var tokenHash = Convert.ToHexString(
+            SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(rawToken)));
+
+        var tokenDto = await passwordResetTokenRepository.GetByTokenHashAsync(tokenHash, ct);
+
+        if (tokenDto is null || tokenDto.UsedAt.HasValue || tokenDto.ExpiresAt <= DateTime.UtcNow)
+            return Result.Failure("This password reset link is invalid or has expired.");
+
+        if (string.IsNullOrWhiteSpace(newPassword))
+            return Result.Failure("New password is required.");
+        if (newPassword.Length < 8)
+            return Result.Failure("Password must be at least 8 characters.");
+        if (!Regex.IsMatch(newPassword, @"[A-Z]"))
+            return Result.Failure("Password must contain at least one uppercase letter.");
+        if (!Regex.IsMatch(newPassword, @"[a-z]"))
+            return Result.Failure("Password must contain at least one lowercase letter.");
+        if (!Regex.IsMatch(newPassword, @"\d"))
+            return Result.Failure("Password must contain at least one number.");
+        if (!Regex.IsMatch(newPassword, @"[^a-zA-Z0-9]"))
+            return Result.Failure("Password must contain at least one special character.");
+
+        var userId = UserId.From(tokenDto.UserPublicId);
+        var user = await userRepository.GetByPublicIdAsync(userId, ct);
+
+        if (user is null)
+            return Result.Failure("This password reset link is invalid or has expired.");
+
+        user.SetPasswordHash(passwordHasher.HashPassword(newPassword));
+        user.IncrementAuthVersion();
+        await userRepository.UpdateAsync(user, ct);
+
+        await refreshTokenRepository.RevokeAllForUserAsync(userId);
+
+        await passwordResetTokenRepository.MarkUsedAsync(tokenDto.Id, ipAddress, userAgent, ct);
+        await passwordResetTokenRepository.InvalidateAllForUserAsync(tokenDto.UserId, ct);
+
         return Result.Success();
     }
 

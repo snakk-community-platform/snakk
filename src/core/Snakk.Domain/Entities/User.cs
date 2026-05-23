@@ -13,8 +13,6 @@ public class User
     public bool EmailVerified { get; private set; }
     public string? EmailVerificationToken { get; private set; }
     public DateTime? EmailVerificationTokenCreatedAt { get; private set; }
-    public string? OAuthProvider { get; private set; }
-    public string? OAuthProviderId { get; private set; }
     public string? Role { get; private set; } // "admin", "mod", or null for regular users
     public string? AvatarFileName { get; private set; } // Uploaded avatar filename (null = use generated)
     public string? AvatarThumbnailFileName { get; private set; } // 80x80 thumbnail of uploaded avatar
@@ -58,8 +56,6 @@ public class User
         string? passwordHash,
         bool emailVerified,
         string? emailVerificationToken,
-        string? oauthProvider,
-        string? oauthProviderId,
         string? role,
         string? avatarFileName,
         string? avatarThumbnailFileName,
@@ -94,8 +90,6 @@ public class User
         PasswordHash = passwordHash;
         EmailVerified = emailVerified;
         EmailVerificationToken = emailVerificationToken;
-        OAuthProvider = oauthProvider;
-        OAuthProviderId = oauthProviderId;
         Role = role;
         AvatarFileName = avatarFileName;
         AvatarThumbnailFileName = avatarThumbnailFileName;
@@ -146,8 +140,6 @@ public class User
             passwordHash,
             emailVerified: false,
             emailVerificationToken,
-            oauthProvider: null,
-            oauthProviderId: null,
             role: null,
             avatarFileName: null,
             avatarThumbnailFileName: null,
@@ -166,8 +158,6 @@ public class User
 
     public static User CreateWithOAuth(
         string email,
-        string oauthProvider,
-        string oauthProviderId,
         bool? allowAdultContent = null)
     {
         if (string.IsNullOrWhiteSpace(email))
@@ -180,8 +170,6 @@ public class User
             passwordHash: null,
             emailVerified: true, // OAuth email is pre-verified
             emailVerificationToken: null,
-            oauthProvider,
-            oauthProviderId,
             role: null,
             avatarFileName: null,
             avatarThumbnailFileName: null,
@@ -200,8 +188,7 @@ public class User
 
     public static User Create(
         string displayName,
-        string? email = null,
-        string? oauthProviderId = null)
+        string? email = null)
     {
         if (string.IsNullOrWhiteSpace(displayName))
             throw new ArgumentException("Display name cannot be empty", nameof(displayName));
@@ -213,8 +200,6 @@ public class User
             passwordHash: null,
             emailVerified: false,
             emailVerificationToken: null,
-            oauthProvider: null,
-            oauthProviderId,
             role: null,
             avatarFileName: null,
             avatarThumbnailFileName: null,
@@ -232,8 +217,6 @@ public class User
         string? passwordHash,
         bool emailVerified,
         string? emailVerificationToken,
-        string? oauthProvider,
-        string? oauthProviderId,
         string? role,
         string? avatarFileName,
         string? avatarThumbnailFileName,
@@ -268,8 +251,6 @@ public class User
             passwordHash,
             emailVerified,
             emailVerificationToken,
-            oauthProvider,
-            oauthProviderId,
             role,
             avatarFileName,
             avatarThumbnailFileName,
@@ -309,6 +290,15 @@ public class User
         LastModifiedAt = DateTime.UtcNow;
     }
 
+    public void SetEmail(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            throw new ArgumentException("Email cannot be empty", nameof(email));
+        Email = email.Trim().ToLowerInvariant();
+        EmailVerified = false;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
     public bool CanChangeDisplayName(int cooldownDays = 30)
     {
         if (IsDisplayNameLocked) return false;
@@ -337,7 +327,6 @@ public class User
     {
         DisplayName = "Anonymous User";
         Email = null;
-        OAuthProviderId = null;
         LastModifiedAt = DateTime.UtcNow;
     }
 
@@ -384,9 +373,6 @@ public class User
 
     public bool HasPassword() =>
         !string.IsNullOrEmpty(PasswordHash);
-
-    public bool IsOAuthUser() =>
-        !string.IsNullOrEmpty(OAuthProvider);
 
     public void SetAvatarFileName(string? fileName, string? thumbnailFileName = null, string? microFileName = null)
     {
