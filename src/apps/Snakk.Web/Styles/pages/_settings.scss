@@ -92,6 +92,33 @@
     font-size: 0.6875rem;
 }
 
+// Browser + OS stacked logo for session cards
+.sn-device-icon-stack {
+    position: relative;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex-shrink: 0;
+}
+
+.sn-device-browser-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: block;
+}
+
+.sn-device-os-badge {
+    position: absolute;
+    bottom: -0.2rem;
+    right: -0.2rem;
+    width: 1.125rem;
+    height: 1.125rem;
+    background: white;
+    border-radius: 50%;
+    padding: 0.125rem;
+    box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.12);
+    display: block;
+}
+
 // Trusted devices list (white-background card inside 2FA section)
 .sn-device-item {
     display: flex;
@@ -237,6 +264,7 @@
     outline: none;
     color: var(--text-primary);
 
+    &:focus { outline: none; }
     &::placeholder { color: var(--text-tertiary); }
 }
 

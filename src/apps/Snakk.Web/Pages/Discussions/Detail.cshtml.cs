@@ -20,10 +20,12 @@ public class DetailModel(
     IConfiguration configuration,
     ICommunityContext communityContext,
     IPrefetchCacheService prefetchCache,
-    DiscussionCreateRateLimiter rateLimiter) : BasePageModel(configuration, communityContext)
+    DiscussionCreateRateLimiter rateLimiter,
+    ViewCountBuffer viewCountBuffer) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
     private readonly DiscussionCreateRateLimiter _createRateLimiter = rateLimiter;
+    private readonly ViewCountBuffer _viewCountBuffer = viewCountBuffer;
 
     public DiscussionInfo? Discussion { get; set; }
     public PagedEnrichedPostList? Posts { get; set; }
@@ -201,6 +203,9 @@ public class DetailModel(
 
             Discussion = discussionResult.Value!;
             CanonicalUrl = $"{Configuration["WebBaseUrl"]?.TrimEnd('/') ?? $"{Request.Scheme}://{Request.Host}"}{Request.Path}";
+
+            var countryCode = HttpContext.Request.Headers["CF-IPCountry"].FirstOrDefault() ?? "XX";
+            _viewCountBuffer.Record(PublicId, countryCode);
 
             // Adult-content gating — short-circuit before loading posts/type-specific data
             var contentIsAdult = Discussion.IsAdult || Space?.IsAdultOnly == true;

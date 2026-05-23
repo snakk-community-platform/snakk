@@ -34,6 +34,9 @@ service StatisticsService {
   // Activity sparklines (pre-aggregated daily snapshots)
   rpc GetActivitySparkline (SparklineRequest) returns (SparklineResponse);
   rpc GetActivitySparklinesBatch (SparklineBatchRequest) returns (SparklineBatchResponse);
+
+  // Discussion view tracking (fire-and-forget batch flush from BFF)
+  rpc RecordBatchViews (RecordBatchViewsRequest) returns (RecordBatchViewsResponse);
 }
 
 // --- Requests ---
@@ -242,3 +245,17 @@ message SparklineDay {
 message SparklineResponse {
   repeated SparklineDay days = 1;
 }
+
+// --- Discussion view batch recording ---
+
+message DiscussionViewEntry {
+  string discussion_public_id = 1;
+  string country_code         = 2;
+  int64  count                = 3;
+}
+
+message RecordBatchViewsRequest {
+  repeated DiscussionViewEntry entries = 1;
+}
+
+message RecordBatchViewsResponse {}

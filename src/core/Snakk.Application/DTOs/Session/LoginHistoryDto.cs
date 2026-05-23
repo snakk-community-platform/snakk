@@ -6,6 +6,7 @@ public class LoginHistoryDto
     public required DateTime CreatedAt { get; set; }
     public bool Success { get; set; }
     public string? IpAddress { get; set; }
+    public string? UserAgent { get; set; }
     public string? DeviceHint { get; set; }
 }
 

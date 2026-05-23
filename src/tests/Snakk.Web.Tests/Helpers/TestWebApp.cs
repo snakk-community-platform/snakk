@@ -62,6 +62,12 @@ public class TestWebApp : WebApplicationFactory<Program>
         // Skip frontend npm build in test mode
         builder.UseSetting("SkipFrontendBuild", "true");
 
+        // Satisfy the DbConnection check in Program.cs (no real Postgres used in tests)
+        builder.UseSetting("ConnectionStrings:DbConnection", "Host=unused;Database=unused");
+
+        // Skip the EnsureSchemaAsync() startup call that requires a live Postgres connection
+        builder.UseSetting("SkipDatabaseInit", "true");
+
         // Ensure the setup wizard thinks setup is complete so it doesn't redirect
         // (setup completion is detected by the presence of conf/snakk-config.json)
         var tempStorage = Path.Combine(Path.GetTempPath(), "snakk-tests-" + Guid.NewGuid().ToString("N"));
@@ -107,6 +113,11 @@ public class TestWebApp : WebApplicationFactory<Program>
             // Replace the domain cache service with a simple stub that always returns "not found"
             services.RemoveAll<ICommunityDomainCacheService>();
             services.AddSingleton<ICommunityDomainCacheService, StubCommunityDomainCacheService>();
+
+            // Use ephemeral (in-memory) data protection — no Postgres key storage needed in tests
+            services.AddSingleton<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(
+                new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(
+                    Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance));
         });
     }
 

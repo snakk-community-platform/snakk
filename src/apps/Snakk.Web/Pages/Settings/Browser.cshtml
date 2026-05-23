@@ -98,143 +98,140 @@
             <!-- External Embeds -->
             <div id="section-embeds" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.BrowserEmbedsTitle</h3>
-                <p class="text-sm mb-2" style="color: var(--text-tertiary)">
+                <p class="text-sm mb-3" style="color: var(--text-tertiary)">
                     @T.Settings.BrowserEmbedsIntro
                 </p>
-                <div class="flex items-start gap-2 text-xs p-2.5 rounded-lg mb-4" style="color: var(--text-tertiary); background: color-mix(in srgb, var(--sidebar-bg) 30%, transparent);">
-                    <span class="icon icon-info-circle h-4 w-4 shrink-0 mt-0.5" aria-hidden="true"></span>
-                    <span>@T.Settings.BrowserEmbedsWarning</span>
+                <div class="callout-node-view callout-node-info mb-4 text-sm" style="border-left: none;">
+                    <span class="callout-node-icon">ℹ️</span>
+                    <div class="callout-node-body">@T.Settings.BrowserEmbedsWarning</div>
                 </div>
 
-                <div class="flex flex-col gap-4" id="embed-providers">
-                    <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupVideo</div>
-                        <div class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">YouTube</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="youtube">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">Vimeo</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="vimeo">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">TikTok</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="tiktok">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                        </div>
+                <div id="embed-providers" class="rounded-lg border border-base-300 overflow-hidden" style="background:#fff; color:#111;">
+                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupVideo</div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-youtube-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">YouTube</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="youtube">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
                     </div>
-                    <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupSocial</div>
-                        <div class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">Twitter / X</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="twitter">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">Bluesky</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="bluesky">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">Reddit</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="reddit">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-vimeo-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">Vimeo</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="vimeo">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
                     </div>
-                    <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupAudio</div>
-                        <div class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">Spotify</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="spotify">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">SoundCloud</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="soundcloud">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">Bandcamp</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="bandcamp">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-tiktok-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">TikTok</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="tiktok">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
                     </div>
-                    <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupStreaming</div>
-                        <div class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">Twitch</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="twitch">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                        </div>
+
+                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupSocial</div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-twitter-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">Twitter / X</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="twitter">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
                     </div>
-                    <div>
-                        <div class="text-xs font-semibold uppercase tracking-wider mb-2" style="color: var(--text-tertiary)">@T.Settings.BrowserGroupImages</div>
-                        <div class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">Imgur</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="imgur">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">CodePen</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="codepen">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                            <div class="flex items-center justify-between gap-3">
-                                <span class="text-sm">Canva</span>
-                                <select class="select select-sm select-bordered shrink-0" data-embed-provider="canva">
-                                    <option value="ask">@T.Settings.BrowserEmbedAsk</option>
-                                    <option value="allow">@T.Settings.BrowserEmbedAllow</option>
-                                    <option value="deny">@T.Settings.BrowserEmbedDeny</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-bluesky-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">Bluesky</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="bluesky">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
+                    </div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-reddit-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">Reddit</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="reddit">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
+                    </div>
+
+                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupAudio</div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-spotify-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">Spotify</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="spotify">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
+                    </div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-soundcloud-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">SoundCloud</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="soundcloud">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
+                    </div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-bandcamp-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">Bandcamp</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="bandcamp">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
+                    </div>
+
+                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupStreaming</div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-twitch-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">Twitch</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="twitch">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
+                    </div>
+
+                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupImages</div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-imgur-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">Imgur</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="imgur">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
+                    </div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-codepen-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">CodePen</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="codepen">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
+                    </div>
+                    <div class="sn-device-item">
+                        <img src="/icons/embed-canva-color.svg" width="20" height="20" alt="" aria-hidden="true">
+                        <div class="sn-device-info"><div class="sn-device-name">Canva</div></div>
+                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="canva">
+                            <option value="ask">@T.Settings.BrowserEmbedAsk</option>
+                            <option value="allow">@T.Settings.BrowserEmbedAllow</option>
+                            <option value="deny">@T.Settings.BrowserEmbedDeny</option>
+                        </select>
                     </div>
                 </div>
             </div>

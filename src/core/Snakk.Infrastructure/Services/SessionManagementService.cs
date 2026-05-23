@@ -191,6 +191,7 @@ public class SessionManagementService(
                 CreatedAt = h.CreatedAt,
                 Success = h.Success,
                 IpAddress = h.IpAddress,
+                UserAgent = h.UserAgent,
                 DeviceHint = h.DeviceHint
             })
             .ToListAsync(ct);

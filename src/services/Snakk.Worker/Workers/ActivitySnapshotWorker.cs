@@ -29,6 +29,9 @@ public class ActivitySnapshotWorker(
                 await repo.RefreshSnapshotsAsync(stoppingToken);
                 await repo.PruneAsync(90, stoppingToken);
 
+                var viewRepo = scope.ServiceProvider.GetRequiredService<IDiscussionViewRepository>();
+                await viewRepo.PruneAsync(90, stoppingToken);
+
                 logger.LogInformation("Activity snapshots refreshed");
             }
             catch (Exception ex)

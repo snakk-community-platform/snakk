@@ -201,6 +201,7 @@ public static class ServiceCollectionExtensions
 
         // Activity snapshot repository
         services.AddScoped<Application.Repositories.IActivitySnapshotRepository, Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
+        services.AddScoped<Application.Repositories.IDiscussionViewRepository, Infrastructure.Database.Repositories.DiscussionViewRepository>();
 
         // Dashboard Chart Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.IDashboardChartRepository, Infrastructure.Database.Repositories.DashboardChartRepository>();

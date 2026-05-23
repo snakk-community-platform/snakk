@@ -1,66 +1,93 @@
-// Generates Scripts/data/social-icons.ts from the simple-icons npm package.
+// Generates Scripts/data/social-icons.ts from bootstrap-icons and simple-icons.
 // Run via: node gen-social-icons.mjs
 
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import * as si from 'simple-icons';
 
-const platformMap = {
-    twitter:       'siX',           // Twitter rebranded to X
-    instagram:     'siInstagram',
-    threads:       'siThreads',
-    facebook:      'siFacebook',
-    // linkedin removed from simple-icons (brand request) — falls back to generic icon
-    pinterest:     'siPinterest',
-    reddit:        'siReddit',
-    snapchat:      'siSnapchat',
-    tiktok:        'siTiktok',
-    bluesky:       'siBluesky',
-    mastodon:      'siMastodon',
-    youtube:       'siYoutube',
-    twitch:        'siTwitch',
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const biDir = join(__dirname, 'node_modules/bootstrap-icons/icons');
+
+// Platforms using Bootstrap Icons (viewBox 0 0 16 16) — brand hex included here
+const biPlatforms = {
+    twitter:      { bi: 'twitter-x',  hex: '000000' },
+    instagram:    { bi: 'instagram',  hex: 'E1306C' },
+    threads:      { bi: 'threads',    hex: '000000' },
+    facebook:     { bi: 'facebook',   hex: '1877F2' },
+    pinterest:    { bi: 'pinterest',  hex: 'BD081C' },
+    reddit:       { bi: 'reddit',     hex: 'FF4500' },
+    snapchat:     { bi: 'snapchat',   hex: 'FFFC00' },
+    tiktok:       { bi: 'tiktok',     hex: '010101' },
+    bluesky:      { bi: 'bluesky',    hex: '0085FF' },
+    mastodon:     { bi: 'mastodon',   hex: '6364FF' },
+    youtube:      { bi: 'youtube',    hex: 'FF0000' },
+    twitch:       { bi: 'twitch',     hex: '9146FF' },
+    github:       { bi: 'github',     hex: '181717' },
+    gitlab:       { bi: 'gitlab',     hex: 'FC6D26' },
+    behance:      { bi: 'behance',    hex: '1769FF' },
+    dribbble:     { bi: 'dribbble',   hex: 'EA4C89' },
+    discord:      { bi: 'discord',    hex: '5865F2' },
+    telegram:     { bi: 'telegram',   hex: '26A5E4' },
+    spotify:      { bi: 'spotify',    hex: '1DB954' },
+    steam:        { bi: 'steam',      hex: '000000' },
+    vimeo:        { bi: 'vimeo',      hex: '1AB7EA' },
+    linkedin:     { bi: 'linkedin',   hex: '0A66C2' },
+};
+
+// Platforms using simple-icons (viewBox 0 0 24 24)
+const siPlatforms = {
     kick:          'siKick',
-    github:        'siGithub',
-    gitlab:        'siGitlab',
     stackoverflow: 'siStackoverflow',
-    // codepen removed from simple-icons (brand request) — falls back to generic icon
-    behance:       'siBehance',
-    dribbble:      'siDribbble',
     artstation:    'siArtstation',
     deviantart:    'siDeviantart',
     soundcloud:    'siSoundcloud',
     bandcamp:      'siBandcamp',
     letterboxd:    'siLetterboxd',
     goodreads:     'siGoodreads',
-    steam:         'siSteam',
     itch:          'siItchdotio',
     kofi:          'siKofi',
     patreon:       'siPatreon',
-    discord:       'siDiscord',
-    telegram:      'siTelegram',
 };
 
 // Heroicons globe-alt outline (24px viewBox) for the generic website entry
 const globePath = 'M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253M3 12a8.959 8.959 0 0 1 .284-2.253m0 4.506A11.95 11.95 0 0 1 3 12';
 
+function extractSvgInner(svgContent) {
+    const start = svgContent.indexOf('>') + 1;
+    const end = svgContent.lastIndexOf('</svg>');
+    return svgContent.slice(start, end).trim();
+}
+
 const entries = {};
 
-for (const [key, siKey] of Object.entries(platformMap)) {
-    const icon = si[siKey];
-    if (icon) {
-        entries[key] = { path: icon.path, hex: icon.hex };
-    } else {
-        console.warn(`gen-social-icons: no icon found for ${key} (${siKey})`);
+for (const [key, { bi, hex }] of Object.entries(biPlatforms)) {
+    try {
+        const svgContent = await readFile(join(biDir, `${bi}.svg`), 'utf-8');
+        const inner = extractSvgInner(svgContent);
+        entries[key] = { inner, hex, viewBox: '0 0 16 16' };
+    } catch (e) {
+        console.warn(`gen-social-icons: could not read BI icon ${bi}: ${e.message}`);
     }
 }
 
-entries.website = { path: globePath, hex: '6b7280' };
+for (const [key, siKey] of Object.entries(siPlatforms)) {
+    const icon = si[siKey];
+    if (icon) {
+        entries[key] = { inner: `<path d="${icon.path}"/>`, hex: icon.hex, viewBox: '0 0 24 24' };
+    } else {
+        console.warn(`gen-social-icons: no SI icon found for ${key} (${siKey})`);
+    }
+}
+
+entries.website = { inner: `<path d="${globePath}"/>`, hex: '6b7280', viewBox: '0 0 24 24' };
 
 const dataDir = './Scripts/data';
 if (!existsSync(dataDir)) await mkdir(dataDir, { recursive: true });
 
 const lines = Object.entries(entries)
-    .map(([k, v]) => `    ${JSON.stringify(k)}: { path: ${JSON.stringify(v.path)}, hex: ${JSON.stringify(v.hex)} }`);
+    .map(([k, v]) => `    ${JSON.stringify(k)}: { inner: ${JSON.stringify(v.inner)}, hex: ${JSON.stringify(v.hex)}, viewBox: ${JSON.stringify(v.viewBox)} }`);
 
 const output =
 `// <auto-generated> by gen-social-icons.mjs — do not edit manually

@@ -113,6 +113,7 @@ public static class SessionManagementEndpoints
             createdAt = e.CreatedAt,
             success = e.Success,
             ipAddress = e.IpAddress,
+            userAgent = e.UserAgent,
             deviceHint = e.DeviceHint
         }));
     }

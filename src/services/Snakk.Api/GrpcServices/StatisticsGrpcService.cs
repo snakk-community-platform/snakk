@@ -13,6 +13,7 @@ namespace Snakk.Api.GrpcServices;
 public class StatisticsGrpcService(
     StatisticsUseCase statisticsUseCase,
     IActivitySnapshotRepository activitySnapshotRepository,
+    IDiscussionViewRepository discussionViewRepository,
     IConfiguration configuration,
     ICurrentUserService currentUser) : StatisticsService.StatisticsServiceBase
 {
@@ -404,5 +405,22 @@ public class StatisticsGrpcService(
             response.Entries.Add(entry);
         }
         return response;
+    }
+
+    public override async Task<RecordBatchViewsResponse> RecordBatchViews(RecordBatchViewsRequest request, ServerCallContext context)
+    {
+        if (request.Entries.Count == 0)
+            return new RecordBatchViewsResponse();
+
+        var counts = request.Entries
+            .Where(e => !string.IsNullOrEmpty(e.DiscussionPublicId) && e.Count > 0)
+            .ToDictionary(
+                e => (e.DiscussionPublicId, e.CountryCode),
+                e => e.Count);
+
+        if (counts.Count > 0)
+            await discussionViewRepository.FlushViewsAsync(counts, context.CancellationToken);
+
+        return new RecordBatchViewsResponse();
     }
 }

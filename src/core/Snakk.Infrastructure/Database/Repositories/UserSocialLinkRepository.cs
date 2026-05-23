@@ -9,20 +9,22 @@ public class UserSocialLinkRepository(SnakkDbContext context) : IUserSocialLinkR
 {
     public async Task<List<(string Platform, string Username)>> GetByUserPublicIdAsync(string publicId, CancellationToken ct = default)
     {
-        return await context.UserSocialLinks
+        var rows = await context.UserSocialLinks
             .Where(l => l.UserPublicId == publicId)
             .OrderBy(l => l.Platform)
-            .Select(l => ValueTuple.Create(l.Platform, l.Username))
+            .Select(l => new { l.Platform, l.Username })
             .ToListAsync(ct);
+        return rows.Select(r => (r.Platform, r.Username)).ToList();
     }
 
     public async Task<List<(string Platform, string Username)>> GetByUserInternalIdAsync(int userId, CancellationToken ct = default)
     {
-        return await context.UserSocialLinks
+        var rows = await context.UserSocialLinks
             .Where(l => l.UserId == userId)
             .OrderBy(l => l.Platform)
-            .Select(l => ValueTuple.Create(l.Platform, l.Username))
+            .Select(l => new { l.Platform, l.Username })
             .ToListAsync(ct);
+        return rows.Select(r => (r.Platform, r.Username)).ToList();
     }
 
     public async Task ReplaceAllAsync(int userId, List<(string Platform, string Username)> links, CancellationToken ct = default)

@@ -33,7 +33,8 @@ public class TestWebServer : WebApplicationFactory<Program>
                 ["ConnectionStrings:DbConnection"] = "Host=localhost;Database=test;Username=test;Password=test",
                 ["FileStorage:BasePath"] = Path.GetTempPath(),
                 ["Realtime:BaseUrl"] = "http://localhost:15300",
-                ["Realtime:ApiKey"] = "test-api-key"
+                ["Realtime:ApiKey"] = "test-api-key",
+                ["SkipDatabaseInit"] = "true"
             };
             config.AddInMemoryCollection(testConfig);
         });
@@ -71,6 +72,11 @@ public class TestWebServer : WebApplicationFactory<Program>
                 services.Remove(descriptor);
 
             services.AddHealthChecks();
+
+            // Use ephemeral (in-memory) data protection — no Postgres key storage needed in tests
+            services.AddSingleton<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(
+                new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(
+                    Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance));
         });
     }
 

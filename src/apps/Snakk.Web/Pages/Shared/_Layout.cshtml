@@ -157,6 +157,24 @@
     }
     <script src="@SnakkUrlHelper.Js("components/share")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/sparkline")" asp-append-version="true" defer></script>
+    <script id="js-social-icons" hx-preserve src="@SnakkUrlHelper.Js("data/social-icons")" asp-append-version="true"></script>
+    <script nonce="@(Context.Items["csp-nonce"] as string)">(function () {
+        function hydrateSocialIcons() {
+            var icons = window.snakkSocialIcons;
+            if (!icons) return;
+            document.querySelectorAll('[data-platform] .sn-social-icon-box:not([data-si])').forEach(function (box) {
+                var el = box.closest('[data-platform]');
+                if (!el) return;
+                var icon = icons[el.dataset.platform];
+                if (!icon) return;
+                box.style.background = '#' + icon.hex;
+                box.innerHTML = '<svg viewBox="' + icon.viewBox + '" fill="white" style="width:13px;height:13px;display:block">' + icon.inner + '</svg>';
+                box.dataset.si = '1';
+            });
+        }
+        document.addEventListener('DOMContentLoaded', hydrateSocialIcons);
+        document.addEventListener('htmx:afterSettle', hydrateSocialIcons);
+    }());</script>
 
     @{
         var siteName = CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null

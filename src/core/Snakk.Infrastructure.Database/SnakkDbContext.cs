@@ -83,6 +83,9 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Activity snapshots (pre-aggregated time-series for sparklines)
     public DbSet<ActivityDailySnapshotDatabaseEntity> ActivityDailySnapshots { get; set; } = null!;
 
+    // Discussion view counts (hourly, by country)
+    public DbSet<DiscussionViewSnapshotDatabaseEntity> DiscussionViewSnapshots { get; set; } = null!;
+
     // Discussion types — allowed type permissions
     public DbSet<CommunityAllowedDiscussionTypeDatabaseEntity> CommunityAllowedDiscussionTypes { get; set; } = null!;
     public DbSet<HubAllowedDiscussionTypeDatabaseEntity> HubAllowedDiscussionTypes { get; set; } = null!;
@@ -1811,6 +1814,17 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
             entity.HasIndex(e => new { e.EntityType, e.EntityId, e.Date })
                   .HasDatabaseName("IX_ActivityDailySnapshot_EntityType_EntityId_Date");
+        });
+
+        // DiscussionViewSnapshot — unique per (hour, discussion, country)
+        modelBuilder.Entity<DiscussionViewSnapshotDatabaseEntity>(entity =>
+        {
+            entity.HasIndex(e => new { e.Hour, e.DiscussionPublicId, e.CountryCode })
+                  .IsUnique()
+                  .HasDatabaseName("IX_DiscussionViewSnapshot_Hour_DiscussionPublicId_CountryCode");
+
+            entity.HasIndex(e => new { e.DiscussionPublicId, e.Hour })
+                  .HasDatabaseName("IX_DiscussionViewSnapshot_DiscussionPublicId_Hour");
         });
 
         // === Performance Indexes ===

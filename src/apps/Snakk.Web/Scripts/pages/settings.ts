@@ -757,6 +757,50 @@ interface SettingsPageConfig {
         }
     }
 
+    function parseBrowser(ua: string): string {
+        if (!ua) return 'browser';
+        if (ua.includes('Edg/') || ua.includes('EdgA/')) return 'edge';
+        if (ua.includes('OPR/') || ua.includes('Opera')) return 'opera';
+        if (ua.includes('SamsungBrowser')) return 'samsung';
+        if (ua.includes('Chrome') || ua.includes('Chromium')) return 'chrome';
+        if (ua.includes('Firefox') || ua.includes('FxiOS')) return 'firefox';
+        if (ua.includes('Safari')) return 'safari';
+        return 'browser';
+    }
+
+    function parseOs(ua: string): string {
+        if (!ua) return 'unknown';
+        if (ua.includes('Android')) return 'android';
+        if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iPod')) return 'ios';
+        if (ua.includes('Windows')) return 'windows';
+        if (ua.includes('Mac OS X') || ua.includes('Macintosh')) return 'macos';
+        if (ua.includes('Linux') || ua.includes('X11')) return 'linux';
+        return 'unknown';
+    }
+
+    function buildDeviceIconStack(ua: string): HTMLElement {
+        const stack = document.createElement('div');
+        stack.className = 'sn-device-icon-stack';
+
+        const browser = parseBrowser(ua);
+        const browserImg = document.createElement('img');
+        browserImg.src = `/icons/brand-${browser}-color.svg`;
+        browserImg.alt = browser;
+        browserImg.className = 'sn-device-browser-icon';
+        stack.appendChild(browserImg);
+
+        const os = parseOs(ua);
+        if (os !== 'unknown') {
+            const osImg = document.createElement('img');
+            osImg.src = `/icons/os-${os}-color.svg`;
+            osImg.alt = os;
+            osImg.className = 'sn-device-os-badge';
+            stack.appendChild(osImg);
+        }
+
+        return stack;
+    }
+
     function parseUserAgent(ua: string): string {
         if (!ua) return 'Unknown Device';
         if (ua.includes('Firefox')) return 'Firefox';
@@ -795,12 +839,32 @@ interface SettingsPageConfig {
             deniedPrefs = JSON.parse(localStorage.getItem('snakk:embed-denied-providers') || '{}');
         } catch { /* ignore */ }
 
+        function updateEmbedIndicator(select: HTMLSelectElement): void {
+            let indicator = select.previousElementSibling as HTMLElement | null;
+            if (!indicator || !indicator.classList.contains('embed-state-indicator')) {
+                indicator = document.createElement('span');
+                indicator.className = 'embed-state-indicator';
+                indicator.style.cssText = 'font-size:0.875rem;font-weight:700;flex-shrink:0;width:1rem;text-align:center;line-height:1';
+                select.parentElement!.insertBefore(indicator, select);
+            }
+            if (select.value === 'allow') {
+                indicator.textContent = '✓';
+                indicator.style.color = '#16a34a';
+            } else if (select.value === 'deny') {
+                indicator.textContent = '✗';
+                indicator.style.color = '#dc2626';
+            } else {
+                indicator.textContent = '';
+            }
+        }
+
         const selects = container.querySelectorAll<HTMLSelectElement>('select[data-embed-provider]');
         selects.forEach(select => {
             const provider = select.dataset.embedProvider || '';
-            if (autoPrefs[provider])   select.value = 'allow';
+            if (autoPrefs[provider])        select.value = 'allow';
             else if (deniedPrefs[provider]) select.value = 'deny';
             else                            select.value = 'ask';
+            updateEmbedIndicator(select);
         });
 
         container.addEventListener('change', (e) => {
@@ -823,6 +887,7 @@ interface SettingsPageConfig {
 
             localStorage.setItem('snakk:embed-providers',        JSON.stringify(autoPrefs));
             localStorage.setItem('snakk:embed-denied-providers', JSON.stringify(deniedPrefs));
+            updateEmbedIndicator(select);
         });
     }
 
@@ -1965,6 +2030,8 @@ interface SettingsPageConfig {
         const item = document.createElement('div');
         item.className = 'sn-device-item';
 
+        item.appendChild(buildDeviceIconStack(session.userAgent || ''));
+
         const info = document.createElement('div');
         info.className = 'sn-device-info';
 
@@ -2066,6 +2133,8 @@ interface SettingsPageConfig {
     function buildLogEntry(entry: any): HTMLElement {
         const item = document.createElement('div');
         item.className = 'sn-device-item';
+
+        item.appendChild(buildDeviceIconStack(entry.userAgent || ''));
 
         const info = document.createElement('div');
         info.className = 'sn-device-info';
@@ -2306,7 +2375,7 @@ interface SettingsPageConfig {
         const platforms: PlatformDef[] = JSON.parse(
             document.getElementById('platforms-data')?.textContent || '[]'
         );
-        interface SocialIconDef { path: string; hex: string; }
+        interface SocialIconDef { inner: string; hex: string; viewBox: string; }
         const icons: Record<string, SocialIconDef> = (window as any).snakkSocialIcons ?? {};
 
         let links: SocialLink[] = [];
@@ -2328,13 +2397,11 @@ interface SettingsPageConfig {
         const addError     = document.getElementById('social-add-error')!;
         const modalAddBtn  = document.getElementById('social-modal-add') as HTMLButtonElement;
 
-        function makeSvg(path: string): SVGSVGElement {
+        function makeSvg(def: SocialIconDef): SVGSVGElement {
             const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.setAttribute('viewBox', '0 0 24 24');
+            svg.setAttribute('viewBox', def.viewBox);
             svg.setAttribute('aria-hidden', 'true');
-            const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            p.setAttribute('d', path);
-            svg.appendChild(p);
+            svg.innerHTML = def.inner;
             return svg;
         }
 
@@ -2384,7 +2451,7 @@ interface SettingsPageConfig {
             const iconDef = icons[p.key];
             if (iconDef) {
                 iconWrap.style.color = `#${iconDef.hex}`;
-                iconWrap.appendChild(makeSvg(iconDef.path));
+                iconWrap.appendChild(makeSvg(iconDef));
             }
 
             const name = document.createElement('span');
@@ -2405,7 +2472,7 @@ interface SettingsPageConfig {
             const selectedIconDef = icons[p.key];
             if (selectedIconDef) {
                 selectedIconEl.style.color = `#${selectedIconDef.hex}`;
-                selectedIconEl.appendChild(makeSvg(selectedIconDef.path));
+                selectedIconEl.appendChild(makeSvg(selectedIconDef));
             }
             selectedNameEl.textContent = p.displayName;
 
@@ -2454,13 +2521,18 @@ interface SettingsPageConfig {
                 return;
             }
 
-            links.push({ platform: selectedPlatform.key, displayName: selectedPlatform.displayName, username: raw, url: null });
+            const addedPlatform = selectedPlatform.key;
+            links.push({ platform: addedPlatform, displayName: selectedPlatform.displayName, username: raw, url: null });
             closeModal('modal-add-social');
             renderLinks();
-            await saveLinks();
+            const ok = await saveLinks();
+            if (!ok) {
+                links = links.filter(l => l.platform !== addedPlatform);
+                renderLinks();
+            }
         }
 
-        async function saveLinks(): Promise<void> {
+        async function saveLinks(): Promise<boolean> {
             const payload = { links: links.map(l => ({ platform: l.platform, value: l.username })) };
             try {
                 const res = await fetch('/bff/me/social', {
@@ -2469,8 +2541,15 @@ interface SettingsPageConfig {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (res.ok) await loadLinks();
-            } catch { /* silent — list already updated optimistically */ }
+                if (res.ok) { await loadLinks(); return true; }
+                let msg = 'Could not save your social links. Please try again.';
+                try { const d = await res.json(); if (d.error) msg = d.error; } catch {}
+                showMessage(msg, true);
+                return false;
+            } catch {
+                showMessage('Could not save your social links. Please try again.', true);
+                return false;
+            }
         }
 
         async function loadLinks(): Promise<void> {
@@ -2512,7 +2591,7 @@ interface SettingsPageConfig {
             const rowIconDef = icons[link.platform];
             if (rowIconDef) {
                 iconWrap.style.color = `#${rowIconDef.hex}`;
-                const svg = makeSvg(rowIconDef.path);
+                const svg = makeSvg(rowIconDef);
                 svg.style.cssText = 'width:1.25rem;height:1.25rem;fill:currentColor';
                 iconWrap.appendChild(svg);
             }
@@ -2548,9 +2627,11 @@ interface SettingsPageConfig {
             removeBtn.className = 'sn-device-revoke';
             removeBtn.textContent = 'Remove';
             removeBtn.addEventListener('click', async () => {
+                const prev = [...links];
                 links = links.filter(l => l.platform !== link.platform);
                 renderLinks();
-                await saveLinks();
+                const ok = await saveLinks();
+                if (!ok) { links = prev; renderLinks(); }
             });
             item.appendChild(removeBtn);
 

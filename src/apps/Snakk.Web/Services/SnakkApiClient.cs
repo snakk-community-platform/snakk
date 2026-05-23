@@ -1134,6 +1134,24 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
+    public virtual async Task RecordBatchViewsAsync(IReadOnlyDictionary<(string DiscussionPublicId, string CountryCode), long> counts, CancellationToken ct = default)
+    {
+        if (counts.Count == 0) return;
+        try
+        {
+            var request = new Snakk.Protos.Statistics.RecordBatchViewsRequest();
+            foreach (var ((publicId, country), count) in counts)
+                request.Entries.Add(new Snakk.Protos.Statistics.DiscussionViewEntry
+                {
+                    DiscussionPublicId = publicId,
+                    CountryCode = country,
+                    Count = count
+                });
+            await statisticsClient.RecordBatchViewsAsync(request, cancellationToken: ct);
+        }
+        catch (RpcException ex) { LogGrpcError(ex); }
+    }
+
     // Endless scroll (alias for GetDiscussionsBySpaceAsync)
     public virtual Task<PagedDiscussionBySpaceList?> GetSpaceDiscussionsAsync(string spaceId, int offset, int pageSize, string? cursor = null, bool viewerAllowsAdult = false, CancellationToken ct = default)
         => GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, cursor: cursor, viewerAllowsAdult: viewerAllowsAdult, ct: ct);

@@ -59,18 +59,24 @@
                                 if (link.Url is not null)
                                 {
                                     <a href="@link.Url" target="_blank" rel="noopener noreferrer"
-                                       class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-                                       style="background: var(--surface-secondary); border: 1px solid var(--border-secondary); color: var(--color-primary)"
-                                       title="@link.DisplayName">
-                                        @link.DisplayName
+                                       class="shadow inline-flex items-center rounded overflow-hidden text-xs font-medium"
+                                       style="text-decoration: none; color: var(--text-primary)"
+                                       data-platform="@link.Platform"
+                                       title="@link.Username">
+                                        <span class="sn-social-icon-box flex items-center justify-center"
+                                              style="width: 24px; height: 24px; background: var(--surface-secondary); flex-shrink: 0"></span>
+                                        <span style="padding: 0 8px; line-height: 24px; background: rgba(255,255,255,0.75); color: #111">@link.DisplayName</span>
                                     </a>
                                 }
                                 else
                                 {
-                                    <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full"
-                                          style="background: var(--surface-secondary); border: 1px solid var(--border-secondary); color: var(--text-secondary)"
-                                          title="@link.DisplayName: @link.Username">
-                                        @link.DisplayName: @link.Username
+                                    <span class="shadow inline-flex items-center rounded overflow-hidden text-xs font-medium"
+                                          style="color: var(--text-secondary)"
+                                          data-platform="@link.Platform"
+                                          title="@link.Username">
+                                        <span class="sn-social-icon-box flex items-center justify-center"
+                                              style="width: 24px; height: 24px; background: var(--surface-secondary); flex-shrink: 0"></span>
+                                        <span style="padding: 0 8px; line-height: 24px; background: rgba(255,255,255,0.75); color: #111">@link.DisplayName</span>
                                     </span>
                                 }
                             }
@@ -280,35 +286,6 @@
                             </div>
                             <span class="achievement-name">@a.Name</span>
                         </div>
-                    }
-                </div>
-            </div>
-        }
-
-        <!-- Social Links -->
-        @if (Model.SocialLinks is { Count: > 0 })
-        {
-            <div class="sn-right-section">
-                <div class="sn-right-title">Links</div>
-                <div class="flex flex-col gap-1.5">
-                    @foreach (var link in Model.SocialLinks)
-                    {
-                        if (link.Url is not null)
-                        {
-                            <a href="@link.Url" target="_blank" rel="noopener noreferrer"
-                               class="flex items-center justify-between gap-2 min-w-0"
-                               style="color:var(--text-primary);text-decoration:none">
-                                <span class="text-sm font-medium shrink-0">@link.DisplayName</span>
-                                <span class="truncate text-xs" style="color:var(--text-tertiary)">@link.Username</span>
-                            </a>
-                        }
-                        else
-                        {
-                            <div class="flex items-center justify-between gap-2 min-w-0">
-                                <span class="text-sm font-medium shrink-0">@link.DisplayName</span>
-                                <span class="truncate text-xs" style="color:var(--text-tertiary)">@link.Username</span>
-                            </div>
-                        }
                     }
                 </div>
             </div>

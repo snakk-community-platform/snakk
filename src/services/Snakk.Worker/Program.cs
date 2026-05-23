@@ -97,6 +97,7 @@ builder.Services.AddHttpClient("WebhookService", client =>
 
 // Activity snapshot repository
 builder.Services.AddScoped<Snakk.Application.Repositories.IActivitySnapshotRepository, Snakk.Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
+builder.Services.AddScoped<Snakk.Application.Repositories.IDiscussionViewRepository, Snakk.Infrastructure.Database.Repositories.DiscussionViewRepository>();
 
 // Background workers
 // AchievementCheckerWorker disabled — will be rewritten as event-driven

@@ -272,6 +272,10 @@ builder.Services.AddHostedService<GrpcChannelWarmupService>();
 builder.Services.AddSingleton<SiteSettingsCacheService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteSettingsCacheService>());
 
+// Discussion view counting (in-process buffer flushed periodically via gRPC)
+builder.Services.AddSingleton<ViewCountBuffer>();
+builder.Services.AddHostedService<ViewCountFlushService>();
+
 // JWT-based authentication from SSO service
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
     ?? throw new InvalidOperationException(
@@ -391,10 +395,13 @@ builder.Services.AddHsts(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+if (!app.Configuration.GetValue<bool>("SkipDatabaseInit"))
 {
-    var dpDb = scope.ServiceProvider.GetRequiredService<DataProtectionDbContext>();
-    await dpDb.EnsureSchemaAsync();
+    using (var scope = app.Services.CreateScope())
+    {
+        var dpDb = scope.ServiceProvider.GetRequiredService<DataProtectionDbContext>();
+        await dpDb.EnsureSchemaAsync();
+    }
 }
 
 //app.UseSerilogRequestLogging();

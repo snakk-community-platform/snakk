@@ -101,10 +101,13 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+if (!app.Configuration.GetValue<bool>("SkipDatabaseInit"))
 {
-    var dpDb = scope.ServiceProvider.GetRequiredService<DataProtectionDbContext>();
-    await dpDb.EnsureSchemaAsync();
+    using (var scope = app.Services.CreateScope())
+    {
+        var dpDb = scope.ServiceProvider.GetRequiredService<DataProtectionDbContext>();
+        await dpDb.EnsureSchemaAsync();
+    }
 }
 
 // Configure avatar URL base from file storage settings
