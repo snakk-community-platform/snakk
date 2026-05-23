@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Snakk.Api.Tests.Helpers;
+using Snakk.Infrastructure.Database;
 
 namespace Snakk.Api.Tests.Endpoints;
 
@@ -219,6 +222,61 @@ public class AuthEndpointTests : IAsyncDisposable
         await Assert.That(cacheControl).IsNotNull();
         await Assert.That(cacheControl!.NoStore).IsTrue();
         await Assert.That(cacheControl!.NoCache).IsTrue();
+    }
+
+    // Regression: prior to fix/rest-2fa-bypass-paths, /auth/login on the REST surface
+    // ignored TwoFactorEnabled and issued a full access+refresh pair on the strength of
+    // (email, password) alone — turning 2FA off for any client that bypassed Snakk.Auth
+    // (which uses gRPC) and called the REST endpoint directly. Login now mirrors the
+    // gRPC Login contract: when 2FA is on, no session is issued; the caller receives a
+    // short-lived pending token and must complete /auth/2fa/verify.
+    [Test]
+    public async Task Login_When2FAEnabled_Returns_RequiresTwoFactor_NoSessionTokens()
+    {
+        // Arrange — register a user, then flip TwoFactorEnabled on the in-memory DB.
+        var client = _server.CreateClient();
+        var registerRequest = new
+        {
+            email = "login2fa@example.com",
+            password = "StrongP@ssw0rd!",
+            displayName = "Login2FAUser"
+        };
+        var registerResponse = await client.PostAsJsonAsync("/auth/register", registerRequest);
+        await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var registerJson = JsonDocument.Parse(await registerResponse.Content.ReadAsStringAsync());
+        var userPublicId = registerJson.RootElement.GetProperty("user").GetProperty("id").GetString()!;
+
+        // Direct DB mutation: register stores Email encrypted, so we look up by PublicId.
+        using (var scope = _server.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<SnakkDbContext>();
+            var user = await db.Users.FirstAsync(u => u.PublicId == userPublicId);
+            user.TwoFactorEnabled = true;
+            await db.SaveChangesAsync();
+        }
+
+        // Act
+        var loginRequest = new
+        {
+            email = "login2fa@example.com",
+            password = "StrongP@ssw0rd!"
+        };
+        var response = await client.PostAsJsonAsync("/auth/login", loginRequest);
+
+        // Assert — 200 with requiresTwoFactor=true; no access/refresh token issued
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var content = await response.Content.ReadAsStringAsync();
+        var json = JsonDocument.Parse(content);
+
+        await Assert.That(json.RootElement.GetProperty("requiresTwoFactor").GetBoolean()).IsTrue();
+        await Assert.That(json.RootElement.TryGetProperty("twoFactorPendingToken", out var pendingToken)).IsTrue();
+        await Assert.That(string.IsNullOrEmpty(pendingToken.GetString())).IsFalse();
+
+        // The contract change is the whole point: no session credentials must leak here.
+        await Assert.That(json.RootElement.TryGetProperty("accessToken", out _)).IsFalse();
+        await Assert.That(json.RootElement.TryGetProperty("refreshToken", out _)).IsFalse();
     }
 
     public async ValueTask DisposeAsync()

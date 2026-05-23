@@ -65,6 +65,13 @@ public class TestWebServer : WebApplicationFactory<Program>
             services.AddSingleton<IDbContextFactory<SnakkDbContext>>(
                 new TestDbContextFactory(_databaseName));
 
+            // DataProtectionDbContext was added by commit 0af6027 (DataProtection keys in
+            // Postgres) but the production registration uses UseNpgsql, which the InMemory
+            // test provider rejects. Re-register against the same InMemory store so the
+            // Program.cs startup that resolves it during EnsureSchemaAsync succeeds.
+            services.AddDbContext<DataProtectionDbContext>(options =>
+                options.UseInMemoryDatabase(_databaseName + "_dp"));
+
             // Remove the health check that requires a real DB connection
             var healthCheckDescriptors = services.Where(d =>
                 d.ServiceType.FullName?.Contains("HealthCheck") == true).ToList();
