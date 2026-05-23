@@ -28,7 +28,12 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
 
     public async Task SaveAsync(DiscussionReadState readState, CancellationToken ct = default)
     {
+        // AsTracking() so the LastReadPostId / LastReadAt mutations on the existing
+        // row actually persist. Without this, EF's default NoTracking behavior on
+        // SnakkDbContext silently dropped every update past the first row insert,
+        // leaving the unread indicator stuck at the first-ever read position (CR-26).
         var existing = await dbContext.DiscussionReadStates
+            .AsTracking()
             .FirstOrDefaultAsync(rs =>
                 rs.UserId == readState.UserId.Value
                 && rs.DiscussionId == readState.DiscussionId.Value, ct);
@@ -62,6 +67,7 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
         var discussionIds = states.Select(rs => rs.DiscussionId.Value).ToList();
 
         var existingEntities = await dbContext.DiscussionReadStates
+            .AsTracking()
             .Where(rs => rs.UserId == userId && discussionIds.Contains(rs.DiscussionId))
             .ToListAsync(ct);
 

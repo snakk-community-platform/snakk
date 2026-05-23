@@ -125,7 +125,12 @@ public class SessionManagementService(
         }
 
         var now = DateTime.UtcNow;
+        // AsTracking() so the RevokedAt / RevocationReason mutations below actually
+        // persist. The companion RevokeSessionAsync method already uses it (line 90);
+        // this bulk path was missing the call, so "Sign out of all other sessions"
+        // returned a count but did not actually revoke any sessions (CR-27).
         var tokensToRevoke = await context.RefreshTokens
+            .AsTracking()
             .Where(t =>
                 t.UserId == user.Id
                 && t.PublicId != excludeSessionId
