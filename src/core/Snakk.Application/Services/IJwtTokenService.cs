@@ -35,6 +35,14 @@ public interface IJwtTokenService
     void RevokeSession(string sessionPublicId);
 
     /// <summary>
+    /// Returns true if the given session public ID has been revoked via
+    /// <see cref="RevokeSession"/>. Used by <c>JwtBearerEvents.OnTokenValidated</c>
+    /// so REST endpoints honor session revocation — previously the cache entry
+    /// was written but no validation path checked it.
+    /// </summary>
+    bool IsSessionRevoked(string sessionPublicId);
+
+    /// <summary>
     /// Issues a short-lived (5 min) token that proves the bearer has already cleared
     /// the password step of a 2FA login. Bound to the user's public ID; issued for a
     /// distinct JWT audience so the access-token validator rejects it as a session token.
