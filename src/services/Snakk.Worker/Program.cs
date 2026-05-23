@@ -53,13 +53,16 @@ builder.Services.AddHybridCache();
 // File Storage for avatars
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
 
-// Services needed by workers
-// Persist Data Protection keys so encrypted email addresses survive restarts.
-var dataProtectionPath = Path.Combine(sharedConfigDir, "dataprotection-keys");
-Directory.CreateDirectory(dataProtectionPath);
+// Persist Data Protection keys in Postgres — shared across all services,
+// durable as app data, and read at most once per 24 h (cached in memory).
+builder.Services.AddDbContext<DataProtectionDbContext>(opts =>
+    opts.UseNpgsql(
+        builder.Configuration.GetConnectionString("DbConnection")
+        ?? throw new InvalidOperationException("DbConnection not configured")));
+
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
-    .SetApplicationName("Snakk");
+    .SetApplicationName("Snakk")
+    .PersistKeysToDbContext<DataProtectionDbContext>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IEmailProtector, EmailProtector>();
 builder.Services.AddScoped<IUserGrantsCacheService, UserGrantsCacheService>();
@@ -96,7 +99,8 @@ builder.Services.AddHttpClient("WebhookService", client =>
 builder.Services.AddScoped<Snakk.Application.Repositories.IActivitySnapshotRepository, Snakk.Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
 
 // Background workers
-builder.Services.AddHostedService<AchievementCheckerWorker>();
+// AchievementCheckerWorker disabled — will be rewritten as event-driven
+// builder.Services.AddHostedService<AchievementCheckerWorker>();
 builder.Services.AddHostedService<TemporaryRoleExpirationWorker>();
 // builder.Services.AddHostedService<WebhookRetryWorker>(); // not yet implemented
 builder.Services.AddHostedService<AvatarGenerationHostedService>();
@@ -104,4 +108,11 @@ builder.Services.AddHostedService<OrphanMediaCleanupWorker>();
 builder.Services.AddHostedService<ActivitySnapshotWorker>();
 
 var host = builder.Build();
+
+using (var scope = host.Services.CreateScope())
+{
+    var dpDb = scope.ServiceProvider.GetRequiredService<DataProtectionDbContext>();
+    await dpDb.EnsureSchemaAsync();
+}
+
 host.Run();

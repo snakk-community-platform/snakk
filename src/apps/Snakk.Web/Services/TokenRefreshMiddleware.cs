@@ -6,16 +6,15 @@ using Snakk.Protos.Auth;
 namespace Snakk.Web.Services;
 
 /// <summary>
-/// Runs before UseAuthentication(). If the access token cookie is expired but a valid
-/// refresh token cookie exists, silently exchanges it for new tokens. The refreshed tokens
-/// are stored in HttpContext.Items so GrpcAuthInterceptor and OnMessageReceived can use
-/// them without triggering a second (invalid) refresh with the now-rotated refresh token.
-/// Uses request coalescing so only one refresh call is made per token under concurrent load.
+/// Proactively refreshes the access token when it is about to expire (within 2 minutes).
+/// Because the old token is still valid at that point, the refresh runs in the background —
+/// the current request is never blocked. New cookies are applied via OnStarting if the
+/// refresh completes before the response headers flush. Uses request coalescing so only one
+/// refresh call is made per token under concurrent load.
 /// </summary>
 public class TokenRefreshMiddleware(RequestDelegate next)
 {
     public const string RefreshedAccessTokenKey = "RefreshedAccessToken";
-    public const string RefreshedRefreshTokenKey = "RefreshedRefreshToken";
 
     // Single-flight: concurrent requests sharing the same refresh token share one refresh call
     private static readonly ConcurrentDictionary<string, Lazy<Task<RefreshResult>>> _inFlight = new();
@@ -25,42 +24,29 @@ public class TokenRefreshMiddleware(RequestDelegate next)
         var accessToken = context.Request.Cookies[AuthCookieHelper.AccessCookieName];
         var refreshToken = context.Request.Cookies[AuthCookieHelper.RefreshCookieName];
 
-        if (!string.IsNullOrEmpty(refreshToken) && IsExpired(accessToken))
+        if (!string.IsNullOrEmpty(refreshToken) && IsAboutToExpire(accessToken))
         {
-            RefreshResult? result = null;
-            try
-            {
-                var lazyTask = _inFlight.GetOrAdd(refreshToken, key =>
-                    new Lazy<Task<RefreshResult>>(() => ExecuteRefreshAsync(authClient, key)));
+            var lazyTask = _inFlight.GetOrAdd(refreshToken, key =>
+                new Lazy<Task<RefreshResult>>(() => ExecuteRefreshAsync(authClient, key)));
 
-                try
-                {
-                    result = await lazyTask.Value.WaitAsync(TimeSpan.FromSeconds(15));
-                }
-                finally
-                {
-                    _inFlight.TryRemove(refreshToken, out _);
-                }
-            }
-            catch (TimeoutException)
-            {
-                // API startup or overload — proceed anonymously, cookies intact for next request
-            }
-            catch
-            {
-                // Swallow unexpected failures — proceed anonymously
-            }
+            var refreshTask = lazyTask.Value;
 
-            if (result?.AccessToken is not null && result.RefreshToken is not null)
+            _ = refreshTask.ContinueWith(t => _inFlight.TryRemove(refreshToken, out _));
+
+            // Apply new tokens if the refresh completes before response headers are flushed.
+            // The current request proceeds immediately with the still-valid old token.
+            context.Response.OnStarting(() =>
             {
-                context.Items[RefreshedAccessTokenKey] = result.AccessToken;
-                context.Items[RefreshedRefreshTokenKey] = result.RefreshToken;
-                AuthCookieHelper.SetAuthCookies(context, result.AccessToken, result.RefreshToken);
-            }
-            else if (result?.ShouldClearCookies == true)
-            {
-                AuthCookieHelper.DeleteAuthCookies(context);
-            }
+                if (refreshTask.IsCompletedSuccessfully)
+                {
+                    var result = refreshTask.Result;
+                    if (result.AccessToken is not null && result.RefreshToken is not null)
+                        AuthCookieHelper.SetAuthCookies(context, result.AccessToken, result.RefreshToken);
+                    else if (result.ShouldClearCookies)
+                        AuthCookieHelper.DeleteAuthCookies(context);
+                }
+                return Task.CompletedTask;
+            });
         }
 
         await next(context);
@@ -87,18 +73,17 @@ public class TokenRefreshMiddleware(RequestDelegate next)
         }
         catch
         {
-            // Transient failure — preserve cookies so next request can retry
             return new RefreshResult(null, null, ShouldClearCookies: false);
         }
     }
 
-    private static bool IsExpired(string? token)
+    private static bool IsAboutToExpire(string? token)
     {
         if (string.IsNullOrEmpty(token)) return false;
         try
         {
             var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
-            return jwt.ValidTo <= DateTime.UtcNow;
+            return jwt.ValidTo <= DateTime.UtcNow.AddMinutes(2);
         }
         catch
         {

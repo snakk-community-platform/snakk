@@ -6,6 +6,8 @@ using Snakk.Web.Endpoints;
 using Snakk.Web.Helpers;
 using Snakk.Shared.Helpers;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Snakk.Infrastructure.Database;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -261,6 +263,11 @@ AddGrpcClient<Snakk.Protos.TwoFactor.TwoFactorService.TwoFactorServiceClient>(bu
 // Register SnakkApiClient (DI resolves all gRPC clients automatically)
 builder.Services.AddSingleton<SnakkApiClient>();
 
+// Eagerly connect the gRPC channel before SiteSettingsCacheService (or any other hosted
+// service) makes the first gRPC call. Without this, a failed first attempt (API not ready yet)
+// puts the channel into TRANSIENT_FAILURE backoff — making the first user requests wait ~20s.
+builder.Services.AddHostedService<GrpcChannelWarmupService>();
+
 // Site settings cache (background service — refreshes site timezone every 10 min)
 builder.Services.AddSingleton<SiteSettingsCacheService>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteSettingsCacheService>());
@@ -365,15 +372,16 @@ static string GetRateLimitPartitionKey(HttpContext ctx)
         : $"user:{userId}";
 }
 
-// Persist Data Protection keys to shared storage so antiforgery + auth cookies
-// survive container restarts and can be decrypted by Snakk.Auth/Snakk.Admin too.
-var dataProtectionPath = Path.Combine(
-    builder.Configuration["FileStorage:BasePath"] ?? "/app/storage",
-    "dataprotection-keys");
-Directory.CreateDirectory(dataProtectionPath);
+// Persist Data Protection keys in Postgres — shared across all services,
+// durable as app data, and read at most once per 24 h (cached in memory).
+builder.Services.AddDbContext<DataProtectionDbContext>(opts =>
+    opts.UseNpgsql(
+        builder.Configuration.GetConnectionString("DbConnection")
+        ?? throw new InvalidOperationException("DbConnection not configured")));
+
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
-    .SetApplicationName("Snakk");
+    .SetApplicationName("Snakk")
+    .PersistKeysToDbContext<DataProtectionDbContext>();
 
 builder.Services.AddHsts(options =>
 {
@@ -382,6 +390,12 @@ builder.Services.AddHsts(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dpDb = scope.ServiceProvider.GetRequiredService<DataProtectionDbContext>();
+    await dpDb.EnsureSchemaAsync();
+}
 
 //app.UseSerilogRequestLogging();
 app.UseHttpLogging();

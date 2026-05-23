@@ -30,7 +30,7 @@ public class ChallengeModel : PageModel
             var jwtCookie = Request.Cookies[".Snakk.Auth"] ?? Request.Cookies[".Snakk.Auth.Session"];
             var userId = GetUserIdFromJwt(jwtCookie);
             if (string.IsNullOrEmpty(userId))
-                return RedirectToPage("/Login", new { returnUrl = Request.Path + Request.QueryString });
+                return RedirectToPage("/Login", new { returnUrl = Request.PathBase + Request.Path + Request.QueryString });
 
             if (ConnectMode)
             {

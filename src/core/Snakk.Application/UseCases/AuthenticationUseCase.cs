@@ -24,7 +24,8 @@ public class AuthenticationUseCase(
     IUserSocialLinkRepository socialLinkRepository,
     DisplayNameValidator displayNameValidator,
     IPasswordResetTokenRepository passwordResetTokenRepository,
-    IPasswordResetRequestRepository passwordResetRequestRepository) : UseCaseBase
+    IPasswordResetRequestRepository passwordResetRequestRepository,
+    IAuthVersionCache authVersionCache) : UseCaseBase
 {
     // Dummy BCrypt hash for timing equalization (prevents email enumeration)
     private static readonly string DummyPasswordHash = "$2a$12$LJ3m4ys3Gy2e1mGFBgHnMeZOp5xDz4MBpUmLhMYkP5K8xA2YUCIi";
@@ -662,6 +663,7 @@ public class AuthenticationUseCase(
         user.SetPasswordHash(passwordHasher.HashPassword(newPassword));
         user.IncrementAuthVersion();
         await userRepository.UpdateAsync(user, ct);
+        await authVersionCache.SetAsync(user.PublicId.Value, user.AuthVersion, ct);
 
         await refreshTokenRepository.RevokeAllForUserAsync(userId);
 
@@ -700,7 +702,9 @@ public class AuthenticationUseCase(
             return Result.Failure("Password must contain at least one special character.");
 
         user.SetPasswordHash(passwordHasher.HashPassword(newPassword));
+        user.IncrementAuthVersion();
         await userRepository.UpdateAsync(user, ct);
+        await authVersionCache.SetAsync(user.PublicId.Value, user.AuthVersion, ct);
         return Result.Success();
     }
 }

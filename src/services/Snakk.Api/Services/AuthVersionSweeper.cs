@@ -12,7 +12,7 @@ public class AuthVersionSweeper(
     IAuthVersionCache authVersionCache,
     ILogger<AuthVersionSweeper> logger) : BackgroundService
 {
-    private static readonly TimeSpan Interval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(10);
 
     // 5-second overlap to tolerate clock skew between DB writes and our poll timestamp
     private static readonly TimeSpan ClockSkewBuffer = TimeSpan.FromSeconds(5);

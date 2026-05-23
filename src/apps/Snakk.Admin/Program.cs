@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Snakk.Infrastructure.Database;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Snakk.Admin.Services;
@@ -156,17 +158,24 @@ builder.Services.AddSession(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
 });
 
-// Persist Data Protection keys to shared storage so antiforgery + auth cookies
-// survive container restarts and can be decrypted by Snakk.Auth/Snakk.Web too.
-var dataProtectionPath = Path.Combine(
-    builder.Configuration["FileStorage:BasePath"] ?? "/app/storage",
-    "dataprotection-keys");
-Directory.CreateDirectory(dataProtectionPath);
+// Persist Data Protection keys in Postgres — shared across all services,
+// durable as app data, and read at most once per 24 h (cached in memory).
+builder.Services.AddDbContext<DataProtectionDbContext>(opts =>
+    opts.UseNpgsql(
+        builder.Configuration.GetConnectionString("DbConnection")
+        ?? throw new InvalidOperationException("DbConnection not configured")));
+
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
-    .SetApplicationName("Snakk");
+    .SetApplicationName("Snakk")
+    .PersistKeysToDbContext<DataProtectionDbContext>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dpDb = scope.ServiceProvider.GetRequiredService<DataProtectionDbContext>();
+    await dpDb.EnsureSchemaAsync();
+}
 
 // Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())

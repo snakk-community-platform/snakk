@@ -45,6 +45,9 @@ Console.WriteLine($"Connection String: {displayConnectionString}\n");
 builder.Services.AddDbContext<SnakkDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+builder.Services.AddDbContext<DataProtectionDbContext>(opts =>
+    opts.UseNpgsql(connectionString));
+
 // Register services
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IUserGrantsCacheService, UserGrantsCacheService>();
@@ -67,12 +70,8 @@ builder.Services.AddScoped<Snakk.Domain.Repositories.ICommunityRepository, Commu
 builder.Services.AddScoped<Snakk.Domain.Repositories.IHubRepository, HubRepositoryAdapter>();
 builder.Services.AddScoped<Snakk.Domain.Repositories.ISpaceRepository, SpaceRepositoryAdapter>();
 
-var dataProtectionPath = Path.Combine(
-    builder.Configuration["FileStorage:BasePath"] ?? "/app/storage",
-    "dataprotection-keys");
-Directory.CreateDirectory(dataProtectionPath);
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .PersistKeysToDbContext<DataProtectionDbContext>()
     .SetApplicationName("Snakk");
 builder.Services.AddScoped<IEmailProtector, EmailProtector>();
 builder.Services.AddScoped<IAvatarGenerationService, AvatarGenerationService>();
@@ -99,6 +98,9 @@ using (var scope = host.Services.CreateScope())
         Console.WriteLine("Applying pending migrations...");
         await context.Database.MigrateAsync();
         Console.WriteLine("✓ Migrations applied successfully.\n");
+
+        var dpDb = services.GetRequiredService<DataProtectionDbContext>();
+        await dpDb.EnsureSchemaAsync();
 
         var seeder = services.GetRequiredService<DatabaseSeeder>();
 

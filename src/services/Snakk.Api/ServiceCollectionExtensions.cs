@@ -64,15 +64,16 @@ public static class ServiceCollectionExtensions
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
                 .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>()));
 
-        // Persist Data Protection keys so encrypted 2FA secrets and email addresses
-        // survive container restarts. Shared key ring with Snakk.Auth/Web/Admin.
-        var dataProtectionPath = Path.Combine(
-            configuration["FileStorage:BasePath"] ?? "/app/storage",
-            "dataprotection-keys");
-        Directory.CreateDirectory(dataProtectionPath);
+        // Persist Data Protection keys in Postgres — shared across all services,
+        // durable as app data, and read at most once per 24 h (cached in memory).
+        services.AddDbContext<DataProtectionDbContext>(opts =>
+            opts.UseNpgsql(
+                configuration.GetConnectionString("DbConnection")
+                ?? throw new InvalidOperationException("DbConnection not configured")));
+
         services.AddDataProtection()
-            .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
-            .SetApplicationName("Snakk");
+            .SetApplicationName("Snakk")
+            .PersistKeysToDbContext<DataProtectionDbContext>();
 
         // Distributed cache: Valkey on production, in-memory fallback for development
         var valkeyConn = configuration["Valkey:ConnectionString"];

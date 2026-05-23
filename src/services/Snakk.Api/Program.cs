@@ -101,6 +101,12 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dpDb = scope.ServiceProvider.GetRequiredService<DataProtectionDbContext>();
+    await dpDb.EnsureSchemaAsync();
+}
+
 // Configure avatar URL base from file storage settings
 // S3: uses S3:PublicUrlBase (e.g. "https://cdn.example.com"), Local: empty string (relative URLs)
 var storageProvider = app.Configuration["FileStorage:Provider"];
@@ -131,7 +137,6 @@ app.UseCors();
 
 
 app.UseAuthentication();
-app.UseMiddleware<Snakk.Api.Middleware.TokenRefreshMiddleware>();
 app.UseAuthorization();
 if (!app.Configuration.GetValue<bool>("DisableRateLimiting")) app.UseRateLimiter();
 

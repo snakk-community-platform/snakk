@@ -7,6 +7,7 @@ using OpenIddict.Abstractions;
 using Serilog;
 using Snakk.Auth.Data;
 using Snakk.Auth.Endpoints;
+using Snakk.Infrastructure.Database;
 using Snakk.ServiceDefaults;
 using System.Net;
 using System.Text;
@@ -258,25 +259,30 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownIPNetworks.Add(new System.Net.IPNetwork(IPAddress.Parse("192.168.0.0"), 16));
 });
     
-// Persist Data Protection keys to shared storage so antiforgery + auth cookies
-// survive container restarts and can be decrypted by Snakk.Web/Snakk.Admin too.
-var dataProtectionPath = Path.Combine(
-    builder.Configuration["FileStorage:BasePath"] ?? "/app/storage",
-    "dataprotection-keys");
-Directory.CreateDirectory(dataProtectionPath);
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
-    .SetApplicationName("Snakk");
+// Persist Data Protection keys in Postgres — shared across all services,
+// durable as app data, and read at most once per 24 h (cached in memory).
+builder.Services.AddDbContext<DataProtectionDbContext>(opts =>
+    opts.UseNpgsql(
+        builder.Configuration.GetConnectionString("DbConnection")
+        ?? builder.Configuration.GetConnectionString("AuthDbConnection")
+        ?? throw new InvalidOperationException("No DB connection string for Data Protection")));
 
+builder.Services.AddDataProtection()
+    .SetApplicationName("Snakk")
+    .PersistKeysToDbContext<DataProtectionDbContext>();
+
+builder.Services.AddHostedService<Snakk.Auth.Services.GrpcChannelWarmupService>();
 builder.Services.AddHostedService<Snakk.Auth.Services.MauiClientSeeder>();
 
 var app = builder.Build();
 
-// Apply any pending OpenIddict DB migrations at startup
+// Apply any pending OpenIddict DB migrations at startup; ensure DP keys table exists
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SnakkAuthDbContext>();
     await db.Database.MigrateAsync();
+    var dpDb = scope.ServiceProvider.GetRequiredService<DataProtectionDbContext>();
+    await dpDb.EnsureSchemaAsync();
 }
 
 //app.UseSerilogRequestLogging();

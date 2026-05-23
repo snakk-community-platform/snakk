@@ -14,7 +14,7 @@
   <ItemGroup>
     <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
     <!-- Prevent YARP's transitive System.IO.Hashing 8.0.0 from overriding the framework version -->
-    <PackageReference Include="System.IO.Hashing" Version="10.0.3" ExcludeAssets="runtime" PrivateAssets="all">
+    <PackageReference Include="System.IO.Hashing" Version="10.0.8" ExcludeAssets="runtime" PrivateAssets="all">
       <IncludeAssets>compile; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>

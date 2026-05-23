@@ -22,6 +22,7 @@ public class AuthenticationUseCaseTests
     private readonly ISettingsService _settingsService = Substitute.For<ISettingsService>();
     private readonly IPasswordResetTokenRepository _passwordResetTokenRepository = Substitute.For<IPasswordResetTokenRepository>();
     private readonly IPasswordResetRequestRepository _passwordResetRequestRepository = Substitute.For<IPasswordResetRequestRepository>();
+    private readonly IAuthVersionCache _authVersionCache = Substitute.For<IAuthVersionCache>();
     private AuthenticationUseCase _useCase = null!;
 
     [Before(Test)]
@@ -35,7 +36,7 @@ public class AuthenticationUseCaseTests
             _userRepository, _passwordHasher, _emailSender, _refreshTokenRepository,
             _eventDispatcher, _displayNameHistoryRepository, _turnstileService, _socialLinkRepository,
             new DisplayNameValidator(_settingsService), _passwordResetTokenRepository,
-            _passwordResetRequestRepository);
+            _passwordResetRequestRepository, _authVersionCache);
     }
 
     #region RegisterWithEmailAsync Tests
