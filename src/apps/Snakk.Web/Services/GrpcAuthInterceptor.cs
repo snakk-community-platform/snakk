@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Grpc.Core.Interceptors;
+using Prometheus;
 
 namespace Snakk.Web.Services;
 
@@ -13,10 +14,18 @@ public class GrpcAuthInterceptor : Interceptor
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<GrpcAuthInterceptor> _logger;
 
-    // Default deadline for all gRPC calls. Prevents hangs from stalled internal calls.
     private static readonly TimeSpan DefaultDeadline = TimeSpan.FromSeconds(8);
-    private static readonly TimeSpan SlowCallThreshold = TimeSpan.FromMilliseconds(100);      // lowered for debugging (was 500ms)
-    private static readonly TimeSpan VerySlowCallThreshold = TimeSpan.FromMilliseconds(500);  // lowered for debugging (was 2000ms)
+    private static readonly TimeSpan SlowCallThreshold = TimeSpan.FromMilliseconds(500);
+    private static readonly TimeSpan VerySlowCallThreshold = TimeSpan.FromMilliseconds(2000);
+
+    private static readonly Histogram CallDuration = Metrics.CreateHistogram(
+        "snakk_grpc_client_duration_seconds",
+        "gRPC client call duration by method and status",
+        new HistogramConfiguration
+        {
+            LabelNames = ["method", "status"],
+            Buckets = [.005, .01, .025, .05, .1, .25, .5, 1, 2, 5, 8]
+        });
 
     public GrpcAuthInterceptor(
         IHttpContextAccessor httpContextAccessor,
@@ -78,10 +87,12 @@ public class GrpcAuthInterceptor : Interceptor
     private async Task<TResponse> WrapResponseAsync<TResponse>(
         Task<TResponse> inner, System.Diagnostics.Stopwatch sw, string methodFullName)
     {
+        var method = ShortMethodName(methodFullName);
         try
         {
             var result = await inner.ConfigureAwait(false);
             sw.Stop();
+            CallDuration.WithLabels(method, "OK").Observe(sw.Elapsed.TotalSeconds);
             LogTiming(methodFullName, sw.Elapsed, success: true);
             return result;
         }
@@ -90,16 +101,34 @@ public class GrpcAuthInterceptor : Interceptor
             ex.Status.Detail == "USER_REVOKED")
         {
             sw.Stop();
+            CallDuration.WithLabels(method, "Unauthenticated").Observe(sw.Elapsed.TotalSeconds);
             if (_httpContextAccessor.HttpContext is { } ctx)
                 AuthCookieHelper.DeleteAuthCookies(ctx);
             throw new AuthenticationRevokedException();
         }
-        catch (Exception ex)
+        catch (RpcException ex)
         {
             sw.Stop();
+            CallDuration.WithLabels(method, ex.StatusCode.ToString()).Observe(sw.Elapsed.TotalSeconds);
             LogTiming(methodFullName, sw.Elapsed, success: false, error: ex.GetType().Name);
             throw;
         }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            CallDuration.WithLabels(method, "Error").Observe(sw.Elapsed.TotalSeconds);
+            LogTiming(methodFullName, sw.Elapsed, success: false, error: ex.GetType().Name);
+            throw;
+        }
+    }
+
+    // "/snakk.auth.v1.AuthService/RefreshToken" → "AuthService/RefreshToken"
+    private static string ShortMethodName(string fullName)
+    {
+        var parts = fullName.TrimStart('/').Split('/');
+        return parts.Length >= 2
+            ? $"{parts[^2].Split('.')[^1]}/{parts[^1]}"
+            : fullName;
     }
 
     private void LogTiming(string methodFullName, TimeSpan elapsed, bool success, string? error = null)

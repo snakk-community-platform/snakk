@@ -16,7 +16,11 @@ public class TokenRefreshMiddleware(RequestDelegate next)
 {
     public const string RefreshedAccessTokenKey = "RefreshedAccessToken";
 
-    // Single-flight: concurrent requests sharing the same refresh token share one refresh call
+    private static readonly JwtSecurityTokenHandler _jwtHandler = new();
+
+    // Single-flight: concurrent requests sharing the same refresh token share one refresh call.
+    // PublicationOnly avoids a Monitor lock — under a thundering herd a few duplicate gRPC calls
+    // may fire, but token refresh is idempotent so that is acceptable.
     private static readonly ConcurrentDictionary<string, Lazy<Task<RefreshResult>>> _inFlight = new();
 
     public async Task InvokeAsync(HttpContext context, AuthService.AuthServiceClient authClient)
@@ -27,7 +31,9 @@ public class TokenRefreshMiddleware(RequestDelegate next)
         if (!string.IsNullOrEmpty(refreshToken) && IsAboutToExpire(accessToken))
         {
             var lazyTask = _inFlight.GetOrAdd(refreshToken, key =>
-                new Lazy<Task<RefreshResult>>(() => ExecuteRefreshAsync(authClient, key)));
+                new Lazy<Task<RefreshResult>>(
+                    () => ExecuteRefreshAsync(authClient, key),
+                    LazyThreadSafetyMode.PublicationOnly));
 
             var refreshTask = lazyTask.Value;
 
@@ -82,7 +88,7 @@ public class TokenRefreshMiddleware(RequestDelegate next)
         if (string.IsNullOrEmpty(token)) return false;
         try
         {
-            var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+            var jwt = _jwtHandler.ReadJwtToken(token);
             return jwt.ValidTo <= DateTime.UtcNow.AddMinutes(2);
         }
         catch
