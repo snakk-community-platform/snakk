@@ -28,6 +28,7 @@ public static class AuthEndpoints
         group.MapPost("/login", LoginAsync)
             .WithName("Login")
             .Produces<Application.DTOs.Auth.LoginResponse>()
+            .Produces<Application.DTOs.Auth.LoginTwoFactorRequiredResponse>()
             .RequireRateLimiting("auth");
 
         group.MapPost("/logout", LogoutAsync)
@@ -139,6 +140,27 @@ public static class AuthEndpoints
         }
 
         var user = result.Value!;
+
+        // Short-circuit 2FA-enabled accounts so REST matches the gRPC Login contract
+        // (which returns TwoFactorRequired=true instead of issuing tokens). Without this
+        // gate the password was the only required factor on the REST surface.
+        var twoFactorEnabled = await context.Users
+            .Where(u => u.PublicId == user.PublicId.Value)
+            .Select(u => u.TwoFactorEnabled)
+            .FirstOrDefaultAsync(ct);
+
+        if (twoFactorEnabled)
+        {
+            var pendingToken = jwtService.GenerateTwoFactorPendingToken(user.PublicId.Value);
+            AuthAuditLogger.LogLoginSuccess(logger, request.Email, ipAddress, userAgent);
+            return TypedResults.Ok(new Application.DTOs.Auth.LoginTwoFactorRequiredResponse
+            {
+                TwoFactorPendingToken = pendingToken,
+                User = new Application.DTOs.Auth.TwoFactorPendingUserInfo(
+                    user.Email ?? "",
+                    user.DisplayName)
+            });
+        }
 
         // Fetch user roles from UserRoles table
         var roles = await context.UserRoles

@@ -165,21 +165,112 @@ public class TwoFactorAuthEndpointTests : IAsyncDisposable
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
 
-    // ──────────────────────────────────────────────
-    // POST /api/auth/2fa/verify  (AllowAnonymous)
-    // ──────────────────────────────────────────────
-
+    // Regression: a body without a sudo token must be rejected before any other check.
+    // Prior to fix/rest-2fa-bypass-paths, POST /auth/2fa/disable accepted an empty body
+    // (or any body, ignored) and disabled 2FA on the strength of the access token alone.
     [Test]
-    public async Task Verify2FA_WithInvalidEmail_ReturnsBadRequest()
+    public async Task Disable2FA_WithoutSudoToken_ReturnsBadRequest()
     {
-        // Arrange — no user with this email exists in the DB
+        // Arrange
         var client = _server.CreateClient();
-        var request = new { email = "nonexistent@example.com", code = "123456" };
+        var registerRequest = new
+        {
+            email = "disable2fa-nosudo@example.com",
+            password = "StrongP@ssw0rd!",
+            displayName = "Disable2FANoSudo"
+        };
+        var registerResponse = await client.PostAsJsonAsync("/auth/register", registerRequest);
+        await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
-        // Act
+        var registerJson = JsonDocument.Parse(await registerResponse.Content.ReadAsStringAsync());
+        var userId = registerJson.RootElement.GetProperty("user").GetProperty("id").GetString()!;
+
+        var authClient = _server.CreateAuthenticatedClient(
+            userId: userId,
+            displayName: "Disable2FANoSudo",
+            email: "disable2fa-nosudo@example.com");
+
+        // Act — empty body, no sudo token
+        var response = await authClient.PostAsJsonAsync("/auth/2fa/disable", new { });
+
+        // Assert — must be rejected for missing sudo, NOT silently disable 2FA
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var body = await response.Content.ReadAsStringAsync();
+        await Assert.That(body).Contains("Sudo");
+    }
+
+    // Regression: an invalid sudo token must be rejected with 403, not accepted.
+    [Test]
+    public async Task Disable2FA_WithInvalidSudoToken_ReturnsForbidden()
+    {
+        var client = _server.CreateClient();
+        var registerRequest = new
+        {
+            email = "disable2fa-badsudo@example.com",
+            password = "StrongP@ssw0rd!",
+            displayName = "Disable2FABadSudo"
+        };
+        var registerResponse = await client.PostAsJsonAsync("/auth/register", registerRequest);
+        await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var registerJson = JsonDocument.Parse(await registerResponse.Content.ReadAsStringAsync());
+        var userId = registerJson.RootElement.GetProperty("user").GetProperty("id").GetString()!;
+
+        var authClient = _server.CreateAuthenticatedClient(
+            userId: userId,
+            displayName: "Disable2FABadSudo",
+            email: "disable2fa-badsudo@example.com");
+
+        var response = await authClient.PostAsJsonAsync(
+            "/auth/2fa/disable", new { sudoToken = "not-a-real-sudo-token" });
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+    }
+
+    // ──────────────────────────────────────────────
+    // POST /api/auth/2fa/verify
+    // ──────────────────────────────────────────────
+
+    // Regression: prior to fix/rest-2fa-bypass-paths, /auth/2fa/verify was AllowAnonymous
+    // and looked up the user purely by email — turning 2FA into the only required factor
+    // for any account with 2FA enabled. The endpoint now requires a pending token issued
+    // by /auth/login, which proves the password step already cleared.
+    [Test]
+    public async Task Verify2FA_WithoutPendingToken_ReturnsBadRequest()
+    {
+        var client = _server.CreateClient();
+        var request = new { code = "123456" };
+
         var response = await client.PostAsJsonAsync("/auth/2fa/verify", request);
 
-        // Assert — user not found or 2FA not enabled → bad request
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task Verify2FA_WithInvalidPendingToken_ReturnsBadRequest()
+    {
+        var client = _server.CreateClient();
+        var request = new { code = "123456", twoFactorPendingToken = "not-a-real-jwt" };
+
+        var response = await client.PostAsJsonAsync("/auth/2fa/verify", request);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+    }
+
+    // Even a structurally-valid JWT signed with the right key is rejected if it lacks
+    // the 2fa-pending audience/purpose. This stops an attacker from presenting a
+    // captured access token as a pending token.
+    [Test]
+    public async Task Verify2FA_WithAccessTokenAsPendingToken_ReturnsBadRequest()
+    {
+        var client = _server.CreateClient();
+        var accessToken = AuthHelper.GenerateTestToken(
+            userId: "some-user", displayName: "X", email: "x@example.com", emailVerified: true);
+
+        var request = new { code = "123456", twoFactorPendingToken = accessToken };
+
+        var response = await client.PostAsJsonAsync("/auth/2fa/verify", request);
+
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
 

@@ -33,4 +33,18 @@ public interface IJwtTokenService
     /// Marks a session as revoked. Any access token carrying this session ID is rejected until the cache entry expires.
     /// </summary>
     void RevokeSession(string sessionPublicId);
+
+    /// <summary>
+    /// Issues a short-lived (5 min) token that proves the bearer has already cleared
+    /// the password step of a 2FA login. Bound to the user's public ID; issued for a
+    /// distinct JWT audience so the access-token validator rejects it as a session token.
+    /// </summary>
+    string GenerateTwoFactorPendingToken(string userPublicId);
+
+    /// <summary>
+    /// Validates a pending-2FA token issued by <see cref="GenerateTwoFactorPendingToken"/>.
+    /// Returns the bound user's public ID on success, <c>null</c> if the token is missing,
+    /// malformed, expired, signed by a different key, or lacks the expected audience/purpose.
+    /// </summary>
+    string? ValidateTwoFactorPendingToken(string token);
 }
