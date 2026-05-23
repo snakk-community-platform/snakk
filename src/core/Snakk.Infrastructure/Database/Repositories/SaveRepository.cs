@@ -207,9 +207,12 @@ public class SaveRepository(SnakkDbContext context) : ISaveRepository
             .Take(pageSize + 1)
             .Select(s => new SavedPostDto(
                 s.Post!.PublicId,
-                s.Post.Content.Length > 300
-                    ? s.Post.Content.Substring(0, 300)
-                    : s.Post.Content,
+                // Prefer PlainTextExcerpt (markdown-stripped on save) over raw content.
+                // Fallback covers legacy rows; consuming template auto-encodes.
+                s.Post.PlainTextExcerpt
+                    ?? (s.Post.Content.Length > 300
+                        ? s.Post.Content.Substring(0, 300)
+                        : s.Post.Content),
                 s.Post.CreatedAt,
                 s.Post.DiscussionPublicId,
                 s.Post.Discussion.Title,
