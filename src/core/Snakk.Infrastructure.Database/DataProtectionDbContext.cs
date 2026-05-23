@@ -12,6 +12,14 @@ public class DataProtectionDbContext(DbContextOptions<DataProtectionDbContext> o
     // does after the first run). Use explicit DDL instead — idempotent on every restart.
     public async Task EnsureSchemaAsync()
     {
+        // Skip on non-relational providers (e.g. the InMemory provider used in tests);
+        // EnsureCreated will materialize the table via metadata instead.
+        if (!Database.IsRelational())
+        {
+            await Database.EnsureCreatedAsync();
+            return;
+        }
+
         await Database.ExecuteSqlRawAsync("""
             CREATE TABLE IF NOT EXISTS "DataProtectionKeys" (
                 "Id"           serial NOT NULL,

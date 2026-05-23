@@ -19,6 +19,11 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
     private const string RevocationPrefix = "jwt:revoked:";
     private const string SessionRevocationPrefix = "jwt:session-revoked:";
 
+    private const string TwoFactorPendingAudienceSuffix = ":2fa-pending";
+    private const string PurposeClaim = "purpose";
+    private const string TwoFactorPendingPurpose = "2fa-pending";
+    private const int TwoFactorPendingExpirationMinutes = 5;
+
     private static readonly byte[] Sentinel = [1];
 
     public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null)
@@ -155,5 +160,65 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
         var ttl = TimeSpan.FromMinutes(_expirationMinutes);
         cache.Set(SessionRevocationPrefix + sessionPublicId, Sentinel,
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl });
+    }
+
+    public string GenerateTwoFactorPendingToken(string userPublicId)
+    {
+        var claims = new List<Claim>
+        {
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
+            new(ClaimTypes.NameIdentifier, userPublicId),
+            new(PurposeClaim, TwoFactorPendingPurpose)
+        };
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) { KeyId = "snakk-hmac" };
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: _issuer,
+            audience: _audience + TwoFactorPendingAudienceSuffix,
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(TwoFactorPendingExpirationMinutes),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    public string? ValidateTwoFactorPendingToken(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return null;
+
+        try
+        {
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) { KeyId = "snakk-hmac" };
+
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = key,
+                ValidateIssuer = true,
+                ValidIssuer = _issuer,
+                ValidateAudience = true,
+                ValidAudience = _audience + TwoFactorPendingAudienceSuffix,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromSeconds(30)
+            };
+
+            var handler = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler();
+            var result = Task.Run(() => handler.ValidateTokenAsync(token, validationParameters)).GetAwaiter().GetResult();
+
+            if (!result.IsValid) return null;
+
+            var principal = new ClaimsPrincipal(result.ClaimsIdentity);
+
+            if (principal.FindFirst(PurposeClaim)?.Value != TwoFactorPendingPurpose)
+                return null;
+
+            return principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }

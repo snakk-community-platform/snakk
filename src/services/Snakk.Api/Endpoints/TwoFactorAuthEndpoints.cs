@@ -129,13 +129,25 @@ public static class TwoFactorAuthEndpoints
     }
 
     private static async Task<IResult> DisableTwoFactorAsync(
+        [FromBody] DisableTwoFactorRequest request,
         HttpContext httpContext,
         ITwoFactorAuthService twoFactorService,
+        IMemoryCache cache,
         CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is null)
             return Results.Unauthorized();
+
+        // Require a recent sudo step-up. MeEndpoints.IssueSudoTokenAsync already requires
+        // a current TOTP code when the user has 2FA enabled, so a valid sudo cookie is
+        // proof of both password + TOTP within the last 5 minutes. The previous code path
+        // accepted the call with no body at all and bypassed every gate.
+        if (string.IsNullOrWhiteSpace(request.SudoToken))
+            return Results.BadRequest(new { error = "Sudo token is required." });
+
+        if (!MeEndpoints.ValidateSudoToken(request.SudoToken, userIdClaim.Value, cache))
+            return Results.Json(new { error = "Re-authentication required." }, statusCode: 403);
 
         var success = await twoFactorService.DisableTwoFactorAsync(userIdClaim.Value, null, ct);
 
@@ -157,13 +169,19 @@ public static class TwoFactorAuthEndpoints
         IMemoryCache cache,
         CancellationToken ct)
     {
-        // This endpoint is used during login flow
-        // User provides email/password first, gets a temporary token, then verifies 2FA
+        // The pending token proves the caller already cleared the password step at
+        // /auth/login. Without it, this endpoint was usable anonymously with just
+        // (email, code) — making 2FA the only required factor for any account that
+        // had it enabled.
+        var pendingUserId = jwtTokenService.ValidateTwoFactorPendingToken(request.TwoFactorPendingToken ?? "");
+        if (pendingUserId is null)
+            return Results.BadRequest(new { error = "Invalid or expired login session. Please sign in again." });
 
         var user = await context.Users
+            .AsTracking()
             .Include(u => u.TwoFactorBackupCodes)
             .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
+            .FirstOrDefaultAsync(u => u.PublicId == pendingUserId, ct);
 
         if (user is null || !user.TwoFactorEnabled)
             return Results.BadRequest(new { error = "Invalid request" });
@@ -409,6 +427,6 @@ public static class TwoFactorAuthEndpoints
 public record EnableTwoFactorRequest(string Code);
 public record DisableTwoFactorRequest(string SudoToken);
 public record SetupTwoFactorRequest(string? SudoToken);
-public record VerifyTwoFactorRequest(string Email, string Code);
+public record VerifyTwoFactorRequest(string Code, string TwoFactorPendingToken);
 public record RegenerateBackupCodesRequest(string SudoToken);
 public record TrustDeviceRequest(int? ExpirationDays); // 7, 30, 90, or null for never
