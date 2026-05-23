@@ -3,12 +3,35 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Security.Claims;
 using Grpc.Core;
+using Snakk.Auth.Services;
 using Snakk.Protos.Auth;
 
 namespace Snakk.Auth.Pages.OAuth;
 
-public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<CallbackModel> logger) : PageModel
+public class CallbackModel(
+    AuthService.AuthServiceClient authClient,
+    IJwtCookieValidator jwtCookieValidator,
+    ILogger<CallbackModel> logger) : PageModel
 {
+    /// <summary>
+    /// Builds gRPC Metadata that forwards the validated JWT cookie as a Bearer
+    /// token so Snakk.Api's RequireAuth() picks up the authenticated identity
+    /// instead of trusting client-supplied UserPublicId fields (CR-21 / HI-60).
+    /// Returns null if the cookie is missing or fails signature validation —
+    /// the caller must short-circuit, since without auth the gRPC call would
+    /// either be rejected by the API or (worse, pre-fix) silently accept the
+    /// request-body UserPublicId.
+    /// </summary>
+    private (Metadata Headers, string UserId)? BuildAuthenticatedMetadata()
+    {
+        var jwt = Request.Cookies[".Snakk.Auth"] ?? Request.Cookies[".Snakk.Auth.Session"];
+        var userId = jwtCookieValidator.ValidateAndExtractUserId(jwt);
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(jwt))
+            return null;
+
+        return (new Metadata { { "authorization", $"Bearer {jwt}" } }, userId);
+    }
+
     [BindProperty(SupportsGet = true)]
     public string Provider { get; set; } = "";
 
@@ -58,15 +81,28 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
                 HttpContext.Session.Remove("OAuth_ReturnUrl");
                 if (!Url.IsLocalUrl(connectReturnUrl)) connectReturnUrl = "/settings/connected-accounts";
 
+                // Re-validate the cookie at callback time and forward it as a Bearer
+                // header. The gRPC service no longer trusts request.UserPublicId; it
+                // takes identity from the authenticated JWT. Also confirm the cookie
+                // still binds to the user we recorded at Challenge time — if the user
+                // logged out (or somehow switched sessions) during the OAuth round-trip,
+                // refuse the connect rather than acting on a stale ID.
+                var auth = BuildAuthenticatedMetadata();
+                if (auth is null || !string.Equals(auth.Value.UserId, connectUserId, StringComparison.Ordinal))
+                {
+                    logger.LogWarning("ConnectOAuthProvider rejected: session userId {SessionId} did not match validated cookie userId",
+                        connectUserId);
+                    return Redirect("/settings/connected-accounts?error=AUTH_REQUIRED");
+                }
+
                 try
                 {
                     var connectReq = new ConnectOAuthProviderRequest
                     {
                         Provider = Provider.ToLowerInvariant(),
-                        ProviderUserId = nameIdentifier,
-                        UserPublicId = connectUserId
+                        ProviderUserId = nameIdentifier
                     };
-                    var connectResp = await authClient.ConnectOAuthProviderAsync(connectReq);
+                    var connectResp = await authClient.ConnectOAuthProviderAsync(connectReq, auth.Value.Headers);
                     if (connectResp.Success)
                         return Redirect($"{connectReturnUrl}?connected={Uri.EscapeDataString(Provider.ToLowerInvariant())}");
                     return Redirect($"/settings/connected-accounts?error={Uri.EscapeDataString(connectResp.ErrorCode ?? "CONNECT_FAILED")}");
@@ -85,15 +121,30 @@ public class CallbackModel(AuthService.AuthServiceClient authClient, ILogger<Cal
                 var sudoUserId = HttpContext.Session.GetString("OAuth_SudoUserId") ?? "";
                 HttpContext.Session.Remove("OAuth_SudoUserId");
 
+                // Same Bearer-forwarding and cookie/session match check as the
+                // connect branch — see comment above.
+                var auth = BuildAuthenticatedMetadata();
+                if (auth is null || !string.Equals(auth.Value.UserId, sudoUserId, StringComparison.Ordinal))
+                {
+                    logger.LogWarning("OAuth sudo nonce rejected: session userId {SessionId} did not match validated cookie userId",
+                        sudoUserId);
+                    var html = """
+                        <!DOCTYPE html><html><body><script>
+                        window.opener && window.opener.postMessage({type:'snakk:sudo:oauth-failed'}, window.location.origin);
+                        window.close();
+                        </script></body></html>
+                        """;
+                    return Content(html, "text/html");
+                }
+
                 try
                 {
                     var nonceReq = new GenerateOAuthSudoNonceRequest
                     {
-                        UserPublicId = sudoUserId,
                         Provider = Provider.ToLowerInvariant(),
                         ProviderUserId = nameIdentifier
                     };
-                    var nonceResp = await authClient.GenerateOAuthSudoNonceAsync(nonceReq);
+                    var nonceResp = await authClient.GenerateOAuthSudoNonceAsync(nonceReq, auth.Value.Headers);
                     var nonce = nonceResp.Nonce;
 
                     // Return a minimal page that posts the nonce to the parent window and closes

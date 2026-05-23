@@ -35,6 +35,7 @@
     <Project Path="tests/Snakk.Shared.Tests/Snakk.Shared.Tests.csproj" />
     <Project Path="tests/Snakk.Api.Tests/Snakk.Api.Tests.csproj" />
     <Project Path="tests/Snakk.Web.Tests/Snakk.Web.Tests.csproj" />
+    <Project Path="tests/Snakk.Auth.Tests/Snakk.Auth.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/Snakk.DbSeeder/Snakk.DbSeeder.csproj" />

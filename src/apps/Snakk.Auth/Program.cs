@@ -59,6 +59,11 @@ builder.Services.AddScoped(sp =>
 builder.Services.AddScoped(sp =>
     new Snakk.Protos.Passkey.PasskeyService.PasskeyServiceClient(sp.GetRequiredService<Grpc.Net.Client.GrpcChannel>()));
 
+// Cookie-JWT signature validator (used by /OAuth/Challenge + /OAuth/Callback to
+// trust the .Snakk.Auth cookie). Singleton — TokenValidationParameters are immutable.
+builder.Services.AddSingleton<Snakk.Auth.Services.IJwtCookieValidator,
+                              Snakk.Auth.Services.JwtCookieValidator>();
+
 // Auth database — OpenIddict store (isolated from main domain DB)
 builder.Services.AddDbContext<SnakkAuthDbContext>(options =>
 {
