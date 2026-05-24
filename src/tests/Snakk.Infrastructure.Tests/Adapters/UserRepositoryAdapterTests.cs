@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Tests.Helpers;
@@ -25,7 +26,7 @@ public class UserRepositoryAdapterTests : IDisposable
         mockEmailProtector.Unprotect(Arg.Any<string>()).Returns(callInfo => callInfo.ArgAt<string>(0));
         mockEmailProtector.ComputeHash(Arg.Any<string>()).Returns(callInfo => callInfo.ArgAt<string>(0).Trim().ToLowerInvariant());
 
-        _adapter = new UserRepositoryAdapter(databaseRepo, _db.Context, mockEmailProtector);
+        _adapter = new UserRepositoryAdapter(databaseRepo, _db.Context, mockEmailProtector, Substitute.For<IMemoryCache>());
     }
 
     public void Dispose() => _db.Dispose();
