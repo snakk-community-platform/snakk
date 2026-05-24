@@ -216,6 +216,24 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "gate
 // Block Prometheus scrape endpoint from being proxied to Snakk.Web and exposed publicly
 app.MapGet("/metrics", () => Results.NotFound());
 
+// Internal metrics proxy — reachable only within the Docker network (by Prometheus).
+// Not accessible from the public internet as no Caddy route forwards /internal/*.
+var metricsClient = new HttpClient();
+app.MapGet("/internal/metrics/{service}", async (string service) =>
+{
+    var url = service switch
+    {
+        "web" => "http://127.0.0.1:17010/metrics",
+        "api" => "http://127.0.0.1:17002/metrics",
+        _     => null
+    };
+    if (url is null) return Results.NotFound();
+    var response = await metricsClient.GetAsync(url);
+    var content = await response.Content.ReadAsStringAsync();
+    var contentType = response.Content.Headers.ContentType?.ToString() ?? "text/plain";
+    return Results.Content(content, contentType);
+}).ExcludeFromDescription();
+
 // Setup gate: redirect to wizard until complete, then tombstone /setup/* permanently.
 // The setupComplete bool is flipped by a FileSystemWatcher — no restart required.
 app.Use(async (context, next) =>

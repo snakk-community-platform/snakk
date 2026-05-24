@@ -1,0 +1,125 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Channel State",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 4, "x": 0, "y": 0 },
+      "targets": [
+        { "expr": "snakk_grpc_channel_state", "legendFormat": "" }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "yellow", "value": null },
+              { "color": "green", "value": 2 },
+              { "color": "red", "value": 3 }
+            ]
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": { "text": "Idle",               "color": "yellow",   "index": 0 },
+                "1": { "text": "Connecting",          "color": "blue",     "index": 1 },
+                "2": { "text": "Ready",               "color": "green",    "index": 2 },
+                "3": { "text": "Transient Failure",   "color": "red",      "index": 3 },
+                "4": { "text": "Shutdown",            "color": "dark-red", "index": 4 }
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "title": "Call Rate by Method (calls/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 20, "x": 4, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(snakk_grpc_client_duration_seconds_count[1m])) by (method)",
+          "legendFormat": "{{method}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "title": "Call Latency by Method",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(snakk_grpc_client_duration_seconds_bucket[5m])) by (le, method))",
+          "legendFormat": "P95 {{method}}"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(snakk_grpc_client_duration_seconds_bucket[5m])) by (le, method))",
+          "legendFormat": "P50 {{method}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "fillOpacity": 5, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "title": "Errors by Method & Status (calls/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(snakk_grpc_client_duration_seconds_count{status!=\"OK\"}[1m])) by (method, status)",
+          "legendFormat": "{{method}} / {{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": { "drawStyle": "bars", "fillOpacity": 50, "lineWidth": 0, "stacking": { "mode": "normal" } }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byRegexp", "options": "DeadlineExceeded" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "Unauthenticated" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+          }
+        ]
+      }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["snakk", "grpc"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Snakk gRPC",
+  "uid": "snakk-grpc",
+  "version": 1
+}
