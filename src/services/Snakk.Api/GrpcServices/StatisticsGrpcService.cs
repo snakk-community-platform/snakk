@@ -1,5 +1,6 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Shared.Helpers;
 using Snakk.Api.Services;
 using Snakk.Application.UseCases;
@@ -15,7 +16,8 @@ public class StatisticsGrpcService(
     IActivitySnapshotRepository activitySnapshotRepository,
     IDiscussionViewRepository discussionViewRepository,
     IConfiguration configuration,
-    ICurrentUserService currentUser) : StatisticsService.StatisticsServiceBase
+    ICurrentUserService currentUser,
+    HybridCache cache) : StatisticsService.StatisticsServiceBase
 {
     private DateTime GetTrendingSince() =>
         DateTime.UtcNow.AddHours(-configuration.GetValue("Trending:LookbackHours", 24));
@@ -34,23 +36,36 @@ public class StatisticsGrpcService(
         };
     }
 
-    public override async Task<TopActiveDiscussionsList> GetTopActiveDiscussionsToday(GetTopActiveDiscussionsTodayRequest request, ServerCallContext context)
+    private static readonly HybridCacheEntryOptions TrendingCacheOptions = new() { Expiration = TimeSpan.FromMinutes(2) };
+
+    public override Task<TopActiveDiscussionsList> GetTopActiveDiscussionsToday(
+        GetTopActiveDiscussionsTodayRequest request, ServerCallContext context)
     {
-        var ct = context.CancellationToken;
+        var userId = currentUser.GetCurrentUserId() ?? "";
+        var key = $"trending:{(request.HasHubId ? request.HubId : "")}:{(request.HasSpaceId ? request.SpaceId : "")}:{(request.HasCommunityId ? request.CommunityId : "")}:{request.Limit}:{userId}:{request.ViewerAllowsAdult}";
+        return cache.GetOrCreateAsync(
+            key,
+            ct => FetchTopActiveDiscussionsTodayAsync(request, userId, ct),
+            TrendingCacheOptions,
+            cancellationToken: context.CancellationToken).AsTask();
+    }
+
+    private async ValueTask<TopActiveDiscussionsList> FetchTopActiveDiscussionsTodayAsync(
+        GetTopActiveDiscussionsTodayRequest request, string userId, CancellationToken ct)
+    {
         var result = await statisticsUseCase.GetTopActiveDiscussionsTodayAsync(
             GetTrendingSince(),
             request.HasHubId ? request.HubId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.HasCommunityId ? request.CommunityId : null,
             request.Limit,
-            currentUser.GetCurrentUserId(),
+            string.IsNullOrEmpty(userId) ? null : userId,
             request.ViewerAllowsAdult);
 
         if (!result.IsSuccess || result.Value is null)
             return new TopActiveDiscussionsList();
 
         var response = new TopActiveDiscussionsList();
-
         foreach (var d in result.Value.Items)
         {
             response.Items.Add(new TopActiveDiscussionInfo
@@ -59,19 +74,8 @@ public class StatisticsGrpcService(
                 Title = d.Title,
                 Slug = d.Slug,
                 PostCountToday = d.PostCountToday,
-
-                Space = new EntityRef
-                {
-                    PublicId = d.SpacePublicId,
-                    Slug = d.SpaceSlug,
-                    Name = d.SpaceName
-                },
-                Hub = new EntityRef
-                {
-                    PublicId = d.HubPublicId,
-                    Slug = d.HubSlug,
-                    Name = d.HubName
-                },
+                Space = new EntityRef { PublicId = d.SpacePublicId, Slug = d.SpaceSlug, Name = d.SpaceName },
+                Hub = new EntityRef { PublicId = d.HubPublicId, Slug = d.HubSlug, Name = d.HubName },
                 CommunitySlug = d.CommunitySlug,
                 Author = new AuthorRef
                 {
@@ -83,7 +87,6 @@ public class StatisticsGrpcService(
                 }
             });
         }
-
         return response;
     }
 

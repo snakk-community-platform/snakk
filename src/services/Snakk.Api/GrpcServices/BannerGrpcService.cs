@@ -1,5 +1,6 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
@@ -8,45 +9,38 @@ using Snakk.Protos.Banner;
 namespace Snakk.Api.GrpcServices;
 
 public class BannerGrpcService(
-    BannerUseCase bannerUseCase) : BannerService.BannerServiceBase
+    BannerUseCase bannerUseCase,
+    HybridCache cache) : BannerService.BannerServiceBase
 {
-    public override async Task<BannerList> GetActiveForCommunity(
-        GetActiveBannersRequest request,
-        ServerCallContext context)
-    {
-        var ct = context.CancellationToken;
-        var announcements = await bannerUseCase.GetActiveForCommunityAsync(
-            CommunityId.From(request.EntityId));
+    private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
-        return ToBannerList(announcements);
-    }
+    public override Task<BannerList> GetActiveForCommunity(
+        GetActiveBannersRequest request, ServerCallContext context) =>
+        cache.GetOrCreateAsync(
+            $"banners:community:{request.EntityId}",
+            async ct => ToBannerList(await bannerUseCase.GetActiveForCommunityAsync(CommunityId.From(request.EntityId))),
+            CacheOptions,
+            cancellationToken: context.CancellationToken).AsTask();
 
-    public override async Task<BannerList> GetActiveForHub(
-        GetActiveBannersRequest request,
-        ServerCallContext context)
-    {
-        var ct = context.CancellationToken;
-        var announcements = await bannerUseCase.GetActiveForHubAsync(
-            HubId.From(request.EntityId));
+    public override Task<BannerList> GetActiveForHub(
+        GetActiveBannersRequest request, ServerCallContext context) =>
+        cache.GetOrCreateAsync(
+            $"banners:hub:{request.EntityId}",
+            async ct => ToBannerList(await bannerUseCase.GetActiveForHubAsync(HubId.From(request.EntityId))),
+            CacheOptions,
+            cancellationToken: context.CancellationToken).AsTask();
 
-        return ToBannerList(announcements);
-    }
-
-    public override async Task<BannerList> GetActiveForSpace(
-        GetActiveBannersRequest request,
-        ServerCallContext context)
-    {
-        var ct = context.CancellationToken;
-        var announcements = await bannerUseCase.GetActiveForSpaceAsync(
-            SpaceId.From(request.EntityId));
-
-        return ToBannerList(announcements);
-    }
+    public override Task<BannerList> GetActiveForSpace(
+        GetActiveBannersRequest request, ServerCallContext context) =>
+        cache.GetOrCreateAsync(
+            $"banners:space:{request.EntityId}",
+            async ct => ToBannerList(await bannerUseCase.GetActiveForSpaceAsync(SpaceId.From(request.EntityId))),
+            CacheOptions,
+            cancellationToken: context.CancellationToken).AsTask();
 
     private static BannerList ToBannerList(IEnumerable<Banner> announcements)
     {
         var list = new BannerList();
-
         foreach (var a in announcements)
         {
             list.Banners.Add(new BannerInfo
@@ -61,7 +55,6 @@ public class BannerGrpcService(
                 CreatedAt = Timestamp.FromDateTime(DateTime.SpecifyKind(a.CreatedAt, DateTimeKind.Utc))
             });
         }
-
         return list;
     }
 }

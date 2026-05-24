@@ -25,6 +25,7 @@ using System.Text;
 
 // Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+ThreadPool.SetMinThreads(50, 50);
 
 var builder = WebApplication.CreateBuilder(args);
 

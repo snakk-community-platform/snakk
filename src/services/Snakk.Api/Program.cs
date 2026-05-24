@@ -9,6 +9,8 @@ using Snakk.Infrastructure.Database;
 using Serilog;
 using Snakk.ServiceDefaults;
 
+ThreadPool.SetMinThreads(50, 50);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Load shared config (written by setup wizard)
@@ -29,6 +31,8 @@ builder.WebHost.ConfigureKestrel(kestrel =>
     kestrel.Limits.Http2.MaxStreamsPerConnection = 100;
     kestrel.Limits.Http2.InitialConnectionWindowSize = 1024 * 1024;     // 1 MB
     kestrel.Limits.Http2.InitialStreamWindowSize = 768 * 1024;          // 768 KB
+    kestrel.Limits.Http2.KeepAlivePingDelay = TimeSpan.FromSeconds(30);
+    kestrel.Limits.Http2.KeepAlivePingTimeout = TimeSpan.FromSeconds(5);
 
     // Docker (plain HTTP): gRPC needs HTTP/2 (h2c), REST proxy needs HTTP/1.1.
     // When RestPort is set, bind both ports explicitly with correct protocols.

@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Api.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Extensions;
@@ -13,7 +14,8 @@ namespace Snakk.Api.GrpcServices;
 public class ModerationGrpcService(
     ModerationUseCase moderationUseCase,
     ICurrentUserService currentUser,
-    SnakkDbContext dbContext) : ModerationService.ModerationServiceBase
+    SnakkDbContext dbContext,
+    HybridCache cache) : ModerationService.ModerationServiceBase
 {
     // ==================== Permission Checks ====================
 
@@ -97,6 +99,7 @@ public class ModerationGrpcService(
                 StatusCode.InvalidArgument,
                 result.Error ?? "Failed to assign role"));
 
+        _ = cache.RemoveByTagAsync("moderators").AsTask();
         return MapRoleToInfo(result.Value);
     }
 
@@ -110,6 +113,7 @@ public class ModerationGrpcService(
                 StatusCode.InvalidArgument,
                 result.Error ?? "Failed to revoke role"));
 
+        _ = cache.RemoveByTagAsync("moderators").AsTask();
         return new RevokeRoleResponse { Success = true };
     }
 
@@ -514,7 +518,17 @@ public class ModerationGrpcService(
 
     // ==================== Public Moderator List ====================
 
-    public override async Task<GetModeratorsResponse> GetModerators(GetModeratorsRequest request, ServerCallContext context)
+    private static readonly HybridCacheEntryOptions ModeratorsCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
+
+    public override Task<GetModeratorsResponse> GetModerators(GetModeratorsRequest request, ServerCallContext context) =>
+        cache.GetOrCreateAsync(
+            $"moderators:{request.ScopeType}:{request.ScopePublicId}",
+            ct => BuildModeratorsAsync(request, ct),
+            ModeratorsCacheOptions,
+            tags: ["moderators"],
+            cancellationToken: context.CancellationToken).AsTask();
+
+    private async ValueTask<GetModeratorsResponse> BuildModeratorsAsync(GetModeratorsRequest request, CancellationToken ct)
     {
         var response = new GetModeratorsResponse();
         var groups = new List<ModeratorGroup>();
@@ -529,7 +543,7 @@ public class ModerationGrpcService(
             var spaceData = await dbContext.Spaces
                 .Where(s => s.PublicId == request.ScopePublicId)
                 .Select(s => new { s.Id, s.Name, s.HubId, HubName = s.HubName, CommunityId = s.Hub.CommunityId, CommunityName = s.CommunityName })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (spaceData is null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
@@ -539,7 +553,7 @@ public class ModerationGrpcService(
             communityId = spaceData.CommunityId;
             communityName = spaceData.CommunityName;
 
-            var spaceMods = await GetActiveRolesAsync(spaceId: spaceData.Id);
+            var spaceMods = await GetActiveRolesAsync(spaceId: spaceData.Id, ct: ct);
             if (spaceMods.Count > 0)
                 groups.Add(new ModeratorGroup { Level = "Space Moderators", ScopeName = spaceData.Name, Moderators = { spaceMods } });
         }
@@ -548,7 +562,7 @@ public class ModerationGrpcService(
             var hubData = await dbContext.Hubs
                 .Where(h => h.PublicId == request.ScopePublicId)
                 .Select(h => new { h.Id, h.Name, h.CommunityId, CommunityName = h.Community.Name })
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (hubData is null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
@@ -562,7 +576,7 @@ public class ModerationGrpcService(
         {
             var community = await dbContext.Communities
                 .Where(c => c.PublicId == request.ScopePublicId)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(ct);
 
             if (community is null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
@@ -570,29 +584,22 @@ public class ModerationGrpcService(
             communityId = community.Id;
             communityName = community.Name;
         }
-        else if (request.ScopeType == "Platform")
-        {
-            // No scope IDs set — only the Global Admins group at the bottom applies.
-        }
 
-        // Hub moderators (if scope is Space or Hub)
         if (hubId.HasValue)
         {
-            var hubMods = await GetActiveRolesAsync(hubId: hubId.Value);
+            var hubMods = await GetActiveRolesAsync(hubId: hubId.Value, ct: ct);
             if (hubMods.Count > 0)
                 groups.Add(new ModeratorGroup { Level = "Hub Moderators", ScopeName = hubName ?? "", Moderators = { hubMods } });
         }
 
-        // Community admins/mods
         if (communityId.HasValue)
         {
-            var communityMods = await GetActiveRolesAsync(communityId: communityId.Value);
+            var communityMods = await GetActiveRolesAsync(communityId: communityId.Value, ct: ct);
             if (communityMods.Count > 0)
                 groups.Add(new ModeratorGroup { Level = "Community Team", ScopeName = communityName ?? "", Moderators = { communityMods } });
         }
 
-        // Global admins
-        var globalAdmins = await GetActiveRolesAsync(globalOnly: true);
+        var globalAdmins = await GetActiveRolesAsync(globalOnly: true, ct: ct);
         if (globalAdmins.Count > 0)
             groups.Add(new ModeratorGroup { Level = "Global Admins", ScopeName = "", Moderators = { globalAdmins } });
 
@@ -606,7 +613,8 @@ public class ModerationGrpcService(
         int? communityId = null,
         int? hubId = null,
         int? spaceId = null,
-        bool globalOnly = false)
+        bool globalOnly = false,
+        CancellationToken ct = default)
     {
         var query = dbContext.UserRoles
             .Where(ur => ur.RevokedAt == null);
@@ -644,7 +652,7 @@ public class ModerationGrpcService(
                 DisplayName = ur.User.DisplayName,
                 Role = ((UserRoleTypeEnum)ur.RoleId).ToString()
             })
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     // ==================== Helpers ====================

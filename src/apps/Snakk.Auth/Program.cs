@@ -14,6 +14,7 @@ using System.Text;
 
 // Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+ThreadPool.SetMinThreads(50, 50);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,7 +39,13 @@ builder.Services.AddRazorPages();
 
 // gRPC client for calling Snakk.Api
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17101";
-var grpcHandler = new SocketsHttpHandler { EnableMultipleHttp2Connections = true };
+var grpcHandler = new SocketsHttpHandler
+{
+    EnableMultipleHttp2Connections = true,
+    KeepAlivePingDelay = TimeSpan.FromSeconds(30),
+    KeepAlivePingTimeout = TimeSpan.FromSeconds(5),
+    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always
+};
 var grpcOptions = new Grpc.Net.Client.GrpcChannelOptions { HttpHandler = grpcHandler };
 
 // Plain HTTP (Docker): force HTTP/2 cleartext (h2c) for gRPC
