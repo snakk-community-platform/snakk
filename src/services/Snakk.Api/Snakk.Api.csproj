@@ -21,6 +21,7 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
     <PackageReference Include="Npgsql" Version="10.0.2" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
+    <PackageReference Include="prometheus-net.DotNetRuntime" Version="4.4.1" />
     <PackageReference Include="SixLabors.ImageSharp" Version="[3.1.12, 4.0.0)" />
     <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.8" />

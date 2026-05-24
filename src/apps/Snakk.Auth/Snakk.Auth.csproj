@@ -23,6 +23,8 @@
     <PackageReference Include="OpenIddict.EntityFrameworkCore" Version="7.5.0" />
 	<PackageReference Include="SixLabors.ImageSharp" Version="[3.1.12, 4.0.0)" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
+    <PackageReference Include="prometheus-net.DotNetRuntime" Version="4.4.1" />
 
     <!-- OAuth Providers -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="10.0.8" />

@@ -223,9 +223,11 @@ app.MapGet("/internal/metrics/{service}", async (string service) =>
 {
     var url = service switch
     {
-        "web" => "http://127.0.0.1:17010/metrics",
-        "api" => "http://127.0.0.1:17002/metrics",
-        _     => null
+        "web"        => "http://127.0.0.1:17010/metrics",
+        "api"        => "http://127.0.0.1:17002/metrics",
+        "auth"       => "http://127.0.0.1:17011/metrics",
+        "public-api" => "http://127.0.0.1:17014/metrics",
+        _            => null
     };
     if (url is null) return Results.NotFound();
     var response = await metricsClient.GetAsync(url);

@@ -10,6 +10,7 @@ using Serilog;
 using Snakk.ServiceDefaults;
 
 ThreadPool.SetMinThreads(50, 50);
+DotNetRuntimeStats.Register();
 
 var builder = WebApplication.CreateBuilder(args);
 

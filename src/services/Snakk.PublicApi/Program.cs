@@ -1,4 +1,5 @@
 using Grpc.Core.Interceptors;
+using Prometheus;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Snakk.ServiceDefaults;
 using Snakk.Protos.Discussion;
@@ -11,6 +12,7 @@ using System.Threading.RateLimiting;
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
 ThreadPool.SetMinThreads(50, 50);
+DotNetRuntimeStats.Register();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -108,7 +110,10 @@ app.UseAuthorization();
 if (!builder.Configuration.GetValue<bool>("DisableRateLimiting"))
     app.UseRateLimiter();
 
+app.UseHttpMetrics();
+
 app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
+app.MapMetrics("/metrics");
 
 DiscussionEndpoints.Map(app);
 

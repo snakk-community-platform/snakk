@@ -22,6 +22,22 @@ scrape_configs:
         labels:
           service: api
 
+  # Snakk.Auth — routed via gateway since internal services bind to 127.0.0.1
+  - job_name: snakk-auth
+    metrics_path: /internal/metrics/auth
+    static_configs:
+      - targets: ["snakk:17000"]
+        labels:
+          service: auth
+
+  # Snakk.PublicApi — routed via gateway since internal services bind to 127.0.0.1
+  - job_name: snakk-public-api
+    metrics_path: /internal/metrics/public-api
+    static_configs:
+      - targets: ["snakk:17000"]
+        labels:
+          service: public-api
+
   # PostgreSQL metrics via postgres_exporter
   - job_name: postgres
     static_configs:

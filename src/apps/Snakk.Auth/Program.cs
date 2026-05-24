@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Prometheus;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,7 @@ using System.Text;
 // Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 ThreadPool.SetMinThreads(50, 50);
+DotNetRuntimeStats.Register();
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -322,6 +324,7 @@ app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseHttpMetrics();
 
 app.MapRazorPages();
 app.MapPasskeyLoginEndpoints();
@@ -339,5 +342,7 @@ app.MapGet("/health", (Grpc.Net.Client.GrpcChannel channel) =>
         return Results.Ok(new { status = "degraded", grpcChannel = "unknown" });
     }
 });
+
+app.MapMetrics("/metrics");
 
 app.Run();
