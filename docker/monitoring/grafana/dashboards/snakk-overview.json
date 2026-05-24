@@ -99,13 +99,13 @@
       }
     },
     {
-      "title": "GC Heap Size (MB)",
+      "title": "GC Memory (MB)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
       "targets": [
         {
-          "expr": "dotnet_gc_heap_size_bytes{job=~\"snakk-.*\"} / 1024 / 1024",
-          "legendFormat": "{{service}} Gen {{generation}}"
+          "expr": "dotnet_total_memory_bytes{job=~\"snakk-.*\"} / 1024 / 1024",
+          "legendFormat": "{{service}}"
         }
       ],
       "fieldConfig": {
@@ -134,12 +134,12 @@
       }
     },
     {
-      "title": "Thread Pool Threads",
+      "title": "In-Progress HTTP Requests",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
       "targets": [
         {
-          "expr": "dotnet_threadpool_threads_count{job=~\"snakk-.*\"}",
+          "expr": "http_requests_in_progress{job=~\"snakk-.*\"}",
           "legendFormat": "{{service}}"
         }
       ],
@@ -156,8 +156,8 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
       "targets": [
         {
-          "expr": "rate(dotnet_gc_collections_total{job=~\"snakk-.*\"}[1m])",
-          "legendFormat": "{{service}} Gen {{generation}}"
+          "expr": "rate(dotnet_collection_count_total{job=~\"snakk-.*\"}[1m])",
+          "legendFormat": "{{service}} gen{{generation}}"
         }
       ],
       "fieldConfig": {

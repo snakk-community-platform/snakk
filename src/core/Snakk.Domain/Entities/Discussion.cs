@@ -19,6 +19,7 @@ public class Discussion
     public bool IsLocked { get; private set; }
     public bool IsAdult { get; private set; }
     public bool WasNormalized { get; private set; }
+    public int PostCount { get; private set; }
 
     private readonly List<Post> _posts = [];
     public IReadOnlyCollection<Post> Posts => _posts.AsReadOnly();
@@ -48,7 +49,8 @@ public class Discussion
         bool isLocked = false,
         List<Post>? posts = null,
         bool isAdult = false,
-        bool wasNormalized = false)
+        bool wasNormalized = false,
+        int postCount = 0)
     {
         PublicId = publicId;
         SpaceId = spaceId;
@@ -63,6 +65,7 @@ public class Discussion
         IsLocked = isLocked;
         IsAdult = isAdult;
         WasNormalized = wasNormalized;
+        PostCount = postCount;
         _posts = posts ?? [];
         _domainEvents = [];
     }
@@ -113,7 +116,8 @@ public class Discussion
         bool isLocked = false,
         List<Post>? posts = null,
         bool isAdult = false,
-        bool wasNormalized = false) =>
+        bool wasNormalized = false,
+        int postCount = 0) =>
         new Discussion(
             publicId,
             spaceId,
@@ -128,7 +132,8 @@ public class Discussion
             isLocked,
             posts,
             isAdult,
-            wasNormalized);
+            wasNormalized,
+            postCount);
 
     public static Discussion RehydrateForList(
         DiscussionId publicId,

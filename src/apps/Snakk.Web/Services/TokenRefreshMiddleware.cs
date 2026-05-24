@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using Grpc.Core;
+using Prometheus;
 using Snakk.Protos.Auth;
 
 namespace Snakk.Web.Services;
@@ -17,6 +18,11 @@ public class TokenRefreshMiddleware(RequestDelegate next)
     public const string RefreshedAccessTokenKey = "RefreshedAccessToken";
 
     private static readonly JwtSecurityTokenHandler _jwtHandler = new();
+
+    private static readonly Counter RefreshTotal = Metrics.CreateCounter(
+        "snakk_token_refresh_total",
+        "Token refresh outcomes by result",
+        new CounterConfiguration { LabelNames = ["result"] });
 
     // Single-flight: concurrent requests sharing the same refresh token share one refresh call.
     // PublicationOnly avoids a Monitor lock — under a thundering herd a few duplicate gRPC calls
@@ -47,9 +53,23 @@ public class TokenRefreshMiddleware(RequestDelegate next)
                 {
                     var result = refreshTask.Result;
                     if (result.AccessToken is not null && result.RefreshToken is not null)
+                    {
                         AuthCookieHelper.SetAuthCookies(context, result.AccessToken, result.RefreshToken);
+                        RefreshTotal.WithLabels("success").Inc();
+                    }
                     else if (result.ShouldClearCookies)
+                    {
                         AuthCookieHelper.DeleteAuthCookies(context);
+                        RefreshTotal.WithLabels("unauthenticated").Inc();
+                    }
+                    else
+                    {
+                        RefreshTotal.WithLabels("error").Inc();
+                    }
+                }
+                else
+                {
+                    RefreshTotal.WithLabels("pending").Inc();
                 }
                 return Task.CompletedTask;
             });

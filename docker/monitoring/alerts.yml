@@ -1,0 +1,87 @@
+groups:
+  - name: snakk
+    rules:
+
+      # PostgreSQL: connections above 80% of max_connections
+      - alert: PostgresConnectionsHigh
+        expr: >
+          pg_stat_database_numbackends{datname="snakk"}
+          / on() group_left() pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connections above 80% of max"
+          description: "{{ $value | humanizePercentage }} of max_connections in use."
+
+      # PostgreSQL: disk volume above 80% full
+      - alert: DiskSpaceLow
+        expr: >
+          (
+            node_filesystem_avail_bytes{mountpoint="/host/root", fstype!~"tmpfs|overlay|squashfs"}
+            / node_filesystem_size_bytes{mountpoint="/host/root", fstype!~"tmpfs|overlay|squashfs"}
+          ) < 0.2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Root disk below 20% free"
+          description: "{{ $value | humanizePercentage }} disk space remaining on root filesystem."
+
+      # gRPC: error rate above 1% over a 5-minute window
+      - alert: GrpcErrorRateHigh
+        expr: >
+          (
+            sum(rate(snakk_grpc_client_duration_seconds_count{status!="OK"}[5m]))
+            / sum(rate(snakk_grpc_client_duration_seconds_count[5m]))
+          ) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "gRPC client error rate above 1%"
+          description: "{{ $value | humanizePercentage }} of gRPC calls are failing."
+
+      # gRPC: channel not Ready for more than 60 seconds
+      - alert: GrpcChannelNotReady
+        expr: snakk_grpc_channel_state != 2
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "gRPC channel is not in Ready state"
+          description: "Channel state is {{ $value }} (2=Ready, 3=TransientFailure, 0=Idle)."
+
+      # Valkey: memory above 85% of maxmemory
+      - alert: ValkeyMemoryHigh
+        expr: >
+          redis_memory_used_bytes / redis_memory_max_bytes > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Valkey memory above 85% of maxmemory"
+          description: "{{ $value | humanizePercentage }} of maxmemory in use; evictions may start."
+
+      # Token refresh: sustained failure rate above 0.1/s
+      - alert: TokenRefreshFailures
+        expr: rate(snakk_token_refresh_total{result=~"error|unauthenticated"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Token refresh failure rate elevated"
+          description: "{{ $value | humanize }} refresh failures per second (result={{ $labels.result }})."
+
+      # HTTP P95 latency above 2s for any service
+      - alert: HttpLatencyHigh
+        expr: >
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP P95 latency above 2s"
+          description: "Service {{ $labels.service }} P95 latency is {{ $value | humanizeDuration }}."

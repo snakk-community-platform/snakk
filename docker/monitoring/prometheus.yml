@@ -2,6 +2,9 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+rule_files:
+  - /etc/prometheus/alerts.yml
+
 scrape_configs:
   # Snakk.Web — routed via gateway since internal services bind to 127.0.0.1
   - job_name: snakk-web
@@ -19,4 +22,23 @@ scrape_configs:
         labels:
           service: api
 
-  # PostgreSQL metrics via pg_stat (optional — add postgres-exporter later)
+  # PostgreSQL metrics via postgres_exporter
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          service: postgres
+
+  # Valkey (Redis-compatible cache) metrics via redis_exporter
+  - job_name: valkey
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+        labels:
+          service: valkey
+
+  # Host system metrics via node_exporter
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          service: node

@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Domain.Entities;
@@ -13,7 +14,8 @@ using Snakk.Shared.Enums;
 public class UserRepositoryAdapter(
     Infrastructure.Database.Repositories.IUserRepository databaseRepository,
     SnakkDbContext context,
-    IEmailProtector emailProtector) : Domain.Repositories.IUserRepository
+    IEmailProtector emailProtector,
+    IMemoryCache cache) : Domain.Repositories.IUserRepository
 {
     public async Task<User?> GetByIdAsync(int id, CancellationToken ct = default)
     {
@@ -90,6 +92,10 @@ public class UserRepositoryAdapter(
 
     public async Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId, CancellationToken ct = default)
     {
+        var cacheKey = $"current-user:{publicId.Value}";
+        if (cache.TryGetValue(cacheKey, out CurrentUserSlim? cached) && cached is not null)
+            return cached;
+
         var raw = await context.Users
             .Where(u => u.PublicId == publicId.Value)
             .Select(u => new CurrentUserSlim(
@@ -108,7 +114,10 @@ public class UserRepositoryAdapter(
         if (raw is null) return null;
 
         var decryptedEmail = raw.Email is not null ? emailProtector.Unprotect(raw.Email) : null;
-        return raw with { Email = decryptedEmail };
+        var result = raw with { Email = decryptedEmail };
+
+        cache.Set(cacheKey, result, TimeSpan.FromSeconds(30));
+        return result;
     }
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)

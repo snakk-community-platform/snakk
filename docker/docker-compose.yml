@@ -66,12 +66,71 @@ services:
 
   # --- Monitoring (opt-in: docker compose --profile monitoring up -d) ---
 
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.67.0
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    depends_on:
+      - valkey
+    environment:
+      REDIS_ADDR: "redis://valkey:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 32m
+        reservations:
+          memory: 16m
+    expose:
+      - "9121"
+
+  # node-exporter monitors the Linux host (or Docker Desktop Linux VM on Windows/Mac)
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro,rslave
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    deploy:
+      resources:
+        limits:
+          memory: 32m
+        reservations:
+          memory: 16m
+    expose:
+      - "9100"
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres_exporter:v0.16.0
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    environment:
+      DATA_SOURCE_NAME: "postgresql://snakk:${POSTGRES_PASSWORD}@postgres:5432/snakk?sslmode=disable"
+    deploy:
+      resources:
+        limits:
+          memory: 32m
+        reservations:
+          memory: 16m
+    expose:
+      - "9187"
+
   prometheus:
     image: prom/prometheus:v3.4.0
     profiles: ["monitoring"]
     restart: unless-stopped
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml

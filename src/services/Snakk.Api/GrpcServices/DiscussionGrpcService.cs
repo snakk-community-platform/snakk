@@ -42,7 +42,6 @@ public class DiscussionGrpcService(
 
         if (!await IsDiscussionAccessibleAsync(d.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
-        var postCount = await searchRepository.GetDiscussionPostCountAsync(d.PublicId.Value, ct);
         var info = new DiscussionInfo
         {
             PublicId = d.PublicId.Value,
@@ -53,7 +52,7 @@ public class DiscussionGrpcService(
             IsPinned = d.IsPinned,
             IsLocked = d.IsLocked,
             Type = d.Type.ToString(),
-            PostCount = postCount,
+            PostCount = d.PostCount,
             IsAdult = d.IsAdult
         };
 

@@ -34,7 +34,7 @@ public class DiscussionRepositoryAdapter(
             .Select(d => new DiscussionProjection(
                 d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
-                d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
+                d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized, d.PostCount))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -461,7 +461,8 @@ public class DiscussionRepositoryAdapter(
         bool IsPinned,
         bool IsLocked,
         bool IsAdult,
-        bool WasNormalized)
+        bool WasNormalized,
+        int PostCount = 0)
     {
         public Discussion ToDomain() => Discussion.Rehydrate(
             DiscussionId.From(PublicId),
@@ -469,6 +470,7 @@ public class DiscussionRepositoryAdapter(
             UserId.From(CreatedByUserPublicId),
             Title, Slug, (DiscussionTypeEnum)Type,
             CreatedAt, LastModifiedAt, LastActivityAt,
-            IsPinned, IsLocked, posts: [], isAdult: IsAdult, wasNormalized: WasNormalized);
+            IsPinned, IsLocked, posts: [], isAdult: IsAdult, wasNormalized: WasNormalized,
+            postCount: PostCount);
     }
 }

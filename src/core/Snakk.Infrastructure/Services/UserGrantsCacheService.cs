@@ -1,7 +1,7 @@
 namespace Snakk.Infrastructure.Services;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
@@ -9,7 +9,7 @@ using Snakk.Shared.Enums;
 
 public class UserGrantsCacheService(
     SnakkDbContext context,
-    IMemoryCache cache,
+    HybridCache cache,
     IConfiguration configuration) : IUserGrantsCacheService
 {
     private readonly TimeSpan _grantsTtl = TimeSpan.FromMinutes(
@@ -18,27 +18,23 @@ public class UserGrantsCacheService(
     private readonly TimeSpan _platformCountTtl = TimeSpan.FromSeconds(
         configuration.GetValue("AccessCache:PlatformCountTtlSeconds", 30));
 
+    private readonly TimeSpan _restrictedEntitiesTtl = TimeSpan.FromMinutes(
+        configuration.GetValue("AccessCache:RestrictedEntitiesTtlMinutes", 5));
+
     // ── User grant cache ──────────────────────────────────────────────────────
 
-    // Generation counter: incrementing it orphans all old user-grants keys,
-    // effectively evicting the entire user-grants cache without needing to
-    // track individual keys. Old entries expire naturally via their TTL.
-    private long GetGeneration()
+    private static string UserGrantsKey(string userId) => $"user-grants:{userId}";
+
+    public Task<UserGrants> GetGrantsAsync(string userId, CancellationToken ct = default) =>
+        cache.GetOrCreateAsync(
+            UserGrantsKey(userId),
+            async innerCt => await FetchGrantsAsync(userId, innerCt),
+            new HybridCacheEntryOptions { Expiration = _grantsTtl },
+            tags: ["user-grants"],
+            cancellationToken: ct).AsTask();
+
+    private async ValueTask<UserGrants> FetchGrantsAsync(string userId, CancellationToken ct)
     {
-        cache.TryGetValue("user-grants-gen", out long gen);
-        return gen;
-    }
-
-    private string UserGrantsKey(string userId) =>
-        $"user-grants:{userId}:{GetGeneration()}";
-
-    public async Task<UserGrants> GetGrantsAsync(string userId, CancellationToken ct = default)
-    {
-        var key = UserGrantsKey(userId);
-
-        if (cache.TryGetValue(key, out UserGrants? cached) && cached is not null)
-            return cached;
-
         var raw = await context.GroupMembers
             .Where(gm => gm.User.PublicId == userId)
             .SelectMany(gm => context.GroupAccess.Where(ga =>
@@ -46,7 +42,7 @@ public class UserGrantsCacheService(
             .Select(ga => new { ga.SpaceId, ga.HubId, ga.CommunityId })
             .ToListAsync(ct);
 
-        var grants = new UserGrants(
+        return new UserGrants(
             SpaceIds: raw
                 .Where(g => g.SpaceId.HasValue)
                 .Select(g => g.SpaceId!.Value)
@@ -59,33 +55,27 @@ public class UserGrantsCacheService(
                 .Where(g => g.CommunityId.HasValue)
                 .Select(g => g.CommunityId!.Value)
                 .ToHashSet());
-
-        cache.Set(key, grants, new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = _grantsTtl
-        });
-
-        return grants;
     }
 
     public void Invalidate(string userId) =>
-        cache.Remove(UserGrantsKey(userId));
+        _ = cache.RemoveAsync(UserGrantsKey(userId)).AsTask();
 
     public void InvalidateAll() =>
-        cache.Set("user-grants-gen", GetGeneration() + 1);
+        _ = cache.RemoveByTagAsync("user-grants").AsTask();
 
     // ── Restricted entity set ────────────────────────────────────────────────
 
-    // IsRestricted changes very rarely (admin action), so the TTL here is a
-    // safety net only — event-driven invalidation via InvalidateRestrictedCount()
-    // handles the normal case immediately.
     private const string RestrictedEntitiesKey = "restricted-entities";
 
-    public async Task<RestrictedEntitySet> GetRestrictedEntitiesAsync(CancellationToken ct = default)
-    {
-        if (cache.TryGetValue(RestrictedEntitiesKey, out RestrictedEntitySet? cached) && cached is not null)
-            return cached;
+    public Task<RestrictedEntitySet> GetRestrictedEntitiesAsync(CancellationToken ct = default) =>
+        cache.GetOrCreateAsync(
+            RestrictedEntitiesKey,
+            async innerCt => await FetchRestrictedEntitiesAsync(innerCt),
+            new HybridCacheEntryOptions { Expiration = _restrictedEntitiesTtl },
+            cancellationToken: ct).AsTask();
 
+    private async ValueTask<RestrictedEntitySet> FetchRestrictedEntitiesAsync(CancellationToken ct)
+    {
         var spaceIds = await context.Spaces
             .Where(s => s.IsRestricted)
             .Select(s => s.Id)
@@ -101,51 +91,41 @@ public class UserGrantsCacheService(
             .Select(c => c.Id)
             .ToListAsync(ct);
 
-        var result = spaceIds.Count == 0 && hubIds.Count == 0 && communityIds.Count == 0
+        return spaceIds.Count == 0 && hubIds.Count == 0 && communityIds.Count == 0
             ? RestrictedEntitySet.Empty
             : new RestrictedEntitySet(
                 [.. spaceIds],
                 [.. hubIds],
                 [.. communityIds]);
-
-        cache.Set(RestrictedEntitiesKey, result, new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = _platformCountTtl
-        });
-
-        return result;
     }
 
     public async Task<bool> AnyRestrictedAsync(CancellationToken ct = default) =>
         !(await GetRestrictedEntitiesAsync(ct)).IsEmpty;
 
     public void InvalidateRestrictedCount() =>
-        cache.Remove(RestrictedEntitiesKey);
+        _ = cache.RemoveAsync(RestrictedEntitiesKey).AsTask();
 
     // ── Adult-hiding space set ────────────────────────────────────────────────
 
     private const string AdultHidingSpacesKey = "adult-hiding-spaces";
 
-    public async Task<HashSet<int>> GetAdultHidingSpaceIdsAsync(CancellationToken ct = default)
-    {
-        if (cache.TryGetValue(AdultHidingSpacesKey, out HashSet<int>? cached) && cached is not null)
-            return cached;
+    public Task<HashSet<int>> GetAdultHidingSpaceIdsAsync(CancellationToken ct = default) =>
+        cache.GetOrCreateAsync(
+            AdultHidingSpacesKey,
+            async innerCt => await FetchAdultHidingSpaceIdsAsync(innerCt),
+            new HybridCacheEntryOptions { Expiration = _platformCountTtl },
+            cancellationToken: ct).AsTask();
 
+    private async ValueTask<HashSet<int>> FetchAdultHidingSpaceIdsAsync(CancellationToken ct)
+    {
         var spaceIds = await context.Spaces
             .Where(s => s.CommunityHideAdultDiscussionsFromLists)
             .Select(s => s.Id)
             .ToListAsync(ct);
 
-        HashSet<int> result = [.. spaceIds];
-
-        cache.Set(AdultHidingSpacesKey, result, new MemoryCacheEntryOptions
-        {
-            AbsoluteExpirationRelativeToNow = _platformCountTtl
-        });
-
-        return result;
+        return [.. spaceIds];
     }
 
     public void InvalidateAdultHidingSpaces() =>
-        cache.Remove(AdultHidingSpacesKey);
+        _ = cache.RemoveAsync(AdultHidingSpacesKey).AsTask();
 }

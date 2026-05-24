@@ -323,6 +323,8 @@ public class AuthGrpcService(
         if (!result.IsSuccess)
             return new UpdateProfileResponse { Success = false, Message = result.Error ?? "Update failed" };
 
+        cache.Remove($"display-name-history:{userIdValue}");
+
         // Generate new JWT with updated display name
         var userResult = await authUseCase.GetUserByIdAsync(userId);
 
@@ -510,14 +512,20 @@ public class AuthGrpcService(
     public override async Task<PublicSettingsResponse> GetPublicSettings(
         GetPublicSettingsRequest request, ServerCallContext context)
     {
+        const string key = "public-settings";
+        if (cache.TryGetValue(key, out PublicSettingsResponse? cached) && cached is not null)
+            return cached;
+
         var siteInfo = await settingsService.GetSiteInfoAsync();
         var regSettings = await settingsService.GetRegistrationSettingsAsync();
-        return new PublicSettingsResponse
+        var response = new PublicSettingsResponse
         {
             Timezone = siteInfo.Timezone,
             SiteName = siteInfo.SiteName,
             RegistrationMode = regSettings.Mode
         };
+        cache.Set(key, response, TimeSpan.FromMinutes(10));
+        return response;
     }
 
     public override async Task<DisplayNameHistoryResponse> GetDisplayNameHistory(
@@ -529,6 +537,10 @@ public class AuthGrpcService(
         var userIdValue = currentUser.GetCurrentUserId();
         if (userIdValue is null)
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var key = $"display-name-history:{userIdValue}";
+        if (cache.TryGetValue(key, out DisplayNameHistoryResponse? cached) && cached is not null)
+            return cached;
 
         var history = await displayNameHistoryRepository.GetHistoryForUserAsync(userIdValue);
 
@@ -544,7 +556,7 @@ public class AuthGrpcService(
             };
             response.Entries.Add(item);
         }
-
+        cache.Set(key, response, TimeSpan.FromMinutes(5));
         return response;
     }
 
@@ -617,6 +629,7 @@ public class AuthGrpcService(
         user.DiscordLinkTokenExpiry = null;
         await context.SaveChangesAsync();
 
+        cache.Remove($"discord-status:{user.PublicId}");
         return new CompleteDiscordLinkResponse { Success = true };
     }
 
@@ -635,6 +648,7 @@ public class AuthGrpcService(
         // OAuthProvider and OAuthProviderId are NOT touched
         await context.SaveChangesAsync();
 
+        cache.Remove($"discord-status:{userId.Value}");
         return new Protos.Auth.MessageResponse { Message = "Discord unlinked" };
     }
 
@@ -642,22 +656,32 @@ public class AuthGrpcService(
         GetDiscordStatusRequest request, ServerCallContext ctx)
     {
         var userId = RequireAuth();
+        var key = $"discord-status:{userId.Value}";
+        if (cache.TryGetValue(key, out DiscordStatusResponse? cached) && cached is not null)
+            return cached;
+
         var discord = await context.Users
             .Where(u => u.PublicId == userId.Value)
             .Select(u => new { u.DiscordUserId, u.DiscordUsername, u.DiscordAvatarHash })
             .FirstOrDefaultAsync();
 
+        DiscordStatusResponse response;
         if (discord?.DiscordUserId is null)
-            return new DiscordStatusResponse { IsLinked = false };
-
-        var response = new DiscordStatusResponse
         {
-            IsLinked = true,
-            DiscordUserId = discord.DiscordUserId,
-            DiscordUsername = discord.DiscordUsername ?? ""
-        };
-        if (discord.DiscordAvatarHash is not null)
-            response.DiscordAvatarHash = discord.DiscordAvatarHash;
+            response = new DiscordStatusResponse { IsLinked = false };
+        }
+        else
+        {
+            response = new DiscordStatusResponse
+            {
+                IsLinked = true,
+                DiscordUserId = discord.DiscordUserId,
+                DiscordUsername = discord.DiscordUsername ?? ""
+            };
+            if (discord.DiscordAvatarHash is not null)
+                response.DiscordAvatarHash = discord.DiscordAvatarHash;
+        }
+        cache.Set(key, response, TimeSpan.FromMinutes(2));
         return response;
     }
 
@@ -692,6 +716,10 @@ public class AuthGrpcService(
         GetOAuthConnectionsRequest request, ServerCallContext ctx)
     {
         var userId = RequireAuth();
+        var key = $"oauth-connections:{userId.Value}";
+        if (cache.TryGetValue(key, out GetOAuthConnectionsResponse? cached) && cached is not null)
+            return cached;
+
         var result = await authUseCase.GetOAuthConnectionsAsync(userId.Value, ctx.CancellationToken);
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.Internal, result.Error ?? "Failed to get connections"));
@@ -711,6 +739,7 @@ public class AuthGrpcService(
                     DateTime.SpecifyKind(conn.LastLoginAt.Value, DateTimeKind.Utc));
             response.Connections.Add(info);
         }
+        cache.Set(key, response, TimeSpan.FromMinutes(2));
         return response;
     }
 
@@ -724,6 +753,9 @@ public class AuthGrpcService(
 
         var result = await authUseCase.ConnectOAuthProviderAsync(
             userPublicId, request.Provider, request.ProviderUserId, ctx.CancellationToken);
+
+        if (result.IsSuccess)
+            cache.Remove($"oauth-connections:{userPublicId}");
 
         return new ConnectOAuthProviderResponse
         {
@@ -742,6 +774,7 @@ public class AuthGrpcService(
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.FailedPrecondition, result.Error ?? "Cannot disconnect"));
 
+        cache.Remove($"oauth-connections:{userId.Value}");
         return new Protos.Auth.MessageResponse { Message = "Provider disconnected" };
     }
 
@@ -755,6 +788,7 @@ public class AuthGrpcService(
         if (!result.IsSuccess)
             throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Update failed"));
 
+        cache.Remove($"oauth-connections:{userId.Value}");
         return new Protos.Auth.MessageResponse { Message = "2FA requirement updated" };
     }
 
