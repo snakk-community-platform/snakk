@@ -1773,7 +1773,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                 </div>
             </div>
             ${replyToHtml}
-            <div id="post-content-${post.publicId}" class="prose prose-content" data-author-name="${escapeHtml(post.author.displayName)}">
+            <div id="post-content-${post.publicId}" class="prose prose-content" data-author-name="${escapeHtml(post.author.displayName)}" data-raw-content="${escapeHtml(post.content)}">
                 ${post.renderedContent ? sanitizeHtml(post.renderedContent) : escapeHtml(post.content)}
             </div>
         </div>

@@ -1335,7 +1335,8 @@
                                 <!-- Post Content -->
                                 <div id="post-content-@post.PublicId"
                                      class="prose prose-content flex flex-col gap-4 leading-6"
-                                     data-author-name="@post.Author.DisplayName">
+                                     data-author-name="@post.Author.DisplayName"
+                                     data-raw-content="@post.Content">
                                     @Html.SanitizedRaw(post.RenderedContent)
                                 </div>
                             </div>
