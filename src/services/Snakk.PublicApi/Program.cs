@@ -13,7 +13,7 @@ using System.Threading.RateLimiting;
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
 ThreadPool.SetMinThreads(50, 50);
-DotNetRuntimeStats.Register();
+DotNetRuntimeStatsBuilder.Default().StartCollecting();
 
 var builder = WebApplication.CreateBuilder(args);
 
