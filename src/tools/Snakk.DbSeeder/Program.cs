@@ -50,6 +50,7 @@ builder.Services.AddDbContext<DataProtectionDbContext>(opts =>
 
 // Register services
 builder.Services.AddMemoryCache();
+builder.Services.AddHybridCache();
 builder.Services.AddScoped<IUserGrantsCacheService, UserGrantsCacheService>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 var storageProvider = builder.Configuration["FileStorage:Provider"];
