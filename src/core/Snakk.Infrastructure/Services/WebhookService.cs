@@ -12,6 +12,7 @@ using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Database.Entities.Lookups;
+using Snakk.Infrastructure.Networking;
 
 namespace Snakk.Infrastructure.Services;
 
@@ -469,25 +470,7 @@ public class WebhookService(
             // at actual TCP connect time, re-checking the resolved address.
             var handler = new SocketsHttpHandler
             {
-                ConnectCallback = async (ctx, ct) =>
-                {
-                    var addresses = await Dns.GetHostAddressesAsync(ctx.DnsEndPoint.Host, ct);
-                    var safeAddress = addresses.FirstOrDefault(a => !IsPrivateOrReservedIp(a))
-                        ?? throw new InvalidOperationException(
-                            "Webhook URL resolves to a private or reserved IP address.");
-                    var socket = new Socket(safeAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
-                        { NoDelay = true };
-                    try
-                    {
-                        await socket.ConnectAsync(new IPEndPoint(safeAddress, ctx.DnsEndPoint.Port), ct);
-                        return new NetworkStream(socket, ownsSocket: true);
-                    }
-                    catch
-                    {
-                        socket.Dispose();
-                        throw;
-                    }
-                }
+                ConnectCallback = SsrfIpFilter.CreateSafeConnectCallback()
             };
             using var httpClient = new HttpClient(handler, disposeHandler: true)
             {
@@ -682,7 +665,7 @@ public class WebhookService(
         // Resolve and check IP addresses
         if (IPAddress.TryParse(host, out var ip))
         {
-            if (IsPrivateOrReservedIp(ip))
+            if (SsrfIpFilter.IsPrivateOrReserved(ip))
                 throw new ArgumentException("Webhook URL must not target private or reserved IP addresses.");
         }
         else
@@ -694,7 +677,7 @@ public class WebhookService(
                 if (addresses.Length == 0)
                     throw new ArgumentException("Webhook URL hostname could not be resolved.");
 
-                if (addresses.All(IsPrivateOrReservedIp))
+                if (addresses.All(SsrfIpFilter.IsPrivateOrReserved))
                     throw new ArgumentException("Webhook URL must not target private or reserved IP addresses.");
             }
             catch (SocketException)
@@ -715,37 +698,6 @@ public class WebhookService(
 
     private static bool IsBlockedHeader(string headerName) =>
         BlockedHeaders.Contains(headerName);
-
-    private static bool IsPrivateOrReservedIp(IPAddress ip)
-    {
-        // Map IPv6-mapped IPv4 to IPv4 for consistent checks
-        if (ip.IsIPv4MappedToIPv6)
-            ip = ip.MapToIPv4();
-
-        var bytes = ip.GetAddressBytes();
-
-        if (ip.AddressFamily == AddressFamily.InterNetwork)
-        {
-            return bytes[0] switch
-            {
-                10 => true,                                           // 10.0.0.0/8
-                100 when bytes[1] >= 64 && bytes[1] <= 127 => true,  // 100.64.0.0/10 (CGNAT)
-                127 => true,                                          // 127.0.0.0/8 (loopback)
-                169 when bytes[1] == 254 => true,                     // 169.254.0.0/16 (link-local)
-                172 when bytes[1] >= 16 && bytes[1] <= 31 => true,    // 172.16.0.0/12
-                192 when bytes[1] == 168 => true,                     // 192.168.0.0/16
-                0 => true,                                            // 0.0.0.0/8
-                _ => false
-            };
-        }
-
-        // IPv6: block loopback (::1), link-local (fe80::/10), deprecated site-local (fec0::/10),
-        // and ULA (fc00::/7 — covers fc:: and fd::, the range actually used per RFC 4193)
-        return IPAddress.IsLoopback(ip)
-            || ip.IsIPv6LinkLocal
-            || ip.IsIPv6SiteLocal
-            || (bytes[0] & 0xfe) == 0xfc;
-    }
 
     private static WebhookDeliveryLogResponse MapToDeliveryLogResponse(
         WebhookDeliveryLogDatabaseEntity log,

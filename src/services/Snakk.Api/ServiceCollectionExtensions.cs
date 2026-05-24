@@ -7,6 +7,7 @@ using Microsoft.Extensions.Http.Resilience;
 using Snakk.Infrastructure.Database;
 using Snakk.Application.UseCases;
 using Snakk.Application.Services;
+using Snakk.Infrastructure.Networking;
 using Snakk.Infrastructure.Services;
 using Snakk.Api.Middleware;
 using Snakk.Api.Services;
@@ -252,9 +253,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IMediaService, Infrastructure.Services.MediaService>();
         services.AddScoped<IAvatarGenerationService, Infrastructure.Services.AvatarGenerationService>();
         services.AddScoped<IAllowedTypesService, Infrastructure.Services.AllowedTypesService>();
-        services.AddTransient<PrivateIpBlockHandler>();
+        // SSRF guard: redirects are followed inside the primary handler without
+        // re-entering DelegatingHandlers, so the IP check has to live on the
+        // SocketsHttpHandler's ConnectCallback. Catches initial connect AND
+        // every redirect hop, and re-resolves DNS at TCP-connect time so DNS
+        // rebinding cannot flip a public IP to a private one after validation.
         services.AddHttpClient("LinkMetadata")
-            .AddHttpMessageHandler<PrivateIpBlockHandler>();
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+            {
+                ConnectCallback = SsrfIpFilter.CreateSafeConnectCallback(),
+                PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+            });
         // Unblocked client for calls to the operator-configured proxy URL (internal Docker service)
         services.AddHttpClient("LinkMetadataProxy");
         services.AddHttpClient("DiscordWebhook", client => { client.Timeout = TimeSpan.FromSeconds(5); });
