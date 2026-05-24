@@ -351,11 +351,11 @@ public class DatabaseSeeder(
             Console.WriteLine($"Test users created: {string.Join(", ", created)} (password: test123!)");
     }
 
-    private async Task EnsureDefaultAdminExistsAsync()
+    internal async Task EnsureDefaultAdminExistsAsync()
     {
         // Read admin credentials from config (setup wizard writes these), fall back to defaults
         var adminEmail = _configuration["Setup:AdminEmail"] ?? "admin@snakk.local";
-        var adminPassword = _configuration["Setup:AdminPassword"] ?? "admin123";
+        var configuredPassword = _configuration["Setup:AdminPassword"];
         var adminDisplayName = _configuration["Setup:AdminDisplayName"] ?? "Admin User";
         const string adminPublicId = "01JJQP000000000000000ADM1N";
 
@@ -364,14 +364,27 @@ public class DatabaseSeeder(
         var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.EmailHash == adminHash || u.PublicId == adminPublicId);
         if (adminUser is not null)
         {
-            // Always sync credentials from config so password resets and redeployments work correctly.
+            // Sync the email each run (cheap, idempotent). Only overwrite the password
+            // and lockout state if the operator explicitly set Setup:AdminPassword on
+            // this run. Without this guard, the Snakk.Setup wizard's ScrubSensitiveConfig
+            // removes the value from snakk-config.json after install, so every subsequent
+            // restart falls through to the fallback and resets the GlobalAdmin password
+            // to "admin123" — total platform takeover on any deploy. (CR-17 in
+            // docs/SECURITY-AUDIT-2026-05-23.md.) Clearing FailedLoginAttempts / LockoutEnd
+            // on every restart also lets an attacker who triggered the lockout pick back
+            // up where they left off.
             adminUser.Email = _emailProtector.Protect(adminEmail);
             adminUser.EmailHash = adminHash;
-            adminUser.PasswordHash = _passwordHasher.HashPassword(adminPassword);
-            adminUser.FailedLoginAttempts = 0;
-            adminUser.LockoutEnd = null;
+
+            if (!string.IsNullOrEmpty(configuredPassword))
+            {
+                adminUser.PasswordHash = _passwordHasher.HashPassword(configuredPassword);
+                adminUser.FailedLoginAttempts = 0;
+                adminUser.LockoutEnd = null;
+                Console.WriteLine($"Admin password synced from explicit Setup:AdminPassword config: {adminEmail}");
+            }
+
             await _context.SaveChangesAsync();
-            Console.WriteLine($"Admin credentials synced from config: {adminEmail}");
 
             // Ensure they have GlobalAdmin role in UserRoles table (for permissions)
             var hasGlobalAdminRole = await _context.UserRoles
@@ -393,7 +406,13 @@ public class DatabaseSeeder(
             return;
         }
 
-        var passwordHash = _passwordHasher.HashPassword(adminPassword);
+        // First-time creation only — use the configured password or fall back to the
+        // bootstrap default. Operators should always set Setup:AdminPassword before
+        // first boot in production; the setup wizard does this and immediately scrubs
+        // the value so subsequent runs hit the "no explicit config" branch above and
+        // leave the password alone.
+        var initialPassword = configuredPassword ?? "admin123";
+        var passwordHash = _passwordHasher.HashPassword(initialPassword);
 
         // Create new admin user
         var newAdminUser = new UserDatabaseEntity
