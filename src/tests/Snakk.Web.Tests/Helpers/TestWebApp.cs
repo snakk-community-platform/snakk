@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Snakk.Protos.Auth;
@@ -105,6 +107,13 @@ public class TestWebApp : WebApplicationFactory<Program>
             services.RemoveAll<Grpc.Net.Client.GrpcChannel>();
             services.AddSingleton(_ => dummyChannel);
 
+            // Remove the gRPC warmup service — it calls ConnectAsync with a 60s timeout
+            // against the dummy channel above, adding 60s to every TestWebApp startup.
+            var warmup = services.FirstOrDefault(d =>
+                d.ServiceType == typeof(IHostedService) &&
+                d.ImplementationType == typeof(GrpcChannelWarmupService));
+            if (warmup is not null) services.Remove(warmup);
+
             // Replace the "InternalApi" named HttpClient factory with one that uses MockApiHandler
             services.RemoveAll<IHttpClientFactory>();
             services.AddSingleton<IHttpClientFactory>(sp =>
@@ -114,10 +123,16 @@ public class TestWebApp : WebApplicationFactory<Program>
             services.RemoveAll<ICommunityDomainCacheService>();
             services.AddSingleton<ICommunityDomainCacheService, StubCommunityDomainCacheService>();
 
-            // Use ephemeral (in-memory) data protection — no Postgres key storage needed in tests
-            services.AddSingleton<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(
-                new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(
-                    Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance));
+            // Override data protection to use the filesystem instead of Postgres.
+            // PersistKeysToDbContext (in Program.cs) registered an EF-backed IXmlRepository via
+            // IConfigureOptions<KeyManagementOptions>. Calling AddDataProtection() again appends
+            // another Configure<KeyManagementOptions> that overwrites XmlRepository with a
+            // filesystem-backed one, which resolves the "Host=unused" connection error on first
+            // authenticated request.
+            services.AddDataProtection()
+                .SetApplicationName("Snakk")
+                .PersistKeysToFileSystem(new System.IO.DirectoryInfo(
+                    System.IO.Path.Combine(tempStorage, "dp-keys")));
         });
     }
 

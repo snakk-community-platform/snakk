@@ -22,6 +22,7 @@ public class GrpcChannelWarmupService(
         "gRPC channel connectivity state (0=Idle 1=Connecting 2=Ready 3=TransientFailure 4=Shutdown)");
 
     private CancellationTokenSource? _cts;
+    private Task? _trackingTask;
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
@@ -45,13 +46,14 @@ public class GrpcChannelWarmupService(
         }
 
         _cts = new CancellationTokenSource();
-        _ = TrackStateAsync(_cts.Token);
+        _trackingTask = TrackStateAsync(_cts.Token);
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
         _cts?.Cancel();
-        return Task.CompletedTask;
+        if (_trackingTask is not null)
+            try { await _trackingTask.ConfigureAwait(false); } catch { }
     }
 
     private async Task TrackStateAsync(CancellationToken ct)
@@ -68,10 +70,8 @@ public class GrpcChannelWarmupService(
             {
                 await channel.WaitForStateChangedAsync(state, ct);
             }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
+            catch (OperationCanceledException) { break; }
+            catch (ObjectDisposedException) { break; }
         }
     }
 }
