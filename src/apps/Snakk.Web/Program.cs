@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Grpc.Core.Interceptors;
 using Prometheus;
+using Prometheus.DotNetRuntime;
 using Serilog;
 using Snakk.ServiceDefaults;
 using System.Net;

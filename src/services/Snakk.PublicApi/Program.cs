@@ -1,5 +1,6 @@
 using Grpc.Core.Interceptors;
 using Prometheus;
+using Prometheus.DotNetRuntime;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Snakk.ServiceDefaults;
 using Snakk.Protos.Discussion;

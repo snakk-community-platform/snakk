@@ -92,7 +92,7 @@ services:
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
-      - /:/host/root:ro,rslave
+      - /:/host/root:ro
     command:
       - --path.procfs=/host/proc
       - --path.sysfs=/host/sys

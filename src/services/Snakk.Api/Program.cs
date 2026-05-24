@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using Prometheus;
+using Prometheus.DotNetRuntime;
 using Snakk.Api;
 using Snakk.Api.Endpoints;
 using Snakk.Api.Middleware;
