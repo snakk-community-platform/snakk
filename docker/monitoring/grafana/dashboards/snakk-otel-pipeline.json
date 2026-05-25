@@ -1,0 +1,249 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    { "title": "Snakk Overview", "type": "link", "url": "/grafana/d/snakk-overview", "targetBlank": false },
+    { "title": "Snakk Traces", "type": "link", "url": "/grafana/d/snakk-traces", "targetBlank": false },
+    { "title": "Snakk Logs", "type": "link", "url": "/grafana/d/snakk-logs", "targetBlank": false }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "name": "k6 runs",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "enable": true,
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "expr": "max(k6_vus) > bool 0",
+        "step": "30s",
+        "titleFormat": "k6 load test",
+        "textFormat": "k6 scenario active (k6_vus > 0)",
+        "hide": false
+      }
+    ]
+  },
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 100,
+      "title": "Ingress / egress overview",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "id": 1,
+      "title": "Spans / sec (ingress)",
+      "description": "Spans accepted at the OTLP receiver per second. Drop to zero while services are running = SDKs disconnected. Compare with egress panel below to check the collector isn't dropping.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "targets": [
+        { "expr": "sum(rate(otelcol_receiver_accepted_spans[1m]))", "legendFormat": "" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 1, "color": { "mode": "fixed", "fixedColor": "blue" } } }
+    },
+    {
+      "id": 2,
+      "title": "Metric points / sec (ingress)",
+      "description": "Metric points accepted across all receivers (OTLP + docker_stats). Sustained drops to zero = the OTLP SDK or docker_stats receiver has failed.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "targets": [
+        { "expr": "sum(rate(otelcol_receiver_accepted_metric_points[1m]))", "legendFormat": "" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 1, "color": { "mode": "fixed", "fixedColor": "blue" } } }
+    },
+    {
+      "id": 3,
+      "title": "Log records / sec (ingress)",
+      "description": "Log records accepted across OTLP + filelog receivers (postgres, valkey, caddy). Drop = log file rotation problem or postgres logging_collector stopped.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "targets": [
+        { "expr": "sum(rate(otelcol_receiver_accepted_log_records[1m]))", "legendFormat": "" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 1, "color": { "mode": "fixed", "fixedColor": "blue" } } }
+    },
+    {
+      "id": 4,
+      "title": "Collector RSS (MB)",
+      "description": "Collector process resident memory. The pipeline runs memory_limiter at 75% of the deploy.resources.limits ceiling (256MB) — sustained climb here, paired with refused-* rising on the bottom panels, means the limiter is back-pressuring.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "targets": [
+        { "expr": "otelcol_process_memory_rss / 1024 / 1024", "legendFormat": "" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decmbytes", "decimals": 0,
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 160 },
+            { "color": "red", "value": 200 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 101,
+      "title": "Receivers — ingress + refused",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+    {
+      "id": 5,
+      "title": "Receiver accept rate by receiver + signal",
+      "description": "Per-receiver throughput. Use this to confirm which sources are alive: 'otlp' = .NET services pushing OTLP; 'docker_stats' = per-container stats; 'filelog/*' = Postgres/Valkey/Caddy log shipping.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        { "expr": "sum by (receiver) (rate(otelcol_receiver_accepted_spans[1m]))", "legendFormat": "spans · {{receiver}}" },
+        { "expr": "sum by (receiver) (rate(otelcol_receiver_accepted_metric_points[1m]))", "legendFormat": "metrics · {{receiver}}" },
+        { "expr": "sum by (receiver) (rate(otelcol_receiver_accepted_log_records[1m]))", "legendFormat": "logs · {{receiver}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "line", "fillOpacity": 5, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Receiver refused rate (rejected at ingress)",
+      "description": "Items refused before entering the pipeline — usually OTLP requests over the configured size limit or with malformed protobufs. Sustained nonzero = SDK misconfiguration or attack traffic.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        { "expr": "sum by (receiver) (rate(otelcol_receiver_refused_spans[1m]))", "legendFormat": "spans · {{receiver}}" },
+        { "expr": "sum by (receiver) (rate(otelcol_receiver_refused_metric_points[1m]))", "legendFormat": "metrics · {{receiver}}" },
+        { "expr": "sum by (receiver) (rate(otelcol_receiver_refused_log_records[1m]))", "legendFormat": "logs · {{receiver}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 102,
+      "title": "Exporters — sent vs failed",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "collapsed": false
+    },
+    {
+      "id": 7,
+      "title": "Exporter send rate (success)",
+      "description": "Items successfully shipped to downstream backends. otlp/tempo → traces; otlphttp/loki → logs; prometheusremotewrite → metrics. Confirms data is actually reaching storage.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "targets": [
+        { "expr": "sum by (exporter) (rate(otelcol_exporter_sent_spans[1m]))", "legendFormat": "spans · {{exporter}}" },
+        { "expr": "sum by (exporter) (rate(otelcol_exporter_sent_metric_points[1m]))", "legendFormat": "metrics · {{exporter}}" },
+        { "expr": "sum by (exporter) (rate(otelcol_exporter_sent_log_records[1m]))", "legendFormat": "logs · {{exporter}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "line", "fillOpacity": 5, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Exporter send-failed rate (CRITICAL)",
+      "description": "Items the collector tried to ship but the downstream rejected. Stays at zero in a healthy stack. Sustained nonzero means Tempo/Loki/Prometheus is down or unreachable from the collector — open the corresponding service log via Snakk Logs.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "targets": [
+        { "expr": "sum by (exporter) (rate(otelcol_exporter_send_failed_spans[1m]))", "legendFormat": "spans · {{exporter}}" },
+        { "expr": "sum by (exporter) (rate(otelcol_exporter_send_failed_metric_points[1m]))", "legendFormat": "metrics · {{exporter}}" },
+        { "expr": "sum by (exporter) (rate(otelcol_exporter_send_failed_log_records[1m]))", "legendFormat": "logs · {{exporter}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": { "drawStyle": "line", "fillOpacity": 40, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 103,
+      "title": "Backpressure + batching",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "collapsed": false
+    },
+    {
+      "id": 9,
+      "title": "Exporter queue depth by signal",
+      "description": "Pending items waiting to be flushed to a downstream. Should oscillate near zero. A flat-climbing curve = downstream is slower than ingress; eventually queue_capacity is reached and items are dropped.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        { "expr": "otelcol_exporter_queue_size", "legendFormat": "{{data_type}} · {{exporter}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "Batch processor — items per batch",
+      "description": "P50/P95 of batch sizes leaving the batch processor before being handed to exporters. Sustained at the batch.send_size ceiling (1024 default) = ingress > batch flush cadence; items wait in the batcher longer.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(otelcol_processor_batch_batch_send_size_bucket[5m])))", "legendFormat": "P95" },
+        { "expr": "histogram_quantile(0.50, sum by (le) (rate(otelcol_processor_batch_batch_send_size_bucket[5m])))", "legendFormat": "P50" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "line", "fillOpacity": 5, "lineWidth": 2 }
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Batch processor — flush trigger reasons",
+      "description": "How often each batch flush was triggered by 'reach the size ceiling' (batch_size_trigger_send) vs 'timeout fired before filling' (timeout_trigger_send). If size triggers dominate during load = batch size is the limit, latency to downstream may rise.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "targets": [
+        { "expr": "rate(otelcol_processor_batch_batch_size_trigger_send[1m])", "legendFormat": "size-trigger" },
+        { "expr": "rate(otelcol_processor_batch_timeout_trigger_send[1m])", "legendFormat": "timeout-trigger" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }
+        }
+      }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["snakk", "otel", "infra"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Snakk OTel Pipeline Health",
+  "uid": "snakk-otel-pipeline",
+  "version": 1
+}

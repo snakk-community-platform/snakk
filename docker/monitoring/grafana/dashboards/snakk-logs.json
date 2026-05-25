@@ -1,0 +1,136 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Activity",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Log lines per second by service",
+      "description": "Total log ingest rate, broken down by service. Sudden drops to zero are usually a service crash.",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": { "defaults": { "unit": "logps", "color": { "mode": "palette-classic" } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by (service_name) (rate({service_name=~\".+\"} [$__rate_interval]))",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Errors per minute by service",
+      "description": "Anything with severity_text in {Error, Critical} or a 5xx-looking pattern in the body.",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 1 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum by (service_name) (count_over_time({service_name=~\".+\"} | severity_text=~\"(?i)error|critical|fatal\" [1m]))",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "type": "row",
+      "id": 101,
+      "title": "Errors — last hour",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 8 },
+      "collapsed": false
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "All errors (last hour)",
+      "description": "Recent error-severity log lines across the platform.",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 9 },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service_name=~\".+\"} | severity_text=~\"(?i)error|critical|fatal\"",
+          "maxLines": 100,
+          "refId": "A"
+        }
+      ],
+      "type": "logs",
+      "options": { "showTime": true, "wrapLogMessage": true, "dedupStrategy": "none", "enableLogDetails": true }
+    },
+    {
+      "type": "row",
+      "id": 102,
+      "title": "Postgres slow queries",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 21 },
+      "collapsed": false
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Postgres slow queries (last hour)",
+      "description": "Postgres entries containing 'duration:' (slow-query threshold from log_min_duration_statement).",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 22 },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service_name=\"postgres\"} |= \"duration:\"",
+          "maxLines": 100,
+          "refId": "A"
+        }
+      ],
+      "type": "logs",
+      "options": { "showTime": true, "wrapLogMessage": true, "enableLogDetails": true }
+    },
+    {
+      "type": "row",
+      "id": 103,
+      "title": "Security-relevant events",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 34 },
+      "collapsed": false
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Auth failures + SSRF blocks (last 24h)",
+      "description": "Free-text match across services for failed-login + LinkMetadata SSRF block patterns.",
+      "gridPos": { "h": 11, "w": 24, "x": 0, "y": 35 },
+      "id": 5,
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service_name=~\".+\"} |~ \"(?i)(ssrf|blocked.*url|invalid credentials|2fa.*fail|brute force|password reset.*denied)\"",
+          "maxLines": 50,
+          "refId": "A"
+        }
+      ],
+      "type": "logs",
+      "options": { "showTime": true, "wrapLogMessage": true, "enableLogDetails": true }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["snakk", "logs"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Snakk Logs",
+  "uid": "snakk-logs",
+  "version": 1,
+  "weekStart": ""
+}

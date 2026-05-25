@@ -1,0 +1,275 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Caddy (reverse proxy)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Caddy request rate (by status)",
+      "description": "Per-status HTTP rate at the front door. Spikes in 4xx/5xx are the first signal of a regression.",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": { "defaults": { "unit": "reqps", "color": { "mode": "palette-classic" } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (code) (rate(caddy_http_response_duration_seconds_count[$__rate_interval]))",
+          "legendFormat": "{{code}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Caddy p95 latency",
+      "description": "95th-percentile request latency at the reverse proxy. Includes upstream time.",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 1 },
+      "id": 2,
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "palette-classic" } } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(caddy_http_response_duration_seconds_bucket[$__rate_interval])))",
+          "legendFormat": "p95",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Caddy reverse-proxy upstreams (healthy)",
+      "description": "1 = upstream reachable. Drops to 0 if snakk-gateway is down.",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 8 },
+      "id": 3,
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "max": 1 } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "caddy_reverse_proxy_upstreams_healthy",
+          "legendFormat": "{{upstream}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Caddy requests in flight",
+      "description": "Concurrent active requests at the reverse proxy. Climbs during traffic spikes / upstream slowdowns.",
+      "gridPos": { "h": 6, "w": 12, "x": 12, "y": 8 },
+      "id": 4,
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "caddy_http_requests_in_flight",
+          "legendFormat": "in-flight",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "type": "row",
+      "id": 101,
+      "title": "Postgres",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "collapsed": false
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Slow queries per minute (>200 ms threshold)",
+      "description": "Rate of slow-query log entries from Postgres. Threshold set in postgresql.conf:log_min_duration_statement.",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 15 },
+      "id": 5,
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({service_name=\"postgres\"} |= \"duration:\" [1m]))",
+          "legendFormat": "slow queries",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Recent Postgres slow queries (top 20)",
+      "description": "Last 20 slow-query lines. Hover to see full statement text.",
+      "gridPos": { "h": 11, "w": 12, "x": 12, "y": 15 },
+      "id": 6,
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service_name=\"postgres\"} |= \"duration:\"",
+          "maxLines": 20,
+          "refId": "A"
+        }
+      ],
+      "type": "logs",
+      "options": { "showTime": true, "wrapLogMessage": true, "dedupStrategy": "none", "enableLogDetails": true }
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Lock-wait events per minute",
+      "description": "Rate of lock_waits messages (log_lock_waits=on). Sustained nonzero rate = contention to investigate.",
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 22 },
+      "id": 7,
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({service_name=\"postgres\"} |~ \"(?i)still waiting for|deadlock detected\" [1m]))",
+          "legendFormat": "lock waits",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "type": "row",
+      "id": 102,
+      "title": "Valkey",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "collapsed": false
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Valkey slowlog entries per minute",
+      "description": "Rate of slowlog entries shipped by the valkey-slowlog sidecar.",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 27 },
+      "id": 8,
+      "fieldConfig": { "defaults": { "unit": "short" } },
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "sum(count_over_time({service_name=\"valkey\"} [1m]))",
+          "legendFormat": "slowlog entries",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "title": "Recent Valkey slow commands (top 20)",
+      "description": "Each line is a JSON entry with command + duration_us + client info.",
+      "gridPos": { "h": 11, "w": 12, "x": 12, "y": 27 },
+      "id": 9,
+      "targets": [
+        {
+          "datasource": { "type": "loki", "uid": "loki" },
+          "expr": "{service_name=\"valkey\"}",
+          "maxLines": 20,
+          "refId": "A"
+        }
+      ],
+      "type": "logs",
+      "options": { "showTime": true, "wrapLogMessage": true, "enableLogDetails": true }
+    },
+    {
+      "type": "row",
+      "id": 103,
+      "title": "Containers",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 38 },
+      "collapsed": false
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "CPU utilization by container",
+      "description": "Per-container CPU as ratio of one full core. 1.0 = one CPU saturated.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 39 },
+      "id": 10,
+      "fieldConfig": { "defaults": { "unit": "percentunit", "color": { "mode": "palette-classic" } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "container_cpu_utilization_ratio",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Memory usage by container",
+      "description": "Resident memory per container. Steady upward drift = memory leak suspect.",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 39 },
+      "id": 11,
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "palette-classic" } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "container_memory_usage_total_bytes",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Network ingress per container",
+      "description": "RX bytes/sec per container. Helps spot a noisy neighbour or runaway client.",
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 47 },
+      "id": 12,
+      "fieldConfig": { "defaults": { "unit": "Bps", "color": { "mode": "palette-classic" } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(container_network_io_usage_rx_bytes_total[$__rate_interval])",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "Network egress per container",
+      "description": "TX bytes/sec per container.",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 47 },
+      "id": 13,
+      "fieldConfig": { "defaults": { "unit": "Bps", "color": { "mode": "palette-classic" } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(container_network_io_usage_tx_bytes_total[$__rate_interval])",
+          "legendFormat": "{{container_name}}",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["snakk", "infra"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Snakk Infra",
+  "uid": "snakk-infra",
+  "version": 1,
+  "weekStart": ""
+}

@@ -8,11 +8,12 @@
   "panels": [
     {
       "title": "Disk Free (root)",
+      "description": "Percentage of free space on the host root filesystem. The WSL2 docker-desktop bind-mount mirrors are filtered out via --collector.filesystem.mount-points-exclude so this is the real ext4 device.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "100 * node_filesystem_avail_bytes{mountpoint=\"/host/root\",fstype!~\"tmpfs|overlay|squashfs\"} / node_filesystem_size_bytes{mountpoint=\"/host/root\",fstype!~\"tmpfs|overlay|squashfs\"}",
+          "expr": "100 * node_filesystem_avail_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay|squashfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay|squashfs\"}",
           "legendFormat": ""
         }
       ],
@@ -41,6 +42,7 @@
     },
     {
       "title": "CPU Usage",
+      "description": "Host CPU utilisation excluding idle. Goes red >90%. Pair with the Disk I/O panel if user-mode rises while iowait climbs.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
       "targets": [
@@ -74,6 +76,7 @@
     },
     {
       "title": "Memory Available",
+      "description": "Bytes available on the host (MemAvailable, the kernel's reclaim-aware figure). When this approaches zero the OOM killer is imminent.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
       "targets": [
@@ -94,6 +97,7 @@
     },
     {
       "title": "Load Average (1m)",
+      "description": "1-minute load average. Roughly: number of CPUs * 0.7 is healthy; >= number of CPUs sustained = oversubscribed.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "targets": [
@@ -123,6 +127,7 @@
     },
     {
       "title": "CPU Usage",
+      "description": "Host CPU as percent busy versus iowait over time. Spiking iowait means disk-bound; spiking CPU% with low iowait means compute-bound.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
       "targets": [
@@ -152,6 +157,7 @@
     },
     {
       "title": "Memory",
+      "description": "Used vs total host memory. Steady upward drift in Used while Snakk traffic is flat is a memory-leak signal — pivot to Snakk Profiles (in-use memory flamegraph) to find the culprit.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
       "targets": [
@@ -183,15 +189,16 @@
     },
     {
       "title": "Disk Space (root)",
+      "description": "Bytes used vs total on /. Postgres/Loki/Tempo/Prometheus all write to named volumes on this device, so retention runaway here is the most common cause of growth.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
       "targets": [
         {
-          "expr": "node_filesystem_size_bytes{mountpoint=\"/host/root\",fstype!~\"tmpfs|overlay|squashfs\"} - node_filesystem_avail_bytes{mountpoint=\"/host/root\",fstype!~\"tmpfs|overlay|squashfs\"}",
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay|squashfs\"} - node_filesystem_avail_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay|squashfs\"}",
           "legendFormat": "Used"
         },
         {
-          "expr": "node_filesystem_size_bytes{mountpoint=\"/host/root\",fstype!~\"tmpfs|overlay|squashfs\"}",
+          "expr": "node_filesystem_size_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay|squashfs\"}",
           "legendFormat": "Total"
         }
       ],
@@ -214,6 +221,7 @@
     },
     {
       "title": "Disk I/O",
+      "description": "Host-level read + write throughput. Spikes during k6 write scenarios are expected. Sustained high write with no load = vacuum / autovacuum or Loki WAL activity.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
       "targets": [
@@ -241,6 +249,7 @@
     },
     {
       "title": "Network I/O",
+      "description": "Per-NIC RX/TX rate. Loopback and Docker bridge interfaces are filtered out so this shows real external traffic only.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
       "targets": [

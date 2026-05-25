@@ -1,0 +1,112 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "grafana-pyroscope-datasource", "uid": "pyroscope" },
+      "gridPos": { "h": 14, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "CPU — $service",
+      "description": "Where wall-clock CPU time is being spent. Wide stacks → hot paths to investigate.",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-pyroscope-datasource", "uid": "pyroscope" },
+          "groupBy": [],
+          "labelSelector": "{service_name=\"$service\"}",
+          "profileTypeId": "process_cpu:cpu:nanoseconds:cpu:nanoseconds",
+          "queryType": "profile",
+          "refId": "A"
+        }
+      ],
+      "type": "flamegraph"
+    },
+    {
+      "datasource": { "type": "grafana-pyroscope-datasource", "uid": "pyroscope" },
+      "gridPos": { "h": 14, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "title": "Allocation rate — $service",
+      "description": "Bytes allocated over the window. Drives GC pressure; pair with .NET runtime GC metrics.",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-pyroscope-datasource", "uid": "pyroscope" },
+          "groupBy": [],
+          "labelSelector": "{service_name=\"$service\"}",
+          "profileTypeId": "memory:alloc_space:bytes:space:bytes",
+          "queryType": "profile",
+          "refId": "A"
+        }
+      ],
+      "type": "flamegraph"
+    },
+    {
+      "datasource": { "type": "grafana-pyroscope-datasource", "uid": "pyroscope" },
+      "gridPos": { "h": 14, "w": 12, "x": 0, "y": 14 },
+      "id": 3,
+      "title": "In-use memory — $service",
+      "description": "Live heap. Steady growth over time is the memory-leak signal — soak tests should make this flat.",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-pyroscope-datasource", "uid": "pyroscope" },
+          "groupBy": [],
+          "labelSelector": "{service_name=\"$service\"}",
+          "profileTypeId": "memory:inuse_space:bytes:space:bytes",
+          "queryType": "profile",
+          "refId": "A"
+        }
+      ],
+      "type": "flamegraph"
+    },
+    {
+      "datasource": { "type": "grafana-pyroscope-datasource", "uid": "pyroscope" },
+      "gridPos": { "h": 14, "w": 12, "x": 12, "y": 14 },
+      "id": 4,
+      "title": "Lock contention (mutex delay) — $service",
+      "description": "Time spent waiting on locks. High values suggest lock-contention hotspots, candidate for cache or partitioning.",
+      "targets": [
+        {
+          "datasource": { "type": "grafana-pyroscope-datasource", "uid": "pyroscope" },
+          "groupBy": [],
+          "labelSelector": "{service_name=\"$service\"}",
+          "profileTypeId": "mutex:delay:nanoseconds:contentions:count",
+          "queryType": "profile",
+          "refId": "A"
+        }
+      ],
+      "type": "flamegraph"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["snakk", "profiling"],
+  "templating": {
+    "list": [
+      {
+        "datasource": { "type": "grafana-pyroscope-datasource", "uid": "pyroscope" },
+        "definition": "label_values(service_name)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Service",
+        "multi": false,
+        "name": "service",
+        "options": [],
+        "query": { "labelName": "service_name" },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Snakk Profiles",
+  "uid": "snakk-profiles",
+  "version": 2,
+  "weekStart": ""
+}

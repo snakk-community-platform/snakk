@@ -4,10 +4,14 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [],
+  "links": [
+    { "title": "Snakk Infra (slowlog + container metrics)", "type": "link", "url": "/grafana/d/snakk-infra", "targetBlank": false }
+  ],
+  "templating": { "list": [] },
   "panels": [
     {
-      "title": "Hit Rate",
+      "title": "Hit Rate (5m)",
+      "description": "Share of GETs served from the cache. The .NET StackExchange.Redis client uses this for session, rate-limit counters, and BFF caching. Falling below 95% sustained = either memory pressure (see Evictions) or an invalidation bug.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "targets": [
@@ -16,115 +20,79 @@
           "legendFormat": ""
         }
       ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
-        "colorMode": "background",
-        "graphMode": "area",
-        "orientation": "auto"
-      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
+          "unit": "percent", "min": 0, "max": 100,
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 80 },
-              { "color": "green", "value": 95 }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 80 },
+            { "color": "green", "value": 95 }
+          ]}
         }
       }
     },
     {
       "title": "Memory Used",
+      "description": "Total RSS reported by INFO MEMORY. Watch the Memory Used Over Time panel for the trend — flat = stable working set, climbing = leak or unbounded keyspace.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
       "targets": [
         { "expr": "redis_memory_used_bytes", "legendFormat": "" }
       ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
-        "colorMode": "value",
-        "graphMode": "area",
-        "orientation": "auto"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "color": { "mode": "fixed", "fixedColor": "blue" }
-        }
-      }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "fixed", "fixedColor": "blue" } } }
     },
     {
       "title": "Connected Clients",
+      "description": "Open client connections. Each .NET StackExchange.Redis ConnectionMultiplexer keeps a small pool, so the steady-state number should be a small multiple of the service count.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
       "targets": [
         { "expr": "redis_connected_clients", "legendFormat": "" }
       ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
-        "colorMode": "background",
-        "graphMode": "area",
-        "orientation": "auto"
-      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 50 },
-              { "color": "red", "value": 200 }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 50 },
+            { "color": "red", "value": 200 }
+          ]}
         }
       }
     },
     {
       "title": "Evictions / sec",
+      "description": "Keys evicted by the maxmemory policy. Sustained nonzero = working set exceeds maxmemory; raise the limit OR set explicit TTLs OR reduce the working set.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "targets": [
         { "expr": "rate(redis_evicted_keys_total[5m])", "legendFormat": "" }
       ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
-        "colorMode": "background",
-        "graphMode": "area",
-        "orientation": "auto"
-      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 2,
+          "unit": "short", "decimals": 2,
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 10 }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 10 }
+          ]}
         }
       }
     },
     {
       "title": "Commands / sec",
+      "description": "Total command throughput. Spikes here without a corresponding HTTP request-rate increase = a background job firing many cache operations.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
       "targets": [
-        {
-          "expr": "rate(redis_commands_processed_total[1m])",
-          "legendFormat": "Commands/s"
-        }
+        { "expr": "rate(redis_commands_processed_total[1m])", "legendFormat": "Commands/s" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -135,17 +103,12 @@
     },
     {
       "title": "Hit vs Miss Rate",
+      "description": "Cache hits vs misses per second. The two should track each other roughly proportionally — a spike in misses without hits rising is a cold-cache event (probably eviction or restart).",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
       "targets": [
-        {
-          "expr": "rate(redis_keyspace_hits_total[1m])",
-          "legendFormat": "Hits/s"
-        },
-        {
-          "expr": "rate(redis_keyspace_misses_total[1m])",
-          "legendFormat": "Misses/s"
-        }
+        { "expr": "rate(redis_keyspace_hits_total[1m])", "legendFormat": "Hits/s" },
+        { "expr": "rate(redis_keyspace_misses_total[1m])", "legendFormat": "Misses/s" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -162,17 +125,12 @@
     },
     {
       "title": "Memory Used Over Time",
+      "description": "Used vs configured maxmemory. The maxmemory line is dashed and shows only if it's nonzero (Snakk dev runs without a hard cap by default).",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
       "targets": [
-        {
-          "expr": "redis_memory_used_bytes",
-          "legendFormat": "Used"
-        },
-        {
-          "expr": "redis_memory_max_bytes > 0",
-          "legendFormat": "Max"
-        }
+        { "expr": "redis_memory_used_bytes", "legendFormat": "Used" },
+        { "expr": "redis_memory_max_bytes > 0", "legendFormat": "Max" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -193,17 +151,12 @@
     },
     {
       "title": "Evictions & Expired Keys",
+      "description": "Evictions (forced by maxmemory) vs natural TTL expirations. Lots of evictions = memory pressure; lots of expirations is normal (session TTLs, rate-limit windows).",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
       "targets": [
-        {
-          "expr": "rate(redis_evicted_keys_total[5m])",
-          "legendFormat": "Evictions/s"
-        },
-        {
-          "expr": "rate(redis_expired_keys_total[5m])",
-          "legendFormat": "Expired/s"
-        }
+        { "expr": "rate(redis_evicted_keys_total[5m])", "legendFormat": "Evictions/s" },
+        { "expr": "rate(redis_expired_keys_total[5m])", "legendFormat": "Expired/s" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -220,17 +173,12 @@
     },
     {
       "title": "Network I/O",
+      "description": "Bytes in/out per second across all client connections. Large transfers often correlate with the .NET BFF reading big cached payloads (community lists, hot discussion threads).",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
       "targets": [
-        {
-          "expr": "rate(redis_net_input_bytes_total[1m])",
-          "legendFormat": "In"
-        },
-        {
-          "expr": "rate(redis_net_output_bytes_total[1m])",
-          "legendFormat": "Out"
-        }
+        { "expr": "rate(redis_net_input_bytes_total[1m])", "legendFormat": "In" },
+        { "expr": "rate(redis_net_output_bytes_total[1m])", "legendFormat": "Out" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -243,11 +191,10 @@
   "refresh": "10s",
   "schemaVersion": 39,
   "tags": ["snakk", "valkey"],
-  "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "",
   "title": "Snakk Valkey",
   "uid": "snakk-valkey",
-  "version": 1
+  "version": 2
 }
