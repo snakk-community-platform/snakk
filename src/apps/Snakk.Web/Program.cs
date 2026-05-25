@@ -52,6 +52,7 @@ builder.Configuration.AddJsonFile(
 }
 
 //builder.AddSnakkDefaults();
+builder.AddSnakkObservability();
 
 // HTTP/1.1 + HTTP/2 — supports both REST and gRPC clients
 builder.WebHost.ConfigureKestrel(options =>
@@ -397,6 +398,7 @@ builder.Services.AddHsts(options =>
 });
 
 var app = builder.Build();
+app.MapDefaultEndpoints();
 
 if (!app.Configuration.GetValue<bool>("SkipDatabaseInit"))
 {

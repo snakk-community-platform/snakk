@@ -20,6 +20,7 @@ var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/sto
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "conf", "snakk-config.json"), optional: true, reloadOnChange: true);
 
 //builder.AddSnakkDefaults();
+builder.AddSnakkObservability();
 
 // Kestrel tuning — gRPC requires HTTP/2, REST endpoints work over either
 builder.WebHost.ConfigureKestrel(kestrel =>
@@ -151,6 +152,7 @@ if (!app.Configuration.GetValue<bool>("DisableRateLimiting")) app.UseRateLimiter
 
 // Health check endpoint (checks DB connectivity)
 app.MapHealthChecks("/health");
+app.MapDefaultEndpoints();  // /alive (liveness only — runs "self" check)
 
 // Prometheus metrics (GC, thread pool, HTTP request durations)
 app.UseHttpMetrics();

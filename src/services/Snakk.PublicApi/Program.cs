@@ -18,6 +18,7 @@ DotNetRuntimeStatsBuilder.Default().StartCollecting();
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddSnakkDefaults();
+builder.AddSnakkObservability();
 
 // JWT Bearer — validates tokens issued by Snakk.Auth via OIDC discovery + JWKS (no network call per request)
 var authBaseUrl = builder.Configuration["Auth:BaseUrl"]
@@ -101,6 +102,7 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+app.MapDefaultEndpoints();
 
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();

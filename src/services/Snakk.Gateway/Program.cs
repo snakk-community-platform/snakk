@@ -1,3 +1,4 @@
+using Snakk.ServiceDefaults;
 using System.IO.Compression;
 using System.Net;
 using System.Threading.RateLimiting;
@@ -65,6 +66,7 @@ if (builder.Configuration.GetValue<bool>("Gateway:DisableHealthChecks"))
 }
 
 //builder.AddSnakkDefaults();
+builder.AddSnakkObservability();
 
 // Real client IP header (set by CDN/reverse proxy like Cloudflare)
 var clientIpHeader = builder.Configuration["Gateway:ClientIpHeader"] ?? "CF-Connecting-IP";
@@ -191,6 +193,7 @@ builder.Services.AddHttpLogging(options =>
 builder.Logging.AddFilter("Microsoft.AspNetCore.HttpLogging", LogLevel.Information);
 
 var app = builder.Build();
+app.MapDefaultEndpoints();
 
 //app.UseSerilogRequestLogging();
 app.UseHttpLogging();

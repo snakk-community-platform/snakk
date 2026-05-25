@@ -29,6 +29,8 @@ builder.Configuration.AddJsonFile(
     optional: true,
     reloadOnChange: true);
 
+builder.AddSnakkObservability();
+
 // Add services to the container
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

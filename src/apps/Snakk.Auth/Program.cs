@@ -29,6 +29,7 @@ builder.Configuration.AddJsonFile(
     reloadOnChange: true);
 
 //builder.AddSnakkDefaults();
+builder.AddSnakkObservability();
 
 if (!builder.Environment.IsDevelopment())
 {
@@ -285,6 +286,7 @@ builder.Services.AddHostedService<Snakk.Auth.Services.GrpcChannelWarmupService>(
 builder.Services.AddHostedService<Snakk.Auth.Services.MauiClientSeeder>();
 
 var app = builder.Build();
+app.MapDefaultEndpoints();
 
 // Apply any pending OpenIddict DB migrations at startup; ensure DP keys table exists
 using (var scope = app.Services.CreateScope())

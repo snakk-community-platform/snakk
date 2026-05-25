@@ -17,6 +17,7 @@ var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/sto
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "conf", "snakk-config.json"), optional: true, reloadOnChange: true);
 
 //builder.AddSnakkDefaults();
+builder.AddSnakkObservability();
 
 // Add SignalR with tuned limits
 builder.Services.AddSignalR(options =>
@@ -126,6 +127,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+app.MapDefaultEndpoints();
 
 //app.UseSerilogRequestLogging();
 
