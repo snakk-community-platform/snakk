@@ -3,7 +3,7 @@
 @inject CircuitTokenProvider TokenProvider
 @inject IHttpContextAccessor HttpContextAccessor
 
-<MudThemeProvider Theme="Snakk.Admin.Theme.ForestTheme.Instance" />
+<MudThemeProvider />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -19,7 +19,12 @@
                     }
                     else
                     {
-                        <p role="alert">You are not authorized to access this resource.</p>
+                        <MudContainer MaxWidth="MaxWidth.Small" Class="mt-16 text-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Error" />
+                            <MudText Typo="Typo.h5" Class="mt-4">Access Denied</MudText>
+                            <MudText Class="mt-2 mud-text-secondary">You do not have permission to access this page.</MudText>
+                            <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary" Class="mt-6">Go to Dashboard</MudButton>
+                        </MudContainer>
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
@@ -28,11 +33,11 @@
         <NotFound>
             <PageTitle>Not found</PageTitle>
             <LayoutView Layout="@typeof(Layout.MainLayout)">
-                <MudPaper Class="pa-6">
-                    <h1>404 - Page Not Found</h1>
-                    <p>The page you requested could not be found.</p>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">Go to Dashboard</MudButton>
-                </MudPaper>
+                <MudContainer MaxWidth="MaxWidth.Small" Class="mt-16 text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Default" />
+                    <MudText Typo="Typo.h5" Class="mt-4">Page Not Found</MudText>
+                    <MudButton Href="/" Variant="Variant.Filled" Color="Color.Primary" Class="mt-6">Go to Dashboard</MudButton>
+                </MudContainer>
             </LayoutView>
         </NotFound>
     </Router>

@@ -73,7 +73,7 @@ public class ManageScopeService(
         {
             "Community" => $"c/{scope.CommunitySlug}",
             "Hub" => $"c/{scope.CommunitySlug}/h/{scope.HubSlug}",
-            "Space" => $"c/{scope.CommunitySlug}/h/{scope.HubSlug}/s/{scope.SpaceSlug}",
+            "Space" => $"c/{scope.CommunitySlug}/h/{scope.HubSlug}/{scope.SpaceSlug}",
             _ => ""
         };
 

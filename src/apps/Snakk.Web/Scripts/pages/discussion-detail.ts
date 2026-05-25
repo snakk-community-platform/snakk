@@ -452,37 +452,54 @@ function highlightPost(postId: string): void {
     }
 }
 
-// Edit post
-function editPost(postId: string, userId: string): void {
+// Edit post — WYSIWYG via Milkdown
+const activeEditEditors = new Map<string, any>();
+
+async function ensureEditorLoaded(): Promise<void> {
+    if ((window as any).SnakkEditor) return;
+    const configEl = document.getElementById('editor-loader-config');
+    if (!configEl) return;
+    let editorSrc: string;
+    try { editorSrc = JSON.parse(configEl.textContent || '{}').editorSrc; }
+    catch { return; }
+    if (!editorSrc) return;
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = editorSrc;
+        script.onload = () => resolve();
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
+async function editPost(postId: string, _userId: string): Promise<void> {
     const contentDiv = document.getElementById('post-content-' + postId);
     if (!contentDiv) return;
 
     const rawContent = (contentDiv as HTMLElement).dataset.rawContent || '';
-    const originalHtml = contentDiv.innerHTML;
+    (contentDiv as HTMLElement).dataset.originalHtml = contentDiv.innerHTML;
+    (contentDiv as HTMLElement).dataset.originalRawContent = rawContent;
 
-    // Store original state for cancel
-    (contentDiv as HTMLElement).dataset.originalHtml = originalHtml;
-
+    const editorContainerId = `edit-editor-${postId}`;
+    const textareaId = `edit-textarea-${postId}`;
     contentDiv.innerHTML = `
-        <form id="edit-form-${postId}" class="space-y-2">
-            <textarea class="textarea w-full min-h-20 text-sm resize-none"
-                      id="edit-textarea-${postId}"
-                      data-input-action="auto-grow">${escapeHtml(rawContent)}</textarea>
-            <div class="flex items-center justify-between">
-                <span class="text-xs text-base-content/50">Supports **bold**, *italic*, \`code\`, [links](url)</span>
-                <div class="flex gap-2">
-                    <button type="button" class="btn btn-ghost btn-xs" data-action="cancel-edit" data-post-id="${postId}">Cancel</button>
-                    <button type="button" class="btn btn-primary btn-xs" data-action="submit-edit" data-post-id="${postId}" data-user-id="${userId}">Save</button>
-                </div>
-            </div>
-        </form>
+        <div id="${editorContainerId}" class="min-h-50"></div>
+        <textarea id="${textareaId}" style="display:none"></textarea>
+        <div class="flex gap-2 mt-3">
+            <button type="button" class="btn btn-primary btn-sm" data-action="submit-edit" data-post-id="${postId}">Save</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-action="cancel-edit" data-post-id="${postId}">Cancel</button>
+        </div>
     `;
 
-    const textarea = document.getElementById('edit-textarea-' + postId) as HTMLTextAreaElement;
-    if (textarea) {
-        autoGrow(textarea);
-        textarea.focus();
-    }
+    await ensureEditorLoaded();
+
+    const instance = await (window as any).SnakkEditor.init({
+        container: document.getElementById(editorContainerId),
+        textarea: document.getElementById(textareaId) as HTMLTextAreaElement,
+        initialValue: rawContent,
+    });
+    activeEditEditors.set(postId, instance);
+    instance.focus();
 }
 
 function escapeHtml(text: string): string {
@@ -499,37 +516,138 @@ function sanitizeHtml(html: string): string {
     return _domPurify ? _domPurify.sanitize(html, { USE_PROFILES: { html: true } }) : '';
 }
 
-function submitEdit(postId: string): void {
-    const textarea = document.getElementById('edit-textarea-' + postId) as HTMLTextAreaElement;
-    if (!textarea) return;
+async function submitEdit(postId: string): Promise<void> {
+    const editor = activeEditEditors.get(postId);
+    const contentDiv = document.getElementById('post-content-' + postId);
+    if (!editor || !contentDiv) return;
 
-    const content = textarea.value;
+    const saveBtn = contentDiv.querySelector('[data-action="submit-edit"]') as HTMLButtonElement | null;
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
 
-    fetch(`/bff/posts/${postId}/edit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content })
-    })
-    .then(response => response.text())
-    .then(html => {
-        const postElement = document.getElementById('post-' + postId);
-        if (postElement) {
-            postElement.outerHTML = html;
+    try {
+        if (editor.hasPendingUploads()) await editor.flushUploads();
+        const content = editor.getMarkdown() as string;
+
+        const response = await fetch(`/bff/posts/${postId}/edit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ content })
+        });
+
+        if (!response.ok) {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+            return;
         }
-    })
-    .catch(error => {
-        alert('Error updating post: ' + error);
-    });
+
+        const renderedHtml = await response.text();
+        editor.destroy();
+        activeEditEditors.delete(postId);
+        contentDiv.innerHTML = renderedHtml;
+        (contentDiv as HTMLElement).dataset.rawContent = content;
+    } catch {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+    }
 }
 
 function cancelEdit(postId: string): void {
+    const editor = activeEditEditors.get(postId);
+    editor?.destroy();
+    activeEditEditors.delete(postId);
+
     const contentDiv = document.getElementById('post-content-' + postId);
     if (!contentDiv) return;
 
     const originalHtml = (contentDiv as HTMLElement).dataset.originalHtml;
+    const originalRaw = (contentDiv as HTMLElement).dataset.originalRawContent;
     if (originalHtml) {
         contentDiv.innerHTML = originalHtml;
         delete (contentDiv as HTMLElement).dataset.originalHtml;
+        if (originalRaw !== undefined) (contentDiv as HTMLElement).dataset.rawContent = originalRaw;
+        delete (contentDiv as HTMLElement).dataset.originalRawContent;
+    }
+}
+
+// Discussion title edit
+function editDiscussionTitle(): void {
+    const container = document.getElementById('discussion-title-container');
+    if (!container) return;
+
+    const currentTitle = container.dataset.currentTitle ?? '';
+    container.dataset.originalTitleHtml = container.innerHTML;
+
+    container.innerHTML = `
+        <div class="flex items-center gap-2 w-full">
+            <input type="text"
+                   id="discussion-title-input"
+                   class="input input-bordered flex-1 text-xl font-bold"
+                   value="${escapeHtml(currentTitle)}"
+                   maxlength="300" />
+            <button type="button" class="btn btn-primary btn-sm shrink-0" data-action="submit-discussion-title">Save</button>
+            <button type="button" class="btn btn-ghost btn-sm shrink-0" data-action="cancel-discussion-title">Cancel</button>
+        </div>
+    `;
+
+    const input = document.getElementById('discussion-title-input') as HTMLInputElement | null;
+    if (input) {
+        input.focus();
+        input.select();
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitDiscussionTitle();
+            if (e.key === 'Escape') cancelDiscussionTitle();
+        });
+    }
+}
+
+async function submitDiscussionTitle(): Promise<void> {
+    const container = document.getElementById('discussion-title-container');
+    if (!container) return;
+
+    const discussionId = container.dataset.discussionId ?? '';
+    const input = document.getElementById('discussion-title-input') as HTMLInputElement | null;
+    const newTitle = input?.value.trim() ?? '';
+    if (!newTitle) return;
+
+    const saveBtn = container.querySelector('[data-action="submit-discussion-title"]') as HTMLButtonElement | null;
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
+    try {
+        const response = await fetch(`/bff/discussions/${discussionId}/title`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ title: newTitle })
+        });
+
+        if (!response.ok) {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+            return;
+        }
+
+        container.dataset.currentTitle = newTitle;
+        container.innerHTML = container.dataset.originalTitleHtml ?? '';
+        delete container.dataset.originalTitleHtml;
+
+        const h1 = container.querySelector('h1');
+        if (h1) {
+            const lastTextNode = Array.from(h1.childNodes)
+                .filter(n => n.nodeType === Node.TEXT_NODE)
+                .pop();
+            if (lastTextNode) lastTextNode.textContent = newTitle;
+        }
+
+        document.title = newTitle;
+    } catch {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+    }
+}
+
+function cancelDiscussionTitle(): void {
+    const container = document.getElementById('discussion-title-container');
+    if (!container) return;
+
+    const original = container.dataset.originalTitleHtml;
+    if (original) {
+        container.innerHTML = original;
+        delete container.dataset.originalTitleHtml;
     }
 }
 
@@ -1773,7 +1891,7 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                 </div>
             </div>
             ${replyToHtml}
-            <div id="post-content-${post.publicId}" class="prose prose-content" data-author-name="${escapeHtml(post.author.displayName)}">
+            <div id="post-content-${post.publicId}" class="prose prose-content" data-author-name="${escapeHtml(post.author.displayName)}" data-raw-content="${escapeHtml(post.content)}">
                 ${post.renderedContent ? sanitizeHtml(post.renderedContent) : escapeHtml(post.content)}
             </div>
         </div>
@@ -2581,6 +2699,15 @@ document.addEventListener('click', async (e) => {
             break;
         case 'cancel-edit':
             cancelEdit(action.dataset.postId || '');
+            break;
+        case 'edit-discussion-title':
+            editDiscussionTitle();
+            break;
+        case 'submit-discussion-title':
+            submitDiscussionTitle();
+            break;
+        case 'cancel-discussion-title':
+            cancelDiscussionTitle();
             break;
         case 'highlight-post':
             highlightPost(action.dataset.postId || '');

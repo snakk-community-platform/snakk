@@ -1,0 +1,332 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject ManageScopeService ScopeService
+@inject ManageScopeState ScopeState
+@implements IDisposable
+
+@if (_loading)
+{
+    <MudLayout>
+        <MudMainContent Class="d-flex justify-center align-center" Style="height:100vh;">
+            <MudProgressCircular Indeterminate="true" />
+        </MudMainContent>
+    </MudLayout>
+}
+else if (_scope is null)
+{
+    <MudLayout>
+        <MudAppBar Elevation="1" Dense="true">
+            <MudText Typo="Typo.h6" Class="ml-2">Snakk Admin</MudText>
+            <MudSpacer />
+            <MudButton Href="" Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small">Dashboard</MudButton>
+        </MudAppBar>
+        <MudMainContent Class="pa-6 mt-8">
+            <MudContainer MaxWidth="MaxWidth.Small" Class="text-center mt-16">
+                <MudIcon Icon="@Icons.Material.Filled.Block" Size="Size.Large" Color="Color.Error" />
+                <MudText Typo="Typo.h5" Class="mt-4">Not Found or Access Denied</MudText>
+                <MudText Class="mt-2 mud-text-secondary">The resource does not exist or you don't have permission to manage it.</MudText>
+                <MudButton Href="" Variant="Variant.Filled" Color="Color.Primary" Class="mt-6">Back to Dashboard</MudButton>
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+}
+else
+{
+    <CascadingValue Value="_scope">
+        <MudLayout>
+            <MudAppBar Elevation="1" Dense="true">
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                               OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+
+                <MudBreadcrumbs Items="_breadcrumbs" Class="pa-0 ml-1">
+                    <ItemTemplate Context="item">
+                        @if (item.Href != null)
+                        {
+                            <MudLink Href="@item.Href" Color="Color.Inherit" Underline="Underline.Hover"
+                                     Typo="Typo.body2">@item.Text</MudLink>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body2" Class="fw-bold">@item.Text</MudText>
+                        }
+                    </ItemTemplate>
+                    <SeparatorTemplate>
+                        <MudIcon Icon="@Icons.Material.Filled.ChevronRight" Size="Size.Small" Class="mud-text-secondary" />
+                    </SeparatorTemplate>
+                </MudBreadcrumbs>
+
+                <MudSpacer />
+                <AuthorizeView>
+                    <Authorized>
+                        <MudText Class="mr-3 mud-text-secondary" Typo="Typo.body2">@context.User.Identity?.Name</MudText>
+                    </Authorized>
+                </AuthorizeView>
+                <MudButton Href="" Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" Class="mr-1">
+                    <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" Class="mr-1" />Admin
+                </MudButton>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small"
+                           OnClick="@(() => Navigation.NavigateTo("Auth/Logout", true))">
+                    Sign out
+                </MudButton>
+            </MudAppBar>
+
+            <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always" Width="240px">
+                <MudNavMenu>
+                    <MudNavLink Href="@_base" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
+                        Dashboard
+                    </MudNavLink>
+
+                    @if (_scope.ScopeType == "Community")
+                    {
+                        @if (HasPerm(ManagePermissionEnum.ViewDashboard))
+                        {
+                            <MudNavLink Href="@Nav("hubs")" Icon="@Icons.Material.Filled.AccountTree">
+                                Hubs
+                            </MudNavLink>
+                        }
+                    }
+                    @if (_scope.ScopeType == "Hub")
+                    {
+                        @if (HasPerm(ManagePermissionEnum.ViewDashboard))
+                        {
+                            <MudNavLink Href="@Nav("spaces")" Icon="@Icons.Material.Filled.Forum">
+                                Spaces
+                            </MudNavLink>
+                        }
+                    }
+
+                    @if (HasPerm(ManagePermissionEnum.ManageSettings))
+                    {
+                        <MudDivider Class="my-1" />
+
+                        <MudNavLink Href="@Nav("settings")" Icon="@Icons.Material.Filled.Settings">
+                            Settings
+                        </MudNavLink>
+                        <MudNavLink Href="@Nav("access")" Icon="@Icons.Material.Filled.LockOpen">
+                            Access Control
+                        </MudNavLink>
+
+                        @if (_scope.ScopeType == "Community")
+                        {
+                            <MudNavLink Href="@Nav("domains")" Icon="@Icons.Material.Filled.Language">
+                                Custom Domains
+                            </MudNavLink>
+                        }
+
+                        @if (_scope.ScopeType == "Space")
+                        {
+                            <MudNavLink Href="@Nav("discord")" Icon="@Icons.Material.Filled.Chat">
+                                Discord
+                            </MudNavLink>
+                            <MudNavLink Href="@Nav("announcements")" Icon="@Icons.Material.Filled.Announcement">
+                                Announcements
+                            </MudNavLink>
+                        }
+                    }
+
+                    @if (HasPerm(ManagePermissionEnum.ManageGroups) && _scope.ScopeType == "Community")
+                    {
+                        <MudNavLink Href="@Nav("groups")" Icon="@Icons.Material.Filled.Group">
+                            Groups
+                        </MudNavLink>
+                    }
+
+                    <MudDivider Class="my-1" />
+
+                    @if (HasPerm(ManagePermissionEnum.ManageTeam))
+                    {
+                        <MudNavLink Href="@Nav("team")" Icon="@Icons.Material.Filled.Badge">
+                            Team
+                        </MudNavLink>
+                    }
+
+                    @if (HasPerm(ManagePermissionEnum.ManageSettings))
+                    {
+                        <MudNavLink Href="@Nav("rules")" Icon="@Icons.Material.Filled.Gavel">
+                            Rules
+                        </MudNavLink>
+                        <MudNavLink Href="@Nav("banners")" Icon="@Icons.Material.Filled.NotificationsActive">
+                            Banners
+                        </MudNavLink>
+                        <MudNavLink Href="@Nav("report-reasons")" Icon="@Icons.Material.Filled.ReportProblem">
+                            Report Reasons
+                        </MudNavLink>
+                    }
+
+                    @if (HasPerm(ManagePermissionEnum.ManageWebhooks) && _scope.ScopeType == "Space")
+                    {
+                        <MudNavLink Href="@Nav("webhooks")" Icon="@Icons.Material.Filled.Webhook">
+                            Webhooks
+                        </MudNavLink>
+                    }
+
+                    @if (HasPerm(ManagePermissionEnum.ManageReports) || HasPerm(ManagePermissionEnum.ManageBans) ||
+                         HasPerm(ManagePermissionEnum.ManageContent) || HasPerm(ManagePermissionEnum.ViewDashboard))
+                    {
+                        <MudDivider Class="my-1" />
+
+                        <MudNavGroup Title="Moderation" Icon="@Icons.Material.Filled.Shield" Expanded="true">
+                            @if (HasPerm(ManagePermissionEnum.ManageReports))
+                            {
+                                <MudNavLink Href="@Nav("reports")" Icon="@Icons.Material.Filled.Flag">
+                                    Reports
+                                </MudNavLink>
+                            }
+                            @if (HasPerm(ManagePermissionEnum.ManageBans))
+                            {
+                                <MudNavLink Href="@Nav("bans")" Icon="@Icons.Material.Filled.Block">
+                                    Bans
+                                </MudNavLink>
+                            }
+                            @if (HasPerm(ManagePermissionEnum.ManageContent))
+                            {
+                                <MudNavLink Href="@Nav("content")" Icon="@Icons.Material.Filled.DeleteSweep">
+                                    Content
+                                </MudNavLink>
+                            }
+                            @if (HasPerm(ManagePermissionEnum.ViewDashboard))
+                            {
+                                <MudNavLink Href="@Nav("log")" Icon="@Icons.Material.Filled.History">
+                                    Log
+                                </MudNavLink>
+                            }
+                        </MudNavGroup>
+                    }
+                </MudNavMenu>
+            </MudDrawer>
+
+            <MudMainContent Class="pa-6 mt-8">
+                @Body
+            </MudMainContent>
+        </MudLayout>
+    </CascadingValue>
+}
+
+@code {
+    private ManageScopeDto? _scope;
+    private bool _loading = true;
+    private bool _drawerOpen = true;
+    private string _lastScopeKey = "";
+    private string _base = "";
+    private List<BreadcrumbItem> _breadcrumbs = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        await ResolveScopeFromCurrentUrl();
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        await ResolveScopeFromCurrentUrl();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ResolveScopeFromCurrentUrl()
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri);
+        var slugs = ParseScopeFromPath(path);
+
+        if (slugs is null)
+        {
+            _scope = null;
+            _loading = false;
+            return;
+        }
+
+        var key = $"{slugs.Community}|{slugs.Hub}|{slugs.Space}";
+        if (key == _lastScopeKey && _scope != null)
+        {
+            _loading = false;
+            return;
+        }
+
+        _lastScopeKey = key;
+        _loading = true;
+        await InvokeAsync(StateHasChanged);
+
+        _scope = await ScopeService.ResolveScopeAsync(slugs.Community, slugs.Hub, slugs.Space);
+        if (_scope != null)
+        {
+            ScopeState.SetScope(_scope);
+            BuildNavBase();
+            BuildBreadcrumbs();
+        }
+
+        _loading = false;
+    }
+
+    private void BuildNavBase()
+    {
+        if (_scope is null) return;
+        _base = _scope.ScopeType switch
+        {
+            "Community" => $"c/{_scope.CommunitySlug}",
+            "Hub"       => $"c/{_scope.CommunitySlug}/h/{_scope.HubSlug}",
+            "Space"     => $"c/{_scope.CommunitySlug}/h/{_scope.HubSlug}/{_scope.SpaceSlug}",
+            _           => ""
+        };
+    }
+
+    private void BuildBreadcrumbs()
+    {
+        if (_scope is null) return;
+        _breadcrumbs = _scope.ScopeType switch
+        {
+            "Community" => [
+                new("Communities", "communities"),
+                new(_scope.CommunityName, null, true)
+            ],
+            "Hub" => [
+                new(_scope.CommunityName, $"c/{_scope.CommunitySlug}"),
+                new(_scope.HubName ?? "Hub", null, true)
+            ],
+            "Space" => [
+                new(_scope.CommunityName, $"c/{_scope.CommunitySlug}"),
+                new(_scope.HubName ?? "Hub", $"c/{_scope.CommunitySlug}/h/{_scope.HubSlug}"),
+                new(_scope.SpaceName ?? "Space", null, true)
+            ],
+            _ => []
+        };
+    }
+
+    private string Nav(string section) => $"{_base}/{section}";
+
+    private bool HasPerm(ManagePermissionEnum perm) =>
+        _scope?.Permissions.Contains(perm) ?? false;
+
+    public void Dispose() => Navigation.LocationChanged -= OnLocationChanged;
+
+    private static readonly HashSet<string> KnownSections =
+    [
+        "settings", "access", "team", "rules", "banners", "report-reasons",
+        "groups", "hubs", "spaces", "discord", "announcements", "webhooks",
+        "moderation", "reports", "bans", "content", "log", "domains", "h"
+    ];
+
+    private record ScopeSlugs(string Community, string? Hub, string? Space);
+
+    private static ScopeSlugs? ParseScopeFromPath(string path)
+    {
+        var clean = path.Split('?')[0].Split('#')[0].Trim('/');
+        if (!clean.StartsWith("c/", StringComparison.Ordinal)) return null;
+
+        var parts = clean.Split('/');
+        if (parts.Length < 2) return null;
+
+        var community = parts[1];
+        if (string.IsNullOrEmpty(community)) return null;
+
+        string? hub = null;
+        string? space = null;
+
+        if (parts.Length >= 4 && parts[2] == "h")
+        {
+            hub = parts[3];
+            if (parts.Length >= 5 && !KnownSections.Contains(parts[4]))
+                space = parts[4];
+        }
+
+        return new ScopeSlugs(community, hub, space);
+    }
+}

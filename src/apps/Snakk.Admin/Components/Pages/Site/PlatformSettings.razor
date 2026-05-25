@@ -1,0 +1,153 @@
+@page "/settings"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Platform Settings — Snakk Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Platform Settings</MudText>
+<MudText Class="mud-text-secondary mb-6">Configure site-wide settings.</MudText>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudTabs Elevation="0" Rounded="false" ApplyEffectsToContainer="true">
+        <MudTabPanel Text="General">
+            <MudPaper Class="pa-6 mt-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">General</MudText>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_siteName" Label="Site Name" Variant="Variant.Outlined"
+                                      HelperText="The name shown in the browser title and emails." />
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_timezone" Label="Default Timezone" Variant="Variant.Outlined"
+                                      HelperText="IANA timezone identifier, e.g. Europe/Oslo" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_description" Label="Site Description" Variant="Variant.Outlined"
+                                      Lines="3" HelperText="Short description for SEO and sharing." />
+                    </MudItem>
+                </MudGrid>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4"
+                           OnClick="@SaveGeneral" Disabled="@_saving">
+                    @(_saving ? "Saving..." : "Save Changes")
+                </MudButton>
+            </MudPaper>
+        </MudTabPanel>
+        <MudTabPanel Text="Registration">
+            <MudPaper Class="pa-6 mt-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">Registration</MudText>
+                <MudRadioGroup @bind-Value="_registrationMode">
+                    <MudRadio Value="@("open")">Open — anyone can register</MudRadio>
+                    <MudRadio Value="@("invite")">Invite Only — requires an invite code</MudRadio>
+                    <MudRadio Value="@("closed")">Closed — no new registrations</MudRadio>
+                </MudRadioGroup>
+                @if (_registrationMode == "invite")
+                {
+                    <MudTextField @bind-Value="_inviteCode" Label="Invite Code" Variant="Variant.Outlined"
+                                  Class="mt-4" HelperText="Share this code with people you want to invite." />
+                }
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4"
+                           OnClick="@SaveRegistration" Disabled="@_saving">
+                    @(_saving ? "Saving..." : "Save")
+                </MudButton>
+            </MudPaper>
+        </MudTabPanel>
+        <MudTabPanel Text="Display Names">
+            <MudPaper Class="pa-6 mt-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">Allowed Writing Systems</MudText>
+                <MudText Class="mud-text-secondary mb-4">
+                    Control which character sets are allowed in display names.
+                </MudText>
+                <MudText Class="mud-text-secondary">Script configuration coming soon.</MudText>
+            </MudPaper>
+        </MudTabPanel>
+    </MudTabs>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _saving;
+    private string _siteName = "";
+    private string _description = "";
+    private string _timezone = "";
+    private string _registrationMode = "open";
+    private string _inviteCode = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var settings = await ManageClient.GetSiteSettingsAsync(new Snakk.Protos.Manage.GetSiteSettingsRequest());
+            _siteName = settings.SiteName;
+            _description = settings.SiteDescription;
+            _timezone = settings.Timezone;
+
+            var regSettings = await ManageClient.GetRegistrationSettingsAsync(
+                new Snakk.Protos.Manage.GetRegistrationSettingsRequest());
+            _registrationMode = regSettings.Mode.ToLowerInvariant();
+            _inviteCode = !string.IsNullOrEmpty(regSettings.InviteCode) ? regSettings.InviteCode : "";
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load settings: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveGeneral()
+    {
+        _saving = true;
+        try
+        {
+            await ManageClient.UpdateSiteSettingsAsync(new Snakk.Protos.Manage.UpdateSiteSettingsRequest
+            {
+                SiteName = _siteName,
+                SiteDescription = _description,
+                Timezone = _timezone
+            });
+            Snackbar.Add("Settings saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task SaveRegistration()
+    {
+        _saving = true;
+        try
+        {
+            var req = new Snakk.Protos.Manage.UpdateRegistrationSettingsRequest
+            {
+                Mode = _registrationMode
+            };
+            if (_registrationMode == "invite" && !string.IsNullOrEmpty(_inviteCode))
+                req.InviteCode = _inviteCode;
+
+            await ManageClient.UpdateRegistrationSettingsAsync(req);
+            Snackbar.Add("Registration settings saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

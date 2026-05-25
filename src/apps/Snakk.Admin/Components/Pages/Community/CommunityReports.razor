@@ -1,0 +1,142 @@
+@page "/c/{Slug}/reports"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+@inject AdminTimezoneService Tz
+
+<PageTitle>Reports — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Reports</MudText>
+    <MudText Class="mud-text-secondary mb-6">Reports submitted within @Scope.CommunityName.</MudText>
+
+    <MudPaper Class="pa-3 mb-4">
+        <MudStack Row="true" Spacing="1">
+            @foreach (var f in new[] { "all", "pending", "resolved", "dismissed" })
+            {
+                <MudChip T="string" Color="@(_filter == f ? Color.Primary : Color.Default)"
+                         Variant="@(_filter == f ? Variant.Filled : Variant.Outlined)"
+                         OnClick="@(() => SetFilter(f))">@Capitalize(f)</MudChip>
+            }
+        </MudStack>
+    </MudPaper>
+
+    @if (_loading) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudPaper>
+            <MudTable Items="@_reports" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Target</MudTh>
+                    <MudTh>Type</MudTh>
+                    <MudTh>Reason</MudTh>
+                    <MudTh>Submitted</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">No reports found.</MudText>
+                </NoRecordsContent>
+                <RowTemplate Context="r">
+                    <MudTd>@r.TargetTitle</MudTd>
+                    <MudTd>@r.TargetType</MudTd>
+                    <MudTd>@r.ReasonName</MudTd>
+                    <MudTd>@r.SubmittedAt</MudTd>
+                    <MudTd><MudChip T="string" Size="Size.Small" Color="@StatusColor(r.Status)">@r.Status</MudChip></MudTd>
+                    <MudTd>
+                        @if (r.Status == "Pending")
+                        {
+                            <MudStack Row="true" Spacing="1">
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Success"
+                                           OnClick="@(() => Resolve(r))">Resolve</MudButton>
+                                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default"
+                                           OnClick="@(() => Dismiss(r))">Dismiss</MudButton>
+                            </MudStack>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private string _filter = "pending";
+    private bool _loading = true;
+    private List<ReportRow> _reports = [];
+
+    private class ReportRow
+    {
+        public string PublicId { get; set; } = "";
+        public string TargetTitle { get; set; } = "";
+        public string TargetType { get; set; } = "";
+        public string ReasonName { get; set; } = "";
+        public string SubmittedAt { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
+
+    private static int FilterToInt(string f) => f switch { "pending" => 1, "resolved" => 2, "dismissed" => 3, _ => 1 };
+
+    private Color StatusColor(string status) => status switch
+    {
+        "Resolved" => Color.Success,
+        "Dismissed" => Color.Default,
+        _ => Color.Warning
+    };
+
+    private string Capitalize(string s) => s.Length == 0 ? s : char.ToUpper(s[0]) + s[1..];
+
+    private async Task SetFilter(string f) { _filter = f; await Load(); }
+
+    protected override async Task OnParametersSetAsync() => await Load();
+
+    private async Task Load()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var req = new Snakk.Protos.Manage.GetReportsRequest { ScopePublicId = Scope.ScopePublicId, ScopeType = Scope.ScopeType };
+            if (_filter != "all") req.StatusFilter = FilterToInt(_filter);
+            var resp = await ManageClient.GetReportsAsync(req);
+            _reports = resp.Reports.Select(r => new ReportRow
+            {
+                PublicId = r.PublicId,
+                TargetTitle = r.TargetTitle,
+                TargetType = r.TargetType,
+                ReasonName = r.ReasonName,
+                SubmittedAt = Tz.FormatDateTime(r.CreatedAtTicks),
+                Status = r.Status
+            }).ToList();
+        }
+        catch { }
+        finally { _loading = false; }
+    }
+
+    private async Task Resolve(ReportRow r)
+    {
+        try
+        {
+            await ManageClient.ResolveReportAsync(new Snakk.Protos.Manage.ResolveReportRequest { ReportPublicId = r.PublicId, Dismiss = false });
+            r.Status = "Resolved";
+            Snackbar.Add("Report resolved.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task Dismiss(ReportRow r)
+    {
+        try
+        {
+            await ManageClient.ResolveReportAsync(new Snakk.Protos.Manage.ResolveReportRequest { ReportPublicId = r.PublicId, Dismiss = true });
+            r.Status = "Dismissed";
+            Snackbar.Add("Report dismissed.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

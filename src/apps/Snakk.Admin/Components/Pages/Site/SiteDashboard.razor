@@ -1,0 +1,86 @@
+@page "/"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+
+<PageTitle>Dashboard — Snakk Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Platform Overview</MudText>
+<MudText Class="mud-text-secondary mb-6">Welcome to the Snakk admin panel.</MudText>
+
+<MudGrid>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Primary" Size="Size.Large" />
+            <div>
+                <MudText Typo="Typo.h5">—</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Total Users</MudText>
+            </div>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Filled.AccountTree" Color="Color.Secondary" Size="Size.Large" />
+            <div>
+                <MudText Typo="Typo.h5">—</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Communities</MudText>
+            </div>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Filled.Forum" Color="Color.Success" Size="Size.Large" />
+            <div>
+                <MudText Typo="Typo.h5">—</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Discussions</MudText>
+            </div>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="3">
+        <MudPaper Class="pa-4 d-flex align-center gap-3">
+            <MudIcon Icon="@Icons.Material.Filled.Flag" Color="Color.Warning" Size="Size.Large" />
+            <div>
+                <MudText Typo="Typo.h5">—</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">Open Reports</MudText>
+            </div>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+<MudGrid Class="mt-4">
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">Quick Actions</MudText>
+            <MudStack Spacing="2">
+                <MudButton Href="/communities" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.AccountTree"
+                           Color="Color.Primary" FullWidth="true" Class="justify-start">
+                    Manage Communities
+                </MudButton>
+                <MudButton Href="/users" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.People"
+                           Color="Color.Primary" FullWidth="true" Class="justify-start">
+                    Manage Users
+                </MudButton>
+                <MudButton Href="/moderation/reports" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Flag"
+                           Color="Color.Warning" FullWidth="true" Class="justify-start">
+                    View Reports
+                </MudButton>
+                <MudButton Href="/broadcast" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Campaign"
+                           Color="Color.Error" FullWidth="true" Class="justify-start">
+                    Send Broadcast
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">Platform Status</MudText>
+            <MudList T="string" Dense="true">
+                <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    API: Connected
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">
+                    Authentication: Active
+                </MudListItem>
+            </MudList>
+        </MudPaper>
+    </MudItem>
+</MudGrid>

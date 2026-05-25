@@ -129,6 +129,11 @@ public class SettingsService : ISettingsService
         string adminUserId,
         CancellationToken ct = default)
     {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == adminUserId, ct);
+
+        if (user is null)
+            throw new InvalidOperationException($"User {adminUserId} not found");
+
         var setting = await _context.SystemSettings
             .AsTracking()
             .Include(s => s.UpdatedBy)
@@ -136,18 +141,29 @@ public class SettingsService : ISettingsService
                 s.Category == category
                 && s.Key == key, ct);
 
-        if (setting is null)
-            throw new InvalidOperationException($"Setting {category}.{key} does not exist");
-
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.PublicId == adminUserId, ct);
-
-        if (user is null)
-            throw new InvalidOperationException($"User {adminUserId} not found");
-
         var serializedValue = SerializeValue(value);
-        setting.Value = setting.IsEncrypted ? EncryptValue(serializedValue) : serializedValue;
-        setting.UpdatedById = user.Id;
-        setting.UpdatedAt = DateTime.UtcNow;
+
+        if (setting is null)
+        {
+            setting = new SystemSettingDatabaseEntity
+            {
+                PublicId = Ulid.NewUlid().ToString(),
+                Category = category,
+                Key = key,
+                Value = serializedValue,
+                ValueType = InferValueType(value),
+                UpdatedById = user.Id,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _context.SystemSettings.Add(setting);
+        }
+        else
+        {
+            setting.Value = setting.IsEncrypted ? EncryptValue(serializedValue) : serializedValue;
+            setting.UpdatedById = user.Id;
+            setting.UpdatedAt = DateTime.UtcNow;
+        }
 
         await _context.SaveChangesAsync(ct);
 
@@ -402,6 +418,14 @@ public class SettingsService : ISettingsService
             return encryptedValue; // Return as-is if decryption fails
         }
     }
+
+    private static string InferValueType(object value) => value switch
+    {
+        string => "String",
+        int or long => "Integer",
+        bool => "Boolean",
+        _ => "JSON"
+    };
 
     private string SerializeValue(object value)
     {

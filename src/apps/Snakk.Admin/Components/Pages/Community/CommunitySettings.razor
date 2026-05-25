@@ -1,0 +1,104 @@
+@page "/c/{Slug}/settings"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Settings — Snakk Admin</PageTitle>
+
+@if (Scope is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Community Settings</MudText>
+    <MudText Class="mud-text-secondary mb-6">Configure @Scope.CommunityName.</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-6">
+                    <MudText Typo="Typo.h6" GutterBottom="true">General</MudText>
+                    <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Class="mb-3" FullWidth="true" />
+                    <MudTextField @bind-Value="_description" Label="Description" Variant="Variant.Outlined"
+                                  Lines="3" Class="mb-3" FullWidth="true" />
+                    <MudSelect @bind-Value="_visibility" Label="Visibility" Variant="Variant.Outlined" Class="mb-3">
+                        <MudSelectItem Value="@("publiclisted")">Public Listed — appears in directory</MudSelectItem>
+                        <MudSelectItem Value="@("publicunlisted")">Public Unlisted — accessible but not listed</MudSelectItem>
+                    </MudSelect>
+                    <MudTextField @bind-Value="_timezone" Label="Timezone" Variant="Variant.Outlined" Class="mb-3"
+                                  HelperText="IANA identifier, e.g. Europe/Oslo" />
+                    <MudTextField @bind-Value="_languageCode" Label="Language Code" Variant="Variant.Outlined" Class="mb-4"
+                                  HelperText="BCP 47 code, e.g. en, nb" />
+
+                    <MudText Typo="Typo.h6" GutterBottom="true" Class="mt-2">Content</MudText>
+                    <MudCheckBox @bind-Value="_isAdultOnly" Label="Adult-only community" Class="mb-1" />
+                    <MudCheckBox @bind-Value="_hideAdult" Label="Hide adult discussions from lists" />
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4"
+                               OnClick="@Save" Disabled="@_saving">
+                        @(_saving ? "Saving..." : "Save Settings")
+                    </MudButton>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private string _name = "";
+    private string _description = "";
+    private string _visibility = "publiclisted";
+    private string _timezone = "";
+    private string _languageCode = "";
+    private bool _isAdultOnly;
+    private bool _hideAdult;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var s = await ManageClient.GetCommunitySettingsAsync(
+                new Snakk.Protos.Manage.GetCommunitySettingsRequest { CommunityPublicId = Scope.ScopePublicId });
+            _name = s.Name;
+            _description = s.Description;
+            _timezone = s.Timezone;
+            _languageCode = s.HasLanguageCode ? s.LanguageCode : "";
+            _hideAdult = s.HideAdultDiscussionsFromLists;
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed to load settings: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task Save()
+    {
+        _saving = true;
+        try
+        {
+            await ManageClient.UpdateCommunitySettingsAsync(new Snakk.Protos.Manage.UpdateCommunitySettingsRequest
+            {
+                CommunityPublicId = Scope!.ScopePublicId,
+                Name = _name,
+                Description = _description,
+                Timezone = _timezone,
+                LanguageCode = _languageCode,
+                HideAdultDiscussionsFromLists = _hideAdult
+            });
+            Snackbar.Add("Settings saved.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed to save: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

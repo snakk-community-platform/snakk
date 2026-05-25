@@ -1,0 +1,129 @@
+@page "/c/{CSlug}/h/{HSlug}/banners"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Banners — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Justify="Justify.SpaceBetween">
+        <div>
+            <MudText Typo="Typo.h4" GutterBottom="true">Banners</MudText>
+            <MudText Class="mud-text-secondary">Banners displayed in @Scope.HubName and its spaces.</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="@(() => _showCreate = !_showCreate)">New Banner</MudButton>
+    </MudStack>
+
+    @if (_showCreate)
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">New Banner</MudText>
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_newTitle" Label="Title" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+                </MudItem>
+                <MudItem xs="12" md="3">
+                    <MudSelect @bind-Value="_newType" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense">
+                        <MudSelectItem Value="@("Info")">Info</MudSelectItem>
+                        <MudSelectItem Value="@("Warning")">Warning</MudSelectItem>
+                        <MudSelectItem Value="@("Critical")">Critical</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="3" Class="d-flex align-center">
+                    <MudCheckBox @bind-Value="_newDismissible" Label="Dismissible" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_newContent" Label="Content (Markdown)" Variant="Variant.Outlined" Lines="3" FullWidth="true" />
+                </MudItem>
+            </MudGrid>
+            <MudStack Row="true" Class="mt-3" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@CreateBanner"
+                           Disabled="@(string.IsNullOrWhiteSpace(_newTitle) || _creating)">
+                    @(_creating ? "Creating..." : "Create")
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="@(() => _showCreate = false)">Cancel</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_loading) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudPaper>
+            <MudTable Items="@_banners" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Title</MudTh><MudTh>Type</MudTh><MudTh>Dismissible</MudTh><MudTh></MudTh>
+                </HeaderContent>
+                <NoRecordsContent><MudText Class="pa-4 mud-text-secondary">No banners.</MudText></NoRecordsContent>
+                <RowTemplate Context="b">
+                    <MudTd>@b.Title</MudTd>
+                    <MudTd><MudChip T="string" Size="Size.Small" Color="@(b.Type=="Warning"?Color.Warning:b.Type=="Critical"?Color.Error:Color.Info)">@b.Type</MudChip></MudTd>
+                    <MudTd>@(b.Dismissible ? "Yes" : "No")</MudTd>
+                    <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => Delete(b))" /></MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public string CSlug { get; set; } = "";
+    [Parameter] public string HSlug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _showCreate;
+    private bool _creating;
+    private string _newTitle = "";
+    private string _newContent = "";
+    private string _newType = "Info";
+    private bool _newDismissible = true;
+    private List<BannerRow> _banners = [];
+
+    private class BannerRow { public string PublicId { get; set; } = ""; public string Title { get; set; } = ""; public string Type { get; set; } = "Info"; public bool Dismissible { get; set; } }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var r = await ManageClient.GetBannersAsync(new Snakk.Protos.Manage.GetBannersRequest { ScopePublicId = Scope.ScopePublicId, ScopeType = Scope.ScopeType });
+            _banners = r.Banners.Select(b => new BannerRow { PublicId = b.PublicId, Title = b.Title, Type = b.Type, Dismissible = b.IsDismissible }).ToList();
+        }
+        catch { }
+        finally { _loading = false; }
+    }
+
+    private async Task CreateBanner()
+    {
+        _creating = true;
+        try
+        {
+            var resp = await ManageClient.CreateBannerAsync(new Snakk.Protos.Manage.CreateBannerGrpcRequest
+            {
+                ScopeType = Scope!.ScopeType, ScopePublicId = Scope.ScopePublicId,
+                Title = _newTitle, Content = _newContent, Type = _newType,
+                IsDismissible = _newDismissible, SortOrder = _banners.Count
+            });
+            if (resp.Success && resp.HasPublicId)
+            {
+                _banners.Add(new BannerRow { PublicId = resp.PublicId, Title = _newTitle, Type = _newType, Dismissible = _newDismissible });
+                _newTitle = ""; _newContent = ""; _newType = "Info"; _newDismissible = true; _showCreate = false;
+                Snackbar.Add("Banner created.", Severity.Success);
+            }
+            else { Snackbar.Add(resp.HasErrorMessage ? resp.ErrorMessage : "Failed.", Severity.Error); }
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _creating = false; }
+    }
+
+    private async Task Delete(BannerRow b)
+    {
+        try { await ManageClient.DeleteBannerAsync(new Snakk.Protos.Manage.DeleteBannerRequest { PublicId = b.PublicId }); _banners.Remove(b); Snackbar.Add("Deleted.", Severity.Success); }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

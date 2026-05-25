@@ -1,0 +1,81 @@
+@page "/broadcast"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Broadcast — Snakk Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Platform Broadcast</MudText>
+<MudText Class="mud-text-secondary mb-6">Send platform-wide messages to all connected users.</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="8">
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h6" GutterBottom="true">Send Message</MudText>
+
+            <MudSelect @bind-Value="_type" Label="Type" Variant="Variant.Outlined" Class="mb-4">
+                <MudSelectItem Value="@("announcement")">Announcement Banner</MudSelectItem>
+                <MudSelectItem Value="@("alert")">Global Alert</MudSelectItem>
+                <MudSelectItem Value="@("shutdown")">Server Shutdown Notice</MudSelectItem>
+            </MudSelect>
+
+            <MudTextField @bind-Value="_message" Label="Message" Variant="Variant.Outlined"
+                          Lines="3" Class="mb-4" HelperText="This will be shown to all online users." />
+
+            <MudAlert Severity="Severity.Warning" Class="mb-4">
+                This message will be sent immediately to all connected users.
+            </MudAlert>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Campaign"
+                       OnClick="@SendBroadcast" Disabled="@(_sending || string.IsNullOrWhiteSpace(_message))">
+                @(_sending ? "Sending..." : "Send Broadcast")
+            </MudButton>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-6">
+            <MudText Typo="Typo.h6" GutterBottom="true">Types</MudText>
+            <MudList T="string" Dense="true">
+                <MudListItem Icon="@Icons.Material.Filled.Info" IconColor="Color.Info">
+                    <MudText Typo="Typo.body2"><b>Announcement</b> — shown as an info banner</MudText>
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.Warning" IconColor="Color.Warning">
+                    <MudText Typo="Typo.body2"><b>Alert</b> — shown as a warning overlay</MudText>
+                </MudListItem>
+                <MudListItem Icon="@Icons.Material.Filled.PowerOff" IconColor="Color.Error">
+                    <MudText Typo="Typo.body2"><b>Shutdown</b> — signals planned maintenance</MudText>
+                </MudListItem>
+            </MudList>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private string _type = "announcement";
+    private string _message = "";
+    private bool _sending;
+
+    private async Task SendBroadcast()
+    {
+        _sending = true;
+        try
+        {
+            await ManageClient.SendGlobalBannerAsync(new Snakk.Protos.Manage.SendGlobalBannerRequest
+            {
+                EventType = _type,
+                Message = _message
+            });
+            Snackbar.Add("Broadcast sent successfully.", Severity.Success);
+            _message = "";
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to send broadcast: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _sending = false;
+        }
+    }
+}

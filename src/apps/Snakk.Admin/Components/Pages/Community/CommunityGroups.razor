@@ -1,0 +1,280 @@
+@page "/c/{Slug}/groups"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Groups — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Justify="Justify.SpaceBetween">
+        <div>
+            <MudText Typo="Typo.h4" GutterBottom="true">Groups</MudText>
+            <MudText Class="mud-text-secondary">User groups for access control in @Scope.CommunityName.</MudText>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.GroupAdd"
+                   OnClick="@(() => _showCreate = !_showCreate)">
+            New Group
+        </MudButton>
+    </MudStack>
+
+    @if (_showCreate)
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">Create Group</MudText>
+            <MudGrid>
+                <MudItem xs="12" md="5">
+                    <MudTextField @bind-Value="_newName" Label="Name" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="5">
+                    <MudTextField @bind-Value="_newDescription" Label="Description (optional)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="2" Class="d-flex align-center">
+                    <MudCheckBox @bind-Value="_newIsPublic" Label="Public" />
+                </MudItem>
+            </MudGrid>
+            <MudStack Row="true" Class="mt-3" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@CreateGroup"
+                           Disabled="@(string.IsNullOrWhiteSpace(_newName) || _creating)">
+                    @(_creating ? "Creating..." : "Create")
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="@(() => _showCreate = false)">Cancel</MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var group in _groups)
+            {
+                <MudItem xs="12" md="6">
+                    <MudPaper Class="pa-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <div>
+                                <MudText Typo="Typo.h6">@group.Name</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">/@group.Slug</MudText>
+                            </div>
+                            <MudStack Row="true" Spacing="1">
+                                <MudIconButton Icon="@Icons.Material.Filled.People" Size="Size.Small"
+                                               OnClick="@(() => ToggleMembers(group))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                               Size="Size.Small" OnClick="@(() => DeleteGroup(group))" />
+                            </MudStack>
+                        </MudStack>
+                        @if (!string.IsNullOrEmpty(group.Description))
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-2 mud-text-secondary">@group.Description</MudText>
+                        }
+                        <MudChipSet T="string" Class="mt-2">
+                            <MudChip T="string" Size="Size.Small" Color="@(group.IsPublic ? Color.Success : Color.Default)">
+                                @(group.IsPublic ? "Public" : "Private")
+                            </MudChip>
+                            <MudChip T="string" Size="Size.Small">@group.MemberCount members</MudChip>
+                        </MudChipSet>
+
+                        @if (_expandedGroup == group.PublicId)
+                        {
+                            <MudDivider Class="mt-3 mb-2" />
+                            @if (_membersLoading)
+                            {
+                                <MudProgressLinear Indeterminate="true" />
+                            }
+                            else if (_members.Count == 0)
+                            {
+                                <MudText Typo="Typo.body2" Class="mud-text-secondary">No members yet.</MudText>
+                            }
+                            else
+                            {
+                                <MudList T="string" Dense="true">
+                                    @foreach (var m in _members)
+                                    {
+                                        <MudListItem T="string">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                                <MudText Typo="Typo.body2">@m.DisplayName</MudText>
+                                                <MudIconButton Icon="@Icons.Material.Filled.PersonRemove"
+                                                               Size="Size.Small" Color="Color.Error"
+                                                               OnClick="@(() => RemoveMember(group, m))" />
+                                            </MudStack>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                        }
+                    </MudPaper>
+                </MudItem>
+            }
+            @if (_groups.Count == 0)
+            {
+                <MudItem xs="12">
+                    <MudPaper Class="pa-6 text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Group" Size="Size.Large" Color="Color.Default" />
+                        <MudText Class="mt-2 mud-text-secondary">No groups yet. Create a group to control access.</MudText>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _showCreate;
+    private bool _creating;
+    private string _newName = "";
+    private string _newDescription = "";
+    private bool _newIsPublic;
+    private List<GroupRow> _groups = [];
+    private string? _expandedGroup;
+    private bool _membersLoading;
+    private List<MemberRow> _members = [];
+
+    private class GroupRow
+    {
+        public string PublicId { get; set; } = "";
+        public string Name { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public string Description { get; set; } = "";
+        public bool IsPublic { get; set; }
+        public int MemberCount { get; set; }
+    }
+
+    private class MemberRow
+    {
+        public string UserPublicId { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        await LoadGroups();
+    }
+
+    private async Task LoadGroups()
+    {
+        _loading = true;
+        try
+        {
+            var resp = await ManageClient.GetCommunityGroupsAsync(
+                new Snakk.Protos.Manage.GetCommunityGroupsRequest { CommunityId = Scope!.CommunityPublicId });
+            _groups = resp.Groups.Select(g => new GroupRow
+            {
+                PublicId = g.PublicId,
+                Name = g.Name,
+                Slug = g.Slug,
+                Description = g.HasDescription ? g.Description : "",
+                IsPublic = g.IsPublic,
+                MemberCount = g.MemberCount
+            }).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed to load groups: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task CreateGroup()
+    {
+        _creating = true;
+        try
+        {
+            var req = new Snakk.Protos.Manage.CreateCommunityGroupRequest
+            {
+                CommunityId = Scope!.CommunityPublicId,
+                Name = _newName,
+                IsPublic = _newIsPublic,
+                SortOrder = _groups.Count
+            };
+            if (!string.IsNullOrWhiteSpace(_newDescription)) req.Description = _newDescription;
+            var created = await ManageClient.CreateCommunityGroupAsync(req);
+            _groups.Add(new GroupRow
+            {
+                PublicId = created.PublicId,
+                Name = created.Name,
+                Slug = created.Slug,
+                Description = created.HasDescription ? created.Description : "",
+                IsPublic = created.IsPublic,
+                MemberCount = 0
+            });
+            _newName = "";
+            _newDescription = "";
+            _newIsPublic = false;
+            _showCreate = false;
+            Snackbar.Add($"Group '{created.Name}' created.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed to create group: {ex.Message}", Severity.Error); }
+        finally { _creating = false; }
+    }
+
+    private async Task ToggleMembers(GroupRow group)
+    {
+        if (_expandedGroup == group.PublicId)
+        {
+            _expandedGroup = null;
+            _members = [];
+            return;
+        }
+        _expandedGroup = group.PublicId;
+        _membersLoading = true;
+        try
+        {
+            var resp = await ManageClient.GetCommunityGroupMembersAsync(
+                new Snakk.Protos.Manage.GetCommunityGroupMembersRequest
+                {
+                    CommunityId = Scope!.CommunityPublicId,
+                    GroupId = group.PublicId,
+                    Page = 1,
+                    PageSize = 50
+                });
+            _members = resp.Members.Select(m => new MemberRow
+            {
+                UserPublicId = m.UserPublicId,
+                DisplayName = m.DisplayName
+            }).ToList();
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed to load members: {ex.Message}", Severity.Error); }
+        finally { _membersLoading = false; }
+    }
+
+    private async Task RemoveMember(GroupRow group, MemberRow member)
+    {
+        try
+        {
+            await ManageClient.RemoveCommunityGroupMemberAsync(
+                new Snakk.Protos.Manage.RemoveCommunityGroupMemberRequest
+                {
+                    CommunityId = Scope!.CommunityPublicId,
+                    GroupId = group.PublicId,
+                    UserPublicId = member.UserPublicId
+                });
+            _members.Remove(member);
+            group.MemberCount = Math.Max(0, group.MemberCount - 1);
+            Snackbar.Add($"{member.DisplayName} removed from group.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task DeleteGroup(GroupRow g)
+    {
+        try
+        {
+            await ManageClient.DeleteCommunityGroupAsync(
+                new Snakk.Protos.Manage.DeleteCommunityGroupRequest
+                {
+                    CommunityId = Scope!.CommunityPublicId,
+                    GroupId = g.PublicId
+                });
+            _groups.Remove(g);
+            if (_expandedGroup == g.PublicId) _expandedGroup = null;
+            Snackbar.Add($"Group '{g.Name}' deleted.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

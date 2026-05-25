@@ -1,0 +1,42 @@
+@page "/email"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+@inject ISnackbar Snackbar
+
+<PageTitle>Email — Snakk Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Email Configuration</MudText>
+<MudText Class="mud-text-secondary mb-6">Configure SMTP settings for outbound email.</MudText>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    Email settings are currently configured via <strong>snakk-config.json</strong> and cannot be changed through the admin UI.
+</MudAlert>
+
+<MudPaper Class="pa-6">
+    <MudText Typo="Typo.h6" GutterBottom="true">SMTP Settings</MudText>
+    <MudGrid>
+        <MudItem xs="12" md="8">
+            <MudTextField @bind-Value="_host" Label="SMTP Host" Variant="Variant.Outlined" FullWidth="true" Disabled="true" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudNumericField @bind-Value="_port" Label="Port" Variant="Variant.Outlined" Disabled="true" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_username" Label="Username" Variant="Variant.Outlined" FullWidth="true" Disabled="true" />
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_fromAddress" Label="From Address" Variant="Variant.Outlined" FullWidth="true" Disabled="true" />
+        </MudItem>
+    </MudGrid>
+    <MudStack Row="true" Class="mt-4" Spacing="2">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="true">Save Settings</MudButton>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" Disabled="true">Send Test Email</MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    private string _host = "";
+    private int _port = 587;
+    private string _username = "";
+    private string _fromAddress = "";
+}

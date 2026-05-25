@@ -759,6 +759,28 @@ public class DiscussionGrpcService(
         };
     }
 
+    public override async Task<EditDiscussionResponse> EditDiscussion(EditDiscussionRequest request, ServerCallContext context)
+    {
+        if (string.IsNullOrWhiteSpace(request.NewTitle) || request.NewTitle.Length > 300)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Title must be between 1 and 300 characters"));
+
+        var userId = RequireAuth();
+        var ct = context.CancellationToken;
+
+        var discussionResult = await discussionUseCase.GetDiscussionAsync(DiscussionId.From(request.DiscussionId));
+        if (!discussionResult.IsSuccess || discussionResult.Value is null)
+            throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
+
+        if (discussionResult.Value.CreatedByUserId != userId)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Only the author can edit the discussion title"));
+
+        var result = await discussionUseCase.UpdateDiscussionTitleAsync(DiscussionId.From(request.DiscussionId), request.NewTitle);
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "Failed to update title"));
+
+        return new EditDiscussionResponse();
+    }
+
     private async Task<bool> IsDiscussionAccessibleAsync(string discussionPublicId, string? userId, CancellationToken ct = default)
     {
         var restricted = await grantsCache.GetRestrictedEntitiesAsync(ct);

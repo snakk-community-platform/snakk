@@ -1,0 +1,30 @@
+@page "/moderation/log"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+
+<PageTitle>Moderation Log — Snakk Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Platform Moderation Log</MudText>
+<MudText Class="mud-text-secondary mb-6">All moderation actions across the platform.</MudText>
+
+<MudPaper>
+    <MudTable Items="@_empty" Hover="true" Dense="true">
+        <HeaderContent>
+            <MudTh>Time</MudTh>
+            <MudTh>Actor</MudTh>
+            <MudTh>Action</MudTh>
+            <MudTh>Target</MudTh>
+            <MudTh>Scope</MudTh>
+            <MudTh>Reason</MudTh>
+        </HeaderContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4 mud-text-secondary">No moderation actions found.</MudText>
+        </NoRecordsContent>
+        <RowTemplate Context="e">
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private static readonly List<string> _empty = [];
+}

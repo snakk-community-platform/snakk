@@ -95,8 +95,13 @@ public class DatabaseSeeder(
 
     private async Task EnsureSystemSettingsAsync()
     {
+        var siteName = _configuration["Snakk:SiteName"] ?? "Snakk";
         var timezone = _configuration["Snakk:SiteTimezone"] ?? "UTC";
+        await UpsertSystemSettingAsync("General", "SiteName", siteName, "String");
+        await UpsertSystemSettingAsync("General", "SiteDescription", "", "String");
+        await UpsertSystemSettingAsync("General", "LogoUrl", "", "String");
         await UpsertSystemSettingAsync("General", "Timezone", timezone, "String");
+        await UpsertSystemSettingAsync("General", "Language", "en", "String");
         await UpsertSystemSettingAsync("Registration", "Mode", "Open", "String");
         await UpsertSystemSettingAsync("Registration", "InviteCode", "", "String");
 

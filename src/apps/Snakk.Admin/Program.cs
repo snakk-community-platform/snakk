@@ -12,7 +12,10 @@ using System.Net.Http;
 using System.Text;
 using Grpc.Core.Interceptors;
 using Snakk.Protos.Auth;
+using Snakk.Protos.Community;
+using Snakk.Protos.Hub;
 using Snakk.Protos.Manage;
+using Snakk.Protos.Space;
 
 // Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
@@ -67,6 +70,9 @@ void AddGrpcClient<T>(IServiceCollection services) where T : class
 
 AddGrpcClient<AuthService.AuthServiceClient>(builder.Services);
 AddGrpcClient<ManageService.ManageServiceClient>(builder.Services);
+AddGrpcClient<CommunityService.CommunityServiceClient>(builder.Services);
+AddGrpcClient<HubService.HubServiceClient>(builder.Services);
+AddGrpcClient<SpaceService.SpaceServiceClient>(builder.Services);
 
 // Named HttpClient for REST calls to internal API (file uploads, etc.)
 // In Docker, REST uses a separate HTTP/1.1 port from gRPC (HTTP/2).

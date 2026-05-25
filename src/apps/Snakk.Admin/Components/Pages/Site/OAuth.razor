@@ -1,0 +1,30 @@
+@page "/oauth"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+
+<PageTitle>OAuth Providers — Snakk Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">OAuth / Social Login</MudText>
+<MudText Class="mud-text-secondary mb-6">Enable and configure social login providers.</MudText>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    OAuth provider configuration is managed via <strong>snakk-config.json</strong> and cannot be changed through the admin UI.
+</MudAlert>
+
+<MudGrid>
+    @foreach (var provider in _providers)
+    {
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                    <MudText Typo="Typo.h6">@provider</MudText>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default">Not configurable</MudChip>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@code {
+    private static readonly List<string> _providers = ["Google", "GitHub", "Discord"];
+}

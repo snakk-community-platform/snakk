@@ -1,0 +1,55 @@
+@page "/c/{Slug}/domains"
+@layout Layout.ScopedLayout
+
+<PageTitle>Custom Domains — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Custom Domains</MudText>
+    <MudText Class="mud-text-secondary mb-6">Map custom hostnames to @Scope.CommunityName.</MudText>
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
+            <MudTextField @bind-Value="_newDomain" Label="Domain" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" HelperText="e.g. forum.example.com" />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@AddDomain">Add</MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <MudPaper>
+        <MudTable Items="@_domains" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Domain</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <NoRecordsContent>
+                <MudText Class="pa-4 mud-text-secondary">No custom domains configured.</MudText>
+            </NoRecordsContent>
+            <RowTemplate Context="d">
+                <MudTd>@d</MudTd>
+                <MudTd Class="text-right">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => _domains.Remove(d))" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private List<string> _domains = [];
+    private string _newDomain = "";
+
+    private void AddDomain()
+    {
+        if (!string.IsNullOrWhiteSpace(_newDomain) && !_domains.Contains(_newDomain))
+        {
+            _domains.Add(_newDomain.Trim());
+            _newDomain = "";
+        }
+    }
+}

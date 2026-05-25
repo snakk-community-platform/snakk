@@ -1,0 +1,24 @@
+@page "/c/{CSlug}/h/{HSlug}/{SSlug}/webhooks"
+@layout Layout.ScopedLayout
+
+<PageTitle>Webhooks — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Webhooks</MudText>
+    <MudText Class="mud-text-secondary mb-6">Outbound webhooks for @Scope.SpaceName events.</MudText>
+
+    <MudPaper Class="pa-6 text-center">
+        <MudIcon Icon="@Icons.Material.Filled.Webhook" Size="Size.Large" Color="Color.Default" />
+        <MudText Typo="Typo.h6" Class="mt-3">Coming Soon</MudText>
+        <MudText Class="mud-text-secondary mt-1">Space-scoped webhooks will be available in a future update.</MudText>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public string CSlug { get; set; } = "";
+    [Parameter] public string HSlug { get; set; } = "";
+    [Parameter] public string SSlug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+}

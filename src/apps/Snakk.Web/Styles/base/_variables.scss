@@ -70,9 +70,9 @@
 
 [data-theme="dark"] {
     --bg-primary: #0F1A14;
-    --bg-secondary: #152420;
+    --bg-secondary: #010b08;
     --bg-tertiary: #1A2E26;
-    --bg-subtle: #1E3429;
+    --bg-subtle: #09130e;
     --border-primary: #2A4038;
     --border-secondary: #1E3429;
     --border-subtle: #3D5A4E;
@@ -80,8 +80,8 @@
     --text-secondary: #9AB3A5;
     --text-tertiary: #7A9488;
     --text-muted: #5A7568;
-    --link-primary: #4CAF7D;
-    --link-hover: #6BC99A;
+    --link-primary: #3B9A6E;
+    --link-hover: #4CAF7D;
     --nav-bg: #0A1410;
     --nav-text: rgba(255, 255, 255, 0.7);
     --nav-text-hover: #FFFFFF;
@@ -92,8 +92,8 @@
     --sidebar-bg: #12211A;
 
     // Surface gradients (dark)
-    --surface-gradient-top: #0a130f;
-    --surface-gradient-bottom: #0F1A14;
+    --surface-gradient-top: #0a1410;
+    --surface-gradient-bottom: #030604;
     --navbar-gradient-top: #0a1410;
     --navbar-gradient-bottom: #0F1A14;
     --sidebar-gradient-mix: #1A2E26;
@@ -109,10 +109,10 @@
     --accent-info-bg-tint: rgba(96, 165, 250, 0.10);
 
     // Semantic accent palette — warning (dark)
-    --accent-warning: #fbbf24;
-    --accent-warning-strong: #f59e0b;
-    --accent-warning-text: #fbbf24;
-    --accent-warning-bg: rgba(251, 191, 36, 0.15);
+    --accent-warning: #c08010;
+    --accent-warning-strong: #d97706;
+    --accent-warning-text: #d97706;
+    --accent-warning-bg: rgba(192, 128, 16, 0.18);
 
     // Semantic accent palette — danger (dark)
     --accent-danger: #f87171;
@@ -121,8 +121,8 @@
     --accent-danger-border: rgba(239, 68, 68, 0.45);
 
     // Semantic accent palette — success (dark)
-    --accent-success: #34d399;
-    --accent-success-text: #34d399;
+    --accent-success: #20b57a;
+    --accent-success-text: #20b57a;
 
     // Alias daisyUI color tokens to our semantic palette so every tailwind/
     // daisyUI utility flips correctly in dark mode.

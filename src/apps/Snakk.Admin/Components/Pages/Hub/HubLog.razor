@@ -1,0 +1,52 @@
+@page "/c/{CSlug}/h/{HSlug}/log"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject AdminTimezoneService Tz
+
+<PageTitle>Moderation Log — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Moderation Log</MudText>
+    <MudText Class="mud-text-secondary mb-6">Moderation actions in @Scope.HubName.</MudText>
+
+    @if (_loading) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudPaper>
+            <MudTable Items="@_entries" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Time</MudTh><MudTh>Actor</MudTh><MudTh>Action</MudTh><MudTh>Target</MudTh><MudTh>Reason</MudTh>
+                </HeaderContent>
+                <NoRecordsContent><MudText Class="pa-4 mud-text-secondary">No log entries.</MudText></NoRecordsContent>
+                <RowTemplate Context="e">
+                    <MudTd>@Tz.FormatDateTime(e.Ticks)</MudTd><MudTd>@e.ActorName</MudTd><MudTd>@e.Action</MudTd><MudTd>@e.TargetSummary</MudTd><MudTd>@e.Reason</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public string CSlug { get; set; } = "";
+    [Parameter] public string HSlug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private List<LogRow> _entries = [];
+    private class LogRow { public long Ticks { get; set; } public string ActorName { get; set; } = ""; public string Action { get; set; } = ""; public string TargetSummary { get; set; } = ""; public string Reason { get; set; } = ""; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var r = await ManageClient.GetModerationLogAsync(new Snakk.Protos.Manage.GetModerationLogRequest { ScopePublicId = Scope.ScopePublicId, ScopeType = Scope.ScopeType });
+            _entries = r.Entries.Select(e => new LogRow { Ticks = e.CreatedAtTicks, ActorName = e.ActorDisplayName, Action = e.ActionType, TargetSummary = e.TargetName, Reason = e.HasReason ? e.Reason : "" }).ToList();
+        }
+        catch { }
+        finally { _loading = false; }
+    }
+}

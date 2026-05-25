@@ -1,0 +1,136 @@
+@page "/c/{Slug}/team"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+@inject AdminTimezoneService Tz
+
+<PageTitle>Team — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Team</MudText>
+    <MudText Class="mud-text-secondary mb-6">Moderators and admins for @Scope.CommunityName.</MudText>
+
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" GutterBottom="true">Add Team Member</MudText>
+        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
+            <MudTextField @bind-Value="_addUsername" Label="Username" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            <MudSelect @bind-Value="_addRole" Label="Role" Variant="Variant.Outlined" Margin="Margin.Dense" Style="min-width:160px;">
+                <MudSelectItem Value="@("CommunityMod")">Community Mod</MudSelectItem>
+                <MudSelectItem Value="@("CommunityAdmin")">Community Admin</MudSelectItem>
+            </MudSelect>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@AddMember"
+                       Disabled="@(string.IsNullOrWhiteSpace(_addUsername))">Add</MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @if (_loading) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudPaper>
+            <MudTable Items="@_team" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>User</MudTh>
+                    <MudTh>Role</MudTh>
+                    <MudTh>Assigned</MudTh>
+                    <MudTh>Source</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">No team members yet.</MudText>
+                </NoRecordsContent>
+                <RowTemplate Context="m">
+                    <MudTd>@m.DisplayName</MudTd>
+                    <MudTd><MudChip T="string" Size="Size.Small">@m.Role</MudChip></MudTd>
+                    <MudTd>@m.AssignedAt</MudTd>
+                    <MudTd>
+                        @if (m.IsInherited)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default">Inherited</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd>
+                        @if (!m.IsInherited)
+                        {
+                            <MudIconButton Icon="@Icons.Material.Filled.PersonRemove" Color="Color.Error"
+                                           Size="Size.Small" OnClick="@(() => RemoveMember(m))" />
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private string _addUsername = "";
+    private string _addRole = "CommunityMod";
+    private List<TeamRow> _team = [];
+
+    private class TeamRow
+    {
+        public string UserPublicId { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Role { get; set; } = "";
+        public string AssignedAt { get; set; } = "";
+        public bool IsInherited { get; set; }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var resp = await ManageClient.GetTeamAsync(
+                new Snakk.Protos.Manage.GetTeamRequest { ScopePublicId = Scope.ScopePublicId, ScopeType = Scope.ScopeType });
+            _team = resp.Members.Select(m => new TeamRow
+            {
+                UserPublicId = m.RolePublicId,
+                DisplayName = m.UserDisplayName,
+                Role = m.RoleType,
+                AssignedAt = Tz.FormatDateTime(m.AssignedAtTicks),
+                IsInherited = false
+            }).ToList();
+        }
+        catch { }
+        finally { _loading = false; }
+    }
+
+    private async Task AddMember()
+    {
+        try
+        {
+            await ManageClient.AddTeamMemberAsync(new Snakk.Protos.Manage.AddTeamMemberRequest
+            {
+                ScopePublicId = Scope!.ScopePublicId,
+                ScopeType = Scope.ScopeType,
+                TargetUsername = _addUsername,
+                RoleType = _addRole
+            });
+            Snackbar.Add($"{_addUsername} added as {_addRole}.", Severity.Success);
+            _addUsername = "";
+            await OnParametersSetAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task RemoveMember(TeamRow m)
+    {
+        try
+        {
+            await ManageClient.RemoveTeamMemberAsync(new Snakk.Protos.Manage.RemoveTeamMemberRequest
+            {
+                RolePublicId = m.UserPublicId
+            });
+            _team.Remove(m);
+            Snackbar.Add($"{m.DisplayName} removed.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+}

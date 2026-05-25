@@ -1,0 +1,84 @@
+@page "/c/{CSlug}/h/{HSlug}/{SSlug}/settings"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Settings — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Space Settings</MudText>
+    <MudText Class="mud-text-secondary mb-6">Configure @Scope.SpaceName.</MudText>
+
+    @if (_loading) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudPaper Class="pa-6">
+                    <MudText Typo="Typo.h6" GutterBottom="true">General</MudText>
+                    <MudTextField @bind-Value="_name" Label="Name" Variant="Variant.Outlined" Class="mb-3" FullWidth="true" />
+                    <MudTextField @bind-Value="_description" Label="Description" Variant="Variant.Outlined" Lines="3" Class="mb-3" FullWidth="true" />
+                    <MudTextField @bind-Value="_languageCode" Label="Language Code" Variant="Variant.Outlined" Class="mb-4" HelperText="Leave empty to inherit from hub" />
+
+                    <MudText Typo="Typo.h6" GutterBottom="true" Class="mt-2">Access</MudText>
+                    <MudCheckBox @bind-Value="_allowAnon" Label="Allow anonymous reading" Class="mb-1" />
+                    <MudCheckBox @bind-Value="_requireEmail" Label="Require email confirmation" />
+
+                    <MudText Typo="Typo.h6" GutterBottom="true" Class="mt-2">Content</MudText>
+                    <MudCheckBox @bind-Value="_isAdultOnly" Label="Adult-only space" Class="mb-1" />
+                    <MudCheckBox @bind-Value="_allowsAdult" Label="Allows adult content" Class="mb-1" />
+                    <MudCheckBox @bind-Value="_autoParagraph" Label="Auto-paragraph (insert line breaks)" />
+
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="@Save" Disabled="@_saving">
+                        @(_saving ? "Saving..." : "Save Settings")
+                    </MudButton>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+}
+
+@code {
+    [Parameter] public string CSlug { get; set; } = "";
+    [Parameter] public string HSlug { get; set; } = "";
+    [Parameter] public string SSlug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true; private bool _saving;
+    private string _name = ""; private string _description = ""; private string _languageCode = "";
+    private bool _allowAnon; private bool _requireEmail; private bool _isAdultOnly; private bool _allowsAdult; private bool _autoParagraph;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var s = await ManageClient.GetSpaceSettingsAsync(new Snakk.Protos.Manage.GetSpaceSettingsRequest { SpacePublicId = Scope.ScopePublicId });
+            _name = s.Name; _description = s.Description; _languageCode = s.HasLanguageCode ? s.LanguageCode : "";
+            _allowAnon = s.AllowAnonymous; _requireEmail = s.RequireApproval;
+            _isAdultOnly = s.IsAdultOnly; _allowsAdult = s.AllowsAdultContent; _autoParagraph = s.AutoParagraphEnabled;
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed to load: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+
+    private async Task Save()
+    {
+        _saving = true;
+        try
+        {
+            await ManageClient.UpdateSpaceSettingsAsync(new Snakk.Protos.Manage.UpdateSpaceSettingsRequest
+            {
+                SpacePublicId = Scope!.ScopePublicId, Name = _name, Description = _description, LanguageCode = _languageCode,
+                AllowAnonymous = _allowAnon, RequireApproval = _requireEmail,
+                IsAdultOnly = _isAdultOnly, AllowsAdultContent = _allowsAdult, AutoParagraphEnabled = _autoParagraph
+            });
+            Snackbar.Add("Settings saved.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

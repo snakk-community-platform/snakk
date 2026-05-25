@@ -1,0 +1,73 @@
+@page "/c/{CSlug}/h/{HSlug}/spaces"
+@layout Layout.ScopedLayout
+@inject SpaceService.SpaceServiceClient SpaceClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Spaces — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Justify="Justify.SpaceBetween">
+        <div>
+            <MudText Typo="Typo.h4" GutterBottom="true">Spaces</MudText>
+            <MudText Class="mud-text-secondary">Spaces in @Scope.HubName.</MudText>
+        </div>
+    </MudStack>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else
+    {
+        <MudPaper>
+            <MudTable Items="@_spaces" Hover="true" Dense="true">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Slug</MudTh>
+                    <MudTh>Discussions</MudTh>
+                    <MudTh>Replies</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">No spaces yet.</MudText>
+                </NoRecordsContent>
+                <RowTemplate Context="space">
+                    <MudTd>@space.Name</MudTd>
+                    <MudTd><MudText Typo="Typo.body2" Class="mud-text-secondary">@space.Slug</MudText></MudTd>
+                    <MudTd>@space.DiscussionCount</MudTd>
+                    <MudTd>@space.ReplyCount</MudTd>
+                    <MudTd>
+                        <MudButton Href="@($"c/{CSlug}/h/{HSlug}/{space.Slug}")" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small">
+                            Manage
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public string CSlug { get; set; } = "";
+    [Parameter] public string HSlug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private List<SpaceByHubInfo> _spaces = [];
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var result = await SpaceClient.ListSpacesByHubAsync(
+                new ListSpacesByHubRequest { HubId = Scope.ScopePublicId, Offset = 0, PageSize = 100 });
+            _spaces = [.. result.Items];
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed to load spaces: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+}

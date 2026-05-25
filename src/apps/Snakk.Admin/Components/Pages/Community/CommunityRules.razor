@@ -1,0 +1,116 @@
+@page "/c/{Slug}/rules"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Rules — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Rules</MudText>
+    <MudText Class="mud-text-secondary mb-6">Community rules for @Scope.CommunityName. Rules bubble down to all hubs and spaces.</MudText>
+
+    @if (_loading) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">Add Rule</MudText>
+            <MudGrid>
+                <MudItem xs="12" md="5">
+                    <MudTextField @bind-Value="_newTitle" Label="Title" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_newDescription" Label="Description (optional)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudItem>
+                <MudItem xs="12" md="1" Class="d-flex align-center">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@AddRule"
+                               Disabled="@string.IsNullOrWhiteSpace(_newTitle)">Add</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        <MudPaper>
+            <MudList T="string" Dense="true">
+                @for (var i = 0; i < _rules.Count; i++)
+                {
+                    var rule = _rules[i];
+                    var index = i;
+                    <MudListItem>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <div>
+                                <MudText Typo="Typo.body1"><b>@(i + 1). @rule.Title</b></MudText>
+                                @if (!string.IsNullOrEmpty(rule.Description))
+                                {
+                                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@rule.Description</MudText>
+                                }
+                            </div>
+                            <MudStack Row="true" Spacing="0">
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small"
+                                               Disabled="@(index == 0)" OnClick="@(() => MoveUp(index))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small"
+                                               Disabled="@(index == _rules.Count - 1)" OnClick="@(() => MoveDown(index))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                               Size="Size.Small" OnClick="@(() => _rules.RemoveAt(index))" />
+                            </MudStack>
+                        </MudStack>
+                    </MudListItem>
+                    <MudDivider />
+                }
+                @if (_rules.Count == 0)
+                {
+                    <MudListItem><MudText Class="mud-text-secondary">No rules yet.</MudText></MudListItem>
+                }
+            </MudList>
+        </MudPaper>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="@SaveRules" Disabled="@_saving">
+            @(_saving ? "Saving..." : "Save Rules")
+        </MudButton>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private string _newTitle = "";
+    private string _newDescription = "";
+    private List<RuleRow> _rules = [];
+
+    private class RuleRow { public string Title { get; set; } = ""; public string Description { get; set; } = ""; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var resp = await ManageClient.GetRulesAsync(
+                new Snakk.Protos.Manage.GetRulesRequest { ScopePublicId = Scope.ScopePublicId, ScopeType = Scope.ScopeType });
+            _rules = resp.Rules.Select(r => new RuleRow { Title = r.Title, Description = r.Description }).ToList();
+        }
+        catch { }
+        finally { _loading = false; }
+    }
+
+    private void AddRule() { _rules.Add(new RuleRow { Title = _newTitle, Description = _newDescription }); _newTitle = ""; _newDescription = ""; }
+    private void MoveUp(int i) { (_rules[i], _rules[i - 1]) = (_rules[i - 1], _rules[i]); }
+    private void MoveDown(int i) { (_rules[i], _rules[i + 1]) = (_rules[i + 1], _rules[i]); }
+
+    private async Task SaveRules()
+    {
+        _saving = true;
+        try
+        {
+            var req = new Snakk.Protos.Manage.UpdateRulesRequest { ScopePublicId = Scope!.ScopePublicId, ScopeType = Scope.ScopeType };
+            req.Rules.AddRange(_rules.Select(r => new Snakk.Protos.Manage.RuleItem { Title = r.Title, Description = r.Description }));
+            await ManageClient.UpdateRulesAsync(req);
+            Snackbar.Add("Rules saved.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _saving = false; }
+    }
+}

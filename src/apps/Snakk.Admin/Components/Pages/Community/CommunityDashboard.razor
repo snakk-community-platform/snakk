@@ -1,0 +1,74 @@
+@page "/c/{Slug}"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject AdminTimezoneService Tz
+
+<PageTitle>Dashboard — Snakk Admin</PageTitle>
+
+@if (Scope is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">@Scope.CommunityName</MudText>
+    <MudText Class="mud-text-secondary mb-6">Community overview and moderation summary.</MudText>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else if (_stats is not null)
+    {
+        <MudGrid>
+            <MudItem xs="6" sm="3">
+                <MudPaper Class="pa-4 text-center">
+                    <MudText Typo="Typo.h5">@_stats.OpenReports</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Open Reports</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudPaper Class="pa-4 text-center">
+                    <MudText Typo="Typo.h5">@_stats.ActiveBans</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Active Bans</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudPaper Class="pa-4 text-center">
+                    <MudText Typo="Typo.h5">@_stats.TeamMembers</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Team Members</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="6" sm="3">
+                <MudPaper Class="pa-4 text-center">
+                    <MudText Typo="Typo.h5">@_stats.RecentActions</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">Actions (7d)</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private GetDashboardStatsResponse? _stats;
+    private bool _loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            _stats = await ManageClient.GetDashboardStatsAsync(new Snakk.Protos.Manage.GetDashboardStatsRequest
+            {
+                ScopePublicId = Scope.ScopePublicId,
+                ScopeType = Scope.ScopeType
+            });
+        }
+        catch { }
+        finally { _loading = false; }
+    }
+}

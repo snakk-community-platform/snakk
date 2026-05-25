@@ -1,0 +1,80 @@
+@page "/c/{CSlug}/h/{HSlug}/{SSlug}/discord"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Discord — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Discord Integration</MudText>
+    <MudText Class="mud-text-secondary mb-6">Connect @Scope.SpaceName to a Discord channel.</MudText>
+
+    @if (_loading) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudPaper Class="pa-6">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_webhookUrl" Label="Webhook URL" Variant="Variant.Outlined" FullWidth="true"
+                                  HelperText="Discord channel webhook URL for posting new discussions." />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_channelName" Label="Channel Name" Variant="Variant.Outlined" FullWidth="true"
+                                  HelperText="Display name of the Discord channel." />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_inviteUrl" Label="Invite URL" Variant="Variant.Outlined" FullWidth="true"
+                                  HelperText="Public invite link to the Discord server." />
+                </MudItem>
+            </MudGrid>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="@Save" Disabled="@_saving">
+                @(_saving ? "Saving..." : "Save")
+            </MudButton>
+        </MudPaper>
+    }
+}
+
+@code {
+    [Parameter] public string CSlug { get; set; } = "";
+    [Parameter] public string HSlug { get; set; } = "";
+    [Parameter] public string SSlug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true; private bool _saving;
+    private string _webhookUrl = ""; private string _channelName = ""; private string _inviteUrl = "";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var s = await ManageClient.GetSpaceDiscordSettingsAsync(new Snakk.Protos.Manage.GetSpaceDiscordSettingsRequest { SpacePublicId = Scope.ScopePublicId });
+            _webhookUrl = s.DiscordWebhookUrl;
+            _channelName = s.DiscordChannelName;
+            _inviteUrl = s.DiscordInviteUrl;
+        }
+        catch { }
+        finally { _loading = false; }
+    }
+
+    private async Task Save()
+    {
+        _saving = true;
+        try
+        {
+            await ManageClient.UpdateSpaceDiscordSettingsAsync(new Snakk.Protos.Manage.UpdateSpaceDiscordSettingsRequest
+            {
+                SpacePublicId = Scope!.ScopePublicId,
+                DiscordWebhookUrl = _webhookUrl,
+                DiscordChannelName = _channelName,
+                DiscordInviteUrl = _inviteUrl
+            });
+            Snackbar.Add("Discord settings saved.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed: {ex.Message}", Severity.Error); }
+        finally { _saving = false; }
+    }
+}

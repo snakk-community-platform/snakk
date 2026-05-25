@@ -304,6 +304,10 @@
 
                     <!-- Title + OP reactions -->
                     <div class="flex items-start justify-between gap-4">
+                        <div id="discussion-title-container"
+                             class="flex items-start gap-2 flex-1 min-w-0"
+                             data-discussion-id="@Model.Discussion.PublicId"
+                             data-current-title="@Model.Discussion.Title">
                         <h1 class="text-xl font-bold">
                             @if (!string.IsNullOrEmpty(Model.Discussion.Type) && Model.Discussion.Type != "Standard")
                             {
@@ -312,6 +316,15 @@
                             }
                             @Model.Discussion.Title
                         </h1>
+                        @if (firstPostItem != null && Model.CurrentUserId == firstPostItem.Author.PublicId && !Model.Discussion.IsLocked)
+                        {
+                            <button data-action="edit-discussion-title"
+                                    class="btn btn-ghost btn-xs btn-square shrink-0 mt-1"
+                                    aria-label="Edit discussion title">
+                                <span class="icon icon-pencil h-4 w-4" aria-hidden="true"></span>
+                            </button>
+                        }
+                        </div>
                         @if (firstPostItem != null)
                         {
                             var opReactionCounts = firstPostItem.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
@@ -1335,7 +1348,8 @@
                                 <!-- Post Content -->
                                 <div id="post-content-@post.PublicId"
                                      class="prose prose-content flex flex-col gap-4 leading-6"
-                                     data-author-name="@post.Author.DisplayName">
+                                     data-author-name="@post.Author.DisplayName"
+                                     data-raw-content="@(post.Content ?? "")">
                                     @Html.SanitizedRaw(post.RenderedContent)
                                 </div>
                             </div>

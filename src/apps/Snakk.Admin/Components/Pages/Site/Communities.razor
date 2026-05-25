@@ -1,0 +1,64 @@
+@page "/communities"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+@inject CommunityService.CommunityServiceClient CommunityClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Communities — Snakk Admin</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Justify="Justify.SpaceBetween">
+    <div>
+        <MudText Typo="Typo.h4" GutterBottom="true">Communities</MudText>
+        <MudText Class="mud-text-secondary">All communities on this platform.</MudText>
+    </div>
+</MudStack>
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudPaper>
+        <MudTable Items="@_communities" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Slug</MudTh>
+                <MudTh>Visibility</MudTh>
+                <MudTh>Discussions</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <NoRecordsContent>
+                <MudText Class="pa-4 mud-text-secondary">No communities found.</MudText>
+            </NoRecordsContent>
+            <RowTemplate Context="community">
+                <MudTd>@community.Name</MudTd>
+                <MudTd><MudText Typo="Typo.body2" Class="mud-text-secondary">@community.Slug</MudText></MudTd>
+                <MudTd>@community.Visibility</MudTd>
+                <MudTd>@community.DiscussionCount</MudTd>
+                <MudTd>
+                    <MudButton Href="@($"c/{community.Slug}")" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small">
+                        Manage
+                    </MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private List<CommunityInfo> _communities = [];
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var result = await CommunityClient.ListCommunitiesAsync(
+                new ListCommunitiesRequest { Offset = 0, PageSize = 100 });
+            _communities = [.. result.Items];
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed to load communities: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+}

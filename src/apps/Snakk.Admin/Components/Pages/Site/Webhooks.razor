@@ -1,0 +1,36 @@
+@page "/webhooks"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+
+<PageTitle>Webhooks — Snakk Admin</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Justify="Justify.SpaceBetween">
+    <div>
+        <MudText Typo="Typo.h4" GutterBottom="true">Platform Webhooks</MudText>
+        <MudText Class="mud-text-secondary">Outbound webhooks for platform events.</MudText>
+    </div>
+</MudStack>
+
+<MudAlert Severity="Severity.Info" Class="mb-4">
+    Platform webhook management is not yet available via the admin UI.
+</MudAlert>
+
+<MudPaper>
+    <MudTable Items="@_empty" Hover="true" Dense="true">
+        <HeaderContent>
+            <MudTh>URL</MudTh>
+            <MudTh>Events</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh>Last Delivery</MudTh>
+        </HeaderContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4 mud-text-secondary">No webhooks configured.</MudText>
+        </NoRecordsContent>
+        <RowTemplate Context="wh">
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private static readonly List<string> _empty = [];
+}

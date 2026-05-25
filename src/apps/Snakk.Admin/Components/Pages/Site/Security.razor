@@ -1,0 +1,74 @@
+@page "/security"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+
+<PageTitle>Security — Snakk Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Security</MudText>
+<MudText Class="mud-text-secondary mb-6">Audit logs, active sessions, and security monitoring.</MudText>
+
+<MudTabs Elevation="0" ApplyEffectsToContainer="true">
+    <MudTabPanel Text="Audit Log">
+        <MudPaper Class="pa-4 mt-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">Audit Log</MudText>
+            <MudText Class="mud-text-secondary">Full audit trail of all admin and system actions.</MudText>
+            <MudTable Items="@_empty" Hover="true" Dense="true" Class="mt-4">
+                <HeaderContent>
+                    <MudTh>Time</MudTh>
+                    <MudTh>Actor</MudTh>
+                    <MudTh>Action</MudTh>
+                    <MudTh>Category</MudTh>
+                    <MudTh>Result</MudTh>
+                </HeaderContent>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">No audit events found.</MudText>
+                </NoRecordsContent>
+                <RowTemplate Context="e">
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudTabPanel>
+    <MudTabPanel Text="Failed Logins">
+        <MudPaper Class="pa-4 mt-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">Failed Login Attempts</MudText>
+            <MudText Class="mud-text-secondary">Recent failed authentication attempts.</MudText>
+            <MudTable Items="@_empty" Hover="true" Dense="true" Class="mt-4">
+                <HeaderContent>
+                    <MudTh>Time</MudTh>
+                    <MudTh>IP Address</MudTh>
+                    <MudTh>Username</MudTh>
+                    <MudTh>Reason</MudTh>
+                </HeaderContent>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">No failed logins found.</MudText>
+                </NoRecordsContent>
+                <RowTemplate Context="e">
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudTabPanel>
+    <MudTabPanel Text="Active Sessions">
+        <MudPaper Class="pa-4 mt-4">
+            <MudText Typo="Typo.h6" GutterBottom="true">Active Sessions</MudText>
+            <MudText Class="mud-text-secondary">Currently active user sessions across the platform.</MudText>
+            <MudTable Items="@_empty" Hover="true" Dense="true" Class="mt-4">
+                <HeaderContent>
+                    <MudTh>User</MudTh>
+                    <MudTh>IP Address</MudTh>
+                    <MudTh>Last Active</MudTh>
+                    <MudTh>Device</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <NoRecordsContent>
+                    <MudText Class="pa-4 mud-text-secondary">No active sessions.</MudText>
+                </NoRecordsContent>
+                <RowTemplate Context="e">
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private static readonly List<string> _empty = [];
+}

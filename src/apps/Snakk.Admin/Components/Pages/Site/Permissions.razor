@@ -1,0 +1,12 @@
+@page "/permissions"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+
+<PageTitle>Permissions — Snakk Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Role Permissions</MudText>
+<MudText Class="mud-text-secondary mb-6">Configure what each role can do platform-wide.</MudText>
+
+<MudPaper Class="pa-4">
+    <MudText Class="mud-text-secondary">Permission matrix coming soon.</MudText>
+</MudPaper>

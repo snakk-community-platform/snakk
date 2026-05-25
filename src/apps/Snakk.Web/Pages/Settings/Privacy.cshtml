@@ -75,7 +75,7 @@
                 <p class="text-sm mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.PrivPasskey2faNote
                 </p>
-                <div id="passkey-list" class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+                <div id="passkey-list" class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
                     <div class="flex justify-center py-4">
                         <span class="loading loading-spinner loading-md"></span>
                     </div>
@@ -110,7 +110,7 @@
                             <span class="icon icon-shield-check w-4 h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-success,#10b981)"></span>
                             <span>@T.Settings.Priv2faEnabledCallout</span>
                         </div>
-                        <div class="rounded-lg border border-base-300 overflow-hidden mb-4" style="background:#fff;color:#111;">
+                        <div class="rounded-lg border border-base-300 overflow-hidden mb-4" style="background:var(--bg-tertiary);color:var(--text-primary);">
                             <div class="sn-device-item">
                                 <div class="sn-device-info">
                                     <p id="2fa-backup-status" class="text-sm sn-device-meta"></p>
@@ -124,7 +124,7 @@
                             <p class="text-sm mb-3" style="color: var(--text-tertiary)">
                                 @T.Settings.PrivDevicesHelp
                             </p>
-                            <div id="devices-list" class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+                            <div id="devices-list" class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
                                 <div class="flex justify-center py-4">
                                     <span class="loading loading-spinner loading-md"></span>
                                 </div>
@@ -177,7 +177,7 @@
                         <span>@T.Settings.ConnAccConnectFailed</span>
                     </div>
                 }
-                <div id="connected-accounts-list" class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+                <div id="connected-accounts-list" class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
                     <div class="flex justify-center py-4">
                         <span class="loading loading-spinner loading-md"></span>
                     </div>
@@ -191,7 +191,7 @@
                 <p class="text-sm mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.SecSessionsIntro
                 </p>
-                <div class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+                <div class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
                     <div id="sessions-loading" class="flex justify-center py-4">
                         <span class="loading loading-spinner loading-md"></span>
                     </div>
@@ -275,7 +275,7 @@
         <div class="chart-modal-body" style="flex-direction:column;align-items:center">
             <p class="text-sm mb-4 w-full" style="color: var(--text-tertiary)">@T.Settings.Priv2faSetupInstructions</p>
             <img id="2fa-qr-img" src="" alt="QR code" class="w-44 h-44 rounded border border-base-300 mb-3" />
-            <div class="rounded border border-base-300 p-3 mb-5 w-full" style="background:#fff;color:#111;">
+            <div class="rounded border border-base-300 p-3 mb-5 w-full" style="background:var(--bg-tertiary);color:var(--text-primary);">
                 <div class="flex items-center justify-between mb-1">
                     <p class="text-xs font-medium" style="color:#666">@T.Settings.Priv2faManualKeyLabel</p>
                     <button type="button" id="2fa-copy-secret-btn" class="btn btn-ghost btn-xs">Copy</button>
@@ -312,7 +312,7 @@
             <span id="modal-2fa-backup-codes-title">@T.Settings.Priv2faBackupCodesTitle</span>
         </div>
         <div class="chart-modal-body" style="flex-direction:column">
-            <div class="rounded border border-base-300 p-4 w-full" style="background:#fff;color:#111;">
+            <div class="rounded border border-base-300 p-4 w-full" style="background:var(--bg-tertiary);color:var(--text-primary);">
                 <p class="text-sm font-medium mb-3">@T.Settings.Priv2faBackupCodesWarning</p>
                 <div id="2fa-codes-grid" class="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-sm"></div>
             </div>
@@ -356,7 +356,7 @@
         <div class="chart-modal-body" style="flex-direction:column; gap:0.75rem">
             <p class="text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivRegenCodesHelp</p>
             <p id="regen-status" class="text-sm hidden"></p>
-            <div id="regen-codes-area" class="rounded border border-base-300 p-4 w-full" style="display:none; background:#fff; color:#111;">
+            <div id="regen-codes-area" class="rounded border border-base-300 p-4 w-full" style="display:none; background:var(--bg-tertiary);color:var(--text-primary);">
                 <p class="text-sm font-medium mb-3">@T.Settings.Priv2faBackupCodesWarning</p>
                 <div id="regen-codes-grid" class="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-sm"></div>
             </div>
@@ -416,7 +416,7 @@
             <button type="button" class="chart-modal-close" id="security-log-close-btn" aria-label="Close">✕</button>
         </div>
         <div class="chart-modal-body" style="flex-direction:column;max-height:60vh;overflow-y:auto">
-            <div class="rounded-lg border border-base-300 overflow-hidden" style="background: #fff; color: #111;">
+            <div class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
                 <div id="security-log-loading" class="flex justify-center py-4">
                     <span class="loading loading-spinner loading-md"></span>
                 </div>

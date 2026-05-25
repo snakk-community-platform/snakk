@@ -1588,6 +1588,10 @@ public class SnakkApiClient(
         CallAsync(() => postClient.EditPostAsync(
             new EditPostRequest { PostId = postId, Content = content }, cancellationToken: ct).ResponseAsync);
 
+    public virtual Task<GrpcResult<EditDiscussionResponse>> EditDiscussionTitleResultAsync(string discussionId, string newTitle, CancellationToken ct = default) =>
+        CallAsync(() => discussionClient.EditDiscussionAsync(
+            new EditDiscussionRequest { DiscussionId = discussionId, NewTitle = newTitle }, cancellationToken: ct).ResponseAsync);
+
     // ==================== Private mapping helpers ====================
 
     private static UserRoleDto MapRoleInfo(RoleInfo r) => new(

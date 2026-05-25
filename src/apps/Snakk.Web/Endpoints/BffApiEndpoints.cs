@@ -296,6 +296,10 @@ public static class BffApiEndpoints
             .WithName("BffEditPost")
             .RequireRateLimiting("flood-post");
 
+        group.MapPatch("/discussions/{discussionId}/title", EditDiscussionTitleAsync)
+            .WithName("BffEditDiscussionTitle")
+            .RequireRateLimiting("flood-post");
+
         group.MapDelete("/posts/{postId}", DeletePostAsync)
             .WithName("BffDeletePost");
 
@@ -1555,6 +1559,26 @@ public static class BffApiEndpoints
         if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.EditPostResultAsync(postId, body.Content, ct);
+
+        if (!result.IsSuccess)
+            return MapGrpcError(result.Status, result.Error);
+
+        return Results.Content(result.Value!.RenderedHtml, "text/html");
+    }
+
+    private record EditDiscussionTitleRequest(string Title);
+
+    private static async Task<IResult> EditDiscussionTitleAsync(
+        string discussionId,
+        [FromBody] EditDiscussionTitleRequest body,
+        SnakkApiClient apiClient,
+        HttpContext httpContext,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var result = await apiClient.EditDiscussionTitleResultAsync(discussionId, body.Title, ct);
 
         if (!result.IsSuccess)
             return MapGrpcError(result.Status, result.Error);

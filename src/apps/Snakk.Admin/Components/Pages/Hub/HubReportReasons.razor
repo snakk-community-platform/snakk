@@ -1,0 +1,84 @@
+@page "/c/{CSlug}/h/{HSlug}/report-reasons"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+
+<PageTitle>Report Reasons — Snakk Admin</PageTitle>
+
+@if (Scope is null) { <MudProgressLinear Indeterminate="true" /> }
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Report Reasons</MudText>
+    <MudText Class="mud-text-secondary mb-6">Hub-specific report reasons for @Scope.HubName.</MudText>
+
+    @if (_loading) { <MudProgressLinear Indeterminate="true" /> }
+    else
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.End">
+                <MudTextField @bind-Value="_new" Label="New reason" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => { if (!string.IsNullOrWhiteSpace(_new)) { _reasons.Add(_new.Trim()); _new = ""; } })"
+                           Disabled="@string.IsNullOrWhiteSpace(_new)">Add</MudButton>
+            </MudStack>
+        </MudPaper>
+        <MudPaper>
+            <MudList T="string" Dense="true">
+                @foreach (var r in _inherited) { <MudListItem><MudStack Row="true" Justify="Justify.SpaceBetween"><MudText>@r</MudText><MudChip T="string" Size="Size.Small">Inherited</MudChip></MudStack></MudListItem><MudDivider /> }
+                @for (var i = 0; i < _reasons.Count; i++)
+                {
+                    var r = _reasons[i]; var idx = i;
+                    <MudListItem>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <MudText>@r</MudText>
+                            <MudStack Row="true" Spacing="0">
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="@(idx==0)" OnClick="@(()=>{(_reasons[idx],_reasons[idx-1])=(_reasons[idx-1],_reasons[idx]);})" />
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="@(idx==_reasons.Count-1)" OnClick="@(()=>{(_reasons[idx],_reasons[idx+1])=(_reasons[idx+1],_reasons[idx]);})" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(()=>_reasons.RemoveAt(idx))" />
+                            </MudStack>
+                        </MudStack>
+                    </MudListItem>
+                    <MudDivider />
+                }
+                @if (_reasons.Count == 0 && _inherited.Count == 0) { <MudListItem><MudText Class="mud-text-secondary">No reasons.</MudText></MudListItem> }
+            </MudList>
+        </MudPaper>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="@Save" Disabled="@_saving">@(_saving?"Saving...":"Save")</MudButton>
+    }
+}
+
+@code {
+    [Parameter] public string CSlug { get; set; } = "";
+    [Parameter] public string HSlug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private bool _loading = true; private bool _saving; private string _new = "";
+    private List<string> _reasons = []; private List<string> _inherited = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        _loading = true;
+        try
+        {
+            var r = await ManageClient.GetReportReasonsAsync(new Snakk.Protos.Manage.GetReportReasonsRequest { ScopePublicId = Scope.ScopePublicId, ScopeType = Scope.ScopeType });
+            _reasons = r.Reasons.Select(x => x.Name).ToList();
+            _inherited = r.InheritedGroups.SelectMany(g => g.Reasons).Select(x => x.Name).ToList();
+        }
+        catch { }
+        finally { _loading = false; }
+    }
+
+    private async Task Save()
+    {
+        _saving = true;
+        try
+        {
+            var req = new Snakk.Protos.Manage.UpdateReportReasonsRequest { ScopePublicId = Scope!.ScopePublicId, ScopeType = Scope.ScopeType };
+            req.Reasons.AddRange(_reasons.Select(r => new Snakk.Protos.Manage.ReportReasonItem { Name = r }));
+            await ManageClient.UpdateReportReasonsAsync(req);
+            Snackbar.Add("Saved.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+        finally { _saving = false; }
+    }
+}

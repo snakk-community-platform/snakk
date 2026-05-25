@@ -1,75 +1,86 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject AuthenticationStateProvider Auth
 
-<MudLayout Style="--mud-appbar-height: 48px;">
+<MudLayout>
     <MudAppBar Elevation="1" Dense="true">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
-                       OnClick="@ToggleDrawer" />
-        <MudText Typo="Typo.h5" Class="ml-3">Snakk Admin</MudText>
+                       OnClick="@(() => _drawerOpen = !_drawerOpen)" />
+        <MudText Typo="Typo.h6" Class="ml-2 fw-bold">Snakk Admin</MudText>
         <MudSpacer />
         <AuthorizeView>
             <Authorized>
-                <MudText Class="mr-3">@context.User.Identity?.Name</MudText>
-                <MudButton Variant="Variant.Text" Color="Color.Inherit" OnClick="@Logout">Logout</MudButton>
+                <MudText Class="mr-3 mud-text-secondary" Typo="Typo.body2">@context.User.Identity?.Name</MudText>
+                <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small"
+                           OnClick="@(() => Navigation.NavigateTo("Auth/Logout", true))">
+                    Sign out
+                </MudButton>
             </Authorized>
         </AuthorizeView>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="2" ClipMode="DrawerClipMode.Always">
-        <AuthorizeView>
-            <Authorized>
-                <MudNavMenu>
-                    <MudNavLink Href="/" Icon="@Icons.Material.Filled.Home" Match="NavLinkMatch.All">
-                        Dashboard
-                    </MudNavLink>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always">
+        <MudNavMenu>
+            <MudNavLink Href="" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
+                Dashboard
+            </MudNavLink>
 
-                    <MudNavGroup Title="Content Management" Icon="@Icons.Material.Filled.Folder" Expanded="true">
-                        <MudNavLink Href="/communities" Icon="@Icons.Material.Filled.People">
-                            Communities
-                        </MudNavLink>
-                        <MudNavLink Href="/hubs" Icon="@Icons.Material.Filled.GridView">
-                            Hubs
-                        </MudNavLink>
-                        <MudNavLink Href="/spaces" Icon="@Icons.Material.Filled.Forum">
-                            Spaces
-                        </MudNavLink>
-                    </MudNavGroup>
+            <MudDivider Class="my-1" />
 
-                    <MudNavGroup Title="User Management" Icon="@Icons.Material.Filled.Groups">
-                        <MudNavLink Href="/users" Icon="@Icons.Material.Filled.Person">
-                            Users
-                        </MudNavLink>
-                    </MudNavGroup>
+            <MudNavLink Href="users" Icon="@Icons.Material.Filled.People">
+                Users
+            </MudNavLink>
+            <MudNavLink Href="communities" Icon="@Icons.Material.Filled.AccountTree">
+                Communities
+            </MudNavLink>
 
-                    <MudNavGroup Title="Moderation" Icon="@Icons.Material.Filled.Shield">
-                        <MudNavLink Href="/moderation/reports" Icon="@Icons.Material.Filled.Warning">
-                            Reports
-                        </MudNavLink>
-                    </MudNavGroup>
+            <MudDivider Class="my-1" />
 
-                    <MudNavGroup Title="Platform" Icon="@Icons.Material.Filled.Settings">
-                        <MudNavLink Href="/platform/settings" Icon="@Icons.Material.Filled.Tune">
-                            Platform Settings
-                        </MudNavLink>
-                    </MudNavGroup>
-                </MudNavMenu>
-            </Authorized>
-        </AuthorizeView>
+            <MudNavGroup Title="Moderation" Icon="@Icons.Material.Filled.Shield" Expanded="false">
+                <MudNavLink Href="moderation/reports" Icon="@Icons.Material.Filled.Flag">
+                    Reports
+                </MudNavLink>
+                <MudNavLink Href="moderation/bans" Icon="@Icons.Material.Filled.Block">
+                    Bans
+                </MudNavLink>
+                <MudNavLink Href="moderation/log" Icon="@Icons.Material.Filled.History">
+                    Log
+                </MudNavLink>
+            </MudNavGroup>
+
+            <MudDivider Class="my-1" />
+
+            <MudNavGroup Title="Platform" Icon="@Icons.Material.Filled.Tune" Expanded="false">
+                <MudNavLink Href="settings" Icon="@Icons.Material.Filled.Settings">
+                    General Settings
+                </MudNavLink>
+                <MudNavLink Href="security" Icon="@Icons.Material.Filled.Security">
+                    Security
+                </MudNavLink>
+                <MudNavLink Href="email" Icon="@Icons.Material.Filled.Email">
+                    Email
+                </MudNavLink>
+                <MudNavLink Href="oauth" Icon="@Icons.Material.Filled.Login">
+                    OAuth Providers
+                </MudNavLink>
+                <MudNavLink Href="permissions" Icon="@Icons.Material.Filled.Lock">
+                    Permissions
+                </MudNavLink>
+                <MudNavLink Href="webhooks" Icon="@Icons.Material.Filled.Webhook">
+                    Webhooks
+                </MudNavLink>
+                <MudNavLink Href="broadcast" Icon="@Icons.Material.Filled.Campaign">
+                    Broadcast
+                </MudNavLink>
+            </MudNavGroup>
+        </MudNavMenu>
     </MudDrawer>
 
-    <MudMainContent Class="pa-4 mt-8">
+    <MudMainContent Class="pa-6 mt-8">
         @Body
     </MudMainContent>
 </MudLayout>
 
 @code {
     private bool _drawerOpen = true;
-
-    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
-
-    private void Logout()
-    {
-        Navigation.NavigateTo("Auth/Logout", true);
-    }
 }

@@ -1,0 +1,172 @@
+@page "/moderation/bans"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+@inject AdminTimezoneService Tz
+
+<PageTitle>Bans — Snakk Admin</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-6" Justify="Justify.SpaceBetween">
+    <div>
+        <MudText Typo="Typo.h4" GutterBottom="true">Platform Bans</MudText>
+        <MudText Class="mud-text-secondary">Platform-wide user bans.</MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Error" StartIcon="@Icons.Material.Filled.Block"
+               OnClick="@(() => _showCreate = true)">Ban User</MudButton>
+</MudStack>
+
+@if (_showCreate)
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h6" GutterBottom="true">Create Platform Ban</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_banUsername" Label="Username" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudSelect @bind-Value="_banType" Label="Type" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem Value="@("WriteOnly")">Write-Only Ban</MudSelectItem>
+                    <MudSelectItem Value="@("ReadWrite")">Full Ban</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudSelect @bind-Value="_banDuration" Label="Duration" Variant="Variant.Outlined" Margin="Margin.Dense">
+                    <MudSelectItem Value="@("1h")">1 Hour</MudSelectItem>
+                    <MudSelectItem Value="@("24h")">24 Hours</MudSelectItem>
+                    <MudSelectItem Value="@("7d")">7 Days</MudSelectItem>
+                    <MudSelectItem Value="@("30d")">30 Days</MudSelectItem>
+                    <MudSelectItem Value="@("permanent")">Permanent</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_banReason" Label="Reason" Variant="Variant.Outlined" Margin="Margin.Dense" FullWidth="true" />
+            </MudItem>
+        </MudGrid>
+        <MudStack Row="true" Class="mt-3" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="@CreateBan"
+                       Disabled="@string.IsNullOrWhiteSpace(_banUsername)">Create Ban</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="@(() => _showCreate = false)">Cancel</MudButton>
+        </MudStack>
+    </MudPaper>
+}
+
+@if (_loading)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudPaper>
+        <MudTable Items="@_bans" Hover="true" Dense="true">
+            <HeaderContent>
+                <MudTh>User</MudTh>
+                <MudTh>Type</MudTh>
+                <MudTh>Reason</MudTh>
+                <MudTh>Issued</MudTh>
+                <MudTh>Expires</MudTh>
+                <MudTh></MudTh>
+            </HeaderContent>
+            <NoRecordsContent>
+                <MudText Class="pa-4 mud-text-secondary">No platform bans.</MudText>
+            </NoRecordsContent>
+            <RowTemplate Context="b">
+                <MudTd>@b.DisplayName</MudTd>
+                <MudTd>@b.BanType</MudTd>
+                <MudTd>@b.Reason</MudTd>
+                <MudTd>@b.IssuedAt</MudTd>
+                <MudTd>@(b.ExpiresAt ?? "Permanent")</MudTd>
+                <MudTd>
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                               OnClick="@(() => RevokeBan(b))">Revoke</MudButton>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    private bool _loading = true;
+    private bool _showCreate;
+    private string _banUsername = "";
+    private string _banType = "WriteOnly";
+    private string _banDuration = "24h";
+    private string _banReason = "";
+    private List<BanRow> _bans = [];
+
+    private class BanRow
+    {
+        public string BanPublicId { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string BanType { get; set; } = "";
+        public string Reason { get; set; } = "";
+        public string IssuedAt { get; set; } = "";
+        public string? ExpiresAt { get; set; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var resp = await ManageClient.GetBansAsync(new Snakk.Protos.Manage.GetBansRequest
+            {
+                ScopeType = "Platform",
+                ScopePublicId = ""
+            });
+            _bans = resp.Bans.Select(b => new BanRow
+            {
+                BanPublicId = b.PublicId,
+                DisplayName = b.UserDisplayName,
+                BanType = b.BanType,
+                Reason = b.Reason,
+                IssuedAt = Tz.FormatDateTime(b.BannedAtTicks),
+                ExpiresAt = b.HasExpiresAtTicks ? Tz.FormatDateTime(b.ExpiresAtTicks) : null
+            }).ToList();
+        }
+        catch { }
+        finally { _loading = false; }
+    }
+
+    private async Task CreateBan()
+    {
+        try
+        {
+            var req = new Snakk.Protos.Manage.CreateBanRequest
+            {
+                ScopeType = "Platform",
+                ScopePublicId = "",
+                TargetUsername = _banUsername,
+                BanType = _banType,
+                Reason = _banReason
+            };
+            var exp = DurationToExpiresAt(_banDuration);
+            if (exp.HasValue) req.ExpiresAtTicks = exp.Value;
+            await ManageClient.CreateBanAsync(req);
+            Snackbar.Add($"{_banUsername} banned from platform.", Severity.Success);
+            _showCreate = false;
+            _banUsername = "";
+            _banReason = "";
+            await OnInitializedAsync();
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private async Task RevokeBan(BanRow b)
+    {
+        try
+        {
+            await ManageClient.RevokeBanAsync(new Snakk.Protos.Manage.RevokeBanRequest { BanPublicId = b.BanPublicId });
+            _bans.Remove(b);
+            Snackbar.Add("Ban revoked.", Severity.Success);
+        }
+        catch (Exception ex) { Snackbar.Add(ex.Message, Severity.Error); }
+    }
+
+    private static long? DurationToExpiresAt(string d) => d switch {
+        "1h" => DateTime.UtcNow.AddHours(1).Ticks,
+        "24h" => DateTime.UtcNow.AddHours(24).Ticks,
+        "7d" => DateTime.UtcNow.AddDays(7).Ticks,
+        "30d" => DateTime.UtcNow.AddDays(30).Ticks,
+        _ => null
+    };
+}

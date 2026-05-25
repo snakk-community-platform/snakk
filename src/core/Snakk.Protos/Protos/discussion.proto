@@ -37,6 +37,9 @@ service DiscussionService {
   // Link
   rpc GetDiscussionLink (GetDiscussionLinkRequest) returns (DiscussionLinkResponse);
 
+  // Edit
+  rpc EditDiscussion (EditDiscussionRequest) returns (EditDiscussionResponse);
+
   // Batch
   rpc GetDiscussionsByIds (GetDiscussionsByIdsRequest) returns (DiscussionsByIdsResponse);
   rpc GetRecentDiscussionsByIds (GetRecentDiscussionsByIdsRequest) returns (PagedRecentDiscussionList);
@@ -162,6 +165,14 @@ message GetDiscussionPreviewRequest {
 
 message GetDiscussionStatsRequest {
   string public_id = 1;
+}
+
+message EditDiscussionRequest {
+  string discussion_id = 1;
+  string new_title = 2;
+}
+
+message EditDiscussionResponse {
 }
 
 // --- Responses ---

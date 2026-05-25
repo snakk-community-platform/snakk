@@ -1,0 +1,42 @@
+@page "/users"
+@attribute [Authorize(Roles = "GlobalAdmin")]
+@layout Layout.MainLayout
+
+<PageTitle>Users — Snakk Admin</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">User Management</MudText>
+<MudText Class="mud-text-secondary mb-6">Search, view, and manage platform users.</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudGrid AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="8">
+            <MudTextField @bind-Value="_search" Label="Search users" Variant="Variant.Outlined"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Margin="Margin.Dense" />
+        </MudItem>
+        <MudItem xs="12" sm="4" Class="d-flex justify-end">
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper>
+    <MudTable Items="@_empty" Hover="true" Striped="false" Dense="true">
+        <HeaderContent>
+            <MudTh>User</MudTh>
+            <MudTh>Email</MudTh>
+            <MudTh>Role</MudTh>
+            <MudTh>Joined</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4 mud-text-secondary">No users found.</MudText>
+        </NoRecordsContent>
+        <RowTemplate Context="user">
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private string _search = "";
+    private static readonly List<string> _empty = [];
+}
