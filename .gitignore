@@ -102,3 +102,7 @@ nul
 0
 /CLAUDE.md
 /docs/plans
+
+# Local MCP server config — contains secrets (Grafana service-account token, etc.)
+/.mcp.json
+

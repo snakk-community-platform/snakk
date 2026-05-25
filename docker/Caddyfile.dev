@@ -1,0 +1,45 @@
+# Caddyfile for the containerised dev/local Caddy. Plain HTTP, no Let's Encrypt
+# — that lives in the host-Caddy production setup (./Caddyfile). This file is
+# mounted into the docker-compose `caddy` service under the `caddy` profile.
+#
+# Reachable from the host as:
+#   http://localhost/             → snakk gateway (snakk:17000)
+#   http://localhost/grafana/     → grafana (grafana:3000) — no basic-auth in dev
+
+{
+    auto_https off
+    # Admin API listens internally so Prometheus can scrape /metrics; not
+    # exposed to the host port-binding. DEV-ONLY: production runs host-Caddy
+    # where `admin off` is the default, and Caddy /metrics is reached via
+    # localhost-only systemd-managed binding (or a remote_metrics block on a
+    # different listener). See docs/OBSERVABILITY-OPS-DOS-AND-DONTS.md.
+    admin :2019
+    servers {
+        metrics
+    }
+}
+
+:80 {
+    handle /grafana/* {
+        reverse_proxy grafana:3000
+    }
+
+    reverse_proxy snakk:17000
+
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options SAMEORIGIN
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+
+    # JSON access log → file in a shared volume; the otel-collector tails the
+    # same file and ships to Loki with service_name=caddy.
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100MiB
+            roll_keep 5
+        }
+        format json
+    }
+}

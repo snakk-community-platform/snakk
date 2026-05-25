@@ -17,7 +17,17 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
+      # Postgres' logging_collector writes slow-query / lock-wait files here;
+      # the otel-collector container mounts the same volume read-only and ships
+      # the rotated files to Loki. See docker/monitoring/otel-collector-config.yaml.
+      - postgres-logs:/var/log/postgresql
+    # Wrap docker-entrypoint.sh with a one-shot chown so the named volume at
+    # /var/log/postgresql (root:root on first mount) becomes writable by the
+    # postgres user before logging_collector tries to open a file there.
+    entrypoint:
+      - sh
+      - -c
+      - "mkdir -p /var/log/postgresql && chown -R postgres:postgres /var/log/postgresql && exec docker-entrypoint.sh postgres -c config_file=/etc/postgresql/postgresql.conf"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U snakk -d snakk"]
       interval: 10s
@@ -56,6 +66,15 @@ services:
       ConnectionStrings__DbConnection: "Host=postgres;Port=5432;Database=snakk;Username=snakk;Password=${POSTGRES_PASSWORD}"
       Gateway__DisableHealthChecks: "true"
       Valkey__ConnectionString: valkey:6379
+      # OpenTelemetry: emit OTLP to the Collector when the monitoring profile is up.
+      # Each .NET service sets its own service.name via builder.Environment.ApplicationName
+      # in Snakk.ServiceDefaults.ConfigureOpenTelemetry().
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=dev"
+      # Pyroscope server address — per-service application name is set by
+      # supervisord.conf so each .NET process gets its own flame-graph profile.
+      PYROSCOPE_SERVER_ADDRESS: "http://pyroscope:4040"
 
   valkey:
     image: valkey/valkey:8-alpine
@@ -83,7 +102,34 @@ services:
     expose:
       - "9121"
 
-  # node-exporter monitors the Linux host (or Docker Desktop Linux VM on Windows/Mac)
+  # Valkey slow-log shipper sidecar (Phase 2.5). Polls SLOWLOG GET every 30s,
+  # serialises entries as JSON, writes to a shared volume the otel-collector
+  # tails via filelog. See docker/monitoring/valkey-slowlog-shipper.sh.
+  valkey-slowlog:
+    image: valkey/valkey:8-alpine
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    depends_on:
+      - valkey
+    entrypoint: ["sh", "/scripts/valkey-slowlog-shipper.sh"]
+    volumes:
+      - ./monitoring/valkey-slowlog-shipper.sh:/scripts/valkey-slowlog-shipper.sh:ro
+      - valkey-slowlog:/var/log/valkey-slowlog
+    deploy:
+      resources:
+        limits:
+          memory: 32m
+        reservations:
+          memory: 16m
+
+  # node-exporter — host CPU/mem/disk/load/network. Runs under the monitoring
+  # profile. The historical `rslave` mount propagation requirement (needed for
+  # live discovery of new bind mounts on native Linux) is dropped here because
+  # Docker Desktop on WSL2 does not implement shared mount propagation. Without
+  # rslave the exporter still emits a full point-in-time snapshot — adequate
+  # for dev. Native-Linux operators wanting live mount tracking should override
+  # the `/:/host/root:ro` mount to `/:/host/root:ro,rslave` via a compose
+  # overlay; see docs/OBSERVABILITY-OPS-DOS-AND-DONTS.md.
   node-exporter:
     image: prom/node-exporter:v1.9.1
     profiles: ["monitoring"]
@@ -97,7 +143,10 @@ services:
       - --path.procfs=/host/proc
       - --path.sysfs=/host/sys
       - --path.rootfs=/host/root
-      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+      # Filter the WSL2 docker-desktop bind-mount paths (which surface the same
+      # underlying ext4 device under dozens of identical mountpoints) plus the
+      # usual virtual filesystems. Anything else gets reported.
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc|mnt/wsl|mnt/wslg|var/lib/docker)($$|/)
     deploy:
       resources:
         limits:
@@ -115,6 +164,12 @@ services:
       - postgres
     environment:
       DATA_SOURCE_NAME: "postgresql://snakk:${POSTGRES_PASSWORD}@postgres:5432/snakk?sslmode=disable"
+      # Custom queries layered on top of the built-in collectors: pg_stat_statements
+      # top-50 by total_exec_time, plus a live view of blocked-by-lock queries.
+      # See docker/monitoring/postgres-queries.yaml for the metric definitions.
+      PG_EXPORTER_EXTEND_QUERY_PATH: "/etc/postgres-exporter/queries.yaml"
+    volumes:
+      - ./monitoring/postgres-queries.yaml:/etc/postgres-exporter/queries.yaml:ro
     deploy:
       resources:
         limits:
@@ -134,8 +189,11 @@ services:
       - prometheus-data:/prometheus
     command:
       - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.retention.time=7d
-      - --storage.tsdb.retention.size=500MB
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=1GB
+      - --web.enable-remote-write-receiver
+      - --enable-feature=otlp-write-receiver
+      - --enable-feature=exemplar-storage
     deploy:
       resources:
         limits:
@@ -145,12 +203,199 @@ services:
     expose:
       - "9090"
 
+  # OpenTelemetry Collector — receives OTLP from the snakk container, scrubs PII
+  # headers, batches, and fans out to Tempo/Loki/Prometheus. See
+  # ./monitoring/otel-collector-config.yaml for the full pipeline definition.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.115.1
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    # DEV-ONLY: run as root so the filelog receivers can read log files owned
+    # by other containers' service users (Postgres files 0644 via log_file_mode,
+    # Caddy 0600 by default). The named volumes are private to this docker-
+    # compose project, so the blast radius is limited to the project itself.
+    #
+    # *** PROD HARDENING REQUIRED ***
+    # Before this stack ships outside a developer laptop, do ONE of:
+    #   (a) Drop the `user: "0:0"` line and align UIDs across services so each
+    #       log file is group-readable by a shared `observability` GID; OR
+    #   (b) Use an init container that chowns the log volumes to the
+    #       collector's nonroot UID before the collector starts; OR
+    #   (c) Switch each log source to write 0644 (already done for Postgres)
+    #       and run the collector as its image-default nonroot user.
+    # See docs/OBSERVABILITY-OPS-DOS-AND-DONTS.md (pending) for the matrix.
+    user: "0:0"
+    depends_on:
+      - tempo
+      - loki
+      - prometheus
+    volumes:
+      - ./monitoring/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      # Postgres slow-query log file shipping (Phase 2.5). Read-only.
+      - postgres-logs:/var/log/postgresql:ro
+      # Valkey slow-log shipper sidecar output (Phase 2.5). Read-only.
+      - valkey-slowlog:/var/log/valkey-slowlog:ro
+      # Caddy JSON access log (Phase 2.5). Read-only. Only populated when
+      # the `caddy` profile is also enabled.
+      - caddy-logs:/var/log/caddy:ro
+      # Docker socket — read-only for the docker_stats receiver to enumerate
+      # containers and pull CPU/RAM/I/O/restart-count metrics (Phase 2.5).
+      #
+      # *** PROD HARDENING REQUIRED ***
+      # Read-only on the socket does NOT mean read-only on the daemon — a
+      # process inside this container can still issue any read API call
+      # against Docker (list containers, exec into them via API, inspect
+      # secrets/env). For prod, front the socket with a filtering proxy such
+      # as tecnativa/docker-socket-proxy with CONTAINERS=1, IMAGES=0, EXEC=0,
+      # POST=0, etc., and point the receiver at that proxy on a separate
+      # network. See docs/OBSERVABILITY-OPS-DOS-AND-DONTS.md.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 64m
+    expose:
+      - "4317"    # OTLP/gRPC (services push here)
+      - "4318"    # OTLP/HTTP
+      - "8888"    # Collector self-metrics (scraped by Prometheus)
+      - "13133"   # health-check
+
+  tempo:
+    image: grafana/tempo:2.7.0
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    user: "0:0"   # tempo needs to chown its data dir on first start
+    volumes:
+      - ./monitoring/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    command: ["-config.file=/etc/tempo.yaml"]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 64m
+    expose:
+      - "3200"    # HTTP query API (Grafana datasource)
+      - "4317"    # OTLP receiver (from Collector)
+      - "9095"    # gRPC
+
+  # Pyroscope continuous profiling server (locked decision #4).
+  # Receives flame-graph samples from the .NET Pyroscope agent loaded in each
+  # service. Grafana datasource provisioned in
+  # ./monitoring/grafana/provisioning/datasources/pyroscope.yml.
+  pyroscope:
+    image: grafana/pyroscope:2.0.2
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    volumes:
+      - pyroscope-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 64m
+    expose:
+      - "4040"   # HTTP API + ingest
+
+  loki:
+    image: grafana/loki:3.4.1
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/loki.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 64m
+    expose:
+      - "3100"    # HTTP API (Grafana datasource + OTLP push from Collector)
+
+  # Containerised Caddy for local dev (locked decision #10). Provides clean URLs
+  # (http://localhost/, http://localhost/grafana/) without the host-side Caddy
+  # install. Production deploys use the host Caddyfile in ./Caddyfile instead.
+  # Load-test runner (Phase 2.5b). One-shot service via:
+  #   docker compose --profile loadtest run --rm k6 run -o experimental-opentelemetry /scripts/scenarios/smoke.js
+  #
+  # k6 emits per-iteration `traceparent` headers so each request shows up as a
+  # root trace in Tempo, inline with the app's own spans. Its own metrics flow
+  # through the OTel collector via the experimental OTLP output, so test runs
+  # appear in the same Prometheus instance as app metrics (filter on
+  # `service_name="k6"`).
+  k6:
+    image: grafana/k6:0.55.0
+    profiles: ["loadtest"]
+    depends_on:
+      - snakk
+    environment:
+      BASE_URL: "${K6_BASE_URL:-http://snakk:17000}"
+      # Default output to OTLP so test-run metrics always land in the
+      # observability stack alongside app metrics, without requiring -o on
+      # every invocation. Pass `-o ''` (or override K6_OUT) to disable.
+      K6_OUT: "experimental-opentelemetry"
+      K6_OTEL_GRPC_EXPORTER_INSECURE: "true"
+      K6_OTEL_GRPC_EXPORTER_ENDPOINT: "otel-collector:4317"
+      K6_OTEL_SERVICE_NAME: "k6"
+      # Prefix every k6 metric with `k6_` so dashboards can disambiguate from
+      # the app's own http_* metrics and so a single Prometheus label-name
+      # filter scopes a query to test data.
+      K6_OTEL_METRIC_PREFIX: "k6_"
+      # Tag every request with W3C traceparent so the gateway joins them onto
+      # the same trace as the upstream gRPC calls.
+      K6_TRACING_INSTRUMENT_HTTP: "true"
+    volumes:
+      - ../tests/k6:/scripts:ro
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
+
+  # Opt-in via `docker compose --profile caddy up`.
+  caddy:
+    image: caddy:2.10-alpine
+    profiles: ["caddy"]
+    restart: unless-stopped
+    depends_on:
+      - snakk
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile.dev:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+      # Caddy writes its JSON access log here; the otel-collector reads the
+      # same volume and ships to Loki.
+      - caddy-logs:/var/log/caddy
+    # Admin API (port 2019) is internal-only; Prometheus scrapes /metrics
+    # from inside the Docker network. Not exposed to the host.
+    expose:
+      - "2019"
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+        reservations:
+          memory: 16m
+
   grafana:
     image: grafana/grafana:11.6.0
     profiles: ["monitoring"]
     restart: unless-stopped
     depends_on:
       - prometheus
+      - tempo
+      - loki
+      - pyroscope
     ports:
       - "${GRAFANA_PORT:-3000}:3000"
     volumes:
@@ -178,4 +423,20 @@ volumes:
   prometheus-data:
     driver: local
   grafana-data:
+    driver: local
+  tempo-data:
+    driver: local
+  loki-data:
+    driver: local
+  pyroscope-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local
+  postgres-logs:
+    driver: local
+  valkey-slowlog:
+    driver: local
+  caddy-logs:
     driver: local
