@@ -11,10 +11,10 @@ MARKER_FILE="$CONF_DIR/setup-complete"
 # Ensure storage and runtime directories exist
 mkdir -p "$STORAGE_PATH/avatars/generated" "$STORAGE_PATH/avatars/uploaded" "$CONF_DIR" /app/run
 
-# If setup was previously completed, run DbSeeder for any pending migrations
+# If setup was previously completed, apply any pending migrations
 if [ -f "$CONFIG_FILE" ]; then
-    echo "Setup already complete. Checking for pending migrations..."
-    dotnet /app/dbseeder/Snakk.DbSeeder.dll --skip-seed || {
+    echo "Setup already complete. Applying pending migrations..."
+    dotnet /app/dbseeder/Snakk.DbSeeder.dll --migrations-only || {
         echo "WARNING: DbSeeder failed. Continuing anyway."
     }
 fi

@@ -90,7 +90,10 @@ public class DatabaseSeeder(
         await EnsureSystemSettingsAsync();
         await EnsureDefaultAdminExistsAsync();
         await EnsureFirstCommunityAsync();
-        await GenerateAllAvatarsAsync();
+        if (!string.Equals(configuration["AvatarSettings:GenerateOnStartup"], "false", StringComparison.OrdinalIgnoreCase))
+            await GenerateAllAvatarsAsync();
+        else
+            Console.WriteLine("Avatar generation on startup is disabled (AvatarSettings:GenerateOnStartup=false).");
     }
 
     private async Task EnsureSystemSettingsAsync()

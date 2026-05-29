@@ -448,6 +448,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             .Skip(offset)
             .Take(pageSize + 1)
             .Select(s => new {
+                s.Id,
                 s.PublicId,
                 HubPublicId = s.HubPublicId,
                 s.Name,
@@ -457,47 +458,40 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 s.DiscussionCount,
                 ReplyCount = s.PostCount - s.DiscussionCount,
                 s.AvatarFileName,
-                LatestDiscussion = s.Discussions
-                    .Where(d => !d.IsDeleted)
-                    .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
-                    .Select(d => new {
-                        d.PublicId,
-                        d.Title,
-                        d.Slug,
-                        LastActivityAt = d.LastActivityAt ?? d.CreatedAt,
-                        AuthorPublicId = d.CreatedByUserPublicId,
-                        AuthorDisplayName = d.AuthorDisplayName,
-                        AuthorAvatarFileName = d.AuthorAvatarFileName,
-                        d.PostCount })
-                    .FirstOrDefault()
             })
             .ToListAsync(ct);
 
         var hasMore = spaces.Count > pageSize;
+        var page = spaces.Take(pageSize).ToList();
 
-        var items = spaces
-            .Take(pageSize)
-            .Select(s => new SpaceListItemDto(
-                s.PublicId,
-                s.HubPublicId,
-                s.Name,
-                s.Slug,
-                s.Description,
-                s.CreatedAt,
-                s.DiscussionCount,
-                s.ReplyCount,
-                s.LatestDiscussion is not null
-                    ? new LatestDiscussionDto(
-                        s.LatestDiscussion.PublicId,
-                        s.LatestDiscussion.Title,
-                        s.LatestDiscussion.Slug,
-                        s.LatestDiscussion.LastActivityAt,
-                        s.LatestDiscussion.AuthorPublicId,
-                        s.LatestDiscussion.AuthorDisplayName ?? "",
-                        s.LatestDiscussion.AuthorAvatarFileName,
-                        s.LatestDiscussion.PostCount)
-                    : null,
-                s.AvatarFileName))
+        var latestBySpace = await GetLatestDiscussionPerSpaceAsync(
+            page.Select(s => s.Id).ToArray(), ct);
+
+        var items = page
+            .Select(s => {
+                latestBySpace.TryGetValue(s.Id, out var ld);
+                return new SpaceListItemDto(
+                    s.PublicId,
+                    s.HubPublicId,
+                    s.Name,
+                    s.Slug,
+                    s.Description,
+                    s.CreatedAt,
+                    s.DiscussionCount,
+                    s.ReplyCount,
+                    ld is not null
+                        ? new LatestDiscussionDto(
+                            ld.PublicId,
+                            ld.Title,
+                            ld.Slug,
+                            ld.LastActivityAt,
+                            ld.AuthorPublicId,
+                            ld.AuthorDisplayName ?? "",
+                            ld.AuthorAvatarFileName,
+                            ld.PostCount)
+                        : null,
+                    s.AvatarFileName);
+            })
             .ToList();
 
         return new PagedResult<SpaceListItemDto>
@@ -618,6 +612,43 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             (!d.Space.IsRestricted || spaceIds.Contains(d.SpaceId))
             && (!d.Space.Hub.IsRestricted || hubIds.Contains(d.Space.HubId))
             && (!d.Space.Hub.Community.IsRestricted || communityIds.Contains(d.Space.Hub.CommunityId)));
+    }
+
+    private async Task<Dictionary<int, SpaceLatestDiscussion>> GetLatestDiscussionPerSpaceAsync(
+        int[] spaceIds, CancellationToken ct)
+    {
+        if (spaceIds.Length == 0) return [];
+
+        return await _context.Database
+            .SqlQuery<SpaceLatestDiscussion>($"""
+                SELECT DISTINCT ON (d."SpaceId")
+                    d."SpaceId",
+                    d."PublicId",
+                    d."Title",
+                    d."Slug",
+                    COALESCE(d."LastActivityAt", d."CreatedAt") AS "LastActivityAt",
+                    d."CreatedByUserPublicId" AS "AuthorPublicId",
+                    d."AuthorDisplayName",
+                    d."AuthorAvatarFileName",
+                    d."PostCount"
+                FROM "Discussion" d
+                WHERE d."SpaceId" = ANY({spaceIds}) AND NOT d."IsDeleted"
+                ORDER BY d."SpaceId", COALESCE(d."LastActivityAt", d."CreatedAt") DESC
+                """)
+            .ToDictionaryAsync(x => x.SpaceId, ct);
+    }
+
+    private sealed class SpaceLatestDiscussion
+    {
+        public int SpaceId { get; set; }
+        public string PublicId { get; set; } = "";
+        public string Title { get; set; } = "";
+        public string Slug { get; set; } = "";
+        public DateTime LastActivityAt { get; set; }
+        public string? AuthorPublicId { get; set; }
+        public string? AuthorDisplayName { get; set; }
+        public string? AuthorAvatarFileName { get; set; }
+        public int PostCount { get; set; }
     }
 
     private sealed record SpaceDisplay(

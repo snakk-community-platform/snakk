@@ -150,24 +150,26 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
         int limit = 5,
         CancellationToken ct = default)
     {
-        var postsQuery = _context.Posts.AsQueryable();
+        var discussionsQuery = _context.Discussions
+            .Where(d => !d.IsDeleted)
+            .AsQueryable();
 
         if (!string.IsNullOrEmpty(communityId))
         {
             var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
-            postsQuery = postsQuery.Where(p => p.CommunityId == communityDbId);
+            discussionsQuery = discussionsQuery.Where(d => d.CommunityId == communityDbId);
         }
 
         if (!string.IsNullOrEmpty(hubId))
         {
             var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync(ct);
-            postsQuery = postsQuery.Where(p => p.HubId == hubDbId);
+            discussionsQuery = discussionsQuery.Where(d => d.HubId == hubDbId);
         }
 
-        var latestSpaces = await postsQuery
-            .GroupBy(p => p.SpaceId)
-            .Select(g => new { SpaceId = g.Key, LastPostAt = g.Max(p => p.CreatedAt) })
-            .OrderByDescending(x => x.LastPostAt)
+        var latestSpaces = await discussionsQuery
+            .GroupBy(d => d.SpaceId)
+            .Select(g => new { SpaceId = g.Key, LastActivityAt = g.Max(d => d.LastActivityAt ?? d.CreatedAt) })
+            .OrderByDescending(x => x.LastActivityAt)
             .Take(limit)
             .Join(
                 _context.Spaces.Where(s => !s.IsDeleted),
@@ -175,7 +177,7 @@ public class StatsRepository(SnakkDbContext context) : IStatsRepository
                 s => s.Id,
                 (x, s) => new LatestActiveSpaceDto(
                     s.PublicId, s.Name, s.Slug,
-                    x.LastPostAt,
+                    x.LastActivityAt,
                     s.HubPublicId, s.HubSlug, s.HubName,
                     s.CommunitySlug))
             .ToListAsync(ct);

@@ -82,8 +82,11 @@ builder.Services.AddScoped<DatabaseSeeder>();
 var host = builder.Build();
 
 // Parse CLI flags
+var migrationsOnly = args.Contains("--migrations-only");
 var skipSeed = args.Contains("--skip-seed");
-if (skipSeed)
+if (migrationsOnly)
+    Console.WriteLine("Flag: --migrations-only (migrations only, no seeding or admin setup)\n");
+else if (skipSeed)
     Console.WriteLine("Flag: --skip-seed (migrations + admin only, no test data)\n");
 
 // Run seeder
@@ -103,17 +106,24 @@ using (var scope = host.Services.CreateScope())
         var dpDb = services.GetRequiredService<DataProtectionDbContext>();
         await dpDb.EnsureSchemaAsync();
 
-        var seeder = services.GetRequiredService<DatabaseSeeder>();
-
-        if (skipSeed)
+        if (migrationsOnly)
         {
-            Console.WriteLine("Creating admin user (skipping test data)...\n");
-            await seeder.SetupOnlyAsync();
+            Console.WriteLine("Migrations-only mode — skipping seeding and admin setup.");
         }
         else
         {
-            Console.WriteLine("Starting database seeding...\n");
-            await seeder.SeedAsync();
+            var seeder = services.GetRequiredService<DatabaseSeeder>();
+
+            if (skipSeed)
+            {
+                Console.WriteLine("Creating admin user (skipping test data)...\n");
+                await seeder.SetupOnlyAsync();
+            }
+            else
+            {
+                Console.WriteLine("Starting database seeding...\n");
+                await seeder.SeedAsync();
+            }
         }
 
         Console.WriteLine("\n====================================");
