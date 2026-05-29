@@ -22,7 +22,7 @@ public static class AuthCookieHelper
         ctx.Response.Cookies.Append(SudoCookieName, sudoToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
             SameSite = SameSiteMode.Strict,
             Path = "/bff",
             MaxAge = TimeSpan.FromSeconds(expiresInSeconds),
@@ -46,7 +46,7 @@ public static class AuthCookieHelper
         ctx.Response.Cookies.Append(AccessCookieName, accessToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
             SameSite = SameSiteMode.Strict,
             Path = "/",
             Expires = expiry
@@ -57,7 +57,7 @@ public static class AuthCookieHelper
         ctx.Response.Cookies.Append(SessionCookieName, accessToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
             SameSite = SameSiteMode.Lax,
             Path = "/",
             Expires = expiry
@@ -67,7 +67,7 @@ public static class AuthCookieHelper
         ctx.Response.Cookies.Append(RefreshCookieName, refreshToken, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
             SameSite = SameSiteMode.Strict,
             Path = "/",
             Expires = expiry
@@ -103,7 +103,7 @@ public static class AuthCookieHelper
             ctx.Response.Cookies.Append(RememberMeCookieName, "1", new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
+                Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
                 SameSite = SameSiteMode.Lax,
                 Path = "/",
                 Expires = DateTimeOffset.UtcNow.AddDays(30)
@@ -126,7 +126,7 @@ public static class AuthCookieHelper
         ctx.Response.Cookies.Append(TimezoneCookieName, timezone, new CookieOptions
         {
             HttpOnly = false,
-            Secure = true,
+            Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
             SameSite = SameSiteMode.Lax,
             Path = "/",
             Expires = DateTimeOffset.UtcNow.AddDays(365)
@@ -153,7 +153,7 @@ public static class AuthCookieHelper
         ctx.Response.Cookies.Append(ThemeCookieName, theme, new CookieOptions
         {
             HttpOnly = false,
-            Secure = true,
+            Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
             SameSite = SameSiteMode.Lax,
             Path = "/",
             Expires = DateTimeOffset.UtcNow.AddDays(365)

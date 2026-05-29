@@ -37,7 +37,7 @@ public class InstallModel(SetupService setupService) : SetupPageBase
         Response.Cookies.Append(".Snakk.Auth", InstallProgress.Jwt, new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
             SameSite = SameSiteMode.Strict,
             MaxAge = TimeSpan.FromHours(1)
         });

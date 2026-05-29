@@ -21,6 +21,12 @@ DotNetRuntimeStatsBuilder.Default().StartCollecting();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Auth/session cookies set Secure=true; over plain HTTP (dev/test) clients drop them,
+// breaking every authenticated flow. Default secure, but disable in Development so
+// local and load testing can authenticate. Override with Cookies:RequireSecure.
+Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure =
+    builder.Configuration.GetValue<bool?>("Cookies:RequireSecure") ?? !builder.Environment.IsDevelopment();
+
 // Load shared config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(
