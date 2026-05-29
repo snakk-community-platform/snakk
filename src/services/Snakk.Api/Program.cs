@@ -147,7 +147,7 @@ app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
-if (!app.Configuration.GetValue<bool>("DisableRateLimiting")) app.UseRateLimiter();
+if (app.Configuration.GetValue<bool>("EnableRateLimiting")) app.UseRateLimiter();
 
 // Health check endpoint (checks DB connectivity)
 app.MapHealthChecks("/health");

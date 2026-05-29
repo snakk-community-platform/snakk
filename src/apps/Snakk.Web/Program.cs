@@ -323,7 +323,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-var disableRateLimiting = builder.Configuration.GetValue<bool>("DisableRateLimiting");
+var enableRateLimiting = builder.Configuration.GetValue<bool>("EnableRateLimiting");
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -665,7 +665,7 @@ app.UseRouting();
 app.UseMiddleware<TokenRefreshMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
-if (!disableRateLimiting) app.UseRateLimiter();
+if (enableRateLimiting) app.UseRateLimiter();
 
 // SameSite=Strict mutation guard: BFF state-changing requests (POST/PUT/DELETE) require
 // the Strict auth cookie, not just the Lax session cookie. This prevents CSRF attacks
