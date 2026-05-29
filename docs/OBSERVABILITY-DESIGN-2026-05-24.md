@@ -268,8 +268,8 @@ redaction/sampling, or skip and push raw).
 
 ### 5.4 PII & GDPR
 
-This codebase already has GDPR-stub issues (per `SECURITY-AUDIT-2026-05-14.md`).
-We don't want to make them worse:
+The platform processes personal data (emails, IP addresses, user content), so the
+observability pipeline must avoid widening PII exposure:
 
 - **Block list (Collector config, `attributes` processor):** strip
   `http.request.header.authorization`, `http.request.header.cookie`,

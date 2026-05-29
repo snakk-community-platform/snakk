@@ -56,8 +56,8 @@ export function pickRandom(list) {
 // get RST mid-stream after the body is fully written — uncompressed bodies
 // are delivered before the reset hits.
 //
-// See OBSERVABILITY-TODO §Known gateway issues (the "Connection: close + RST"
-// bug surfaced by k6).
+// (The "Connection: close + RST" gateway behaviour surfaced by k6 against
+// chunked + gzipped responses.)
 export const httpOptions = {
     redirects: 5,
     headers: {

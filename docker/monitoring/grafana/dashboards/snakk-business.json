@@ -20,12 +20,12 @@
     {
       "id": 0,
       "title": "About this dashboard",
-      "description": "Phase 3 of the observability rollout (see docs/OBSERVABILITY-TODO.md) adds the .NET Meters and ActivitySources below. This dashboard provisions the visualizations now; panels show \"No data\" until those meters ship. The exact metric names match the planned snakk.* meter names emitted by Snakk.ServiceDefaults once Phase 3 lands.",
+      "description": "Phase 3 of the observability rollout adds the .NET Meters and ActivitySources below. This dashboard provisions the visualizations now; panels show \"No data\" until those meters ship. The exact metric names match the planned snakk.* meter names emitted by Snakk.ServiceDefaults once Phase 3 lands.",
       "type": "text",
       "gridPos": { "h": 5, "w": 24, "x": 0, "y": 1 },
       "options": {
         "mode": "markdown",
-        "content": "### Phase 3 stub dashboard\n\nThis dashboard wires up visualisations for the Phase 3 business meters defined in `docs/OBSERVABILITY-DESIGN-2026-05-24.md` §6 and `docs/OBSERVABILITY-TODO.md` Phase 3.\n\nMeters planned (none emitting yet):\n\n- **`snakk.posts.created`** — counter, labels: `community`, `type` (discussion vs comment).\n- **`snakk.auth.login_attempts`** — counter, label: `result` (success / wrong_password / locked_out / mfa_required).\n- **`snakk.cache.hits`** / **`snakk.cache.misses`** — counters, label: `cache_name`.\n- **`snakk.webhooks.delivery.duration`** — histogram, labels: `webhook_id`, `attempt_number`, `status`.\n- **`Snakk.LinkMetadata.Fetch`** ActivitySource — counters: `snakk.linkmeta.fetch.success`, `snakk.linkmeta.fetch.ssrf_blocked`, `snakk.linkmeta.fetch.parse_failed`, `snakk.linkmeta.fetch.timeout`.\n\nPanels light up automatically once the Snakk.ServiceDefaults emits these meters."
+        "content": "### Phase 3 stub dashboard\n\nThis dashboard wires up visualisations for the Phase 3 business meters defined in `docs/OBSERVABILITY-DESIGN-2026-05-24.md` §6.\n\nMeters planned (none emitting yet):\n\n- **`snakk.posts.created`** — counter, labels: `community`, `type` (discussion vs comment).\n- **`snakk.auth.login_attempts`** — counter, label: `result` (success / wrong_password / locked_out / mfa_required).\n- **`snakk.cache.hits`** / **`snakk.cache.misses`** — counters, label: `cache_name`.\n- **`snakk.webhooks.delivery.duration`** — histogram, labels: `webhook_id`, `attempt_number`, `status`.\n- **`Snakk.LinkMetadata.Fetch`** ActivitySource — counters: `snakk.linkmeta.fetch.success`, `snakk.linkmeta.fetch.ssrf_blocked`, `snakk.linkmeta.fetch.parse_failed`, `snakk.linkmeta.fetch.timeout`.\n\nPanels light up automatically once the Snakk.ServiceDefaults emits these meters."
       }
     },
     {

@@ -1,12 +1,10 @@
 # Observability ops — dos and don'ts
 
-Pairs with `docs/OBSERVABILITY-DESIGN-2026-05-24.md` (what we built) and
-`docs/OBSERVABILITY-TODO.md` (what we're still building). This doc covers
-how to **run** the stack safely. If you're about to ship the dev compose
+Pairs with `docs/OBSERVABILITY-DESIGN-2026-05-24.md` (what we built). This doc
+covers how to **run** the stack safely. If you're about to ship the dev compose
 to anything that isn't a developer laptop, read this first.
 
-Status: living document. Update alongside `OBSERVABILITY-TODO.md` as new
-hardening decisions land.
+Status: living document. Update as new hardening decisions land.
 
 ---
 
@@ -200,7 +198,7 @@ If one pipeline goes dark, the OTel Pipeline Health dashboard's "Spans / Metric 
 
 ### ".NET runtime metrics (GC, heap) only appear under `dotnet_*` not `process_runtime_dotnet_*`"
 
-The OTel `OpenTelemetry.Instrumentation.Runtime` package is wired in `Snakk.ServiceDefaults.ConfigureOpenTelemetry()` but does not currently emit metrics under the OTel-semconv names — only under the prometheus-net-style `dotnet_*` names. This blocks Phase 6 (prometheus-net retirement). Track in `OBSERVABILITY-TODO.md`. Don't rewrite the Overview GC panels to OTel names yet; they'd go dark.
+The OTel `OpenTelemetry.Instrumentation.Runtime` package is wired in `Snakk.ServiceDefaults.ConfigureOpenTelemetry()` but does not currently emit metrics under the OTel-semconv names — only under the prometheus-net-style `dotnet_*` names. This blocks Phase 6 (prometheus-net retirement). Don't rewrite the Overview GC panels to OTel names yet; they'd go dark.
 
 ---
 
@@ -301,6 +299,4 @@ External docs we link to rather than restate:
 Internal:
 
 - `docs/OBSERVABILITY-DESIGN-2026-05-24.md` — locked decisions, threat model, pipeline diagram.
-- `docs/OBSERVABILITY-TODO.md` — running task list and resume snapshot.
-- `docs/SECURITY-AUDIT-2026-05-14.md`, `SECURITY-AUDIT-2026-05-23.md` — broader Snakk security context; the observability surface gets its own pass in the PR that ships this doc.
 - `tests/k6/README.md` — load testing scenarios + how to interpret the k6 dashboard.

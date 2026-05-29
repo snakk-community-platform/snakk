@@ -150,7 +150,7 @@ processors:
   # already maps `service.name` → the Prometheus `job` label, but Loki and
   # Pyroscope use `service_name` directly — adding it on the metrics side
   # gives a single label name that works as a template variable across all
-  # three signals in Grafana. See OBSERVABILITY-TODO §Phase 2 B1.
+  # three signals in Grafana.
   transform/service_name:
     metric_statements:
       - context: datapoint
