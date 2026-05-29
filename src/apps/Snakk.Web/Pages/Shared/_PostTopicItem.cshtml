@@ -27,7 +27,12 @@
             </div>
             @if (!string.IsNullOrEmpty(Model.ContentExcerpt))
             {
-                <div class="mt-1 text-sm line-clamp-3 sn-post-preview prose prose-sm" style="color: var(--text-secondary)">@Html.Raw(Model.ContentExcerpt)</div>
+                @* Auto-encoded: ContentExcerpt is plain text from PlainTextExcerpt (new
+                   posts) or a truncated raw-markdown substring (legacy posts). The prior
+                   @Html.Raw bypassed encoding and let a post body like `<script>...` reach
+                   the DOM via this excerpt — stored XSS on every viewer's saved/reactions
+                   page. *@
+                <div class="mt-1 text-sm line-clamp-3 sn-post-preview" style="color: var(--text-secondary)">@Model.ContentExcerpt</div>
             }
         </div>
         <a href="@postUrl" class="topic-latest-link" title="View post">
