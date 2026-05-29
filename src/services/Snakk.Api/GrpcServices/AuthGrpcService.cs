@@ -758,10 +758,16 @@ public class AuthGrpcService(
     public override async Task<ConnectOAuthProviderResponse> ConnectOAuthProvider(
         ConnectOAuthProviderRequest request, ServerCallContext ctx)
     {
-        // Server-to-server (Snakk.Auth) passes user_public_id explicitly; BFF callers use JWT
-        var userPublicId = request.HasUserPublicId
-            ? request.UserPublicId
-            : RequireAuth().Value;
+        // Identity is taken from the authenticated JWT only. The previous code path
+        // honored a client-supplied request.UserPublicId when set, with the comment
+        // that Snakk.Auth was a trusted server-to-server caller — but no
+        // service-to-service auth gated the bypass, so any caller reaching the
+        // gRPC surface could spoof the user. Snakk.Auth now forwards the validated
+        // JWT cookie as a Bearer header instead. (CR-21 / HI-60 in
+        // docs/SECURITY-AUDIT-2026-05-23.md.) The request.UserPublicId proto field
+        // is left in place for wire-compat with older clients but the value is
+        // ignored.
+        var userPublicId = RequireAuth().Value;
 
         var result = await authUseCase.ConnectOAuthProviderAsync(
             userPublicId, request.Provider, request.ProviderUserId, ctx.CancellationToken);
@@ -807,10 +813,14 @@ public class AuthGrpcService(
     public override async Task<GenerateOAuthSudoNonceResponse> GenerateOAuthSudoNonce(
         GenerateOAuthSudoNonceRequest request, ServerCallContext ctx)
     {
+        // As in ConnectOAuthProvider, identity must come from the authenticated JWT,
+        // not from request.UserPublicId — see comment there.
+        var userPublicId = RequireAuth().Value;
+
         // Verify the provider+providerUserId matches a connection for this user
         var connection = await context.UserOAuthConnections
             .FirstOrDefaultAsync(c =>
-                c.User.PublicId == request.UserPublicId &&
+                c.User.PublicId == userPublicId &&
                 c.Provider == request.Provider &&
                 c.ProviderUserId == request.ProviderUserId,
                 ctx.CancellationToken);
@@ -819,7 +829,7 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.PermissionDenied, "OAuth connection not found for user"));
 
         var nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-        var cacheKey = $"sudo-oauth-nonce:{request.UserPublicId}:{nonce}";
+        var cacheKey = $"sudo-oauth-nonce:{userPublicId}:{nonce}";
         cache.Set(cacheKey, true, TimeSpan.FromSeconds(60));
 
         return new GenerateOAuthSudoNonceResponse { Nonce = nonce };
