@@ -47,7 +47,7 @@ When in doubt: anything the dev compose does that requires `user: "0:0"`, `:ro` 
 | `valkey-slowlog` | `valkey/valkey:8-alpine` | Sidecar that polls `SLOWLOG GET` every 30 s and writes JSON to a shared volume. |
 | `snakk` | local build | All nine .NET services under one supervisord. |
 | `redis-exporter` | `oliver006/redis_exporter:v1.67.0` | Prometheus exporter for Valkey/Redis. |
-| `postgres-exporter` | `prometheuscommunity/postgres-exporter:v0.16.0` | Prometheus exporter for Postgres + the custom queries in `postgres-queries.yaml` (pg_stat_statements + lock waits). |
+| `postgres-exporter` | `prometheuscommunity/postgres-exporter:v0.19.1` | Prometheus exporter for Postgres + the custom queries in `postgres-queries.yaml` (pg_stat_statements, lock waits, and a `pg_stat_checkpointer` query that surfaces the PG17 checkpoint counters the built-in collector no longer emits — feeds the Checkpoints panel). |
 | `node-exporter` | `prom/node-exporter:v1.9.1` | Host CPU / memory / disk / network metrics. |
 | `prometheus` | `prom/prometheus:v3.4.0` | Metrics storage. OTLP write-receiver enabled; exemplar storage enabled; remote_write receiver enabled. |
 | `otel-collector` | `otel/opentelemetry-collector-contrib:0.115.1` | OTLP ingest, redaction, batching, fan-out to Tempo/Loki/Prometheus. Also runs the `docker_stats` receiver and the `filelog` receivers for Postgres / Valkey / Caddy. |

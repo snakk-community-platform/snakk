@@ -102,3 +102,28 @@ pg_lock_waits:
     - wait_seconds:
         usage: "GAUGE"
         description: "Seconds the query has been waiting for the lock"
+
+# Checkpoint activity. PostgreSQL 17 moved the checkpoint counters out of
+# pg_stat_bgwriter into the new pg_stat_checkpointer view, which postgres-exporter
+# v0.19 does not scrape natively (its built-in collector only covers the buffer
+# columns that remain in pg_stat_bgwriter). The column aliases carry the _total
+# suffix so the emitted metric names match the Snakk Postgres "Checkpoints" panel
+# queries: pg_stat_checkpointer_{num_timed,num_requested,buffers_written}_total.
+pg_stat_checkpointer:
+  query: |
+    SELECT
+      num_timed       AS num_timed_total,
+      num_requested   AS num_requested_total,
+      buffers_written AS buffers_written_total
+    FROM pg_stat_checkpointer
+  master: true
+  metrics:
+    - num_timed_total:
+        usage: "COUNTER"
+        description: "Scheduled checkpoints performed due to checkpoint_timeout"
+    - num_requested_total:
+        usage: "COUNTER"
+        description: "Requested checkpoints (WAL pressure or an explicit CHECKPOINT)"
+    - buffers_written_total:
+        usage: "COUNTER"
+        description: "Buffers written to disk during checkpoints"

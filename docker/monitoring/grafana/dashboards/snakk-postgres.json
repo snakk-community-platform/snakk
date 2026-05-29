@@ -198,7 +198,7 @@
     },
     {
       "title": "Checkpoints",
-      "description": "Checkpoint rate from the pg_stat_checkpointer view (Postgres 17+), via postgres-exporter v0.19+. Timed = scheduled checkpoints; Requested = on-demand (WAL pressure or an explicit CHECKPOINT); Buffers written = dirty buffers flushed per checkpoint cycle.",
+      "description": "Checkpoint rate from the PG17 pg_stat_checkpointer view, surfaced via the custom pg_stat_checkpointer query in postgres-queries.yaml (postgres-exporter v0.19's built-in collector does not scrape this view). Timed = scheduled checkpoints; Requested = on-demand (WAL pressure or an explicit CHECKPOINT); Buffers written = dirty buffers flushed per checkpoint cycle.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
       "targets": [
