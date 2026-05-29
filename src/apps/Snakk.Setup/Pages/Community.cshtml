@@ -1,12 +1,19 @@
 @page "/setup/community"
 @model Snakk.Setup.Pages.CommunityModel
 
-<h2 class="text-xl font-semibold mb-4">Create Your Community</h2>
+<h2 class="text-xl font-semibold mb-4">Default Community</h2>
 <p class="text-base-content/70 mb-6">
-    Set up your first community with a hub and space. You can create more later from the admin panel.
+    Optionally create a default community with a hub and space. You can always create communities later from the admin panel.
 </p>
 
 <form method="post" class="space-y-4">
+    <div class="form-control">
+        <label class="label cursor-pointer justify-start gap-4">
+            <input type="checkbox" asp-for="CreateFirstCommunity" class="toggle toggle-primary" id="create-community-toggle" />
+            <span class="label-text font-medium">Create a default community during setup</span>
+        </label>
+    </div>
+
     <div id="community-fields" class="space-y-4">
         <div class="alert">
             @await Html.PartialAsync("_AlertIconInfo")
@@ -65,3 +72,18 @@
         <button type="submit" class="btn btn-primary">Next</button>
     </div>
 </form>
+
+<script>
+(function () {
+    'use strict';
+    var toggle = document.getElementById('create-community-toggle');
+    var fields = document.getElementById('community-fields');
+
+    function update() {
+        fields.style.display = toggle.checked ? '' : 'none';
+    }
+
+    toggle.addEventListener('change', update);
+    update();
+})();
+</script>

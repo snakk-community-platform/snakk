@@ -4,6 +4,7 @@ namespace Snakk.Setup.Pages;
 
 public class CommunityModel : SetupPageBase
 {
+    [BindProperty] public bool CreateFirstCommunity { get; set; } = true;
     [BindProperty] public string CommunityName { get; set; } = "";
     [BindProperty] public string CommunitySlug { get; set; } = "main";
     [BindProperty] public string CommunityDescription { get; set; } = "";
@@ -16,6 +17,7 @@ public class CommunityModel : SetupPageBase
     {
         ViewData["SetupStep"] = 10;
         var state = GetState();
+        CreateFirstCommunity = state.CreateFirstCommunity;
         CommunityName = state.CommunityName;
         CommunitySlug = state.DefaultCommunitySlug;
         CommunityDescription = state.CommunityDescription;
@@ -40,14 +42,19 @@ public class CommunityModel : SetupPageBase
     public IActionResult OnPost()
     {
         var state = GetState();
-        state.CreateFirstCommunity = true;
-        state.CommunityName = CommunityName?.Trim() ?? "";
-        state.DefaultCommunitySlug = CommunitySlug?.Trim().ToLowerInvariant() ?? "main";
-        state.CommunityDescription = CommunityDescription?.Trim() ?? "";
-        state.FirstHubName = FirstHubName?.Trim() ?? "";
-        state.FirstHubSlug = FirstHubSlug?.Trim().ToLower() ?? "";
-        state.FirstSpaceName = FirstSpaceName?.Trim() ?? "";
-        state.FirstSpaceSlug = FirstSpaceSlug?.Trim().ToLower() ?? "";
+        state.CreateFirstCommunity = CreateFirstCommunity;
+
+        if (CreateFirstCommunity)
+        {
+            state.CommunityName = CommunityName?.Trim() ?? "";
+            state.DefaultCommunitySlug = CommunitySlug?.Trim().ToLowerInvariant() ?? "main";
+            state.CommunityDescription = CommunityDescription?.Trim() ?? "";
+            state.FirstHubName = FirstHubName?.Trim() ?? "";
+            state.FirstHubSlug = FirstHubSlug?.Trim().ToLower() ?? "";
+            state.FirstSpaceName = FirstSpaceName?.Trim() ?? "";
+            state.FirstSpaceSlug = FirstSpaceSlug?.Trim().ToLower() ?? "";
+        }
+
         SaveState(state);
         return RedirectToPage("TestData");
     }
