@@ -1637,7 +1637,19 @@ function showCodeModal(options: CodeModalOptions): void {
         .forEach(l => {
             const btn = document.createElement('button');
             btn.type = 'button';
-            btn.textContent = l.label;
+            const iconData = (window as any).snakkLangIcons?.[l.value];
+            if (iconData) {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                const hex = iconData.hex as string;
+                const r = parseInt(hex.slice(0, 2), 16);
+                const g = parseInt(hex.slice(2, 4), 16);
+                const b = parseInt(hex.slice(4, 6), 16);
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                const fill = isDark && luminance < 0.25 ? '#ffffff' : `#${hex}`;
+                btn.innerHTML = `<svg viewBox="${iconData.viewBox}" width="14" height="14" aria-hidden="true" style="fill:${fill};flex-shrink:0">${iconData.inner}</svg><span>${l.label}</span>`;
+            } else {
+                btn.textContent = l.label;
+            }
             if (l.value === currentLang) btn.classList.add('active');
             btn.addEventListener('click', () => {
                 currentLang = l.value;
