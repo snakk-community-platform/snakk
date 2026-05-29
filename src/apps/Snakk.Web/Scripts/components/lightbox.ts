@@ -6,6 +6,18 @@
 (function() {
     'use strict';
 
+    // Inject lightbox CSS as soon as this script loads — the overlay can appear
+    // on any page (space list, detail page, creation form) so it must be ready
+    // before the first open() call without waiting for user interaction.
+    (function injectCSS(): void {
+        if (document.getElementById('snakk-lightbox-css')) return;
+        const link = document.createElement('link');
+        link.id = 'snakk-lightbox-css';
+        link.rel = 'stylesheet';
+        link.href = '/css/dist/lightbox.css';
+        document.head.appendChild(link);
+    })();
+
     let overlay: HTMLElement | null = null;
     let imgEl: HTMLImageElement | null = null;
     let lqipEl: HTMLImageElement | null = null;

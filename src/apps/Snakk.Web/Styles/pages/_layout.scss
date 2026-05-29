@@ -13,17 +13,17 @@
     min-height: 100vh;
 }
 
-// Tablet / small laptop (1024–1315.98px): 2-col — wide center + right sidebar.
+// Tablet / small laptop (1024–1249.98px): 2-col — wide center + right sidebar.
 // Left sidebar becomes an off-canvas drawer (same as smallest viewport).
-@media (min-width: 1024px) and (max-width: 1315.98px) {
+@media (min-width: 1024px) and (max-width: 1249.98px) {
     .sn-layout {
         grid-template-columns: minmax(0, 1fr) 20rem;
     }
 }
 
-// Shrink-center tier (1316–1539.98px): left/right locked at their min
+// Shrink-center tier (1250–1539.98px): left/right locked at their min
 // widths; center shrinks from its 54rem ideal down to a 40rem floor.
-@media (min-width: 1316px) and (max-width: 1539.98px) {
+@media (min-width: 1250px) and (max-width: 1539.98px) {
     .sn-layout {
         grid-template-columns: 16rem minmax(40rem, var(--content-width, 54rem)) 20rem;
     }
@@ -67,7 +67,7 @@
         &.sn-search-focused { width: 100%; }
     }
 
-    @media (min-width: 1024px) and (max-width: 1315.98px) {
+    @media (min-width: 1024px) and (max-width: 1249.98px) {
         width: 14rem;
         &.sn-search-focused { width: 22rem; }
     }
@@ -199,8 +199,8 @@
     background: linear-gradient(to bottom, var(--surface-gradient-top) 3.5rem, var(--surface-gradient-bottom) calc(3.5rem + 2rem)) fixed;
 }
 
-// Smaller (1024–1315.98px): no left column, so center is col 1 and wide spans both.
-@media (min-width: 1024px) and (max-width: 1315.98px) {
+// Smaller (1024–1249.98px): no left column, so center is col 1 and wide spans both.
+@media (min-width: 1024px) and (max-width: 1249.98px) {
     .sn-center {
         grid-column: 1;
     }
@@ -209,7 +209,7 @@
     }
 }
 
-@media (min-width: 1316px) {
+@media (min-width: 1250px) {
     .sn-center {
         grid-column: 2;
     }
@@ -335,86 +335,4 @@
     }
 }
 
-// Discussion detail hero header — carries the space gradient + dark overlay
-// so the breadcrumb row, title, author line, and body all sit on the same
-// coloured canvas.
-.sn-discussion-header {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    position: relative;
-    overflow: visible;
-    background-size: cover;
-    background-position: center;
-    color: #fff;
-    padding: 1.25rem 1.5rem 1.5rem;
-
-    &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
-        z-index: 0;
-        pointer-events: none;
-    }
-
-    > * {
-        position: relative;
-        z-index: 1;
-        margin-top: 0;
-        margin-bottom: 0;
-    }
-
-    // The breadcrumb row is already on the same canvas — strip its own
-    // background, overlay, and padding so it doesn't double-up.
-    .sn-page-labels--gradient {
-        background: none;
-        padding: 0;
-        overflow: visible;
-
-        &::before {
-            content: none;
-        }
-    }
-
-    // Text-shadow on the emoji of the user's active reaction
-    .active .sn-reaction-icon {
-        text-shadow: 0 0 .25rem rgba(0, 0, 0, 1);
-    }
-
-    // Reactions badge pill — always-visible add-reaction affordance
-    .sn-reaction-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.25rem 0.625rem;
-        border-radius: 9999px;
-        background: rgba(255, 255, 255, 0.15);
-        color: rgba(255, 255, 255, 0.9);
-        border: 1px solid transparent;
-        transition: background 0.15s;
-        user-select: none;
-
-        &:hover { background: rgba(255, 255, 255, 0.25); }
-    }
-
-    // Ellipsis / ghost buttons — white on the coloured canvas, subtle on hover
-    .btn-ghost {
-        color: rgba(255, 255, 255, 0.85);
-
-        &:hover {
-            color: rgba(255, 255, 255, 0.55);
-            background: rgba(255, 255, 255, 0.1);
-        }
-    }
-
-    // Dropdown popup — reset inherited white text so it stays readable
-    .dropdown-content {
-        color: var(--text-primary);
-        background: var(--bg-primary);
-
-        button, a { color: var(--text-primary); }
-        .text-error { color: oklch(0.6569 0.2315 18.79); }
-    }
-}
 

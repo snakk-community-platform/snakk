@@ -14,6 +14,10 @@
         : $"/partials/reacted-posts?offset={Model.NextOffset}&pageSize=10";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
+}
+
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }

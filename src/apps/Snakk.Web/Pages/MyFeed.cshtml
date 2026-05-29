@@ -7,6 +7,10 @@
     ViewData["Title"] = T.Pages.MyFeedTitle;
 }
 
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
+}
+
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }

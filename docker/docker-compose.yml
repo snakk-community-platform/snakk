@@ -108,7 +108,7 @@ services:
       - "9100"
 
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:v0.16.0
+    image: prometheuscommunity/postgres-exporter:v0.19.1
     profiles: ["monitoring"]
     restart: unless-stopped
     depends_on:

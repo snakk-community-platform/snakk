@@ -1,0 +1,7 @@
+// Settings page CSS — lazy-loaded on all Settings/* pages.
+// Extracted from site.scss to reduce critical CSS on non-settings pages.
+
+@use 'base/variables';
+@use 'pages/settings';
+@use 'pages/scrollspy';
+@use 'features/timezone-map';

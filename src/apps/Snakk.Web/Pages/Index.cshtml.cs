@@ -47,9 +47,10 @@ public class IndexModel(
         }
 
         ResolveSidebarData(communityId);
+        var adultTask = AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
         await EnsureSidebarDataAsync(communityId);
 
-        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
+        var viewerAllowsAdult = await adultTask;
         try { RecentDiscussions = await _apiClient.GetRecentDiscussionsAsync(offset, 20, communityId, viewerAllowsAdult: viewerAllowsAdult); }
         catch { }
     }

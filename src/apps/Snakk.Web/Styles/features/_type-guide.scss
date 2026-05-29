@@ -1,0 +1,43 @@
+// ============================================
+// Type: Guide
+// ============================================
+
+.guide-toc {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 0.5rem;
+    background: var(--bg-secondary);
+    font-size: 0.8125rem;
+}
+
+.guide-toc-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-tertiary);
+}
+
+.guide-toc ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.guide-toc li {
+    margin: 0.25rem 0;
+}
+
+.guide-toc a {
+    color: var(--link-primary);
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
+.guide-toc-indent {
+    padding-left: 1rem;
+}

@@ -1,0 +1,9 @@
+// Space/community/hub page CSS — lazy-loaded on detail and sub-pages.
+// Extracted from site.scss to reduce critical CSS on non-space pages.
+
+@use 'base/variables';
+@use 'pages/space';
+@use 'pages/community';
+@use 'pages/hub';
+@use 'features/stats';
+@use 'pages/stats-chart';

@@ -1,0 +1,5 @@
+// Editor CSS — lazy-loaded on discussion detail (on first Reply/Edit interaction)
+// and loaded eagerly on all New*.cshtml creation pages.
+@use 'base/variables';
+@use 'features/milkdown';
+@use 'components/mentions';

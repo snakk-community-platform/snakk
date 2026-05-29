@@ -1,0 +1,9 @@
+// User profile page CSS — lazy-loaded on the profile page.
+// Extracted from site.scss to reduce critical CSS on non-profile pages.
+
+@use 'base/variables';
+@use 'pages/profile' as page-profile;
+@use 'features/profile';
+@use 'features/activity';
+@use 'features/stats';
+@use 'pages/stats-chart';

@@ -6,6 +6,10 @@
     ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
 }
 
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("settings")" asp-append-version="true" />
+}
+
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }

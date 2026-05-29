@@ -1,0 +1,66 @@
+// ============================================
+// Type: Question
+// ============================================
+
+.type-widget-solved {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    background: oklch(0.92 0.06 150);
+    color: oklch(0.35 0.15 150);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+[data-theme="dark"] .type-widget-solved {
+    background: oklch(0.25 0.06 150);
+    color: oklch(0.8 0.1 150);
+}
+
+.accepted-answer {
+    border-left: 3px solid oklch(0.55 0.15 150);
+    background: oklch(0.96 0.02 150);
+}
+
+[data-theme="dark"] .accepted-answer {
+    background: oklch(0.2 0.03 150);
+}
+
+.accepted-answer-badge {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: oklch(0.4 0.15 150);
+    margin-right: 0.5rem;
+}
+
+[data-theme="dark"] .accepted-answer-badge {
+    color: oklch(0.7 0.1 150);
+}
+
+.highlight-flash {
+    animation: highlight-pulse 2s ease-out;
+}
+
+@keyframes highlight-pulse {
+    0% {
+        background: oklch(0.9 0.08 80);
+    }
+
+    100% {
+        background: transparent;
+    }
+}
+
+[data-theme="dark"] {
+    @keyframes highlight-pulse {
+        0% {
+            background: oklch(0.25 0.06 80);
+        }
+
+        100% {
+            background: transparent;
+        }
+    }
+}

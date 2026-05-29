@@ -1,0 +1,173 @@
+// ============================================
+// Type: Debate
+// ============================================
+
+.debate-distribution {
+    display: flex;
+    margin-bottom: 0.5rem;
+    border-radius: 999px;
+    background: hsla(0, 0%, 100%, 0.65);
+    padding: 1px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.debate-position-bar {
+    min-width: 4px;
+    height: 1rem;
+    border-radius: 0;
+    transition: width 0.3s ease;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(0, 0, 0, 0.05) 100%);
+}
+
+.debate-distribution > .debate-position-bar:first-child {
+    border-top-left-radius: 999px;
+    border-bottom-left-radius: 999px;
+}
+
+.debate-distribution > .debate-position-bar:last-child {
+    border-top-right-radius: 999px;
+    border-bottom-right-radius: 999px;
+}
+
+.debate-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.debate-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.debate-legend-color {
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 2px;
+    border: 1px solid hsla(0, 0%, 100%, 0.65);
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.15) 0%, transparent 50%, rgba(0, 0, 0, 0.05) 100%);
+}
+
+.debate-position-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.1875rem 0.625rem;
+    border-radius: 0.375rem;
+    background-color: var(--badge-color, var(--link-primary));
+    color: #fff;
+    border: 1px solid var(--badge-color, var(--link-primary));
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.timeline-position-change {
+    margin: 1rem 0;
+    padding-inline: 0;
+    > li {
+        grid-template-columns: calc(150px - 0.5rem) auto 1fr;
+    }
+
+    .timeline-middle svg, .timeline-middle .icon {
+        color: oklch(0.7 0.16 70);
+    }
+
+    .timeline-end {
+        place-self: center stretch;
+        color: oklch(0.7 0.16 70);
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding-right: 1rem;
+
+        &::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: oklch(0.7 0.16 70 / 0.5);
+        }
+    }
+
+    hr {
+        width: 1px;
+        background: oklch(0.7 0.16 70 / 0.4);
+    }
+}
+
+.timeline-position-change + article.new-author {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+.debate-position-picker {
+    padding: 0.75rem;
+    border-left: 0.6rem solid var(--accent-info);
+    background: var(--accent-info-bg);
+}
+
+.debate-position-cards {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.debate-position-card {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    border: 2px solid var(--border-primary);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    transition: border-color 0.15s, background-color 0.15s;
+    user-select: none;
+
+    &:hover:not(.debate-position-card-selected) {
+        border-color: var(--text-tertiary);
+    }
+
+    &.debate-position-card-selected {
+        border-color: var(--position-color);
+        background-color: color-mix(in srgb, var(--position-color) 10%, transparent);
+    }
+}
+
+.debate-position-radio {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.debate-position-card-indicator {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 2px solid var(--border-primary);
+    transition: border-color 0.15s;
+    position: relative;
+
+    .debate-position-card-selected & {
+        border-color: var(--position-color);
+
+        &::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            border-radius: 50%;
+            background: var(--position-color);
+        }
+    }
+}

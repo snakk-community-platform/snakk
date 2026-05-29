@@ -96,6 +96,15 @@ let iamaAnswerToQuestion: Record<string, string> = {};
 
 // ===== Editor Functions =====
 
+function loadCSS(id: string, href: string): void {
+    if (document.getElementById(id)) return;
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+}
+
 // Auto-grow textarea (used for inline edit textareas)
 function autoGrow(element: HTMLTextAreaElement): void {
     element.style.height = 'auto';
@@ -2532,6 +2541,7 @@ function initDiscussionPage(config: DiscussionConfig): void {
             for (const entry of entries) {
                 if (entry.isIntersecting) {
                     editorObserver.disconnect();
+                    loadCSS('snakk-editor-css', '/css/dist/editor.css');
                     initReplyEditor();
                     break;
                 }

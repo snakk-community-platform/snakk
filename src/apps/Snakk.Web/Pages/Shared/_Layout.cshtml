@@ -112,7 +112,7 @@
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 
-    <script id="js-dompurify"    hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true"></script>
+    <script id="js-dompurify"    hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true" defer></script>
     <script id="js-htmx"         hx-preserve src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
     <script id="js-htmx-head"    hx-preserve src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
     <script id="js-loading-bar"  hx-preserve src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
@@ -157,7 +157,7 @@
     }
     <script src="@SnakkUrlHelper.Js("components/share")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/sparkline")" asp-append-version="true" defer></script>
-    <script id="js-social-icons" hx-preserve src="@SnakkUrlHelper.Js("data/social-icons")" asp-append-version="true"></script>
+    <script id="js-social-icons" hx-preserve src="@SnakkUrlHelper.Js("data/social-icons")" asp-append-version="true" defer></script>
     <script nonce="@(Context.Items["csp-nonce"] as string)">(function () {
         function hydrateSocialIcons() {
             var icons = window.snakkSocialIcons;

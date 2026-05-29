@@ -1,0 +1,221 @@
+// ============================================
+// Type: IAmA
+// ============================================
+
+.sn-iama-widget {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.sn-iama-widget .sn-iama-phase--announced,
+.sn-iama-widget .sn-iama-phase--live,
+.sn-iama-widget .sn-iama-phase--closed,
+.sn-iama-widget .sn-iama-phase--archived {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #fff;
+    font-size: inherit;
+    font-weight: inherit;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+.sn-iama-phase-header {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.sn-iama-phase-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.sn-iama-phase-desc {
+    margin: 0;
+    font-size: 0.8125rem;
+    opacity: 0.85;
+}
+
+.sn-iama-live-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: oklch(0.55 0.18 155);
+    animation: iama-live-pulse 2s ease-in-out infinite;
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+@keyframes iama-live-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.35;
+    }
+}
+
+.sn-iama-widget .sn-iama-phase--announced {
+    background: color-mix(in srgb, var(--accent-warning-strong) 25%, transparent);
+
+    .sn-iama-phase-label {
+        background: var(--accent-warning-strong);
+        color: black;
+    }
+}
+
+.sn-iama-widget .sn-iama-phase--live {
+    background: color-mix(in srgb, var(--accent-success) 25%, transparent);
+
+    .sn-iama-phase-label {
+        background: var(--accent-success);
+        color: white;
+    }
+}
+
+.sn-iama-widget .sn-iama-phase--closed {
+    background: color-mix(in srgb, #222222 20%, transparent);
+
+    .sn-iama-phase-label {
+        background: var(--text-secondary);
+        color: white;
+    }
+}
+
+.sn-iama-widget .sn-iama-phase--archived {
+    background: color-mix(in srgb, #222222 20%, transparent);
+
+    .sn-iama-phase-label {
+        background: var(--text-tertiary);
+        color: white;
+    }
+}
+
+.sn-iama-widget-dates {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sn-iama-countdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #fff;
+
+    span {
+        color: inherit;
+    }
+}
+
+.sn-iama-date-row-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sn-iama-date-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: #fff;
+}
+
+.sn-iama-date-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    flex-shrink: 0;
+}
+
+.sn-iama-end-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-shrink: 0;
+}
+
+.sn-iama-verification {
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
+    background: hsla(0, 0%, 100%, .12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.sn-iama-verification-label {
+    display: block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 0.25rem;
+}
+
+.sn-iama-verification-text {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: #fff;
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    a { color: #fff; }
+}
+
+.iama-answered-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.125rem 0.5rem;
+    border-radius: 0.25rem;
+    background: oklch(0.92 0.06 150);
+    color: oklch(0.35 0.15 150);
+}
+
+[data-theme="dark"] .iama-answered-badge {
+    background: oklch(0.25 0.06 150);
+    color: oklch(0.75 0.1 150);
+}
+
+.iama-answer-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.6875rem;
+    color: var(--text-tertiary);
+    text-decoration: underline;
+}
+
+.iama-sort-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8125rem;
+    margin-bottom: 1rem;
+}
+
+.iama-sort-active {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.iama-sort-link {
+    color: var(--link-primary);
+    text-decoration: underline;
+}

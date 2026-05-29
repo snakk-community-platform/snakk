@@ -20,10 +20,8 @@
 @use 'components/buttons';
 @use 'components/forms';
 @use 'components/badges';
-@use 'components/reactions';
 @use 'components/modals';
 @use 'components/notifications';
-@use 'components/mentions';
 @use 'components/popups';
 @use 'components/icons';
 @use 'components/skeletons';
@@ -36,17 +34,7 @@
 // ============================================
 // Features
 // ============================================
-@use 'features/posts';
-@use 'features/discussions';
-@use 'features/activity';
 @use 'features/sidebar';
-@use 'features/stats';
-@use 'features/profile';
-@use 'features/poll';
-@use 'features/type-widgets';
-@use 'features/lightbox';
-@use 'features/inline-image-group';
-@use 'features/timezone-map';
 @use 'features/nudge';
 
 // ============================================
@@ -54,17 +42,7 @@
 // ============================================
 @use 'pages/layout' as page-layout;
 @use 'pages/left-nav';
-@use 'pages/discussion-card';
-@use 'pages/card-previews';
-@use 'pages/entity-row';
-@use 'pages/community';
-@use 'pages/space';
 @use 'pages/right-sidebar';
-@use 'pages/hub';
-@use 'pages/profile' as page-profile;
-@use 'pages/stats-chart';
-@use 'pages/settings';
-@use 'pages/help';
 
 // ============================================
 // Utilities

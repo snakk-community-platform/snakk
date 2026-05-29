@@ -11,6 +11,26 @@
 
 @section Styles {
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("profile")" asp-append-version="true" />
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion")" asp-append-version="true" />
+    @{
+        var discType = Model.Discussion?.Type ?? "";
+        string? typeCss = discType switch {
+            "Question" => "type-question",
+            "Poll"     => "type-poll",
+            "Link"     => "type-link",
+            "Debate"   => "type-debate",
+            "Journal"  => "type-journal",
+            "Guide"    => "type-guide",
+            "Iama"     => "type-iama",
+            "Images"   => "type-images",
+            _          => null
+        };
+    }
+    @if (typeCss != null)
+    {
+        <link rel="stylesheet" href="@SnakkUrlHelper.Css(typeCss)" asp-append-version="true" />
+    }
 }
 
 @section LeftColumn {

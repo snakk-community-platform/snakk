@@ -4,6 +4,10 @@
     ViewData["Title"] = Model.ArticleTitle + T.Pages.HelpTitleSuffix;
 }
 
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("help")" asp-append-version="true" />
+}
+
 @section LeftColumn {
     <partial name="Shared/_LeftSidebar" />
 }

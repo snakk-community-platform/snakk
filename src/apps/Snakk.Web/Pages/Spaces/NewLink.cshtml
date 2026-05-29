@@ -7,6 +7,12 @@
     ViewData["Title"] = string.Format(T.Pages.SpacesNewLinkTitlePattern, Model.Space?.Name);
 }
 
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion")" asp-append-version="true" />
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("editor")" asp-append-version="true" />
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("type-link")" asp-append-version="true" />
+}
+
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }

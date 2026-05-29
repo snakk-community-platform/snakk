@@ -80,12 +80,12 @@ builder.Services.AddResponseCompression(options =>
 
 builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
 {
-    options.Level = CompressionLevel.Optimal;
+    options.Level = CompressionLevel.Fastest;
 });
 
 builder.Services.Configure<GzipCompressionProviderOptions>(options =>
 {
-    options.Level = CompressionLevel.Optimal;
+    options.Level = CompressionLevel.Fastest;
 });
 
 // Configure JSON serialization with source generators for BFF types
@@ -721,27 +721,34 @@ app.UseOutputCache();
 
 // CDN cache headers for anonymous page responses (Cloudflare, etc.)
 // Logged-in users get private/no-store; anonymous get s-maxage for edge caching.
+// OnStarting fires before headers are committed — safe to write headers even when
+// OutputCacheMiddleware or ResponseCompression has already started buffering the body.
 app.Use(async (context, next) =>
 {
-    await next();
+    var isAnonymous = !context.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
+    var isHtmx = context.Request.Headers.ContainsKey("HX-Request");
+    var path = context.Request.Path;
 
-    if (context.Response.StatusCode == 200
-        && !context.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName)
-        && !context.Request.Path.StartsWithSegments("/bff")
-        && !context.Request.Path.StartsWithSegments("/partials")
-        && context.Response.ContentType?.StartsWith("text/html") == true)
+    context.Response.OnStarting(() =>
     {
-        var isHtmx = context.Request.Headers.ContainsKey("HX-Request");
-        if (isHtmx)
+        if (context.Response.StatusCode == 200
+            && isAnonymous
+            && !path.StartsWithSegments("/bff")
+            && !path.StartsWithSegments("/partials")
+            && context.Response.ContentType?.StartsWith("text/html") == true)
         {
-            context.Response.Headers.CacheControl = "private, no-store";
+            if (isHtmx)
+                context.Response.Headers.CacheControl = "private, no-store";
+            else
+            {
+                context.Response.Headers.CacheControl = "public, s-maxage=30, max-age=0, must-revalidate";
+                context.Response.Headers.Vary = "HX-Request";
+            }
         }
-        else
-        {
-            context.Response.Headers.CacheControl = "public, s-maxage=30, max-age=0, must-revalidate";
-            context.Response.Headers.Vary = "HX-Request";
-        }
-    }
+        return Task.CompletedTask;
+    });
+
+    await next();
 });
 
 app.MapRazorPages();

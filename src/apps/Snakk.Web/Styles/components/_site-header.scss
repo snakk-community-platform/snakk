@@ -17,13 +17,13 @@
     // Smallest (<1024px): center only
     grid-template-columns: 1fr;
 
-    // Smaller (1024–1315px): center + right (left hidden)
+    // Smaller (1024–1249px): center + right (left hidden)
     @media (min-width: 1024px) {
         grid-template-columns: minmax(0, 1fr) 20rem;
     }
 
-    // Widest (≥1316px): left + center + right
-    @media (min-width: 1316px) {
+    // Widest (≥1250px): left + center + right
+    @media (min-width: 1250px) {
         grid-template-columns: 16rem minmax(40rem, var(--content-width, 54rem)) 20rem;
     }
 
@@ -39,7 +39,7 @@
     justify-content: flex-end;
     background: var(--bg-secondary);
 
-    @media (min-width: 1316px) {
+    @media (min-width: 1250px) {
         display: flex;
     }
 }

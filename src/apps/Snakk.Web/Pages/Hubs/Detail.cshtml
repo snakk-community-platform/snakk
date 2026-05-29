@@ -17,6 +17,11 @@
     }
 }
 
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("space")" asp-append-version="true" />
+}
+
 @section Meta {
     @if (Model.Hub is { IsRestricted: false })
     {
@@ -46,6 +51,7 @@ else
 {
     <!-- Realtime context -->
     <div id="page-context" data-hub-id="@Model.Hub.PublicId" hidden></div>
+
 
 @section LeftColumn {
 @{

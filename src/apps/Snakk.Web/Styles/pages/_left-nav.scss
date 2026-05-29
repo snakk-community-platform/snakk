@@ -42,11 +42,11 @@ html.sticky-none .sn-left-sticky {
     filter: invert(1) hue-rotate(180deg);
 }
 
-// Below 1316px: left sidebar becomes an off-canvas drawer that slides in
+// Below 1250px: left sidebar becomes an off-canvas drawer that slides in
 // from the left over the main content. Open state is toggled by adding
 // `is-open` to .sn-left (via mobile-nav.ts). When closed it is removed
 // from flow (display: none) so it doesn't take up grid space.
-@media (max-width: 1315.98px) {
+@media (max-width: 1249.98px) {
     .sn-left {
         position: fixed;
         top: 0;

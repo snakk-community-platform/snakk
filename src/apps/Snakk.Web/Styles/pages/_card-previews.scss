@@ -377,6 +377,26 @@
     cursor: pointer;
 }
 
+.images-spoiler-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.75);
+    }
+}
+
 // ── Adult-content blur for link-card thumbnails ────────────
 .sn-link-card-thumb-adult-blur {
     position: relative;

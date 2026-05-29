@@ -252,15 +252,15 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
       "targets": [
         {
-          "expr": "rate(pg_stat_bgwriter_checkpoints_timed_total[5m])",
+          "expr": "rate(pg_stat_checkpointer_num_timed_total[5m])",
           "legendFormat": "Timed"
         },
         {
-          "expr": "rate(pg_stat_bgwriter_checkpoints_req_total[5m])",
+          "expr": "rate(pg_stat_checkpointer_num_requested_total[5m])",
           "legendFormat": "Requested"
         },
         {
-          "expr": "rate(pg_stat_bgwriter_buffers_checkpoint_total[5m])",
+          "expr": "rate(pg_stat_checkpointer_buffers_written_total[5m])",
           "legendFormat": "Buffers written"
         }
       ],

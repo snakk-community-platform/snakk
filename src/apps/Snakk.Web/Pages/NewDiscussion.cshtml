@@ -7,6 +7,10 @@
     ViewData["Title"] = T.Pages.NewDiscussionTitle;
 }
 
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion")" asp-append-version="true" />
+}
+
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }

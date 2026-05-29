@@ -1,0 +1,7 @@
+// Discussion list CSS — loaded on all pages that render discussion cards.
+// Extracted from site.css to avoid shipping card styles on every page.
+
+@use 'base/variables';
+@use 'pages/discussion-card';
+@use 'pages/card-previews';
+@use 'pages/discussion-header';
