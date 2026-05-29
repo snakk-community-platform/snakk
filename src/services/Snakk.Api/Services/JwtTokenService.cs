@@ -162,6 +162,9 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl });
     }
 
+    public bool IsSessionRevoked(string sessionPublicId) =>
+        cache.Get(SessionRevocationPrefix + sessionPublicId) is not null;
+
     public string GenerateTwoFactorPendingToken(string userPublicId)
     {
         var claims = new List<Claim>

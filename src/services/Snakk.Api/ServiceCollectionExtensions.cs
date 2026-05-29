@@ -111,15 +111,70 @@ public static class ServiceCollectionExtensions
             };
             options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
             {
-                OnTokenValidated = context =>
+                // Mirror the revocation checks done by AuthValidationInterceptor on the
+                // gRPC side. Before this, REST and gRPC diverged: gRPC honored session
+                // revocation (sid), user-revocation (ban), and AuthVersion (password
+                // change) — REST honored only per-jti revocation. So stolen access
+                // tokens survived "Sign out of this session" / password change / ban
+                // until natural expiry (CR-29 + HI-45 in docs/SECURITY-AUDIT-2026-05-23.md).
+                OnTokenValidated = async context =>
                 {
-                    var jwtService = context.HttpContext.RequestServices
-                        .GetRequiredService<IJwtTokenService>();
-                    var jti = context.Principal?
-                        .FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
+                    var principal = context.Principal;
+                    if (principal is null) return;
+
+                    var services = context.HttpContext.RequestServices;
+                    var jwtService = services.GetRequiredService<IJwtTokenService>();
+
+                    var jti = principal.FindFirst(
+                        System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
                     if (jti is not null && jwtService.IsRevoked(jti))
+                    {
                         context.Fail("Token has been revoked");
-                    return Task.CompletedTask;
+                        return;
+                    }
+
+                    // CR-29: session-id revocation. The cache key was being written by
+                    // SessionManagementService.RevokeSessionAsync but no validator read it.
+                    var sid = principal.FindFirst(
+                        Snakk.Application.Auth.CustomClaimTypes.SessionId)?.Value;
+                    if (sid is not null && jwtService.IsSessionRevoked(sid))
+                    {
+                        context.Fail("Session has been revoked");
+                        return;
+                    }
+
+                    var userId = principal.FindFirst(
+                        System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (userId is null) return;
+
+                    // User-level revocation parity with the gRPC interceptor (e.g. ban
+                    // via ModerationUseCase). The cache is per-process today (HI-63 —
+                    // separate finding to make it distributed); single-replica
+                    // deployments now get the same behavior REST and gRPC.
+                    var revocationCache = services.GetRequiredService<Application.Services.IRevocationCache>();
+                    if (revocationCache.IsUserRevoked(userId))
+                    {
+                        context.Fail("User has been revoked");
+                        return;
+                    }
+
+                    // HI-45: AuthVersion check. AuthenticationUseCase bumps the version
+                    // on password change / reset, but only the gRPC interceptor was
+                    // consulting it — REST endpoints kept honoring stale JWTs until
+                    // natural expiry. Tokens issued before this feature shipped don't
+                    // have the ver claim; those are skipped (grace period).
+                    var verClaim = principal.FindFirst(
+                        Snakk.Application.Auth.CustomClaimTypes.AuthVersion)?.Value;
+                    if (verClaim is not null && long.TryParse(verClaim, out var claimVersion))
+                    {
+                        var authVersionCache = services.GetRequiredService<Application.Services.IAuthVersionCache>();
+                        var storedVersion = await authVersionCache.GetVersionAsync(userId, context.HttpContext.RequestAborted);
+                        if (storedVersion is null || claimVersion != storedVersion.Value)
+                        {
+                            context.Fail("Auth version mismatch");
+                            return;
+                        }
+                    }
                 }
             };
         });

@@ -279,6 +279,177 @@ public class AuthEndpointTests : IAsyncDisposable
         await Assert.That(json.RootElement.TryGetProperty("refreshToken", out _)).IsFalse();
     }
 
+    // ─────────────────────────────────────────────────────────────────────
+    // Regressions for fix/jwt-session-and-authversion-revocation (CR-29 + HI-45)
+    // The JwtBearerEvents.OnTokenValidated handler previously checked only the
+    // per-jti revocation blacklist. The gRPC AuthValidationInterceptor mirrored
+    // session-id (sid), user-revocation (ban), and AuthVersion (password change)
+    // checks — REST endpoints did not, so revocation primitives wired into the
+    // session-management / moderation / password-change flows were effectively
+    // inert on the REST side. These tests cover each of those gates.
+    // ─────────────────────────────────────────────────────────────────────
+
+    // CR-29: a session whose id has been revoked via IJwtTokenService.RevokeSession
+    // must be rejected on the next REST request. Pre-fix, the cache key was written
+    // but no validator read it — stolen tokens survived "Sign out of this session"
+    // until natural expiry (up to 8 hours).
+    [Test]
+    public async Task Authenticated_Request_With_RevokedSession_Returns_Unauthorized()
+    {
+        // Arrange — register a real user so /me has somebody to find
+        var client = _server.CreateClient();
+        var registerResponse = await client.PostAsJsonAsync("/auth/register", new
+        {
+            email = "session-revoke@example.com",
+            password = "StrongP@ssw0rd!",
+            displayName = "SessionRevokeUser"
+        });
+        await Assert.That(registerResponse.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var userId = JsonDocument.Parse(await registerResponse.Content.ReadAsStringAsync())
+            .RootElement.GetProperty("user").GetProperty("id").GetString()!;
+
+        const string sessionId = "session-to-revoke";
+        var token = AuthHelper.GenerateTestToken(userId: userId, sessionId: sessionId);
+
+        // Revoke the session via the same IJwtTokenService the production SessionManagementService uses.
+        using (var scope = _server.Services.CreateScope())
+        {
+            var jwt = scope.ServiceProvider.GetRequiredService<Snakk.Application.Services.IJwtTokenService>();
+            jwt.RevokeSession(sessionId);
+        }
+
+        var revokedClient = _server.CreateClient();
+        revokedClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        // Act
+        var response = await revokedClient.GetAsync("/me");
+
+        // Assert
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+    }
+
+    // CR-29 corollary: a token WITHOUT a sid claim (legacy or non-session tokens)
+    // should not be rejected by the new check — only the explicit sid revocation
+    // path should fire. Ensures we didn't tighten validation past what was intended.
+    [Test]
+    public async Task Authenticated_Request_With_No_SessionId_Claim_Succeeds()
+    {
+        var client = _server.CreateClient();
+        var registerResponse = await client.PostAsJsonAsync("/auth/register", new
+        {
+            email = "no-sid@example.com",
+            password = "StrongP@ssw0rd!",
+            displayName = "NoSidUser"
+        });
+        var userId = JsonDocument.Parse(await registerResponse.Content.ReadAsStringAsync())
+            .RootElement.GetProperty("user").GetProperty("id").GetString()!;
+
+        // No sessionId — sid claim absent
+        var token = AuthHelper.GenerateTestToken(userId: userId);
+        var authClient = _server.CreateClient();
+        authClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await authClient.GetAsync("/me");
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    // HI-45: a token whose AuthVersion (ver claim) doesn't match the user's current
+    // version must be rejected. The version is bumped by ChangePasswordAsync /
+    // CompletePasswordResetAsync — without this check, REST sessions survived
+    // password change until natural expiry.
+    [Test]
+    public async Task Authenticated_Request_With_StaleAuthVersion_Returns_Unauthorized()
+    {
+        var client = _server.CreateClient();
+        var registerResponse = await client.PostAsJsonAsync("/auth/register", new
+        {
+            email = "authver-stale@example.com",
+            password = "StrongP@ssw0rd!",
+            displayName = "AuthVerStale"
+        });
+        var userId = JsonDocument.Parse(await registerResponse.Content.ReadAsStringAsync())
+            .RootElement.GetProperty("user").GetProperty("id").GetString()!;
+
+        // Simulate a password change: current AuthVersion in the cache is 7.
+        using (var scope = _server.Services.CreateScope())
+        {
+            var cache = scope.ServiceProvider.GetRequiredService<Snakk.Application.Services.IAuthVersionCache>();
+            await cache.SetAsync(userId, 7);
+        }
+
+        // Token was issued under the OLD version (3) — must be rejected.
+        var staleToken = AuthHelper.GenerateTestToken(userId: userId, authVersion: 3);
+        var staleClient = _server.CreateClient();
+        staleClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", staleToken);
+
+        var response = await staleClient.GetAsync("/me");
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+    }
+
+    // HI-45 corollary: a token whose AuthVersion matches the cache passes the new
+    // check. Confirms the gate isn't a blanket-reject — only mismatches fail.
+    [Test]
+    public async Task Authenticated_Request_With_MatchingAuthVersion_Succeeds()
+    {
+        var client = _server.CreateClient();
+        var registerResponse = await client.PostAsJsonAsync("/auth/register", new
+        {
+            email = "authver-match@example.com",
+            password = "StrongP@ssw0rd!",
+            displayName = "AuthVerMatch"
+        });
+        var userId = JsonDocument.Parse(await registerResponse.Content.ReadAsStringAsync())
+            .RootElement.GetProperty("user").GetProperty("id").GetString()!;
+
+        using (var scope = _server.Services.CreateScope())
+        {
+            var cache = scope.ServiceProvider.GetRequiredService<Snakk.Application.Services.IAuthVersionCache>();
+            await cache.SetAsync(userId, 5);
+        }
+
+        var freshToken = AuthHelper.GenerateTestToken(userId: userId, authVersion: 5);
+        var authClient = _server.CreateClient();
+        authClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", freshToken);
+
+        var response = await authClient.GetAsync("/me");
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+    }
+
+    // Parity with the gRPC AuthValidationInterceptor: a user marked revoked via
+    // IRevocationCache (set by ModerationUseCase ban flow) must be rejected at
+    // REST endpoints too. Pre-fix, banning a user only killed their gRPC calls.
+    [Test]
+    public async Task Authenticated_Request_With_RevokedUser_Returns_Unauthorized()
+    {
+        var client = _server.CreateClient();
+        var registerResponse = await client.PostAsJsonAsync("/auth/register", new
+        {
+            email = "user-banned@example.com",
+            password = "StrongP@ssw0rd!",
+            displayName = "BannedUser"
+        });
+        var userId = JsonDocument.Parse(await registerResponse.Content.ReadAsStringAsync())
+            .RootElement.GetProperty("user").GetProperty("id").GetString()!;
+
+        using (var scope = _server.Services.CreateScope())
+        {
+            var revocation = scope.ServiceProvider.GetRequiredService<Snakk.Application.Services.IRevocationCache>();
+            revocation.RevokeUser(userId);
+        }
+
+        var token = AuthHelper.GenerateTestToken(userId: userId);
+        var authClient = _server.CreateClient();
+        authClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        var response = await authClient.GetAsync("/me");
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+    }
+
     public async ValueTask DisposeAsync()
     {
         await _server.DisposeAsync();
