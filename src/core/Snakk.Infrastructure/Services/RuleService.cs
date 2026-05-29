@@ -129,8 +129,14 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
 
         context.Rules.AddRange(newRules);
 
-        // Bump site rules revision
+        // Bump site rules revision. AsTracking() so the Value / UpdatedAt updates on
+        // the existing setting persist. Without this, the first call inserts the row
+        // successfully (Add() path), but every subsequent call silently no-ops the
+        // update — pinning the cache-busting revision at the very first value forever
+        // and serving stale rules to every client (CR-28). Community/Hub/Space scopes
+        // in this same file already track correctly; the Site scope was missed.
         var revisionSetting = await context.SystemSettings
+            .AsTracking()
             .FirstOrDefaultAsync(
                 s => s.Category == "Rules" && s.Key == "SiteRulesRevision",
                 cancellationToken);
