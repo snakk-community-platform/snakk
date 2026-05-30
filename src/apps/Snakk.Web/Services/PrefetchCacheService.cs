@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Memory;
 using Snakk.Web.Middleware;
 
@@ -64,29 +65,47 @@ public class PrefetchCacheService(
     private readonly TimeSpan _defaultPrefetchTimeout =
         TimeSpan.FromMilliseconds(configuration.GetValue("PrefetchCache:PrefetchTimeoutMs", 1000));
 
+    // Per-key gates guarding cache-entry creation. IMemoryCache.GetOrCreate is not
+    // atomic, so without these, concurrent callers each create their own Lazy/Task and
+    // each runs the (expensive) factory — a cache stampede onto the DB. One gate per key
+    // serializes only the brief create-and-set; the factory await always happens outside.
+    private readonly ConcurrentDictionary<string, object> _keyLocks = new();
+
     public void Prefetch<T>(string cacheKey, Func<Task<T>> factory, TimeSpan? ttl = null)
     {
         var key = $"prefetch:{cacheKey}";
 
-        // Log prefetch initiation to Server-Timing (HttpContext is available here, on the request thread)
-        var collector = _httpContextAccessor.HttpContext?.Items["ServerTiming"] as ServerTimingCollector;
-        var offsetMs = collector?.GetOffsetMs();
-        collector?.Add("prefetch", 0, $"prefetch {cacheKey}", offsetMs);
+        // Dedup: if a prefetch for this key is already in-flight (or completed and not
+        // faulted), reuse it rather than spawning a duplicate fetch under concurrency.
+        if (_cache.TryGetValue<Task<T>>(key, out var existing) && existing is { IsFaulted: false })
+            return;
 
-        var task = Task.Run(async () =>
+        var gate = _keyLocks.GetOrAdd(key, static _ => new object());
+        lock (gate)
         {
-            try
-            {
-                return await factory();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Prefetch failed for {CacheKey}", cacheKey);
-                throw;
-            }
-        });
+            if (_cache.TryGetValue(key, out existing) && existing is { IsFaulted: false })
+                return;
 
-        _cache.Set(key, task, ttl ?? _defaultPrefetchTtl);
+            // Log prefetch initiation to Server-Timing (HttpContext is available here, on the request thread)
+            var collector = _httpContextAccessor.HttpContext?.Items["ServerTiming"] as ServerTimingCollector;
+            var offsetMs = collector?.GetOffsetMs();
+            collector?.Add("prefetch", 0, $"prefetch {cacheKey}", offsetMs);
+
+            var task = Task.Run(async () =>
+            {
+                try
+                {
+                    return await factory();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Prefetch failed for {CacheKey}", cacheKey);
+                    throw;
+                }
+            });
+
+            _cache.Set(key, task, ttl ?? _defaultPrefetchTtl);
+        }
     }
 
     public async Task<CacheResult<T>> GetOrFetchAsync<T>(
@@ -147,11 +166,23 @@ public class PrefetchCacheService(
         var sharedKey = $"shared:{cacheKey}";
         var effectiveTtl = ttl ?? _defaultSharedTtl;
 
-        var lazy = _cache.GetOrCreate(sharedKey, entry =>
+        // IMemoryCache.GetOrCreate is NOT atomic: under concurrency multiple callers each
+        // build their own Lazy and each runs the factory, defeating the coalescing and
+        // stampeding the DB. Serialize creation per key so exactly one Lazy<Task> (one
+        // in-flight factory) is published per key. The await happens outside the lock, so
+        // concurrent callers share the single in-flight Task.
+        if (!_cache.TryGetValue<Lazy<Task<T?>>>(sharedKey, out var lazy) || lazy is null)
         {
-            entry.AbsoluteExpirationRelativeToNow = effectiveTtl;
-            return new Lazy<Task<T?>>(() => factory());
-        });
+            var gate = _keyLocks.GetOrAdd(sharedKey, static _ => new object());
+            lock (gate)
+            {
+                if (!_cache.TryGetValue(sharedKey, out lazy) || lazy is null)
+                {
+                    lazy = new Lazy<Task<T?>>(factory, LazyThreadSafetyMode.ExecutionAndPublication);
+                    _cache.Set(sharedKey, lazy, effectiveTtl);
+                }
+            }
+        }
 
         try
         {
