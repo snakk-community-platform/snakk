@@ -512,20 +512,15 @@ public class AuthGrpcService(
     public override async Task<PublicSettingsResponse> GetPublicSettings(
         GetPublicSettingsRequest request, ServerCallContext context)
     {
-        const string key = "public-settings";
-        if (cache.TryGetValue(key, out PublicSettingsResponse? cached) && cached is not null)
-            return cached;
-
-        var siteInfo = await settingsService.GetSiteInfoAsync();
-        var regSettings = await settingsService.GetRegistrationSettingsAsync();
-        var response = new PublicSettingsResponse
+        var siteInfoTask = settingsService.GetSiteInfoAsync();
+        var regSettingsTask = settingsService.GetRegistrationSettingsAsync();
+        await Task.WhenAll(siteInfoTask, regSettingsTask);
+        return new PublicSettingsResponse
         {
-            Timezone = siteInfo.Timezone,
-            SiteName = siteInfo.SiteName,
-            RegistrationMode = regSettings.Mode
+            Timezone = siteInfoTask.Result.Timezone,
+            SiteName = siteInfoTask.Result.SiteName,
+            RegistrationMode = regSettingsTask.Result.Mode
         };
-        cache.Set(key, response, TimeSpan.FromMinutes(10));
-        return response;
     }
 
     public override async Task<DisplayNameHistoryResponse> GetDisplayNameHistory(

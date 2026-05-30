@@ -9,22 +9,35 @@ public class ConsentService(SnakkDbContext db) : IConsentService
 {
     public async Task<List<ConsentTypeInfo>> GetActiveRequiredConsentsAsync(CancellationToken ct = default)
     {
-        // For each active+required consent type, get the latest version
         var types = await db.ConsentTypes
             .Where(ct2 => ct2.IsActive && ct2.IsRequired)
             .OrderBy(ct2 => ct2.DisplayOrder)
-            .Select(ct2 => new ConsentTypeInfo(
-                ct2.Slug,
-                ct2.Name,
-                ct2.ShortLabel,
-                ct2.LinkUrl,
-                ct2.IsRequired,
-                ct2.DisplayOrder,
-                ct2.Versions.OrderByDescending(v => v.VersionNumber).Select(v => v.Id).FirstOrDefault(),
-                ct2.Versions.OrderByDescending(v => v.VersionNumber).Select(v => v.VersionNumber).FirstOrDefault()))
+            .Select(ct2 => new { ct2.Id, ct2.Slug, ct2.Name, ct2.ShortLabel, ct2.LinkUrl, ct2.IsRequired, ct2.DisplayOrder })
             .ToListAsync(ct);
 
-        return types.Where(t => t.LatestVersionId > 0).ToList();
+        if (types.Count == 0) return [];
+
+        // Separate query avoids the ROW_NUMBER() window-function scan EF Core generates
+        // when FirstOrDefault() is used on a navigation collection inside a projection.
+        var typeIds = types.Select(t => t.Id).ToList();
+        var allVersions = await db.ConsentTypeVersions
+            .Where(v => typeIds.Contains(v.ConsentType.Id))
+            .Select(v => new { v.Id, ConsentTypeId = v.ConsentType.Id, v.VersionNumber })
+            .ToListAsync(ct);
+
+        var latestByType = allVersions
+            .GroupBy(v => v.ConsentTypeId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.VersionNumber).First());
+
+        return types
+            .Select(t =>
+            {
+                latestByType.TryGetValue(t.Id, out var latest);
+                return new ConsentTypeInfo(t.Slug, t.Name, t.ShortLabel, t.LinkUrl, t.IsRequired, t.DisplayOrder,
+                    latest?.Id ?? 0, latest?.VersionNumber ?? 0);
+            })
+            .Where(t => t.LatestVersionId > 0)
+            .ToList();
     }
 
     public async Task<ConsentVersionInfo?> GetLatestVersionAsync(string slug, CancellationToken ct = default) =>
@@ -43,22 +56,29 @@ public class ConsentService(SnakkDbContext db) : IConsentService
 
         if (userId == 0) return [];
 
-        // Get latest version ID for each active required type
-        var requiredTypes = await db.ConsentTypes
+        // Separate query avoids the ROW_NUMBER() window-function scan EF Core generates
+        // when FirstOrDefault() is used on a navigation collection inside a projection.
+        var rawTypes = await db.ConsentTypes
             .Where(ct2 => ct2.IsActive && ct2.IsRequired)
             .OrderBy(ct2 => ct2.DisplayOrder)
-            .Select(ct2 => new
-            {
-                ct2.Slug,
-                ct2.Name,
-                ct2.ShortLabel,
-                ct2.LinkUrl,
-                LatestVersionId = ct2.Versions
-                    .OrderByDescending(v => v.VersionNumber)
-                    .Select(v => v.Id)
-                    .FirstOrDefault()
-            })
+            .Select(ct2 => new { ct2.Id, ct2.Slug, ct2.Name, ct2.ShortLabel, ct2.LinkUrl })
             .ToListAsync(ct);
+
+        if (rawTypes.Count == 0) return [];
+
+        var typeIds = rawTypes.Select(t => t.Id).ToList();
+        var allVersions = await db.ConsentTypeVersions
+            .Where(v => typeIds.Contains(v.ConsentType.Id))
+            .Select(v => new { v.Id, ConsentTypeId = v.ConsentType.Id, v.VersionNumber })
+            .ToListAsync(ct);
+
+        var latestVersionByType = allVersions
+            .GroupBy(v => v.ConsentTypeId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.VersionNumber).First().Id);
+
+        var requiredTypes = rawTypes
+            .Select(t => new { t.Slug, t.Name, t.ShortLabel, t.LinkUrl, LatestVersionId = latestVersionByType.GetValueOrDefault(t.Id) })
+            .ToList();
 
         if (requiredTypes.Count == 0) return [];
 

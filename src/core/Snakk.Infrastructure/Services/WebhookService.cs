@@ -35,12 +35,19 @@ public class WebhookService(
                 SuccessfulDeliveries = w.DeliveryLogs.Count(l => l.IsSuccess),
                 FailedDeliveries = w.DeliveryLogs.Count(l => !l.IsSuccess),
                 LastDeliveryAt = (DateTime?)w.DeliveryLogs.Max(l => (DateTime?)l.CreatedAt),
-                LastDeliverySuccess = (bool?)w.DeliveryLogs
-                    .OrderByDescending(l => l.CreatedAt)
-                    .Select(l => (bool?)l.IsSuccess)
-                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
+
+        // Separate query avoids the ROW_NUMBER() window-function scan EF Core generates
+        // when FirstOrDefault() is used on a navigation collection inside a projection.
+        var webhookIds = raw.Select(w => w.Id).ToList();
+        var deliveryLogs = await dbContext.WebhookDeliveryLogs
+            .Where(l => webhookIds.Contains(l.WebhookId))
+            .Select(l => new { l.WebhookId, l.CreatedAt, l.IsSuccess })
+            .ToListAsync(cancellationToken);
+        var lastSuccess = deliveryLogs
+            .GroupBy(l => l.WebhookId)
+            .ToDictionary(g => g.Key, g => (bool?)g.OrderByDescending(l => l.CreatedAt).First().IsSuccess);
 
         return raw.Select(w => new WebhookResponse
         {
@@ -60,7 +67,7 @@ public class WebhookService(
             SuccessfulDeliveries = w.SuccessfulDeliveries,
             FailedDeliveries = w.FailedDeliveries,
             LastDeliveryAt = w.LastDeliveryAt,
-            LastDeliverySuccess = w.LastDeliverySuccess
+            LastDeliverySuccess = lastSuccess.GetValueOrDefault(w.Id)
         }).ToList();
     }
 
@@ -80,14 +87,18 @@ public class WebhookService(
                 SuccessfulDeliveries = wh.DeliveryLogs.Count(l => l.IsSuccess),
                 FailedDeliveries = wh.DeliveryLogs.Count(l => !l.IsSuccess),
                 LastDeliveryAt = (DateTime?)wh.DeliveryLogs.Max(l => (DateTime?)l.CreatedAt),
-                LastDeliverySuccess = (bool?)wh.DeliveryLogs
-                    .OrderByDescending(l => l.CreatedAt)
-                    .Select(l => (bool?)l.IsSuccess)
-                    .FirstOrDefault()
             })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (w is null) return null;
+
+        // Separate query avoids the ROW_NUMBER() window-function scan EF Core generates
+        // when FirstOrDefault() is used on a navigation collection inside a projection.
+        var lastDeliverySuccess = await dbContext.WebhookDeliveryLogs
+            .Where(l => l.WebhookId == webhookId)
+            .OrderByDescending(l => l.CreatedAt)
+            .Select(l => (bool?)l.IsSuccess)
+            .FirstOrDefaultAsync(cancellationToken);
 
         return new WebhookResponse
         {
@@ -107,7 +118,7 @@ public class WebhookService(
             SuccessfulDeliveries = w.SuccessfulDeliveries,
             FailedDeliveries = w.FailedDeliveries,
             LastDeliveryAt = w.LastDeliveryAt,
-            LastDeliverySuccess = w.LastDeliverySuccess
+            LastDeliverySuccess = lastDeliverySuccess
         };
     }
 

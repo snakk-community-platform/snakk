@@ -406,6 +406,19 @@ public class PostRepositoryAdapter(
         int limit,
         CancellationToken ct = default)
     {
+        // No scope filter — query User.LastSeenAt directly instead of GROUP BY across all posts.
+        if (communityId is null && hubId is null && spaceId is null)
+        {
+            var recent = await context.Users
+                .Where(u => !u.IsDeleted && u.LastSeenAt != null)
+                .OrderByDescending(u => u.LastSeenAt)
+                .Take(limit)
+                .Select(u => new { u.PublicId, LastSeenAt = u.LastSeenAt!.Value })
+                .ToListAsync(ct);
+
+            return recent.Select(u => (UserId.From(u.PublicId), u.LastSeenAt)).ToList();
+        }
+
         var postsQuery = context.Posts.AsQueryable();
 
         if (communityId is not null)
