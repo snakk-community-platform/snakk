@@ -7,7 +7,7 @@ namespace Snakk.Web.Services;
 public sealed class DiscussionCreateRateLimiter(IConfiguration configuration) : IDisposable
 {
     private readonly PartitionedRateLimiter<HttpContext> _limiter =
-        configuration.GetValue<bool>("DisableRateLimiting")
+        !configuration.GetValue<bool>("EnableRateLimiting")
             ? PartitionedRateLimiter.Create<HttpContext, string>(_ => RateLimitPartition.GetNoLimiter("disabled"))
             : PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
             {

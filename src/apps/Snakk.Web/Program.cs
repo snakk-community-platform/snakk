@@ -31,6 +31,12 @@ DotNetRuntimeStatsBuilder.Default().StartCollecting();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Auth/session cookies set Secure=true; over plain HTTP (dev/test) clients drop them,
+// breaking every authenticated flow. Default secure, but disable in Development so
+// local and load testing can authenticate. Override with Cookies:RequireSecure.
+Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure =
+    builder.Configuration.GetValue<bool?>("Cookies:RequireSecure") ?? !builder.Environment.IsDevelopment();
+
 // Load shared config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
 builder.Configuration.AddJsonFile(
@@ -323,7 +329,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-var disableRateLimiting = builder.Configuration.GetValue<bool>("DisableRateLimiting");
+var enableRateLimiting = builder.Configuration.GetValue<bool>("EnableRateLimiting");
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -665,7 +671,7 @@ app.UseRouting();
 app.UseMiddleware<TokenRefreshMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
-if (!disableRateLimiting) app.UseRateLimiter();
+if (enableRateLimiting) app.UseRateLimiter();
 
 // SameSite=Strict mutation guard: BFF state-changing requests (POST/PUT/DELETE) require
 // the Strict auth cookie, not just the Lax session cookie. This prevents CSRF attacks
@@ -771,7 +777,7 @@ app.MapPost("/bff/adult-confirm", (HttpContext ctx) =>
     ctx.Response.Cookies.Append("snakk.adult-confirmed", "1", new CookieOptions
     {
         HttpOnly = true,
-        Secure = true,
+        Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
         SameSite = SameSiteMode.Strict,
         Path = "/",
         IsEssential = true

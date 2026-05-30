@@ -244,7 +244,10 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
-        var space = await dbContext.Spaces.FirstOrDefaultAsync(s => s.PublicId == request.SpacePublicId);
+        // AsTracking() so the Discord settings assignments below actually persist
+        // (HI-22a). Same class-of-bug as CR-1 / CR-25 — the SnakkDbContext default
+        // is NoTracking, so untracked reads + property mutation silently no-ops.
+        var space = await dbContext.Spaces.AsTracking().FirstOrDefaultAsync(s => s.PublicId == request.SpacePublicId);
         if (space is null)
             return new UpdateSpaceDiscordSettingsResponse { Success = false, ErrorMessage = "Space not found" };
 

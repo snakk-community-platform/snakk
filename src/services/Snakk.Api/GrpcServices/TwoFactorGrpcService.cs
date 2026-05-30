@@ -93,7 +93,12 @@ public class TwoFactorGrpcService(
         VerifyTwoFactorLoginRequest request, ServerCallContext ctx)
     {
         var ct = ctx.CancellationToken;
+        // AsTracking() so the `backupCode.IsUsed = true` mutation at line 136 actually
+        // persists — the SnakkDbContext default is NoTrackingWithIdentityResolution,
+        // which silently no-ops EF change-detection on Include()d collections. CR-22
+        // in docs/SECURITY-AUDIT-2026-05-23.md: backup codes were infinitely reusable.
         var user = await context.Users
+            .AsTracking()
             .Include(u => u.TwoFactorBackupCodes)
             .Include(u => u.Roles.Where(r => r.RevokedAt == null))
             .FirstOrDefaultAsync(u => u.Email == request.Email, ct);

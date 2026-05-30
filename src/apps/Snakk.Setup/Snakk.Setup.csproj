@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\aspire\Snakk.ServiceDefaults\Snakk.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.Shared\Snakk.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

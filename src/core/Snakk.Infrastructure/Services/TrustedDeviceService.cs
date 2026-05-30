@@ -76,8 +76,10 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
         if (user is null)
             throw new InvalidOperationException($"User {userId} not found");
 
-        // Check if device is already trusted
+        // Check if device is already trusted. AsTracking() so the LastUsedAt / LastUsedIp /
+        // ExpiresAt mutations below actually persist (CR-23).
         var existing = await context.TwoFactorTrustedDevices
+            .AsTracking()
             .FirstOrDefaultAsync(d =>
                 d.UserId == user.Id
                 && d.DeviceFingerprint == deviceFingerprint
@@ -146,6 +148,7 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
     public async Task RevokeDeviceAsync(string devicePublicId, string reason, CancellationToken ct = default)
     {
         var device = await context.TwoFactorTrustedDevices
+            .AsTracking()
             .FirstOrDefaultAsync(d => d.PublicId == devicePublicId, ct);
 
         if (device is not null && device.RevokedAt is null)
@@ -159,6 +162,7 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
     public async Task<bool> RevokeDeviceForUserAsync(string devicePublicId, string userId, string reason, CancellationToken ct = default)
     {
         var device = await context.TwoFactorTrustedDevices
+            .AsTracking()
             .Include(d => d.User)
             .FirstOrDefaultAsync(d => d.PublicId == devicePublicId, ct);
 
@@ -178,6 +182,7 @@ public class TrustedDeviceService(SnakkDbContext context) : ITrustedDeviceServic
         if (user is null) return;
 
         var devices = await context.TwoFactorTrustedDevices
+            .AsTracking()
             .Where(d =>
                 d.UserId == user.Id
                 && d.RevokedAt == null)

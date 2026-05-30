@@ -140,11 +140,11 @@ public class LoginModel(
 
             var strictOptions = new CookieOptions
             {
-                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
+                HttpOnly = true, Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
             };
             var laxOptions = new CookieOptions
             {
-                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
+                HttpOnly = true, Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
             };
 
             Response.Cookies.Append(".Snakk.Auth", response.AccessToken, strictOptions);
@@ -158,7 +158,7 @@ public class LoginModel(
             if (Input.RememberMe)
                 Response.Cookies.Append(".Snakk.Pref.RememberMe", "1", new CookieOptions
                 {
-                    HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax,
+                    HttpOnly = true, Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure, SameSite = SameSiteMode.Lax,
                     Path = "/", Expires = DateTimeOffset.UtcNow.AddDays(30)
                 });
             else

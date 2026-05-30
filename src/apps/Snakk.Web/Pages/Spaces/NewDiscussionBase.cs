@@ -117,7 +117,7 @@ public abstract class NewDiscussionBaseModel(
 
     private async Task<bool> IsRateLimitedAsync()
     {
-        if (Configuration.GetValue<bool>("DisableRateLimiting")) return false;
+        if (!Configuration.GetValue<bool>("EnableRateLimiting")) return false;
         var lease = await _createRateLimiter.AcquireAsync(HttpContext);
         if (lease.IsAcquired) { lease.Dispose(); return false; }
         var retryAfter = lease.TryGetMetadata(MetadataName.RetryAfter, out var r) ? (int)r.TotalSeconds : 360;

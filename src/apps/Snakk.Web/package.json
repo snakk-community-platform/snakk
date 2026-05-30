@@ -42,11 +42,11 @@
     "bootstrap-icons": "^1.13.1",
     "concurrently": "^9.2.1",
     "daisyui": "^5.5.20",
-    "dompurify": "^3.4.5",
+    "dompurify": "^3.4.7",
     "esbuild": "^0.28.0",
     "htmx.org": "^2.0.10",
-    "sass": "^1.99.0",
-    "simple-icons": "^16.20.0",
+    "sass": "^1.100.0",
+    "simple-icons": "^16.21.0",
     "typescript": "^6.0.3"
   },
   "dependencies": {
