@@ -579,28 +579,28 @@ public class DatabaseSeeder(
         var createdAt = community.CreatedAt;
 
         var techHub = await CreateHubAsync(community, "Technology", "technology", "All things tech", createdAt);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Web Development", "web-dev", "Frontend, backend, full-stack"), users, 220);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Mobile Apps", "mobile", "iOS, Android, cross-platform"), users, 85);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "AI & Machine Learning", "ai-ml", "Neural networks, LLMs, data science"), users, 310);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "DevOps & Cloud", "devops", "AWS, Azure, Kubernetes, CI/CD"), users, 55);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Programming Languages", "languages", "Rust, Go, Python, TypeScript and more"), users, 130);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Web Development", "web-dev", "Frontend, backend, full-stack"), users, 660);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Mobile Apps", "mobile", "iOS, Android, cross-platform"), users, 255);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "AI & Machine Learning", "ai-ml", "Neural networks, LLMs, data science"), users, 930);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "DevOps & Cloud", "devops", "AWS, Azure, Kubernetes, CI/CD"), users, 165);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Programming Languages", "languages", "Rust, Go, Python, TypeScript and more"), users, 390);
 
         var gamingHub = await CreateHubAsync(community, "Gaming", "gaming", "Video games and esports", createdAt);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "PC Gaming", "pc", "Steam, Epic, GOG discussions"), users, 150);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Console Gaming", "console", "PlayStation, Xbox, Nintendo"), users, 110);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Indie Games", "indie", "Hidden gems and indie devs"), users, 40);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Esports", "esports", "Competitive gaming and tournaments"), users, 65);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "PC Gaming", "pc", "Steam, Epic, GOG discussions"), users, 450);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Console Gaming", "console", "PlayStation, Xbox, Nintendo"), users, 330);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Indie Games", "indie", "Hidden gems and indie devs"), users, 120);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Esports", "esports", "Competitive gaming and tournaments"), users, 195);
 
         var scienceHub = await CreateHubAsync(community, "Science", "science", "Scientific discussions", createdAt);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Physics", "physics", "Quantum to cosmos"), users, 70);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Biology", "biology", "Life sciences"), users, 45);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Space & Astronomy", "space", "The universe and beyond"), users, 90);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Climate & Environment", "climate", "Environmental science and sustainability"), users, 35);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Physics", "physics", "Quantum to cosmos"), users, 210);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Biology", "biology", "Life sciences"), users, 135);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Space & Astronomy", "space", "The universe and beyond"), users, 270);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Climate & Environment", "climate", "Environmental science and sustainability"), users, 105);
 
         var entertainmentHub = await CreateHubAsync(community, "Entertainment", "entertainment", "Movies, TV, music, and more", createdAt);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Movies & TV", "movies-tv", "What are you watching?"), users, 95);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Music", "music", "Genres, artists, playlists"), users, 60);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Books & Literature", "books", "Reading recommendations"), users, 50);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Movies & TV", "movies-tv", "What are you watching?"), users, 285);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Music", "music", "Genres, artists, playlists"), users, 180);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Books & Literature", "books", "Reading recommendations"), users, 150);
 
         Console.WriteLine($"Created 4 hubs and 16 spaces in community '{community.Slug}'.");
     }
@@ -1998,18 +1998,18 @@ public class DatabaseSeeder(
 
     private int GetSkewedReplyCount()
     {
-        // Simulate realistic reply distribution:
-        // ~30% have 0-2 replies (low engagement)
-        // ~40% have 3-7 replies (moderate)
-        // ~20% have 8-15 replies (active)
-        // ~10% have 16-30 replies (very active / viral)
+        // High-engagement distribution targeting ~50 replies on average:
+        // ~10% have 2-5 replies (low engagement)
+        // ~25% have 10-25 replies (moderate)
+        // ~40% have 30-70 replies (active)
+        // ~25% have 80-150 replies (very active / viral)
         var roll = _faker.Random.Int(0, 99);
         return roll switch
         {
-            < 30 => _faker.Random.Int(0, 2),
-            < 70 => _faker.Random.Int(3, 7),
-            < 90 => _faker.Random.Int(8, 15),
-            _ => _faker.Random.Int(16, 30)
+            < 10 => _faker.Random.Int(2, 5),
+            < 35 => _faker.Random.Int(10, 25),
+            < 75 => _faker.Random.Int(30, 70),
+            _ => _faker.Random.Int(80, 150)
         };
     }
 
