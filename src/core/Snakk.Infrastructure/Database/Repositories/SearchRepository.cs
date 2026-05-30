@@ -1,13 +1,14 @@
 namespace Snakk.Infrastructure.Database.Repositories;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Models;
 
-public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache, IFileStorage fileStorage) : ISearchRepository
+public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache, IFileStorage fileStorage, HybridCache cache) : ISearchRepository
 {
     private readonly SnakkDbContext _context = context;
 
@@ -614,14 +615,39 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             && (!d.Space.Hub.Community.IsRestricted || communityIds.Contains(d.Space.Hub.CommunityId)));
     }
 
+    // Latest-discussion-per-space drives the hub/community space listings and was ~85% of DB
+    // time under load (the DISTINCT-ON re-ran on every render across hubs/pages/users). It's
+    // viewer-agnostic — space-level access is already filtered upstream — so cache it per space,
+    // single-flight, with a short TTL. Collapses thousands of DB calls to one per space per TTL.
+    private static readonly HybridCacheEntryOptions LatestPerSpaceCacheOptions = new()
+    {
+        Expiration = TimeSpan.FromSeconds(30),
+        LocalCacheExpiration = TimeSpan.FromSeconds(30),
+    };
+
     private async Task<Dictionary<int, SpaceLatestDiscussion>> GetLatestDiscussionPerSpaceAsync(
         int[] spaceIds, CancellationToken ct)
     {
         if (spaceIds.Length == 0) return [];
 
-        return await _context.Database
+        var result = new Dictionary<int, SpaceLatestDiscussion>(spaceIds.Length);
+        foreach (var spaceId in spaceIds)
+        {
+            var latest = await cache.GetOrCreateAsync<SpaceLatestDiscussion?>(
+                $"space-latest-discussion:{spaceId}",
+                async c => await QueryLatestDiscussionForSpaceAsync(spaceId, c),
+                LatestPerSpaceCacheOptions,
+                cancellationToken: ct);
+            if (latest is not null)
+                result[spaceId] = latest;
+        }
+        return result;
+    }
+
+    private async Task<SpaceLatestDiscussion?> QueryLatestDiscussionForSpaceAsync(int spaceId, CancellationToken ct) =>
+        await _context.Database
             .SqlQuery<SpaceLatestDiscussion>($"""
-                SELECT DISTINCT ON (d."SpaceId")
+                SELECT
                     d."SpaceId",
                     d."PublicId",
                     d."Title",
@@ -632,11 +658,11 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     d."AuthorAvatarFileName",
                     d."PostCount"
                 FROM "Discussion" d
-                WHERE d."SpaceId" = ANY({spaceIds}) AND NOT d."IsDeleted"
-                ORDER BY d."SpaceId", COALESCE(d."LastActivityAt", d."CreatedAt") DESC
+                WHERE d."SpaceId" = {spaceId} AND NOT d."IsDeleted"
+                ORDER BY COALESCE(d."LastActivityAt", d."CreatedAt") DESC
+                LIMIT 1
                 """)
-            .ToDictionaryAsync(x => x.SpaceId, ct);
-    }
+            .FirstOrDefaultAsync(ct);
 
     private sealed class SpaceLatestDiscussion
     {
