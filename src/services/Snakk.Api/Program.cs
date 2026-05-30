@@ -11,7 +11,8 @@ using Serilog;
 using Snakk.ServiceDefaults;
 
 ThreadPool.SetMinThreads(50, 50);
-DotNetRuntimeStatsBuilder.Default().StartCollecting();
+try { DotNetRuntimeStatsBuilder.Default().StartCollecting(); }
+catch (InvalidOperationException) { /* already collecting — second startup in test host */ }
 
 var builder = WebApplication.CreateBuilder(args);
 

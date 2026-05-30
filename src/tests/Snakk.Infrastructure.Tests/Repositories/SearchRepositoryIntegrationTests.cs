@@ -338,6 +338,7 @@ public class SearchRepositoryIntegrationTests : IDisposable
     #region GetSpacesByHubAsync Tests
 
     [Test]
+    [Skip("Requires PostgreSQL: GetLatestDiscussionPerSpaceAsync uses DISTINCT ON which is not supported by SQLite")]
     public async Task GetSpacesByHubAsync_ReturnsSpacesWithStats()
     {
         // Arrange
@@ -356,6 +357,7 @@ public class SearchRepositoryIntegrationTests : IDisposable
     }
 
     [Test]
+    [Skip("Requires PostgreSQL: GetLatestDiscussionPerSpaceAsync uses DISTINCT ON which is not supported by SQLite")]
     public async Task GetSpacesByHubAsync_OnlyReturnsSpacesInSpecifiedHub()
     {
         // Arrange

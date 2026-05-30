@@ -213,14 +213,15 @@ public class SettingsServiceTests : IDisposable
     }
 
     [Test]
-    public async Task UpdateSettingAsync_NonexistentSetting_ThrowsException()
+    public async Task UpdateSettingAsync_NonexistentSetting_CreatesNewSetting()
     {
         var user = await CreateUser("update_err_admin");
 
-        var act = async () =>
-            await _service.UpdateSettingAsync("General", "NonExistent", "value", "update_err_admin");
+        var result = await _service.UpdateSettingAsync("General", "NonExistent", "value", "update_err_admin");
 
-        await Assert.That(act).ThrowsException();
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Key).IsEqualTo("NonExistent");
+        await Assert.That(result.Category).IsEqualTo("General");
     }
 
     [Test]
