@@ -316,11 +316,13 @@ public class DatabaseSeeder(
 
         var testUsers = new[]
         {
-            // Original "Test User" — previously created without credentials; fixed here
+            // Vanity publicIds must be valid 26-char Crockford Base32 — the alphabet excludes
+            // I, L, O, U, so UlidBase62.Encode rejects them. ALICE/CHARLIE (I, L) and BOB (O)
+            // previously threw and 500'd every page that rendered their profile link. I/L→1, O→0.
             ("test@snakk.dev",       "Test User", "01JJQP0000000000000000TEST"),
-            ("alice@snakk.local",    "Alice",     "01JJQP000000000000000ALICE"),
-            ("bob@snakk.local",      "Bob",       "01JJQP00000000000000000BOB"),
-            ("charlie@snakk.local",  "Charlie",   "01JJQP0000000000000CHARLIE"),
+            ("alice@snakk.local",    "Alice",     "01JJQP000000000000000A11CE"),
+            ("bob@snakk.local",      "Bob",       "01JJQP00000000000000000B0B"),
+            ("charlie@snakk.local",  "Charlie",   "01JJQP0000000000000CHAR11E"),
             ("dave@snakk.local",     "Dave",      "01JJQP0000000000000000DAVE"),
             ("eve@snakk.local",      "Eve",       "01JJQP00000000000000000EVE"),
             ("frank@snakk.local",    "Frank",     "01JJQP000000000000000FRANK"),

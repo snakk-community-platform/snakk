@@ -11,13 +11,32 @@ public static class UlidBase62
     private const int EncodedLength = 22;
     private const int UlidLength = 26;
 
+    /// <summary>
+    /// Encodes a 26-char Crockford Base32 ULID to 22-char Base62.
+    /// Throws <see cref="ArgumentException"/> when the input is not a valid ULID.
+    /// </summary>
     public static string Encode(string ulid)
+        => TryEncode(ulid, out var encoded)
+            ? encoded
+            : throw new ArgumentException($"Invalid ULID: '{ulid}'", nameof(ulid));
+
+    /// <summary>
+    /// Attempts to encode a 26-char Crockford Base32 ULID to 22-char Base62, returning
+    /// <c>false</c> instead of throwing when <paramref name="ulid"/> is null, the wrong
+    /// length, or contains a non-Crockford character. Use this on URL-building paths so a
+    /// single malformed id (e.g. a bad seed/import) can't throw and 500 an entire page.
+    /// </summary>
+    public static bool TryEncode(string? ulid, out string encoded)
     {
+        encoded = string.Empty;
+        if (ulid is null || ulid.Length != UlidLength)
+            return false;
+
         var value = UInt128.Zero;
         foreach (var c in ulid.ToUpperInvariant())
         {
             var index = CrockfordAlphabet.IndexOf(c);
-            if (index < 0) throw new ArgumentException($"Invalid ULID character: {c}");
+            if (index < 0) return false;
             value = value * 32 + (UInt128)index;
         }
 
@@ -28,7 +47,8 @@ public static class UlidBase62
             value /= 62;
         }
 
-        return new string(result);
+        encoded = new string(result);
+        return true;
     }
 
     public static string Decode(string encoded)
