@@ -5,6 +5,7 @@ option csharp_namespace = "Snakk.Protos.Search";
 package snakk.search;
 
 import "Protos/common.proto";
+import "Protos/discussion.proto";
 import "google/protobuf/timestamp.proto";
 
 service SearchService {
@@ -23,6 +24,8 @@ message SearchDiscussionsRequest {
   int32 offset = 5;
   int32 page_size = 6;
   bool viewer_allows_adult = 7;
+  optional string sort_by = 8;
+  optional string date_range = 9;
 }
 
 message SearchPostsRequest {
@@ -32,6 +35,8 @@ message SearchPostsRequest {
   optional string space_id = 4;
   int32 offset = 5;
   int32 page_size = 6;
+  optional string sort_by = 7;
+  optional string date_range = 8;
 }
 
 // --- Responses ---
@@ -52,7 +57,7 @@ message DiscussionSearchResult {
 }
 
 message PagedDiscussionSearchResults {
-  repeated DiscussionSearchResult items = 1;
+  repeated snakk.discussion.RecentDiscussionInfo items = 1;
   int32 offset = 2;
   int32 page_size = 3;
   bool has_more_items = 4;

@@ -773,34 +773,34 @@ public class SnakkApiClient(
 
     public virtual async Task<PagedDiscussionSearchResults?> SearchDiscussionsAsync(
         string? query = null, string? authorPublicId = null, string? spacePublicId = null,
-        string? hubPublicId = null, int offset = 0, int pageSize = 20, bool viewerAllowsAdult = false, CancellationToken ct = default)
+        string? hubPublicId = null, int offset = 0, int pageSize = 20, bool viewerAllowsAdult = false,
+        string? sortBy = null, string? dateRange = null, CancellationToken ct = default)
     {
-        try
-        {
-            var request = new SearchDiscussionsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult };
-            if (authorPublicId is not null) request.AuthorId = authorPublicId;
-            if (spacePublicId is not null) request.SpaceId = spacePublicId;
-            if (hubPublicId is not null) request.HubId = hubPublicId;
+        var request = new SearchDiscussionsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult };
+        if (authorPublicId is not null) request.AuthorId = authorPublicId;
+        if (spacePublicId is not null) request.SpaceId = spacePublicId;
+        if (hubPublicId is not null) request.HubId = hubPublicId;
+        if (!string.IsNullOrEmpty(sortBy)) request.SortBy = sortBy;
+        if (!string.IsNullOrEmpty(dateRange)) request.DateRange = dateRange;
 
-            return await searchClient.SearchDiscussionsAsync(request, cancellationToken: ct);
-        }
-        catch (RpcException ex) { LogGrpcError(ex); return null; }
+        // Let exceptions propagate so callers can distinguish API failure from empty results.
+        return await searchClient.SearchDiscussionsAsync(request, cancellationToken: ct);
     }
 
     public virtual async Task<PagedPostSearchResults?> SearchPostsAsync(
         string? query = null, string? authorPublicId = null, string? discussionPublicId = null,
-        string? spacePublicId = null, int offset = 0, int pageSize = 20, CancellationToken ct = default)
+        string? spacePublicId = null, int offset = 0, int pageSize = 20,
+        string? sortBy = null, string? dateRange = null, CancellationToken ct = default)
     {
-        try
-        {
-            var request = new SearchPostsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize };
-            if (authorPublicId is not null) request.AuthorId = authorPublicId;
-            if (discussionPublicId is not null) request.DiscussionId = discussionPublicId;
-            if (spacePublicId is not null) request.SpaceId = spacePublicId;
+        var request = new SearchPostsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize };
+        if (authorPublicId is not null) request.AuthorId = authorPublicId;
+        if (discussionPublicId is not null) request.DiscussionId = discussionPublicId;
+        if (spacePublicId is not null) request.SpaceId = spacePublicId;
+        if (!string.IsNullOrEmpty(sortBy)) request.SortBy = sortBy;
+        if (!string.IsNullOrEmpty(dateRange)) request.DateRange = dateRange;
 
-            return await searchClient.SearchPostsAsync(request, cancellationToken: ct);
-        }
-        catch (RpcException ex) { LogGrpcError(ex); return null; }
+        // Let exceptions propagate so callers can distinguish API failure from empty results.
+        return await searchClient.SearchPostsAsync(request, cancellationToken: ct);
     }
 
     public virtual async Task<UserProfileInfo?> GetUserProfileAsync(string publicId, CancellationToken ct = default)

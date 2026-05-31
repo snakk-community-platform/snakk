@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Infrastructure.Database;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Extensions;
@@ -11,7 +12,8 @@ using Snakk.Shared.Models;
 
 public class CommunityRepositoryAdapter(
     Infrastructure.Database.Repositories.ICommunityDatabaseRepository databaseRepository,
-    SnakkDbContext context) : Domain.Repositories.ICommunityRepository
+    SnakkDbContext context,
+    HybridCache cache) : Domain.Repositories.ICommunityRepository
 {
     public async Task<Community?> GetByPublicIdAsync(CommunityId publicId, CancellationToken ct = default)
     {
@@ -133,11 +135,19 @@ public class CommunityRepositoryAdapter(
 
         if (nameChanged || slugChanged)
         {
+            var affectedSpaceIds = await context.Spaces
+                .Where(s => s.Hub.CommunityId == entity.Id)
+                .Select(s => s.Id)
+                .ToListAsync(ct);
+
             await context.Spaces
                 .Where(s => s.Hub.CommunityId == entity.Id)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(sp => sp.CommunityName, entity.Name)
                     .SetProperty(sp => sp.CommunitySlug, entity.Slug), ct);
+
+            foreach (var id in affectedSpaceIds)
+                await cache.RemoveAsync($"space-display:{id}", ct);
         }
     }
 

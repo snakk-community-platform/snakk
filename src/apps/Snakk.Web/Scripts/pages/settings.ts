@@ -206,7 +206,7 @@ interface SettingsPageConfig {
         setTimeout(() => { alertDiv.remove(); }, 5000);
     }
 
-    async function refreshAvatar(): Promise<void> {
+    async function refreshAvatar(forceGenerated = false): Promise<void> {
         const avatarPreview = document.getElementById('avatar-preview') as HTMLImageElement | null;
         if (!avatarPreview || !userId) return;
         try {
@@ -214,15 +214,23 @@ interface SettingsPageConfig {
             if (response.ok) {
                 const data = await response.json();
                 const timestamp = new Date().getTime();
-                const newSrc = data.avatarUrl
+                const navSrc = data.avatarUrl
                     ? data.avatarUrl + '?t=' + timestamp
                     : avatarPreview.dataset.generatedUrl || '';
 
-                avatarPreview.src = newSrc;
+                // Only update the preview if we got a real URL, or the caller explicitly
+                // wants the generated avatar shown (e.g. after deleting the custom one).
+                // Without this guard, a stale API response returning avatarUrl=null after
+                // upload would overwrite the preview with the generated avatar.
+                if (data.avatarUrl) {
+                    avatarPreview.src = navSrc;
+                } else if (forceGenerated) {
+                    avatarPreview.src = avatarPreview.dataset.generatedUrl || '';
+                }
 
                 document.querySelectorAll<HTMLImageElement>(
                     '#auth-nav .avatar-sm img, #auth-nav .sn-user-menu-card-avatar, .sn-tabbar .avatar-sm img, .sn-tabbar .sn-user-menu-card-avatar'
-                ).forEach(img => { img.src = newSrc; });
+                ).forEach(img => { img.src = navSrc; });
             }
         } catch { /* ignore */ }
     }
@@ -316,7 +324,9 @@ interface SettingsPageConfig {
             if (result.ok) {
                 finishUploadProgress(true);
                 showStatus('Avatar uploaded successfully!');
-                refreshAvatar();
+                // Await so the blob stays visible during the API round-trip.
+                // revokeObjectURL runs only after the new URL is set (or confirmed absent).
+                await refreshAvatar();
                 pendingAvatarFile = null;
                 if (avatarBlobUrl) { URL.revokeObjectURL(avatarBlobUrl); avatarBlobUrl = null; }
                 resetDropZone();
@@ -326,12 +336,12 @@ interface SettingsPageConfig {
             } else {
                 finishUploadProgress(false);
                 showStatus(result.data?.error || result.error || 'Failed to upload avatar.', true);
-                refreshAvatar();
+                await refreshAvatar();
             }
         } catch (error) {
             finishUploadProgress(false);
             showStatus('Network error. Please try again.', true);
-            refreshAvatar();
+            await refreshAvatar();
         } finally {
             uploadBtn.disabled = !pendingAvatarFile;
         }
@@ -354,7 +364,7 @@ interface SettingsPageConfig {
 
             if (response.ok) {
                 showStatus('Now using generated avatar.');
-                refreshAvatar();
+                refreshAvatar(true);
                 deleteBtn.disabled = true;
                 deleteBtn.textContent = 'Use Generated';
             } else {

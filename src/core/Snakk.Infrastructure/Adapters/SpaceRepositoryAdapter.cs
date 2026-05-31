@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Domain.Entities;
@@ -11,7 +12,8 @@ using Snakk.Shared.Models;
 
 public class SpaceRepositoryAdapter(
     Infrastructure.Database.Repositories.ISpaceRepository databaseRepository,
-    SnakkDbContext context) : Domain.Repositories.ISpaceRepository
+    SnakkDbContext context,
+    HybridCache cache) : Domain.Repositories.ISpaceRepository
 {
     public async Task<Space?> GetByIdAsync(int id, CancellationToken ct = default)
     {
@@ -153,6 +155,7 @@ public class SpaceRepositoryAdapter(
 
         await databaseRepository.UpdateAsync(entity, ct);
         await databaseRepository.SaveChangesAsync(ct);
+        await cache.RemoveAsync($"space-display:{entity.Id}", ct);
     }
 
     private record SpaceProjection(

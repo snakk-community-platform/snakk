@@ -20,7 +20,18 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         .Replace("%", "\\%")
         .Replace("_", "\\_");
 
-    public async Task<PagedResult<DiscussionSearchResultDto>> SearchDiscussionsAsync(
+    /// <summary>Converts a UI date-range string to a UTC lower-bound cutoff, or null for "all time".</summary>
+    private static DateTime? ParseDateCutoff(string? dateRange) => dateRange switch
+    {
+        "past hour"  => DateTime.UtcNow.AddHours(-1),
+        "today"      => DateTime.UtcNow.Date,
+        "past week"  => DateTime.UtcNow.AddDays(-7),
+        "past month" => DateTime.UtcNow.AddMonths(-1),
+        "past year"  => DateTime.UtcNow.AddYears(-1),
+        _            => null
+    };
+
+    public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> SearchDiscussionsAsync(
         string query,
         string? authorPublicId = null,
         string? spacePublicId = null,
@@ -29,6 +40,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         int pageSize = 20,
         string? userId = null,
         bool viewerAllowsAdult = false,
+        string? sortBy = null,
+        string? dateRange = null,
         CancellationToken ct = default)
     {
         var baseQuery = _context.Discussions
@@ -42,8 +55,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         {
             if (IsPostgres)
             {
-                var tsQuery = EF.Functions.WebSearchToTsQuery("english", query.Trim());
-                baseQuery = baseQuery.Where(d => d.SearchVector.Matches(tsQuery));
+                baseQuery = baseQuery.Where(d => d.SearchVector.Matches(
+                    EF.Functions.WebSearchToTsQuery("english", query.Trim())));
             }
             else
             {
@@ -52,7 +65,6 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             }
         }
 
-        // Apply filters
         if (!string.IsNullOrEmpty(authorPublicId))
             baseQuery = baseQuery.Where(d => d.CreatedByUserPublicId == authorPublicId);
 
@@ -68,66 +80,107 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             baseQuery = baseQuery.Where(d => d.HubId == hubDbId);
         }
 
-        // Order by relevance when searching, by activity when browsing
-        IOrderedQueryable<DiscussionDatabaseEntity> orderedQuery;
-        if (!string.IsNullOrWhiteSpace(query) && IsPostgres)
-        {
-            orderedQuery = baseQuery
-                .OrderByDescending(d => d.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", query.Trim())))
-                .ThenByDescending(d => d.LastActivityAt ?? d.CreatedAt);
-        }
-        else
-        {
-            orderedQuery = baseQuery
-                .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt);
-        }
+        // Date-range filter — applied on CreatedAt regardless of sort order.
+        // IX_Discussion_PostCount_IsDeleted / IX_Discussion_ReactionCount_IsDeleted handle the
+        // no-FTS path; the GIN index handles the FTS path efficiently.
+        var cutoff = ParseDateCutoff(dateRange);
+        if (cutoff.HasValue)
+            baseQuery = baseQuery.Where(d => d.CreatedAt >= cutoff.Value);
 
-        var rawSearchItems = await orderedQuery
+        // Sort order. When an explicit sort is requested it overrides FTS relevance ranking.
+        // "newest" with an active FTS query still falls through to relevance (best UX default).
+        var trimmedQuery = query.Trim();
+        IOrderedQueryable<DiscussionDatabaseEntity> orderedQuery = sortBy switch
+        {
+            "oldest"    => baseQuery.OrderBy(d => d.CreatedAt).ThenBy(d => d.Id),
+            "popular"   => baseQuery.OrderByDescending(d => d.PostCount).ThenByDescending(d => d.Id),
+            "reactions" => baseQuery.OrderByDescending(d => d.ReactionCount).ThenByDescending(d => d.Id),
+            // "newest" or default: relevance when FTS is active, activity otherwise
+            _ => !string.IsNullOrWhiteSpace(trimmedQuery) && IsPostgres
+                ? baseQuery
+                    .OrderByDescending(d => d.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", trimmedQuery)))
+                    .ThenByDescending(d => d.LastActivityAt ?? d.CreatedAt)
+                : baseQuery
+                    .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
+        };
+
+        var rawItems = await orderedQuery
             .Skip(offset)
             .Take(pageSize + 1)
             .Select(d => new {
+                d.Id,
                 d.PublicId, d.Title, d.Slug,
-                d.CreatedByUserPublicId,
+                d.Type,
+                d.CreatedAt, d.LastActivityAt,
+                d.IsPinned, d.IsLocked,
+                d.PostCount, d.ReactionCount,
+                d.Tags,
+                d.IsAdultOnly,
+                d.SpaceId, d.SpacePublicId,
+                d.HubPublicId,
+                d.CommunityPublicId,
+                AuthorPublicId = d.CreatedByUserPublicId,
                 d.AuthorDisplayName,
                 d.AuthorAvatarFileName,
-                d.SpaceId,
-                d.SpacePublicId,
-                d.CreatedAt,
-                d.LastActivityAt,
-                d.PostCount,
-                d.ReactionCount
+                d.AuthorAvatarThumbnailFileName,
+                d.LastPostAuthorPublicId,
+                d.LastPostAuthorDisplayName,
+                d.LastPostAuthorAvatarFileName,
+                d.LastPostAuthorAvatarThumbnailFileName,
+                d.LastPostPlainTextExcerpt
             })
             .ToListAsync(ct);
 
-        var searchSpaceDisplay = await FetchSpaceDisplayAsync(rawSearchItems.Select(x => x.SpaceId), ct);
+        var spaceDisplay = await FetchSpaceDisplayAsync(rawItems.Select(x => x.SpaceId), ct);
 
-        var items = rawSearchItems.Select(d =>
+        var items = rawItems.Select(d =>
         {
-            searchSpaceDisplay.TryGetValue(d.SpaceId, out var space);
-            return new DiscussionSearchResultDto(
-                d.PublicId, d.Title, d.Slug,
-                d.CreatedByUserPublicId,
-                d.AuthorDisplayName ?? "",
-                d.AuthorAvatarFileName,
-                d.SpacePublicId,
-                space?.Name ?? "",
-                space?.Slug ?? "",
-                space?.HubSlug,
-                space?.HubName,
-                space?.CommunitySlug,
-                d.CreatedAt,
-                d.LastActivityAt,
-                d.PostCount,
-                d.ReactionCount,
-                0);
+            var space = spaceDisplay.GetValueOrDefault(d.SpaceId);
+            return new {
+                d.Id,
+                Dto = new Application.Repositories.RecentDiscussionDto(
+                    d.PublicId, d.Title, d.Slug,
+                    d.Type,
+                    d.CreatedAt, d.LastActivityAt,
+                    d.IsPinned, d.IsLocked,
+                    d.SpacePublicId,
+                    space?.Slug ?? "",
+                    space?.Name ?? "",
+                    d.HubPublicId,
+                    space?.HubSlug,
+                    space?.HubName,
+                    d.CommunityPublicId,
+                    space?.CommunitySlug,
+                    space?.CommunityName,
+                    d.AuthorPublicId,
+                    d.AuthorDisplayName ?? "",
+                    d.AuthorAvatarFileName,
+                    d.AuthorAvatarThumbnailFileName,
+                    d.PostCount, d.ReactionCount,
+                    string.IsNullOrEmpty(d.Tags) ? Array.Empty<string>() : d.Tags.Split(',', StringSplitOptions.RemoveEmptyEntries),
+                    LastReplierPublicId: d.LastPostAuthorPublicId,
+                    LastReplierDisplayName: d.LastPostAuthorDisplayName,
+                    LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
+                    LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
+                    LastPostExcerpt: d.LastPostPlainTextExcerpt,
+                    IsAdult: d.IsAdultOnly)
+            };
         }).ToList();
 
         var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize) : items;
+        var resultItems = hasMoreItems ? items.Take(pageSize).ToList() : items;
 
-        return new PagedResult<DiscussionSearchResultDto>
+        var previewMap = await BatchFetchPreviewsAsync(
+            resultItems.Select(x => (x.Id, x.Dto.PublicId, x.Dto.Type)).ToList(), ct);
+
+        var finalItems = resultItems.Select(x =>
+            previewMap.TryGetValue(x.Dto.PublicId, out var preview)
+                ? x.Dto with { Preview = preview }
+                : x.Dto).ToList();
+
+        return new PagedResult<Application.Repositories.RecentDiscussionDto>
         {
-            Items = resultItems,
+            Items = finalItems,
             Offset = offset,
             PageSize = pageSize,
             HasMoreItems = hasMoreItems
@@ -142,6 +195,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         int offset = 0,
         int pageSize = 20,
         string? userId = null,
+        string? sortBy = null,
+        string? dateRange = null,
         CancellationToken ct = default)
     {
         var baseQuery = _context.Posts
@@ -154,8 +209,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         {
             if (IsPostgres)
             {
-                var tsQuery = EF.Functions.WebSearchToTsQuery("english", query.Trim());
-                baseQuery = baseQuery.Where(p => p.SearchVector.Matches(tsQuery));
+                baseQuery = baseQuery.Where(p => p.SearchVector.Matches(
+                    EF.Functions.WebSearchToTsQuery("english", query.Trim())));
             }
             else
             {
@@ -177,19 +232,25 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             baseQuery = baseQuery.Where(p => p.SpaceId == spaceDbId);
         }
 
-        // Order by relevance when searching, by date when browsing
-        IOrderedQueryable<PostDatabaseEntity> orderedQuery;
-        if (!string.IsNullOrWhiteSpace(query) && IsPostgres)
+        // Date-range filter on CreatedAt. IX_Post_ReactionCount_IsDeleted handles the
+        // no-FTS popular/reactions path; GIN handles the FTS path.
+        var cutoff = ParseDateCutoff(dateRange);
+        if (cutoff.HasValue)
+            baseQuery = baseQuery.Where(p => p.CreatedAt >= cutoff.Value);
+
+        // Posts use ReactionCount for both "popular" and "reactions" — posts don't have a reply count.
+        var trimmedQuery = query.Trim();
+        IOrderedQueryable<PostDatabaseEntity> orderedQuery = sortBy switch
         {
-            orderedQuery = baseQuery
-                .OrderByDescending(p => p.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", query.Trim())))
-                .ThenByDescending(p => p.CreatedAt);
-        }
-        else
-        {
-            orderedQuery = baseQuery
-                .OrderByDescending(p => p.CreatedAt);
-        }
+            "oldest"               => baseQuery.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id),
+            "popular" or "reactions" => baseQuery.OrderByDescending(p => p.ReactionCount).ThenByDescending(p => p.Id),
+            _ => !string.IsNullOrWhiteSpace(trimmedQuery) && IsPostgres
+                ? baseQuery
+                    .OrderByDescending(p => p.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", trimmedQuery)))
+                    .ThenByDescending(p => p.CreatedAt)
+                : baseQuery
+                    .OrderByDescending(p => p.CreatedAt)
+        };
 
         var items = await orderedQuery
             .Skip(offset)
@@ -625,6 +686,21 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         LocalCacheExpiration = TimeSpan.FromSeconds(30),
     };
 
+    // Preview data is immutable for links/images and only changes on explicit user actions for
+    // polls/debates/IAMAs (votes, position assignments, official answers, phase transitions).
+    // Invalidation is event-driven — see PollService and DiscussionTypeQueryService.
+    private static readonly HybridCacheEntryOptions _previewCacheOptions = new()
+    {
+        Expiration = TimeSpan.FromHours(24),
+        LocalCacheExpiration = TimeSpan.FromHours(24),
+    };
+
+    private static readonly HybridCacheEntryOptions _spaceDisplayCacheOptions = new()
+    {
+        Expiration = TimeSpan.FromDays(365),
+        LocalCacheExpiration = TimeSpan.FromDays(365),
+    };
+
     private async Task<Dictionary<int, SpaceLatestDiscussion>> GetLatestDiscussionPerSpaceAsync(
         int[] spaceIds, CancellationToken ct)
     {
@@ -679,6 +755,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
 
     private sealed record SpaceDisplay(
         string Slug, string Name,
+        string? Description,
+        string? AvatarFileName, string? AvatarThumbnailFileName,
         string? HubSlug, string? HubName,
         string? CommunitySlug, string? CommunityName);
 
@@ -686,13 +764,23 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
     {
         var ids = spaceIds.Distinct().ToList();
         if (ids.Count == 0) return [];
-        return await _context.Spaces
-            .Where(s => ids.Contains(s.Id))
-            .Select(s => new { s.Id, s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName })
-            .ToDictionaryAsync(
-                s => s.Id,
-                s => new SpaceDisplay(s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName), ct);
+        var result = new Dictionary<int, SpaceDisplay>(ids.Count);
+        foreach (var id in ids)
+        {
+            var display = await cache.GetOrCreateAsync<SpaceDisplay?>(
+                $"space-display:{id}",
+                ct2 => FetchSingleSpaceDisplayAsync(id, ct2),
+                _spaceDisplayCacheOptions, cancellationToken: ct);
+            if (display is not null) result[id] = display;
+        }
+        return result;
     }
+
+    private async ValueTask<SpaceDisplay?> FetchSingleSpaceDisplayAsync(int spaceId, CancellationToken ct) =>
+        await _context.Spaces
+            .Where(s => s.Id == spaceId)
+            .Select(s => new SpaceDisplay(s.Slug, s.Name, s.Description, s.AvatarFileName, s.AvatarThumbnailFileName, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName))
+            .FirstOrDefaultAsync(ct);
 
     public async Task<(List<SitemapDiscussionDto> Items, int TotalCount)> GetSitemapDiscussionsAsync(
         int page,
@@ -1006,207 +1094,200 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
     {
         var result = new Dictionary<string, Application.Repositories.DiscussionPreviewDto>();
 
-        // Group by type
-        var pollIds = discussions.Where(d => d.Type == 2).ToList();
-        var linkIds = discussions.Where(d => d.Type == 4).ToList();
-        var imagesIds = discussions.Where(d => d.Type == 5).ToList();
-        var debateIds = discussions.Where(d => d.Type == 7).ToList();
-        var iamaIds = discussions.Where(d => d.Type == 9).ToList();
-
-        // Polls: fetch options with vote counts
-        if (pollIds.Count > 0)
+        foreach (var d in discussions.Where(d => d.Type == 2))
         {
-            var ids = pollIds.Select(d => d.Id).ToList();
-            var pollIdMap = pollIds.ToDictionary(d => d.Id, d => d.PublicId);
-            var polls = await _context.DiscussionPolls
-                .Where(p => ids.Contains(p.DiscussionId))
-                .Select(p => new
-                {
-                    p.DiscussionId,
-                    p.VotesVisible,
-                    p.ClosesAt,
-                    Options = p.Options
-                        .OrderBy(o => o.DisplayOrder)
-                        .Select(o => new { o.Text, o.VoteCount })
-                        .ToList()
-                })
-                .ToListAsync(ct);
-
-            foreach (var poll in polls)
-            {
-                var publicId = pollIdMap[poll.DiscussionId];
-                var isSecret = !poll.VotesVisible;
-                var isClosed = poll.ClosesAt.HasValue && poll.ClosesAt.Value <= DateTime.UtcNow;
-                var hideVotes = isSecret && !isClosed;
-                var options = poll.Options
-                    .Select(o => new Application.Repositories.PollOptionPreviewDto(o.Text, hideVotes ? 0 : o.VoteCount))
-                    .ToList();
-                var totalVotes = hideVotes ? 0 : options.Sum(o => o.VoteCount);
-                result[publicId] = new(Poll: new(options, totalVotes, IsSecret: isSecret, ClosesAt: poll.ClosesAt));
-            }
+            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
+                $"preview:poll:{d.PublicId}",
+                ct2 => FetchPollPreviewAsync(d.Id, ct2),
+                _previewCacheOptions, cancellationToken: ct);
+            if (preview is not null) result[d.PublicId] = preview;
         }
 
-        // Debates: fetch positions with post counts (batched to avoid N+1)
-        if (debateIds.Count > 0)
+        foreach (var d in discussions.Where(d => d.Type == 7))
         {
-            var ids = debateIds.Select(d => d.Id).ToList();
-            var debateIdMap = debateIds.ToDictionary(d => d.Id, d => d.PublicId);
-
-            var debates = await _context.DiscussionDebates
-                .Where(db => ids.Contains(db.DiscussionId))
-                .Select(db => new
-                {
-                    db.DiscussionId,
-                    Positions = db.Positions
-                        .OrderBy(p => p.Index)
-                        .Select(p => new { p.Id, p.Label, p.Index })
-                        .ToList()
-                })
-                .ToListAsync(ct);
-
-            // Batch load position post counts — only the latest post per user per debate counts.
-            var allPositionIds = debates.SelectMany(d => d.Positions.Select(p => p.Id)).ToList();
-            // Map position → debate so we can group by (author, debate) in memory.
-            var positionToDebate = debates
-                .SelectMany(d => d.Positions.Select(p => (PositionId: p.Id, DiscussionId: d.DiscussionId)))
-                .ToDictionary(x => x.PositionId, x => x.DiscussionId);
-
-            var positionCounts = new Dictionary<int, int>();
-            if (allPositionIds.Count > 0)
-            {
-                var allPostPositions = await _context.DiscussionDebatePostPositions
-                    .Where(pdp => allPositionIds.Contains(pdp.PositionId))
-                    .Select(pdp => new { pdp.PositionId, pdp.Post.CreatedByUserId, pdp.Post.CreatedAt })
-                    .ToListAsync(ct);
-
-                positionCounts = allPostPositions
-                    .GroupBy(x => (x.CreatedByUserId, DebateId: positionToDebate[x.PositionId]))
-                    .Select(g => g.OrderByDescending(x => x.CreatedAt).First())
-                    .GroupBy(x => x.PositionId)
-                    .ToDictionary(g => g.Key, g => g.Count());
-            }
-
-            foreach (var debate in debates)
-            {
-                var publicId = debateIdMap[debate.DiscussionId];
-                var positions = debate.Positions
-                    .Select(p => new Application.Repositories.DebatePositionPreviewDto(
-                        p.Label, p.Index, positionCounts.GetValueOrDefault(p.Id, 0)))
-                    .ToList();
-                result[publicId] = new(Debate: new(positions));
-            }
+            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
+                $"preview:debate:{d.PublicId}",
+                ct2 => FetchDebatePreviewAsync(d.Id, ct2),
+                _previewCacheOptions, cancellationToken: ct);
+            if (preview is not null) result[d.PublicId] = preview;
         }
 
-        // Links: fetch metadata
-        if (linkIds.Count > 0)
+        foreach (var d in discussions.Where(d => d.Type == 4))
         {
-            var ids = linkIds.Select(d => d.Id).ToList();
-            var linkIdMap = linkIds.ToDictionary(d => d.Id, d => d.PublicId);
-            var links = await _context.DiscussionLinks
-                .Where(l => ids.Contains(l.DiscussionId))
-                .Select(l => new
-                {
-                    l.DiscussionId,
-                    l.Url, l.Title, l.Description, l.Domain,
-                    l.ImageUrl, l.ImagePath, l.ImageThumbnailPath, l.OEmbedHtml, l.IsInternal,
-                    l.ImageBlurDataUri, l.ImageWidth, l.ImageHeight
-                })
-                .ToListAsync(ct);
-
-            foreach (var link in links)
-            {
-                var publicId = linkIdMap[link.DiscussionId];
-                result[publicId] = new(Link: new(
-                    link.Url, link.Title, link.Description, link.Domain,
-                    link.ImageUrl, link.ImagePath, link.ImageThumbnailPath, link.OEmbedHtml, link.IsInternal,
-                    link.ImageBlurDataUri, link.ImageWidth, link.ImageHeight));
-            }
+            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
+                $"preview:link:{d.PublicId}",
+                ct2 => FetchLinkPreviewAsync(d.Id, ct2),
+                _previewCacheOptions, cancellationToken: ct);
+            if (preview is not null) result[d.PublicId] = preview;
         }
 
-        // Images: fetch image URLs via Media join
-        if (imagesIds.Count > 0)
+        foreach (var d in discussions.Where(d => d.Type == 5))
         {
-            var ids = imagesIds.Select(d => d.Id).ToList();
-            var imagesIdMap = imagesIds.ToDictionary(d => d.Id, d => d.PublicId);
-            var images = await _context.DiscussionImages
-                .Where(g => ids.Contains(g.DiscussionId))
-                .Select(g => new
-                {
-                    g.DiscussionId,
-                    g.IsSpoiler,
-                    g.Layout,
-                    Items = g.Images
-                        .OrderBy(i => i.DisplayOrder)
-                        .Select(i => new
-                        {
-                            Url = i.Image.StoragePath,
-                            ThumbnailUrl = i.Image.ThumbnailPath,
-                            i.Image.ThumbnailWidth,
-                            i.Image.ThumbnailHeight,
-                            MediumThumbnailUrl = i.Image.MediumThumbnailPath,
-                            i.Image.MediumThumbnailWidth,
-                            i.Image.MediumThumbnailHeight,
-                            i.Image.BlurDataUri,
-                            i.Image.Width,
-                            i.Image.Height
-                        })
-                        .ToList()
-                })
-                .ToListAsync(ct);
-
-            foreach (var img in images)
-            {
-                var publicId = imagesIdMap[img.DiscussionId];
-                var items = img.Items
-                    .Select(i => new Application.Repositories.ImagePreviewItemDto(
-                        fileStorage.GetPublicUrl(i.Url),
-                        i.ThumbnailUrl is not null ? fileStorage.GetPublicUrl(i.ThumbnailUrl) : null,
-                        i.MediumThumbnailUrl is not null ? fileStorage.GetPublicUrl(i.MediumThumbnailUrl) : null,
-                        i.BlurDataUri,
-                        i.Width,
-                        i.Height,
-                        i.ThumbnailWidth,
-                        i.ThumbnailHeight,
-                        i.MediumThumbnailWidth,
-                        i.MediumThumbnailHeight))
-                    .ToList();
-                result[publicId] = new(Images: new(items.Count, items, img.IsSpoiler, img.Layout));
-            }
+            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
+                $"preview:images:{d.PublicId}",
+                ct2 => FetchImagesPreviewAsync(d.Id, ct2),
+                _previewCacheOptions, cancellationToken: ct);
+            if (preview is not null) result[d.PublicId] = preview;
         }
 
-        // IAMAs: fetch phase, schedule, and activity counts
-        if (iamaIds.Count > 0)
+        foreach (var d in discussions.Where(d => d.Type == 9))
         {
-            var ids = iamaIds.Select(d => d.Id).ToList();
-            var iamaIdMap = iamaIds.ToDictionary(d => d.Id, d => d.PublicId);
-            var iamas = await _context.DiscussionIamas
-                .Where(i => ids.Contains(i.DiscussionId))
-                .Select(i => new
-                {
-                    i.DiscussionId,
-                    i.Phase,
-                    i.ScheduledStartUtc,
-                    i.ScheduledEndUtc,
-                    OfficialAnswerCount = i.OfficialAnswerCount,
-                    BestQuestionCount = i.BestQuestionCount,
-                    IsVerified = i.VerificationNote != null && i.VerificationNote != ""
-                })
-                .ToListAsync(ct);
-
-            foreach (var iama in iamas)
-            {
-                var publicId = iamaIdMap[iama.DiscussionId];
-                result[publicId] = new(Iama: new(
-                    iama.Phase,
-                    iama.ScheduledStartUtc,
-                    iama.ScheduledEndUtc,
-                    iama.OfficialAnswerCount,
-                    iama.BestQuestionCount,
-                    iama.IsVerified));
-            }
+            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
+                $"preview:iama:{d.PublicId}",
+                ct2 => FetchIamaPreviewAsync(d.Id, ct2),
+                _previewCacheOptions, cancellationToken: ct);
+            if (preview is not null) result[d.PublicId] = preview;
         }
 
         return result;
+    }
+
+    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchPollPreviewAsync(int discussionId, CancellationToken ct)
+    {
+        var poll = await _context.DiscussionPolls
+            .Where(p => p.DiscussionId == discussionId)
+            .Select(p => new
+            {
+                p.VotesVisible,
+                p.ClosesAt,
+                Options = p.Options.OrderBy(o => o.DisplayOrder).Select(o => new { o.Text, o.VoteCount }).ToList()
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (poll is null) return null;
+
+        var isSecret = !poll.VotesVisible;
+        var isClosed = poll.ClosesAt.HasValue && poll.ClosesAt.Value <= DateTime.UtcNow;
+        var hideVotes = isSecret && !isClosed;
+        var options = poll.Options
+            .Select(o => new Application.Repositories.PollOptionPreviewDto(o.Text, hideVotes ? 0 : o.VoteCount))
+            .ToList();
+        var totalVotes = hideVotes ? 0 : options.Sum(o => o.VoteCount);
+        return new(Poll: new(options, totalVotes, IsSecret: isSecret, ClosesAt: poll.ClosesAt));
+    }
+
+    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchDebatePreviewAsync(int discussionId, CancellationToken ct)
+    {
+        var debate = await _context.DiscussionDebates
+            .Where(db => db.DiscussionId == discussionId)
+            .Select(db => new
+            {
+                Positions = db.Positions.OrderBy(p => p.Index).Select(p => new { p.Id, p.Label, p.Index }).ToList()
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (debate is null) return null;
+
+        var positionIds = debate.Positions.Select(p => p.Id).ToList();
+        var positionCounts = new Dictionary<int, int>();
+        if (positionIds.Count > 0)
+        {
+            var postPositions = await _context.DiscussionDebatePostPositions
+                .Where(pdp => positionIds.Contains(pdp.PositionId))
+                .Select(pdp => new { pdp.PositionId, pdp.Post.CreatedByUserId, pdp.Post.CreatedAt })
+                .ToListAsync(ct);
+
+            // Only the latest-position post per user counts toward position vote tallies.
+            positionCounts = postPositions
+                .GroupBy(x => x.CreatedByUserId)
+                .Select(g => g.OrderByDescending(x => x.CreatedAt).First())
+                .GroupBy(x => x.PositionId)
+                .ToDictionary(g => g.Key, g => g.Count());
+        }
+
+        var positions = debate.Positions
+            .Select(p => new Application.Repositories.DebatePositionPreviewDto(
+                p.Label, p.Index, positionCounts.GetValueOrDefault(p.Id, 0)))
+            .ToList();
+        return new(Debate: new(positions));
+    }
+
+    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchLinkPreviewAsync(int discussionId, CancellationToken ct)
+    {
+        var link = await _context.DiscussionLinks
+            .Where(l => l.DiscussionId == discussionId)
+            .Select(l => new
+            {
+                l.Url, l.Title, l.Description, l.Domain,
+                l.ImageUrl, l.ImagePath, l.ImageThumbnailPath, l.OEmbedHtml, l.IsInternal,
+                l.ImageBlurDataUri, l.ImageWidth, l.ImageHeight
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (link is null) return null;
+
+        return new(Link: new(
+            link.Url, link.Title, link.Description, link.Domain,
+            link.ImageUrl, link.ImagePath, link.ImageThumbnailPath, link.OEmbedHtml, link.IsInternal,
+            link.ImageBlurDataUri, link.ImageWidth, link.ImageHeight));
+    }
+
+    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchImagesPreviewAsync(int discussionId, CancellationToken ct)
+    {
+        var img = await _context.DiscussionImages
+            .Where(g => g.DiscussionId == discussionId)
+            .Select(g => new
+            {
+                g.IsSpoiler,
+                g.Layout,
+                Items = g.Images
+                    .OrderBy(i => i.DisplayOrder)
+                    .Select(i => new
+                    {
+                        Url = i.Image.StoragePath,
+                        ThumbnailUrl = i.Image.ThumbnailPath,
+                        i.Image.ThumbnailWidth,
+                        i.Image.ThumbnailHeight,
+                        MediumThumbnailUrl = i.Image.MediumThumbnailPath,
+                        i.Image.MediumThumbnailWidth,
+                        i.Image.MediumThumbnailHeight,
+                        i.Image.BlurDataUri,
+                        i.Image.Width,
+                        i.Image.Height
+                    })
+                    .ToList()
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (img is null) return null;
+
+        var items = img.Items
+            .Select(i => new Application.Repositories.ImagePreviewItemDto(
+                fileStorage.GetPublicUrl(i.Url),
+                i.ThumbnailUrl is not null ? fileStorage.GetPublicUrl(i.ThumbnailUrl) : null,
+                i.MediumThumbnailUrl is not null ? fileStorage.GetPublicUrl(i.MediumThumbnailUrl) : null,
+                i.BlurDataUri,
+                i.Width, i.Height,
+                i.ThumbnailWidth, i.ThumbnailHeight,
+                i.MediumThumbnailWidth, i.MediumThumbnailHeight))
+            .ToList();
+        return new(Images: new(items.Count, items, img.IsSpoiler, img.Layout));
+    }
+
+    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchIamaPreviewAsync(int discussionId, CancellationToken ct)
+    {
+        var iama = await _context.DiscussionIamas
+            .Where(i => i.DiscussionId == discussionId)
+            .Select(i => new
+            {
+                i.Phase,
+                i.ScheduledStartUtc,
+                i.ScheduledEndUtc,
+                i.OfficialAnswerCount,
+                i.BestQuestionCount,
+                IsVerified = i.VerificationNote != null && i.VerificationNote != ""
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (iama is null) return null;
+
+        return new(Iama: new(
+            iama.Phase,
+            iama.ScheduledStartUtc,
+            iama.ScheduledEndUtc,
+            iama.OfficialAnswerCount,
+            iama.BestQuestionCount,
+            iama.IsVerified));
     }
 
     public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetTrendingDiscussionsAsync(

@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 
 namespace Snakk.Infrastructure.Services;
 
-public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fileStorage) : IDiscussionTypeQueryService
+public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fileStorage, HybridCache cache) : IDiscussionTypeQueryService
 {
     // === Question ===
 
@@ -210,6 +211,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
         }
 
         await context.SaveChangesAsync(ct);
+        await cache.RemoveAsync($"preview:debate:{discussionPublicId}", ct);
         return (true, null);
     }
 
@@ -414,6 +416,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
                 .ExecuteUpdateAsync(s => s.SetProperty(i => i.OfficialAnswerCount, i => i.OfficialAnswerCount + 1), ct);
         }
 
+        await cache.RemoveAsync($"preview:iama:{discussionPublicId}", ct);
         return (true, null);
     }
 
@@ -474,6 +477,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             .Where(i => i.Id == iama.Id)
             .ExecuteUpdateAsync(s => s.SetProperty(i => i.BestQuestionCount, postPublicIds.Count), ct);
 
+        await cache.RemoveAsync($"preview:iama:{discussionPublicId}", ct);
         return (true, null);
     }
 
@@ -518,6 +522,7 @@ public class DiscussionTypeQueryService(SnakkDbContext context, IFileStorage fil
             discussion.IsLocked = true;
 
         await context.SaveChangesAsync(ct);
+        await cache.RemoveAsync($"preview:iama:{discussionPublicId}", ct);
         return (true, null);
     }
 }

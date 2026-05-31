@@ -24,6 +24,7 @@
         <div id="search-filters" class="mb-6">
             <div class="space-y-4">
                 <input type="hidden" id="search-query" name="q" value="@Model.Q" />
+                <input type="hidden" name="sortBy" value="@Model.SortBy" />
 
                 <div>
                     <label class="text-sm font-medium mb-2 block">@T.Pages.SearchTypeLabel</label>
@@ -33,12 +34,6 @@
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
                         <input class="join-item btn btn-sm" type="radio" name="searchType" value="discussion" aria-label="@T.Pages.SearchTypeDiscussion"
                                @(Model.SearchType == "discussion" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="space" aria-label="@T.Pages.SearchTypeSpace"
-                               @(Model.SearchType == "space" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="user" aria-label="@T.Pages.SearchTypeUser"
-                               @(Model.SearchType == "user" ? "checked" : "")
                                hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
                     </div>
                 </div>

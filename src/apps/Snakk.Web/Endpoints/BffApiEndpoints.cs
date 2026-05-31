@@ -720,6 +720,7 @@ public static class BffApiEndpoints
         [FromQuery] int offset,
         [FromQuery] int pageSize,
         [FromQuery] string? communityId,
+        [FromQuery] string? cursor,
         SnakkApiClient apiClient,
         HttpContext httpContext,
         CancellationToken ct)
@@ -728,7 +729,7 @@ public static class BffApiEndpoints
         if (offset >= MaxDiscussionListOffset)
             return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
         var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
-        var result = await apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, viewerAllowsAdult: viewerAllowsAdult, ct: ct);
+        var result = await apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, cursor: cursor, viewerAllowsAdult: viewerAllowsAdult, ct: ct);
         return Results.Ok(result);
     }
 
@@ -769,6 +770,7 @@ public static class BffApiEndpoints
         string spaceId,
         [FromQuery] int offset,
         [FromQuery] int pageSize,
+        [FromQuery] string? cursor,
         SnakkApiClient apiClient,
         HttpContext httpContext,
         CancellationToken ct)
@@ -777,7 +779,7 @@ public static class BffApiEndpoints
         if (offset >= MaxDiscussionListOffset)
             return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
         var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
-        var result = await apiClient.GetSpaceDiscussionsAsync(spaceId, offset, Math.Min(pageSize, MaxPageSize), viewerAllowsAdult: viewerAllowsAdult, ct: ct);
+        var result = await apiClient.GetSpaceDiscussionsAsync(spaceId, offset, Math.Min(pageSize, MaxPageSize), cursor: cursor, viewerAllowsAdult: viewerAllowsAdult, ct: ct);
         return Results.Ok(result);
     }
 
@@ -1307,7 +1309,7 @@ public static class BffApiEndpoints
         var items = result.Items.Select(d =>
         {
             var slugId = SnakkUrlHelper.DiscussionSlugId(d.Slug, d.PublicId);
-            var url = SnakkUrlHelper.Discussion(d.CommunitySlug, communityContext, d.Hub.Slug, d.Space.Slug, slugId);
+            var url = SnakkUrlHelper.Discussion(d.Community.Slug, communityContext, d.Hub.Slug, d.Space.Slug, slugId);
             return new BffDiscussionSearchItem
             {
                 Url = url,

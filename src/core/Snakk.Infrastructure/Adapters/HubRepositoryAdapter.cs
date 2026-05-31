@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Infrastructure.Database;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
@@ -9,7 +10,8 @@ using Snakk.Shared.Models;
 
 public class HubRepositoryAdapter(
     Infrastructure.Database.Repositories.IHubRepository databaseRepository,
-    SnakkDbContext context) : Domain.Repositories.IHubRepository
+    SnakkDbContext context,
+    HybridCache cache) : Domain.Repositories.IHubRepository
 {
     public async Task<Hub?> GetByIdAsync(int id, CancellationToken ct = default)
     {
@@ -169,11 +171,19 @@ public class HubRepositoryAdapter(
 
         if (nameChanged || slugChanged)
         {
+            var affectedSpaceIds = await context.Spaces
+                .Where(s => s.HubId == entity.Id)
+                .Select(s => s.Id)
+                .ToListAsync(ct);
+
             await context.Spaces
                 .Where(s => s.HubId == entity.Id)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(sp => sp.HubName, entity.Name)
                     .SetProperty(sp => sp.HubSlug, entity.Slug), ct);
+
+            foreach (var id in affectedSpaceIds)
+                await cache.RemoveAsync($"space-display:{id}", ct);
         }
     }
 

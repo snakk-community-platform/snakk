@@ -380,6 +380,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.UserCreatedEvent>,
             Infrastructure.EventHandlers.Activity.UserCreatedActivityHandler>();
 
+        // Cache Warming Event Handlers
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.DiscussionCreatedEvent>,
+            Infrastructure.EventHandlers.Cache.DiscussionCreatedPreviewCacheHandler>();
+
         // Discord Webhook Notification Event Handlers
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.DiscussionCreatedEvent>,
             Infrastructure.EventHandlers.Discord.DiscussionCreatedDiscordHandler>();

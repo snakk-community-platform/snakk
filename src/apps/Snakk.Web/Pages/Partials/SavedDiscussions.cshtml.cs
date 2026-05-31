@@ -8,6 +8,7 @@ namespace Snakk.Web.Pages.Partials;
 
 public class SavedDiscussionsModel(
     SnakkApiClient apiClient,
+    IConfiguration configuration,
     ICommunityContext communityContext) : PageModel
 {
     public ICommunityContext Community => communityContext;
@@ -15,6 +16,7 @@ public class SavedDiscussionsModel(
     public bool HasMoreItems { get; set; }
     public int Offset { get; set; }
     public int NextOffset { get; set; }
+    public int MaxOffset { get; set; }
     public bool ShowCommunity { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 20, CancellationToken cancellationToken = default)
@@ -25,6 +27,16 @@ public class SavedDiscussionsModel(
 
         pageSize = Math.Clamp(pageSize, 1, 50);
         Offset = offset;
+
+        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 10);
+        MaxOffset = maxPages * pageSize;
+
+        if (offset >= MaxOffset)
+        {
+            Items = [];
+            HasMoreItems = false;
+            return Page();
+        }
 
         ShowCommunity = communityContext.IsMultiCommunityEnabled
             && string.IsNullOrEmpty(communityContext.CommunitySlug)

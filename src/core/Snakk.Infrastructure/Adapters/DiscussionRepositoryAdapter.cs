@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -13,8 +14,15 @@ using Snakk.Shared.Models;
 public class DiscussionRepositoryAdapter(
     Infrastructure.Database.Repositories.IDiscussionRepository databaseRepository,
     SnakkDbContext context,
-    IUserGrantsCacheService grantsCache) : Domain.Repositories.IDiscussionRepository
+    IUserGrantsCacheService grantsCache,
+    HybridCache cache) : Domain.Repositories.IDiscussionRepository
 {
+    private static readonly HybridCacheEntryOptions _spaceDisplayCacheOptions = new()
+    {
+        Expiration = TimeSpan.FromDays(365),
+        LocalCacheExpiration = TimeSpan.FromDays(365),
+    };
+
     public async Task<Discussion?> GetByIdAsync(int id, CancellationToken ct = default)
     {
         var projection = await context.Discussions
@@ -432,6 +440,8 @@ public class DiscussionRepositoryAdapter(
 
     private sealed record SpaceDisplay(
         string Slug, string Name,
+        string? Description,
+        string? AvatarFileName, string? AvatarThumbnailFileName,
         string? HubSlug, string? HubName,
         string? CommunitySlug, string? CommunityName);
 
@@ -439,14 +449,23 @@ public class DiscussionRepositoryAdapter(
     {
         var ids = spaceIds.Distinct().ToList();
         if (ids.Count == 0) return [];
-        return await context.Spaces
-            .Where(s => ids.Contains(s.Id))
-            .Select(s => new { s.Id, s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName })
-            .ToDictionaryAsync(
-                s => s.Id,
-                s => new SpaceDisplay(s.Slug, s.Name, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName),
-                ct);
+        var result = new Dictionary<int, SpaceDisplay>(ids.Count);
+        foreach (var id in ids)
+        {
+            var display = await cache.GetOrCreateAsync<SpaceDisplay?>(
+                $"space-display:{id}",
+                ct2 => FetchSingleSpaceDisplayAsync(id, ct2),
+                _spaceDisplayCacheOptions, cancellationToken: ct);
+            if (display is not null) result[id] = display;
+        }
+        return result;
     }
+
+    private async ValueTask<SpaceDisplay?> FetchSingleSpaceDisplayAsync(int spaceId, CancellationToken ct) =>
+        await context.Spaces
+            .Where(s => s.Id == spaceId)
+            .Select(s => new SpaceDisplay(s.Slug, s.Name, s.Description, s.AvatarFileName, s.AvatarThumbnailFileName, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName))
+            .FirstOrDefaultAsync(ct);
 
     private record DiscussionProjection(
         string PublicId,

@@ -8,12 +8,14 @@ namespace Snakk.Web.Pages.Partials;
 
 public class FollowingDiscussionsModel(
     SnakkApiClient apiClient,
+    IConfiguration configuration,
     ICommunityContext communityContext) : PageModel
 {
     public IList<RecentDiscussionInfo> Items { get; set; } = [];
     public bool HasMoreItems { get; set; }
     public int Offset { get; set; }
     public int NextOffset { get; set; }
+    public int MaxOffset { get; set; }
     public bool ShowCommunity { get; set; }
     public ICommunityContext Community => communityContext;
 
@@ -25,6 +27,16 @@ public class FollowingDiscussionsModel(
 
         pageSize = Math.Clamp(pageSize, 1, 20);
         Offset = offset;
+
+        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 10);
+        MaxOffset = maxPages * pageSize;
+
+        if (offset >= MaxOffset)
+        {
+            Items = [];
+            HasMoreItems = false;
+            return Page();
+        }
 
         ShowCommunity = communityContext.IsMultiCommunityEnabled
             && string.IsNullOrEmpty(communityContext.CommunitySlug)

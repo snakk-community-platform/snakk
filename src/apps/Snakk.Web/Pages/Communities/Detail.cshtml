@@ -11,11 +11,6 @@
         : null;
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("space")" asp-append-version="true" />
-}
-
 @section Meta {
     @if (Model.CommunityDetail is { IsRestricted: false })
     {

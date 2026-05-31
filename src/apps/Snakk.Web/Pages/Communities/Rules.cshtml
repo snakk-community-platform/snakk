@@ -6,10 +6,6 @@
     ViewData["Description"] = string.Format(T.Pages.CommRulesDescPattern, Model.CommunityDetail?.Name);
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("space")" asp-append-version="true" />
-}
-
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }

@@ -2,6 +2,8 @@ namespace Snakk.DbSeeder.Services;
 
 using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
+using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -13,7 +15,9 @@ public class DatabaseSeeder(
     IAvatarGenerationService avatarService,
     IMarkupParser markupParser,
     IEmailProtector emailProtector,
-    Microsoft.Extensions.Configuration.IConfiguration configuration)
+    Microsoft.Extensions.Configuration.IConfiguration configuration,
+    HybridCache cache,
+    IFileStorage fileStorage)
 {
     private readonly SnakkDbContext _context = context;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
@@ -21,6 +25,14 @@ public class DatabaseSeeder(
     private readonly IMarkupParser _markupParser = markupParser;
     private readonly IEmailProtector _emailProtector = emailProtector;
     private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration = configuration;
+    private readonly HybridCache _cache = cache;
+    private readonly IFileStorage _fileStorage = fileStorage;
+
+    private static readonly HybridCacheEntryOptions _previewCacheOptions = new()
+    {
+        Expiration = TimeSpan.FromHours(24),
+        LocalCacheExpiration = TimeSpan.FromHours(24),
+    };
 
     // Fixed seed for reproducibility
     private const int Seed = 42;
@@ -209,6 +221,7 @@ public class DatabaseSeeder(
         await SeedHighVolumeDiscussionsAsync(users);
         await UpdateDenormalizedCountsAsync();
         await SeedActivitySnapshotsAsync();
+        await WarmPreviewCacheAsync();
 
         Console.WriteLine("Database seeding completed successfully.");
         await GenerateAllAvatarsAsync();
@@ -3329,5 +3342,134 @@ public class DatabaseSeeder(
         await _context.SaveChangesAsync();
 
         Console.WriteLine($"Seeded {snapshots.Count} activity snapshot rows.");
+    }
+
+    private async Task WarmPreviewCacheAsync()
+    {
+        Console.WriteLine("Warming preview cache...");
+
+        var typedDiscussions = await _context.Discussions
+            .Where(d => !d.IsDeleted && (new[] { 2, 4, 5, 7, 9 }).Contains(d.Type))
+            .Select(d => new { d.Id, d.PublicId, d.Type })
+            .ToListAsync();
+
+        var byType = typedDiscussions.GroupBy(d => d.Type).ToDictionary(g => g.Key, g => g.ToList());
+        var count = 0;
+
+        // Polls
+        if (byType.TryGetValue(2, out var pollDiscussions))
+        {
+            var ids = pollDiscussions.Select(d => d.Id).ToList();
+            var idMap = pollDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var polls = await _context.DiscussionPolls
+                .Where(p => ids.Contains(p.DiscussionId))
+                .Select(p => new { p.DiscussionId, p.VotesVisible, p.ClosesAt, Options = p.Options.OrderBy(o => o.DisplayOrder).Select(o => new { o.Text, o.VoteCount }).ToList() })
+                .ToListAsync();
+            foreach (var poll in polls)
+            {
+                var isSecret = !poll.VotesVisible;
+                var isClosed = poll.ClosesAt.HasValue && poll.ClosesAt.Value <= DateTime.UtcNow;
+                var hideVotes = isSecret && !isClosed;
+                var options = poll.Options.Select(o => new PollOptionPreviewDto(o.Text, hideVotes ? 0 : o.VoteCount)).ToList();
+                var preview = new DiscussionPreviewDto(Poll: new(options, hideVotes ? 0 : options.Sum(o => o.VoteCount), IsSecret: isSecret, ClosesAt: poll.ClosesAt));
+                await _cache.SetAsync($"preview:poll:{idMap[poll.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        // Debates
+        if (byType.TryGetValue(7, out var debateDiscussions))
+        {
+            var ids = debateDiscussions.Select(d => d.Id).ToList();
+            var idMap = debateDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var debates = await _context.DiscussionDebates
+                .Where(db => ids.Contains(db.DiscussionId))
+                .Select(db => new { db.DiscussionId, Positions = db.Positions.OrderBy(p => p.Index).Select(p => new { p.Id, p.Label, p.Index }).ToList() })
+                .ToListAsync();
+            var allPositionIds = debates.SelectMany(d => d.Positions.Select(p => p.Id)).ToList();
+            var positionToDebate = debates
+                .SelectMany(d => d.Positions.Select(p => (PositionId: p.Id, d.DiscussionId)))
+                .ToDictionary(x => x.PositionId, x => x.DiscussionId);
+            var positionCounts = new Dictionary<int, int>();
+            if (allPositionIds.Count > 0)
+            {
+                var allPostPositions = await _context.DiscussionDebatePostPositions
+                    .Where(pdp => allPositionIds.Contains(pdp.PositionId))
+                    .Select(pdp => new { pdp.PositionId, pdp.Post.CreatedByUserId, pdp.Post.CreatedAt })
+                    .ToListAsync();
+                positionCounts = allPostPositions
+                    .GroupBy(x => (x.CreatedByUserId, DebateId: positionToDebate[x.PositionId]))
+                    .Select(g => g.OrderByDescending(x => x.CreatedAt).First())
+                    .GroupBy(x => x.PositionId)
+                    .ToDictionary(g => g.Key, g => g.Count());
+            }
+            foreach (var debate in debates)
+            {
+                var positions = debate.Positions
+                    .Select(p => new DebatePositionPreviewDto(p.Label, p.Index, positionCounts.GetValueOrDefault(p.Id, 0)))
+                    .ToList();
+                var preview = new DiscussionPreviewDto(Debate: new(positions));
+                await _cache.SetAsync($"preview:debate:{idMap[debate.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        // Links
+        if (byType.TryGetValue(4, out var linkDiscussions))
+        {
+            var ids = linkDiscussions.Select(d => d.Id).ToList();
+            var idMap = linkDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var links = await _context.DiscussionLinks
+                .Where(l => ids.Contains(l.DiscussionId))
+                .Select(l => new { l.DiscussionId, l.Url, l.Title, l.Description, l.Domain, l.ImageUrl, l.ImagePath, l.ImageThumbnailPath, l.OEmbedHtml, l.IsInternal, l.ImageBlurDataUri, l.ImageWidth, l.ImageHeight })
+                .ToListAsync();
+            foreach (var link in links)
+            {
+                var preview = new DiscussionPreviewDto(Link: new(link.Url, link.Title, link.Description, link.Domain, link.ImageUrl, link.ImagePath, link.ImageThumbnailPath, link.OEmbedHtml, link.IsInternal, link.ImageBlurDataUri, link.ImageWidth, link.ImageHeight));
+                await _cache.SetAsync($"preview:link:{idMap[link.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        // Images
+        if (byType.TryGetValue(5, out var imageDiscussions))
+        {
+            var ids = imageDiscussions.Select(d => d.Id).ToList();
+            var idMap = imageDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var images = await _context.DiscussionImages
+                .Where(g => ids.Contains(g.DiscussionId))
+                .Select(g => new { g.DiscussionId, g.IsSpoiler, g.Layout, Items = g.Images.OrderBy(i => i.DisplayOrder).Select(i => new { Url = i.Image.StoragePath, ThumbnailUrl = i.Image.ThumbnailPath, i.Image.ThumbnailWidth, i.Image.ThumbnailHeight, MediumThumbnailUrl = i.Image.MediumThumbnailPath, i.Image.MediumThumbnailWidth, i.Image.MediumThumbnailHeight, i.Image.BlurDataUri, i.Image.Width, i.Image.Height }).ToList() })
+                .ToListAsync();
+            foreach (var img in images)
+            {
+                var items = img.Items.Select(i => new ImagePreviewItemDto(
+                    _fileStorage.GetPublicUrl(i.Url),
+                    i.ThumbnailUrl is not null ? _fileStorage.GetPublicUrl(i.ThumbnailUrl) : null,
+                    i.MediumThumbnailUrl is not null ? _fileStorage.GetPublicUrl(i.MediumThumbnailUrl) : null,
+                    i.BlurDataUri, i.Width, i.Height, i.ThumbnailWidth, i.ThumbnailHeight, i.MediumThumbnailWidth, i.MediumThumbnailHeight)).ToList();
+                var preview = new DiscussionPreviewDto(Images: new(items.Count, items, img.IsSpoiler, img.Layout));
+                await _cache.SetAsync($"preview:images:{idMap[img.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        // IAMAs
+        if (byType.TryGetValue(9, out var iamaDiscussions))
+        {
+            var ids = iamaDiscussions.Select(d => d.Id).ToList();
+            var idMap = iamaDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var iamas = await _context.DiscussionIamas
+                .Where(i => ids.Contains(i.DiscussionId))
+                .Select(i => new { i.DiscussionId, i.Phase, i.ScheduledStartUtc, i.ScheduledEndUtc, i.OfficialAnswerCount, i.BestQuestionCount, IsVerified = i.VerificationNote != null && i.VerificationNote != "" })
+                .ToListAsync();
+            foreach (var iama in iamas)
+            {
+                var preview = new DiscussionPreviewDto(Iama: new(iama.Phase, iama.ScheduledStartUtc, iama.ScheduledEndUtc, iama.OfficialAnswerCount, iama.BestQuestionCount, iama.IsVerified));
+                await _cache.SetAsync($"preview:iama:{idMap[iama.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        Console.WriteLine($"✓ Preview cache warmed for {count} discussions.");
     }
 }
