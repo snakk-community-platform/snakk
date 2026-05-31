@@ -257,10 +257,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             .Take(pageSize + 1)
             .Select(p => new PostSearchResultDto(
                 p.PublicId,
-                // Send rendered HTML so the client can fade-mask it as a preview
-                // without truncating mid-tag. Untruncated — most posts are small;
-                // revisit with HTML-aware truncation if payload becomes a concern.
-                p.RenderedContent,
+                p.PlainTextExcerpt ?? "",
                 p.CreatedByUserPublicId,
                 p.CreatedByUser.DisplayName ?? "",
                 p.CreatedByUser.AvatarFileName,

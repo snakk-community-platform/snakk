@@ -140,8 +140,8 @@ else if (Model.SearchType == "post")
                     </div>
                     @if (!string.IsNullOrEmpty(post.ContentHighlight))
                     {
-                        <div class="prose prose-sm max-w-none px-4 pt-1 pb-2 sn-post-preview" style="color: var(--text-secondary)">
-                            @Html.Raw(post.ContentHighlight)
+                        <div class="px-4 pt-1 pb-2 text-sm sn-post-preview" style="color: var(--text-secondary)">
+                            @post.ContentHighlight
                         </div>
                     }
                     <div class="px-4 pb-3 flex justify-end">
