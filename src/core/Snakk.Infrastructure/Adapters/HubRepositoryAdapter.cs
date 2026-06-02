@@ -21,7 +21,7 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -34,7 +34,7 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -47,7 +47,7 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -59,7 +59,7 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA))
             .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());
@@ -160,6 +160,7 @@ public class HubRepositoryAdapter(
         entity.Description = hub.Description;
         entity.AllowAnonymousReading = hub.AllowAnonymousReading;
         entity.RequireEmailConfirmation = hub.RequireEmailConfirmation;
+        entity.Require2FA = hub.Require2FA;
         entity.LastModifiedAt = hub.LastModifiedAt;
         entity.AvatarFileName = hub.AvatarFileName;
         entity.AvatarThumbnailFileName = hub.AvatarThumbnailFileName;
@@ -200,7 +201,8 @@ public class HubRepositoryAdapter(
         string? AvatarFileName,
         string? AvatarThumbnailFileName,
         string? AvatarMicroFileName,
-        int AvatarRevision)
+        int AvatarRevision,
+        bool Require2FA)
     {
         public Hub ToDomain() => Hub.Rehydrate(
             HubId.From(PublicId),
@@ -211,6 +213,7 @@ public class HubRepositoryAdapter(
             avatarFileName: AvatarFileName,
             avatarThumbnailFileName: AvatarThumbnailFileName,
             avatarMicroFileName: AvatarMicroFileName,
-            avatarRevision: AvatarRevision);
+            avatarRevision: AvatarRevision,
+            require2FA: Require2FA);
     }
 }

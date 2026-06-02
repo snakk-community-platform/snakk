@@ -117,7 +117,13 @@ class SnakkPopup {
                 <div class="card-body snakk-popup-body">
                     <div class="snakk-popup-description"></div>
                     <div class="snakk-popup-stats"></div>
-                    <a class="snakk-popup-goto" href="#" style="display:none"></a>
+                    <div class="snakk-popup-actions">
+                        <a class="snakk-popup-message btn btn-xs btn-ghost" href="#" style="display:none">
+                            <span class="icon icon-chat-bubbles" style="width:0.85rem;height:0.85rem" aria-hidden="true"></span>
+                            Message
+                        </a>
+                        <a class="snakk-popup-goto" href="#" style="display:none"></a>
+                    </div>
                     <div class="snakk-popup-stats-skeleton snakk-popup-stats-grid">
                         <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
                         <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
@@ -400,6 +406,7 @@ class SnakkPopup {
         const statsSkeleton = popup.querySelector('.snakk-popup-stats-skeleton') as HTMLElement;
         const statsContainer = popup.querySelector('.snakk-popup-stats') as HTMLElement;
         const gotoLink = popup.querySelector('.snakk-popup-goto') as HTMLAnchorElement;
+        const messageLink = popup.querySelector('.snakk-popup-message') as HTMLAnchorElement;
 
         if (statsSkeleton) statsSkeleton.style.display = 'none';
         if (avatarSkeleton) avatarSkeleton.style.display = 'none';
@@ -465,6 +472,17 @@ class SnakkPopup {
                 gotoLink.style.display = '';
             } else {
                 gotoLink.style.display = 'none';
+            }
+        }
+
+        if (messageLink) {
+            const currentUserPublicId = document.querySelector<HTMLMetaElement>('meta[name="current-user-id"]')?.content ?? '';
+            const isOwnProfile = publicId === currentUserPublicId;
+            if (type === 'user' && currentUserPublicId && !isOwnProfile) {
+                messageLink.href = `/messages/start?recipient=${encodeURIComponent(publicId)}`;
+                messageLink.style.display = '';
+            } else {
+                messageLink.style.display = 'none';
             }
         }
 

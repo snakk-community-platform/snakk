@@ -187,7 +187,7 @@ public class CommunityGrpcService(
         return grants.CommunityIds.Contains(communityDbId.Value);
     }
 
-    private sealed record CommunityMeta(bool HasRules, string? RulesRevision, string? TeamRevision, bool IsRestricted);
+    private sealed record CommunityMeta(bool HasRules, string? RulesRevision, string? TeamRevision, bool IsRestricted, bool Require2FA = false);
     private static readonly HybridCacheEntryOptions MetaCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
 
     private async Task PopulateRulesMetadata(CommunityInfo info, string publicId)
@@ -198,9 +198,9 @@ public class CommunityGrpcService(
             {
                 var raw = await dbContext.Communities
                     .Where(c => c.PublicId == publicId)
-                    .Select(c => new { c.HasRules, c.RulesRevision, c.TeamRevision, c.IsRestricted })
+                    .Select(c => new { c.HasRules, c.RulesRevision, c.TeamRevision, c.IsRestricted, c.Require2FA })
                     .FirstOrDefaultAsync(cancel);
-                return raw is null ? null : new CommunityMeta(raw.HasRules, raw.RulesRevision, raw.TeamRevision, raw.IsRestricted);
+                return raw is null ? null : new CommunityMeta(raw.HasRules, raw.RulesRevision, raw.TeamRevision, raw.IsRestricted, raw.Require2FA);
             },
             MetaCacheOptions);
 
@@ -210,6 +210,7 @@ public class CommunityGrpcService(
             info.RulesRevision = data.RulesRevision ?? "";
             info.TeamRevision = data.TeamRevision ?? "";
             info.IsRestricted = data.IsRestricted;
+            info.Require2Fa = data.Require2FA;
         }
     }
 

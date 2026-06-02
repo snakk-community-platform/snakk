@@ -246,6 +246,22 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
             .SendAsync("ReceiveTyping", new { userId, displayName, isTyping = false, isAnon, group = $"discussion:{discussionId}" });
     }
 
+    // ==================== DM Typing Indicators ====================
+
+    public async Task StartDmTyping(string conversationId, string otherUserPublicId)
+    {
+        var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        await Clients.Group($"user:{otherUserPublicId}")
+            .SendAsync("ReceiveDmTyping", new { conversationId, displayName, isTyping = true });
+    }
+
+    public async Task StopDmTyping(string conversationId, string otherUserPublicId)
+    {
+        var displayName = Context.User?.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        await Clients.Group($"user:{otherUserPublicId}")
+            .SendAsync("ReceiveDmTyping", new { conversationId, displayName, isTyping = false });
+    }
+
     // ==================== Viewer Presence ====================
 
     private async Task BroadcastViewers(string discussionId)

@@ -14,6 +14,7 @@ using Snakk.Infrastructure.Database.Entities;
 public class SettingsService : ISettingsService
 {
     private readonly SnakkDbContext _context;
+    private readonly IDbContextFactory<SnakkDbContext> _dbContextFactory;
     private readonly HybridCache _cache;
     private readonly IDataProtector _dataProtector;
     private readonly IConfiguration _configuration;
@@ -24,12 +25,14 @@ public class SettingsService : ISettingsService
 
     public SettingsService(
         SnakkDbContext context,
+        IDbContextFactory<SnakkDbContext> dbContextFactory,
         HybridCache cache,
         IDataProtectionProvider dataProtectionProvider,
         IConfiguration configuration,
         ISecurityService securityService)
     {
         _context = context;
+        _dbContextFactory = dbContextFactory;
         _cache = cache;
         _dataProtector = dataProtectionProvider.CreateProtector("SettingsEncryption");
         _configuration = configuration;
@@ -46,7 +49,8 @@ public class SettingsService : ISettingsService
             cacheKey,
             async cancel =>
             {
-                var rawSettings = await _context.SystemSettings
+                await using var ctx = await _dbContextFactory.CreateDbContextAsync(cancel);
+                var rawSettings = await ctx.SystemSettings
                     .Where(s => s.Category == category)
                     .OrderBy(s => s.Key)
                     .Include(s => s.UpdatedBy)

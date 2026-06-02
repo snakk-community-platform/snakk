@@ -43,11 +43,15 @@ public class SettingsServiceTests : IDisposable
 
         _securityService = Substitute.For<ISecurityService>();
 
+        var dbContextFactory = Substitute.For<IDbContextFactory<SnakkDbContext>>();
+        dbContextFactory.CreateDbContextAsync(Arg.Any<CancellationToken>()).Returns(_context);
+
         // Use EphemeralDataProtectionProvider for testing
         var dataProtectionProvider = new EphemeralDataProtectionProvider();
 
         _service = new SettingsService(
             _context,
+            dbContextFactory,
             cache,
             dataProtectionProvider,
             _configuration,

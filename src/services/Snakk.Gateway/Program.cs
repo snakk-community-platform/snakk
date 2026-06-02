@@ -49,6 +49,13 @@ if (!setupComplete)
     var watcher = new FileSystemWatcher(confDir, "snakk-config.json");
     watcher.Created += (_, _) => setupComplete = true;
     watcher.EnableRaisingEvents = true;
+
+    // Application services aren't running during setup — suppress health check noise
+    foreach (var cluster in new[] { "web-cluster", "auth-cluster", "admin-cluster", "realtime-cluster", "public-api-cluster" })
+    {
+        builder.Configuration[$"ReverseProxy:Clusters:{cluster}:HealthCheck:Active:Enabled"] = "false";
+        builder.Configuration[$"ReverseProxy:Clusters:{cluster}:HealthCheck:Passive:Enabled"] = "false";
+    }
 }
 
 // Setup cluster is only used during first-run — no need to health-check it

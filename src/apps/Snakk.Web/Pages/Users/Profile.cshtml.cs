@@ -24,6 +24,7 @@ public class ProfileModel(
     public UserProfileInfo? Profile { get; set; }
     public PagedRecentDiscussionList? RecentDiscussions { get; set; }
     public List<ProfileSocialLink>? SocialLinks { get; set; }
+    public bool IsMessagingEnabled { get; private set; }
 
     public string FormatDate(DateTimeOffset? dateTime)
     {
@@ -44,6 +45,7 @@ public class ProfileModel(
             return profileResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
         Profile = profileResult.Value;
+        IsMessagingEnabled = Configuration.GetValue<bool>("Features:PrivateMessagingEnabled");
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
 

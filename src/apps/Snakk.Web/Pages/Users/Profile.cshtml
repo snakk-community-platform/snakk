@@ -94,6 +94,18 @@
                         </div>
                     }
                 </div>
+                @if (User.Identity?.IsAuthenticated == true &&
+                     User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value != Model.Profile.PublicId &&
+                     Model.IsMessagingEnabled)
+                {
+                    <a href="/messages/start?recipient=@Uri.EscapeDataString(Model.Profile.PublicId)"
+                       class="btn btn-sm ml-auto self-start"
+                       style="background:rgba(255,255,255,0.18);color:#fff;border:1px solid rgba(255,255,255,0.35);backdrop-filter:blur(4px);"
+                       hx-boost="false">
+                        <span class="icon icon-chat-bubbles h-3.5 w-3.5" aria-hidden="true"></span>
+                        @T.Pages.MessagesSendMessage
+                    </a>
+                }
             </div>
 
             <!-- Stats + Activity Chart — nested inside the profile card hero -->

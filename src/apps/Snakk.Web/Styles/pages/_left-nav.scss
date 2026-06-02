@@ -8,7 +8,7 @@
 }
 
 .sn-left-sticky {
-    width: 16rem;
+    width: 256px;
     position: sticky;
     top: 3.5rem;
     height: calc(100vh - 3.5rem);
@@ -84,6 +84,24 @@ html.sticky-none .sn-left-sticky {
     min-height: 0;
     overflow-y: auto;
     padding: 0 0 1rem;
+
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb {
+        background: transparent;
+        border-radius: 2px;
+        transition: background 0.2s;
+    }
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+}
+
+.sn-left:hover .sn-left-inner {
+    &::-webkit-scrollbar-thumb {
+        background: var(--border-subtle);
+        &:hover { background: var(--border-primary); }
+    }
+    scrollbar-color: var(--border-subtle) transparent;
 }
 
 .sn-nav {

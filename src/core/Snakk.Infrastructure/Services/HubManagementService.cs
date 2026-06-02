@@ -143,6 +143,7 @@ public class HubManagementService(
             Description = hub.Description,
             LanguageCode = hub.LanguageCode,
             CommunityLanguageCode = hub.CommunityLanguageCode,
+            Require2FA = hub.Require2FA,
             AllowedDiscussionTypes = allowedTypes,
             ModeratorUserIds = modUserIds
         };
@@ -164,6 +165,7 @@ public class HubManagementService(
         var nameChanged = hub.Name != request.Name;
         hub.Name = request.Name;
         hub.Description = request.Description;
+        hub.Require2FA = request.Require2FA;
 
         if (nameChanged)
         {

@@ -22,16 +22,18 @@ public class SearchUseCaseTests
     public async Task SearchDiscussionsAsync_WithQuery_ReturnsResults()
     {
         const string query = "test topic";
-        var results = new List<DiscussionSearchResultDto>
+        var results = new List<RecentDiscussionDto>
         {
             new("disc-1", "Test Topic Discussion", "test-topic-discussion",
-                "user-1", "TestUser", null, "space-1", "General", "general", "main-hub", "Main Hub", "snakk",
-                DateTime.UtcNow, DateTime.UtcNow, 5, 3, 100),
+                0, DateTime.UtcNow, DateTime.UtcNow, false, false,
+                "space-1", "general", "General", "hub-1", "main-hub", "Main Hub",
+                "comm-1", "snakk", "Snakk", "user-1", "TestUser", null, null, 5, 3, []),
             new("disc-2", "Another Test Topic", "another-test-topic",
-                "user-2", "User2", null, "space-2", "Off-Topic", "off-topic", "main-hub", "Main Hub", "snakk",
-                DateTime.UtcNow, null, 2, 1, 50)
+                0, DateTime.UtcNow, null, false, false,
+                "space-2", "off-topic", "Off-Topic", "hub-1", "main-hub", "Main Hub",
+                "comm-1", "snakk", "Snakk", "user-2", "User2", null, null, 2, 1, [])
         };
-        var pagedResult = new PagedResult<DiscussionSearchResultDto> { Items = results, Offset = 0, PageSize = 20, HasMoreItems = false };
+        var pagedResult = new PagedResult<RecentDiscussionDto> { Items = results, Offset = 0, PageSize = 20, HasMoreItems = false };
         _searchRepository.SearchDiscussionsAsync(query, null, null, null, 0, 20, null).Returns(pagedResult);
 
         var result = await _useCase.SearchDiscussionsAsync(query);
@@ -46,7 +48,7 @@ public class SearchUseCaseTests
     {
         const string query = "test";
         const string authorId = "author-1";
-        var pagedResult = new PagedResult<DiscussionSearchResultDto> { Items = [], Offset = 0, PageSize = 20, HasMoreItems = false };
+        var pagedResult = new PagedResult<RecentDiscussionDto> { Items = [], Offset = 0, PageSize = 20, HasMoreItems = false };
         _searchRepository.SearchDiscussionsAsync(query, authorId, null, null, 0, 20, null).Returns(pagedResult);
 
         var result = await _useCase.SearchDiscussionsAsync(query, authorPublicId: authorId);
@@ -59,7 +61,7 @@ public class SearchUseCaseTests
     {
         const string query = "test";
         const string spaceId = "space-1";
-        var pagedResult = new PagedResult<DiscussionSearchResultDto> { Items = [], Offset = 0, PageSize = 20, HasMoreItems = false };
+        var pagedResult = new PagedResult<RecentDiscussionDto> { Items = [], Offset = 0, PageSize = 20, HasMoreItems = false };
         _searchRepository.SearchDiscussionsAsync(query, null, spaceId, null, 0, 20, null).Returns(pagedResult);
 
         var result = await _useCase.SearchDiscussionsAsync(query, spacePublicId: spaceId);
@@ -72,7 +74,7 @@ public class SearchUseCaseTests
     {
         const string query = "test";
         const string hubId = "hub-1";
-        var pagedResult = new PagedResult<DiscussionSearchResultDto> { Items = [], Offset = 0, PageSize = 20, HasMoreItems = false };
+        var pagedResult = new PagedResult<RecentDiscussionDto> { Items = [], Offset = 0, PageSize = 20, HasMoreItems = false };
         _searchRepository.SearchDiscussionsAsync(query, null, null, hubId, 0, 20, null).Returns(pagedResult);
 
         var result = await _useCase.SearchDiscussionsAsync(query, hubPublicId: hubId);
@@ -83,7 +85,7 @@ public class SearchUseCaseTests
     [Test]
     public async Task SearchDiscussionsAsync_WithPagination_PassesPaginationParameters()
     {
-        var pagedResult = new PagedResult<DiscussionSearchResultDto> { Items = [], Offset = 10, PageSize = 5, HasMoreItems = true };
+        var pagedResult = new PagedResult<RecentDiscussionDto> { Items = [], Offset = 10, PageSize = 5, HasMoreItems = true };
         _searchRepository.SearchDiscussionsAsync("query", null, null, null, 10, 5, null).Returns(pagedResult);
 
         var result = await _useCase.SearchDiscussionsAsync("query", offset: 10, pageSize: 5);

@@ -43,6 +43,12 @@
     return;
 }
 
+@if (Model.Require2FAGate)
+{
+    <partial name="_Require2FAGate" />
+    return;
+}
+
 @if (Model.Space == null)
 {
     <div class="sn-center">

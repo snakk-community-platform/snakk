@@ -24,6 +24,9 @@ public record BroadcastRequest
     public string? LastReplierName { get; init; }
     public string? LastReplierAvatarUrl { get; init; }
     public long? LastActivityAtUnix { get; init; }
+    public int? UnreadCount { get; init; }
+    public string? ConversationId { get; init; }
+    public IReadOnlyList<string>? MessageIds { get; init; }
 }
 
 public record DebateBroadcastPosition(int Index, string Label, int PostCount, int Pct);

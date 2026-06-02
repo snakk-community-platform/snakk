@@ -137,8 +137,11 @@ async function connect(): Promise<void> {
     connection.on('ReceiveViewerCount',     (msg: any) => routeMessage('ReceiveViewerCount', msg, msg.group));
     connection.on('ReceiveTyping',          (msg: any) => routeMessage('ReceiveTyping', msg, msg.group));
     // Notification messages are user-specific — broadcast to all tabs (user is auto-subscribed server-side)
-    connection.on('ReceiveNotificationCount', (msg: any) => broadcastAll('ReceiveNotificationCount', msg));
-    connection.on('ReceiveNotification',      (msg: any) => broadcastAll('ReceiveNotification', msg));
+    connection.on('ReceiveNotificationCount',    (msg: any) => broadcastAll('ReceiveNotificationCount', msg));
+    connection.on('ReceiveNotification',          (msg: any) => broadcastAll('ReceiveNotification', msg));
+    connection.on('ReceiveDirectMessageCount',    (msg: any) => broadcastAll('ReceiveDirectMessageCount', msg));
+    connection.on('ReceiveDmTyping',              (msg: any) => broadcastAll('ReceiveDmTyping', msg));
+    connection.on('ReceiveDmMessagesDeleted',     (msg: any) => broadcastAll('ReceiveDmMessagesDeleted', msg));
 
     connection.onreconnected(async () => {
         broadcastState('connected');

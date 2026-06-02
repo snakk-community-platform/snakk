@@ -88,6 +88,7 @@ builder.Services.AddHttpClient("SnakkApi", client =>
 builder.Services.AddScoped<ManageScopeService>();
 builder.Services.AddScoped<ManageScopeState>();
 builder.Services.AddScoped<AdminTimezoneService>();
+builder.Services.AddScoped<FeatureFlagService>();
 
 // JWT-based authentication from SSO service
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT secret key not configured");

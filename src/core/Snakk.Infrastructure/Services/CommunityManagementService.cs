@@ -170,6 +170,7 @@ public class CommunityManagementService(
             LanguageCode = community.LanguageCode,
             AllowedDiscussionTypes = allowedTypes,
             HideAdultDiscussionsFromLists = community.HideAdultDiscussionsFromLists,
+            Require2FA = community.Require2FA,
             OwnerId = string.Empty, // TODO: Add owner tracking
             AdminUserIds = adminUserIds,
             ModeratorUserIds = modUserIds
@@ -193,6 +194,7 @@ public class CommunityManagementService(
         community.Name = request.Name;
         community.Description = request.Description;
         community.Timezone = string.IsNullOrWhiteSpace(request.Timezone) ? null : request.Timezone;
+        community.Require2FA = request.Require2FA;
 
         if (nameChanged)
         {

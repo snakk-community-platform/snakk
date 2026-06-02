@@ -33,6 +33,12 @@
 <partial name="Shared/_LeftSidebar" />
 }
 
+@if (Model.Require2FAGate)
+{
+    <partial name="_Require2FAGate" />
+    return;
+}
+
 @if (Model.CommunityDetail != null)
 {
     <div id="page-context" class="hidden" data-community-id="@Model.CommunityDetail.PublicId"></div>

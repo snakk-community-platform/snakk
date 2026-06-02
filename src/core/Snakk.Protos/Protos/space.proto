@@ -67,6 +67,7 @@ message SpaceInfo {
   bool is_adult_only = 22;
   bool allows_adult_content = 23;
   optional string discord_invite_url = 24;
+  bool require_2fa = 25;
 }
 
 message LatestDiscussionRef {

@@ -134,7 +134,8 @@ public static class MeEndpoints
                 user.DisplayName,
                 user.Email,
                 user.EmailVerified,
-                roles.FirstOrDefault());
+                roles.FirstOrDefault(),
+                twoFactorEnabled: user.TwoFactorEnabled);
 
             return TypedResults.Ok(new UpdateProfileResponse("Profile updated successfully", newToken));
         }

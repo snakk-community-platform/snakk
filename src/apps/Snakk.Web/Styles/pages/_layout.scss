@@ -17,23 +17,23 @@
 // Left sidebar becomes an off-canvas drawer (same as smallest viewport).
 @media (min-width: 1024px) and (max-width: 1249.98px) {
     .sn-layout {
-        grid-template-columns: minmax(0, 1fr) 20rem;
+        grid-template-columns: minmax(0, 1fr) 320px;
     }
 }
 
 // Shrink-center tier (1250–1539.98px): left/right locked at their min
-// widths; center shrinks from its 54rem ideal down to a 40rem floor.
+// widths; center shrinks from its 864px ideal down to a 640px floor.
 @media (min-width: 1250px) and (max-width: 1539.98px) {
     .sn-layout {
-        grid-template-columns: 16rem minmax(40rem, var(--content-width, 54rem)) 20rem;
+        grid-template-columns: 256px minmax(640px, var(--content-width, 864px)) 320px;
     }
 }
 
 // Desktop (≥1540px): full 3-col design. Left/right grow with 1fr on
-// very wide viewports; center stays locked at 54rem.
+// very wide viewports; center stays locked at 864px.
 @media (min-width: 1540px) {
     .sn-layout {
-        grid-template-columns: minmax(16rem, 1fr) var(--content-width, 54rem) minmax(20rem, 1fr);
+        grid-template-columns: minmax(256px, 1fr) var(--content-width, 864px) minmax(320px, 1fr);
     }
 }
 

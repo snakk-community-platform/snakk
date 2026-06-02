@@ -93,7 +93,8 @@ public static class AuthEndpoints
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            roles.FirstOrDefault());
+            roles.FirstOrDefault(),
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         // Generate refresh token
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
@@ -174,7 +175,8 @@ public static class AuthEndpoints
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            roles.FirstOrDefault());
+            roles.FirstOrDefault(),
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         // Generate refresh token
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
@@ -254,7 +256,8 @@ public static class AuthEndpoints
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            roles.FirstOrDefault());
+            roles.FirstOrDefault(),
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         var ipAddress = AuthAuditLogger.GetClientIp(httpContext);
         var userAgent = AuthAuditLogger.GetUserAgent(httpContext);

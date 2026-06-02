@@ -406,4 +406,43 @@ public class HttpRealtimeNotifier(
             logger.LogWarning(ex, "Failed to broadcast poll updated: {DiscussionId}", discussionId.Value);
         }
     }
+
+    public async Task NotifyDirectMessageCountUpdatedAsync(string userPublicId, int userIntId, int unreadCount)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "dm-count",
+                TargetGroup = $"user:{userPublicId}",
+                UnreadCount = unreadCount,
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast DM count: {UserId}", userPublicId);
+        }
+    }
+
+    public async Task NotifyDmMessagesDeletedAsync(string recipientPublicId, int recipientIntId, string conversationId, IReadOnlyList<string> messageIds)
+    {
+        try
+        {
+            await _httpClient.PostAsJsonAsync("/api/broadcast", new
+            {
+                EventType = "dm-messages-deleted",
+                TargetGroup = $"user:{recipientPublicId}",
+                ConversationId = conversationId,
+                MessageIds = messageIds,
+                HtmlContent = "",
+                SwapStrategy = ""
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to broadcast DM messages deleted: {ConversationId}", conversationId);
+        }
+    }
 }

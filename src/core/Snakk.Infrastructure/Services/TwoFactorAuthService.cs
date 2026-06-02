@@ -138,6 +138,10 @@ public class TwoFactorAuthService(
         user.TwoFactorSecret = null;
         user.TwoFactorEnabledAt = null;
 
+        // Bump AuthVersion so any existing token with tfa=1 is immediately invalidated
+        user.AuthVersion++;
+        user.AuthVersionUpdatedAt = DateTime.UtcNow;
+
         // Remove all backup codes
         context.TwoFactorBackupCodes.RemoveRange(user.TwoFactorBackupCodes);
 

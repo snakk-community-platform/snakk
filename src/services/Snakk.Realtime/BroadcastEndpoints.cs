@@ -22,6 +22,32 @@ public static class BroadcastEndpoints
         if (!ValidGroup.IsMatch(request.TargetGroup))
             return Results.BadRequest(new { error = "Invalid target group" });
 
+        // Special event types that need their own SignalR event name
+        if (request.EventType == "notification-count")
+        {
+            await hubContext.Clients.Group(request.TargetGroup)
+                .SendAsync("ReceiveNotificationCount", new { unreadCount = request.UnreadCount ?? 0 });
+            return Results.Ok(new { success = true, targetGroup = request.TargetGroup });
+        }
+
+        if (request.EventType == "dm-count")
+        {
+            await hubContext.Clients.Group(request.TargetGroup)
+                .SendAsync("ReceiveDirectMessageCount", new { unreadCount = request.UnreadCount ?? 0 });
+            return Results.Ok(new { success = true, targetGroup = request.TargetGroup });
+        }
+
+        if (request.EventType == "dm-messages-deleted")
+        {
+            await hubContext.Clients.Group(request.TargetGroup)
+                .SendAsync("ReceiveDmMessagesDeleted", new
+                {
+                    conversationId = request.ConversationId ?? "",
+                    messageIds = request.MessageIds ?? []
+                });
+            return Results.Ok(new { success = true, targetGroup = request.TargetGroup });
+        }
+
         await hubContext.Clients.Group(request.TargetGroup)
             .SendAsync("ReceiveUpdate", new
             {

@@ -255,7 +255,8 @@ public static class TwoFactorAuthEndpoints
             user.DisplayName,
             user.Email,
             user.EmailVerified,
-            role);
+            role,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         // Check if device should be trusted
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";

@@ -10,6 +10,7 @@
     var isAuth = User.Identity?.IsAuthenticated == true;
     var themeCookie = isAuth ? Context.Request.Cookies[AuthCookieHelper.ThemeCookieName] : null;
     var initialTheme = themeCookie == "dark" ? "dark" : "lofi";
+    var isMessagingEnabled = Configuration.GetValue<bool>("Features:PrivateMessagingEnabled");
 }
 <!DOCTYPE html>
 <html lang="en" data-theme="@initialTheme">
@@ -110,6 +111,10 @@
 
     <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
+    @if (isAuth && isMessagingEnabled)
+    {
+        <link rel="stylesheet" href="@SnakkUrlHelper.Css("dm-widget")" asp-append-version="true" />
+    }
     @await RenderSectionAsync("Styles", required: false)
 
     <script id="js-dompurify"    hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true" defer></script>
@@ -154,6 +159,10 @@
         <script src="@SnakkUrlHelper.Js("core/upload")" asp-append-version="true" defer></script>
         <script src="@SnakkUrlHelper.Js("services/save-cache")" asp-append-version="true" defer></script>
         <script src="@SnakkUrlHelper.Js("components/save")" asp-append-version="true" defer></script>
+        @if (isMessagingEnabled)
+        {
+            <script src="@SnakkUrlHelper.Js("components/dm-widget")" asp-append-version="true" defer></script>
+        }
     }
     <script src="@SnakkUrlHelper.Js("components/share")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/sparkline")" asp-append-version="true" defer></script>
@@ -331,6 +340,7 @@
     </div>
 
     <meta name="signalr-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("signalr.min", isVendor: true))" />
+    <meta name="realtime-worker-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("services/realtime-worker"))" />
     <script src="@SnakkUrlHelper.Js("services/realtime")" asp-append-version="true" defer></script>
 
     <meta name="lazy-site-js" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/site"))" />
@@ -367,5 +377,26 @@
     <script src="@SnakkUrlHelper.Js("components/inline-gallery")" asp-append-version="true" defer></script>
 
     @await RenderSectionAsync("Scripts", required: false)
+    <script>
+    (function () {
+        function dbg() {
+            var layout = document.querySelector('.sn-layout');
+            var left   = document.querySelector('.sn-left');
+            var center = document.querySelector('.sn-center, .sn-center-wide');
+            var right  = document.querySelector('.sn-right');
+            console.log('[layout]',
+                'innerWidth=' + window.innerWidth,
+                'clientWidth=' + document.documentElement.clientWidth,
+                'body=' + document.body.getBoundingClientRect().width.toFixed(2),
+                'left=' + (left   ? left.getBoundingClientRect().width.toFixed(2)   : '-'),
+                'center=' + (center ? center.getBoundingClientRect().width.toFixed(2) : '-'),
+                'right=' + (right  ? right.getBoundingClientRect().width.toFixed(2)  : '-')
+            );
+        }
+        window.addEventListener('resize', dbg);
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', dbg);
+        else dbg();
+    })();
+    </script>
 </body>
 </html>

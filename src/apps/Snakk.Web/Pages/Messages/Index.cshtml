@@ -1,0 +1,122 @@
+@page "/messages"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model Snakk.Web.Pages.Messages.IndexModel
+@{
+    ViewData["Title"] = T.Pages.MessagesTitle;
+    ViewData["Description"] = "Your private conversations.";
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <h2 class="sn-section-title">
+            <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
+            @T.Pages.MessagesHeading
+        </h2>
+
+        @if (Model.Conversations.Count == 0)
+        {
+            <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
+                <span class="icon icon-chat-bubbles h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
+                <p>@T.Pages.MessagesEmpty</p>
+            </div>
+        }
+        else
+        {
+            <div class="flex flex-col divide-y divide-subtle" id="dm-conv-list">
+                @foreach (var conv in Model.Conversations)
+                {
+                    var lastMsgAt = conv.LastMessageAt?.ToDateTime() ?? DateTime.UtcNow;
+                    var isPinned = conv.IsPinned;
+                    <div class="dm-conv-row flex items-center gap-1 py-2 px-2 hover:bg-base-200 rounded-lg transition-colors group"
+                         data-conv-id="@conv.PublicId"
+                         data-is-pinned="@isPinned.ToString().ToLower()">
+                        <a href="/messages/@conv.PublicId"
+                           class="flex items-center gap-3 flex-1 min-w-0">
+                            <div class="avatar avatar-sm shrink-0">
+                                <img src="@SnakkUrlHelper.UserAvatarThumbnail(conv.OtherUser.PublicId, avatarThumbnailFileName: conv.OtherUser.HasAvatarThumbnailFileName ? conv.OtherUser.AvatarThumbnailFileName : null)"
+                                     alt="@conv.OtherUser.DisplayName"
+                                     loading="lazy" />
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-1">
+                                    @if (isPinned)
+                                    {
+                                        <span class="icon icon-bookmark h-3 w-3 opacity-60 shrink-0" aria-hidden="true"></span>
+                                    }
+                                    <div class="font-medium text-sm truncate">@conv.OtherUser.DisplayName</div>
+                                </div>
+                                @if (conv.HasLastMessageExcerpt && !string.IsNullOrEmpty(conv.LastMessageExcerpt))
+                                {
+                                    <div class="text-xs text-muted truncate mt-0.5">@conv.LastMessageExcerpt</div>
+                                }
+                            </div>
+                            <div class="text-xs text-muted shrink-0">
+                                @Model.GetRelativeTime(lastMsgAt)
+                            </div>
+                        </a>
+                        <div class="flex items-center gap-0.5 shrink-0">
+                            <button type="button"
+                                    class="dm-pin-btn btn btn-ghost btn-xs btn-square"
+                                    data-conv-id="@conv.PublicId"
+                                    data-is-pinned="@isPinned.ToString().ToLower()"
+                                    aria-label="@(isPinned ? "Unpin conversation" : "Pin conversation")"
+                                    title="@(isPinned ? "Unpin" : "Pin")">
+                                <span class="icon @(isPinned ? "icon-bookmark" : "icon-bookmark-alt") h-3.5 w-3.5" aria-hidden="true"></span>
+                            </button>
+                            <button type="button"
+                                    class="dm-delete-conv-btn btn btn-ghost btn-xs btn-square text-error"
+                                    data-conv-id="@conv.PublicId"
+                                    aria-label="Delete conversation"
+                                    title="Delete conversation">
+                                <span class="icon icon-trash h-3.5 w-3.5" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @if (Model.HasMoreItems)
+            {
+                <div hx-get="/messages?offset=@Model.NextOffset"
+                     hx-trigger="revealed once"
+                     hx-swap="outerHTML"
+                     hx-target="this"
+                     hx-push-url="false"
+                     class="py-4 text-center text-sm text-muted">
+                    <span class="icon icon-ellipsis-horizontal animate-pulse" aria-hidden="true"></span>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<!-- Delete conversation confirmation modal -->
+<dialog id="dm-delete-conv-modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-base mb-2">Delete conversation</h3>
+        <p class="text-sm text-muted mb-4">Choose how to delete this conversation.</p>
+        <div class="flex flex-col gap-2">
+            <button id="dm-confirm-delete-for-me-btn" class="btn btn-sm btn-outline w-full">
+                Delete for me
+                <span class="text-xs text-muted ml-1 font-normal">(hides from your view)</span>
+            </button>
+            <button id="dm-confirm-delete-for-all-btn" class="btn btn-sm btn-error w-full">
+                Delete for everyone
+                <span class="text-xs ml-1 font-normal">(permanently removes for all)</span>
+            </button>
+        </div>
+        <div class="modal-action mt-4">
+            <form method="dialog">
+                <button class="btn btn-ghost btn-sm">Cancel</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<script src="@SnakkUrlHelper.Js("pages/dm-index")" asp-append-version="true" defer></script>

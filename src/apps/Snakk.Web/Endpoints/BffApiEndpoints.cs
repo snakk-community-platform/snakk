@@ -386,6 +386,39 @@ public static class BffApiEndpoints
             .WithName("BffUpdateMySocialLinks");
         group.MapGet("/users/{publicId}/social", GetUserSocialLinksBffAsync)
             .WithName("BffGetUserSocialLinks");
+
+        // Direct Messages
+        group.MapGet("/messages/unread-count", GetDmUnreadCountAsync)
+            .WithName("BffGetDmUnreadCount");
+
+        group.MapGet("/messages/conversations", GetDmConversationsAsync)
+            .WithName("BffGetDmConversations");
+
+        group.MapGet("/messages/conversations/{conversationId}", GetDmConversationAsync)
+            .WithName("BffGetDmConversation");
+
+        group.MapPost("/messages/conversations", GetOrCreateDmConversationAsync)
+            .WithName("BffGetOrCreateDmConversation")
+            .RequireRateLimiting("flood-engage");
+
+        group.MapGet("/messages/conversations/{conversationId}/messages", GetDmMessagesAsync)
+            .WithName("BffGetDmMessages");
+
+        group.MapPost("/messages/conversations/{conversationId}/send", SendDmMessageAsync)
+            .WithName("BffSendDmMessage")
+            .RequireRateLimiting("flood-post");
+
+        group.MapPost("/messages/conversations/{conversationId}/read", MarkDmAsReadAsync)
+            .WithName("BffMarkDmAsRead");
+
+        group.MapDelete("/messages/conversations/{conversationId}/messages", DeleteDmMessagesAsync)
+            .WithName("BffDeleteDmMessages");
+
+        group.MapDelete("/messages/conversations/{conversationId}", DeleteDmConversationAsync)
+            .WithName("BffDeleteDmConversation");
+
+        group.MapPost("/messages/conversations/{conversationId}/pin", PinDmConversationAsync)
+            .WithName("BffPinDmConversation");
     }
 
     private static bool IsAuthenticated(HttpContext httpContext)
@@ -2959,6 +2992,164 @@ public static class BffApiEndpoints
             discussionCount = d.DiscussionCount
         }));
     }
+
+    // ── Direct Messages ────────────────────────────────────────────────────
+
+    private static bool IsDmEnabled(IConfiguration cfg)
+        => cfg.GetValue<bool>("Features:PrivateMessagingEnabled");
+
+    private static async Task<IResult> GetDmUnreadCountAsync(
+        SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var result = await apiClient.GetDmUnreadCountAsync(ct);
+        return Results.Ok(new Models.Bff.BffDmUnreadCountResponse(result?.Count ?? 0));
+    }
+
+    private static async Task<IResult> GetDmConversationsAsync(
+        [FromQuery] int offset, [FromQuery] int pageSize,
+        SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var result = await apiClient.GetDmConversationsAsync(offset, Math.Min(pageSize, 50), ct);
+        if (result is null) return Results.Ok(new Models.Bff.BffDmConversationsResponse([], 0, 0, false));
+
+        var items = result.Items.Select(MapConversation).ToList();
+        return Results.Ok(new Models.Bff.BffDmConversationsResponse(items, result.Offset, result.PageSize, result.HasMoreItems));
+    }
+
+    private static async Task<IResult> GetDmConversationAsync(
+        string conversationId, SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var result = await apiClient.GetDmConversationAsync(conversationId, ct);
+        if (result is null || !result.Found || result.Conversation is null)
+            return Results.NotFound();
+
+        return Results.Ok(MapConversation(result.Conversation));
+    }
+
+    private static async Task<IResult> GetOrCreateDmConversationAsync(
+        [FromBody] Models.Bff.BffDmCreateRequest body,
+        SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+        if (string.IsNullOrWhiteSpace(body.RecipientPublicId)) return Results.BadRequest();
+
+        var result = await apiClient.GetOrCreateDmConversationAsync(body.RecipientPublicId, ct);
+        if (result is null || !result.Found || result.Conversation is null)
+            return Results.BadRequest(new { error = "Could not create conversation" });
+
+        return Results.Ok(MapConversation(result.Conversation));
+    }
+
+    private static async Task<IResult> GetDmMessagesAsync(
+        string conversationId, [FromQuery] int offset, [FromQuery] int pageSize,
+        SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var result = await apiClient.GetDmMessagesAsync(conversationId, offset, Math.Min(pageSize, 50), ct);
+        if (result is null) return Results.Ok(new Models.Bff.BffDmMessagesResponse([], 0, 0, false));
+
+        var items = result.Items.Select(m => new Models.Bff.BffDmMessageResponse(
+            m.PublicId, m.SenderPublicId, m.Content,
+            m.CreatedAt.ToDateTime().ToString("O"), m.IsMine)).ToList();
+
+        return Results.Ok(new Models.Bff.BffDmMessagesResponse(items, result.Offset, result.PageSize, result.HasMoreItems));
+    }
+
+    private static async Task<IResult> SendDmMessageAsync(
+        string conversationId, [FromBody] Models.Bff.BffDmSendRequest body,
+        SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+        if (string.IsNullOrWhiteSpace(body.Content)) return Results.BadRequest();
+
+        var result = await apiClient.SendDmMessageAsync(conversationId, body.Content, ct);
+        if (result is null || !result.Success || result.Message is null)
+            return Results.BadRequest(new { error = "Failed to send message" });
+
+        var m = result.Message;
+        return Results.Ok(new Models.Bff.BffDmMessageResponse(
+            m.PublicId, m.SenderPublicId, m.Content,
+            m.CreatedAt.ToDateTime().ToString("O"), m.IsMine));
+    }
+
+    private static async Task<IResult> MarkDmAsReadAsync(
+        string conversationId, SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        await apiClient.MarkDmAsReadAsync(conversationId, ct);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> DeleteDmMessagesAsync(
+        string conversationId, [FromBody] Models.Bff.BffDmDeleteMessagesRequest body,
+        SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+        if (body.MessageIds is null || body.MessageIds.Count == 0) return Results.BadRequest();
+
+        var success = await apiClient.DeleteDmMessagesAsync(conversationId, body.MessageIds, body.DeleteForAll, ct);
+        return success ? Results.NoContent() : Results.BadRequest();
+    }
+
+    private static async Task<IResult> DeleteDmConversationAsync(
+        string conversationId, [FromQuery] bool deleteForAll,
+        SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var success = await apiClient.DeleteDmConversationAsync(conversationId, deleteForAll, ct);
+        return success ? Results.NoContent() : Results.BadRequest();
+    }
+
+    private static async Task<IResult> PinDmConversationAsync(
+        string conversationId, [FromBody] Models.Bff.BffDmPinRequest body,
+        SnakkApiClient apiClient, HttpContext httpContext, IConfiguration configuration, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!IsDmEnabled(configuration)) return Results.NotFound();
+        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
+
+        var success = await apiClient.PinDmConversationAsync(conversationId, body.IsPinned, ct);
+        return success ? Results.NoContent() : Results.BadRequest();
+    }
+
+    private static Models.Bff.BffDmConversationResponse MapConversation(Snakk.Protos.Dm.ConversationInfo c) =>
+        new(c.PublicId,
+            new Models.Bff.BffDmUserResponse(
+                c.OtherUser.PublicId,
+                c.OtherUser.DisplayName,
+                SnakkUrlHelper.UserAvatarThumbnail(
+                    c.OtherUser.PublicId,
+                    avatarThumbnailFileName: c.OtherUser.HasAvatarThumbnailFileName ? c.OtherUser.AvatarThumbnailFileName : null)),
+            c.HasLastMessageExcerpt ? c.LastMessageExcerpt : null,
+            c.LastMessageAt != null ? c.LastMessageAt.ToDateTime().ToString("O") : DateTime.UtcNow.ToString("O"),
+            c.IsPinned);
 }
 
 public record ToggleReactionRequest(int Type);

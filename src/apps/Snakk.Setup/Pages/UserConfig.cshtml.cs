@@ -6,6 +6,7 @@ public class UserConfigModel : SetupPageBase
 {
     [BindProperty] public bool PasskeysEnabled { get; set; } = true;
     [BindProperty] public bool TwoFactorEnabled { get; set; } = true;
+    [BindProperty] public bool PrivateMessagingEnabled { get; set; } = true;
     [BindProperty] public List<string> AllowedDisplayNameScripts { get; set; } = ["Latin"];
 
     public void OnGet()
@@ -14,6 +15,7 @@ public class UserConfigModel : SetupPageBase
         var state = GetState();
         PasskeysEnabled = state.PasskeysEnabled;
         TwoFactorEnabled = state.TwoFactorEnabled;
+        PrivateMessagingEnabled = state.PrivateMessagingEnabled;
         AllowedDisplayNameScripts = state.AllowedDisplayNameScripts.Count > 0
             ? state.AllowedDisplayNameScripts
             : ["Latin"];
@@ -25,6 +27,7 @@ public class UserConfigModel : SetupPageBase
         var state = GetState();
         state.PasskeysEnabled = PasskeysEnabled;
         state.TwoFactorEnabled = TwoFactorEnabled;
+        state.PrivateMessagingEnabled = PrivateMessagingEnabled;
         state.AllowedDisplayNameScripts = AllowedDisplayNameScripts.Count > 0
             ? AllowedDisplayNameScripts
             : ["Latin"];

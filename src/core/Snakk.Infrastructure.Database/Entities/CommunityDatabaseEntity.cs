@@ -40,6 +40,7 @@ public class CommunityDatabaseEntity
 
     // Group access control
     public bool IsRestricted { get; set; }
+    public bool Require2FA { get; set; }
 
     // Rules denormalization
     public bool HasRules { get; set; }

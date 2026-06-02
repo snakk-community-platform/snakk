@@ -23,7 +23,7 @@ public class CommunityRepositoryAdapter(
                 c.PublicId, c.Name, c.Slug, c.Description,
                 c.VisibilityId, c.ExposeToPlatformFeed,
                 c.CreatedAt, c.LastModifiedAt,
-                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision))
+                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision, c.Require2FA))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -36,7 +36,7 @@ public class CommunityRepositoryAdapter(
                 c.PublicId, c.Name, c.Slug, c.Description,
                 c.VisibilityId, c.ExposeToPlatformFeed,
                 c.CreatedAt, c.LastModifiedAt,
-                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision))
+                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision, c.Require2FA))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -51,7 +51,7 @@ public class CommunityRepositoryAdapter(
                 d.Community.PublicId, d.Community.Name, d.Community.Slug, d.Community.Description,
                 d.Community.VisibilityId, d.Community.ExposeToPlatformFeed,
                 d.Community.CreatedAt, d.Community.LastModifiedAt,
-                d.Community.AvatarFileName, d.Community.AvatarThumbnailFileName, d.Community.AvatarMicroFileName, d.Community.AvatarRevision))
+                d.Community.AvatarFileName, d.Community.AvatarThumbnailFileName, d.Community.AvatarMicroFileName, d.Community.AvatarRevision, d.Community.Require2FA))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -129,6 +129,7 @@ public class CommunityRepositoryAdapter(
         entity.AvatarThumbnailFileName = community.AvatarThumbnailFileName;
         entity.AvatarMicroFileName = community.AvatarMicroFileName;
         entity.AvatarRevision = community.AvatarRevision;
+        entity.Require2FA = community.Require2FA;
 
         await databaseRepository.UpdateAsync(entity, ct);
         await databaseRepository.SaveChangesAsync(ct);
@@ -163,7 +164,8 @@ public class CommunityRepositoryAdapter(
         string? AvatarFileName,
         string? AvatarThumbnailFileName,
         string? AvatarMicroFileName,
-        int AvatarRevision)
+        int AvatarRevision,
+        bool Require2FA)
     {
         public Community ToDomain() => Community.Rehydrate(
             CommunityId.From(PublicId),
@@ -174,6 +176,7 @@ public class CommunityRepositoryAdapter(
             avatarFileName: AvatarFileName,
             avatarThumbnailFileName: AvatarThumbnailFileName,
             avatarMicroFileName: AvatarMicroFileName,
-            avatarRevision: AvatarRevision);
+            avatarRevision: AvatarRevision,
+            require2FA: Require2FA);
     }
 }

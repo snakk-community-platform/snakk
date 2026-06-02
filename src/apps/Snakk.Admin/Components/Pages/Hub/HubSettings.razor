@@ -26,7 +26,8 @@ else
 
                     <MudText Typo="Typo.h6" GutterBottom="true" Class="mt-2">Access</MudText>
                     <MudCheckBox @bind-Value="_allowAnon" Label="Allow anonymous reading" Class="mb-1" />
-                    <MudCheckBox @bind-Value="_requireEmail" Label="Require email confirmation" />
+                    <MudCheckBox @bind-Value="_requireEmail" Label="Require email confirmation" Class="mb-1" />
+                    <MudCheckBox @bind-Value="_require2FA" Label="Require 2FA to access" />
 
                     <MudText Typo="Typo.h6" GutterBottom="true" Class="mt-2">Content</MudText>
                     <MudCheckBox @bind-Value="_isAdultOnly" Label="Adult-only hub" />
@@ -53,6 +54,7 @@ else
     private string _languageCode = "";
     private bool _allowAnon;
     private bool _requireEmail;
+    private bool _require2FA;
     private bool _isAdultOnly;
 
     protected override async Task OnParametersSetAsync()
@@ -69,6 +71,7 @@ else
             _allowAnon = false;
             _requireEmail = false;
             _isAdultOnly = false;
+            _require2FA = s.Require2Fa;
         }
         catch (Exception ex) { Snackbar.Add($"Failed to load: {ex.Message}", Severity.Error); }
         finally { _loading = false; }
@@ -84,7 +87,8 @@ else
                 HubPublicId = Scope!.ScopePublicId,
                 Name = _name,
                 Description = _description,
-                LanguageCode = _languageCode
+                LanguageCode = _languageCode,
+                Require2Fa = _require2FA
             });
             Snackbar.Add("Settings saved.", Severity.Success);
         }

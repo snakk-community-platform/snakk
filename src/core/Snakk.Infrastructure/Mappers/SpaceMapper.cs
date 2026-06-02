@@ -25,7 +25,8 @@ public static class SpaceMapper
             communityLanguageCode: entity.CommunityLanguageCode,
             autoParagraphEnabled: entity.AutoParagraphEnabled,
             isAdultOnly: entity.IsAdultOnly,
-            allowsAdultContent: entity.AllowsAdultContent);
+            allowsAdultContent: entity.AllowsAdultContent,
+            require2FA: entity.Require2FA);
 
     public static SpaceDatabaseEntity ToPersistence(this Space space) =>
         new()
@@ -45,7 +46,8 @@ public static class SpaceMapper
             HubLanguageCode = space.HubLanguageCode,
             CommunityLanguageCode = space.CommunityLanguageCode,
             IsAdultOnly = space.IsAdultOnly,
-            AllowsAdultContent = space.AllowsAdultContent
+            AllowsAdultContent = space.AllowsAdultContent,
+            Require2FA = space.Require2FA
             // HubId will be set by repository adapter
         };
 }

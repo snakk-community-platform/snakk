@@ -64,7 +64,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             roles.FirstOrDefault(),
             user.AvatarFileName,
-            authVersion: user.AuthVersion);
+            authVersion: user.AuthVersion,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 
@@ -156,7 +157,8 @@ public class AuthGrpcService(
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion,
-            sessionId: sessionPublicId);
+            sessionId: sessionPublicId,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         logger.LogInformation("Login succeeded for {UserId} from {Ip}", user.PublicId.Value, request.IpAddress);
 
@@ -211,7 +213,8 @@ public class AuthGrpcService(
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion,
-            sessionId: newSessionPublicId);
+            sessionId: newSessionPublicId,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         var needsConsent = !await consentService.HasAllRequiredConsentsAsync(user.PublicId.Value);
 
@@ -340,7 +343,8 @@ public class AuthGrpcService(
                 user.EmailVerified,
                 roles.FirstOrDefault(),
                 user.AvatarFileName,
-                authVersion: user.AuthVersion);
+                authVersion: user.AuthVersion,
+                twoFactorEnabled: user.TwoFactorEnabled);
 
             return new UpdateProfileResponse
             {
@@ -380,7 +384,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             roles.FirstOrDefault(),
             user.AvatarFileName,
-            authVersion: user.AuthVersion);
+            authVersion: user.AuthVersion,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         return new SetEmailResponse { Token = newToken };
     }
@@ -486,7 +491,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             roles.FirstOrDefault(),
             user.AvatarFileName,
-            authVersion: user.AuthVersion);
+            authVersion: user.AuthVersion,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 

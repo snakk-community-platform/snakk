@@ -269,6 +269,7 @@ AddGrpcClient<Snakk.Protos.Consent.ConsentService.ConsentServiceClient>(builder.
 AddGrpcClient<Snakk.Protos.Save.SaveService.SaveServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.Passkey.PasskeyService.PasskeyServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.TwoFactor.TwoFactorService.TwoFactorServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Dm.DmService.DmServiceClient>(builder.Services);
 
 // Register SnakkApiClient (DI resolves all gRPC clients automatically)
 builder.Services.AddSingleton<SnakkApiClient>();

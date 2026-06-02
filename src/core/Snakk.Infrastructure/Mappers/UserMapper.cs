@@ -51,7 +51,8 @@ public static class UserMapper
             hidePresence: entity.HidePresence,
             emailVerificationTokenCreatedAt: entity.EmailVerificationTokenCreatedAt,
             authVersion: entity.AuthVersion,
-            authVersionUpdatedAt: entity.AuthVersionUpdatedAt);
+            authVersionUpdatedAt: entity.AuthVersionUpdatedAt,
+            twoFactorEnabled: entity.TwoFactorEnabled);
     }
 
     public static UserDatabaseEntity ToPersistence(this User user) =>

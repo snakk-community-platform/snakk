@@ -85,6 +85,7 @@ message UpdateSpaceSettingsRequest {
   bool auto_paragraph_enabled = 8;
   bool is_adult_only = 9;
   bool allows_adult_content = 10;
+  bool require_2fa = 11;
 }
 
 // --- Responses ---
@@ -123,6 +124,7 @@ message SpaceSettingsResponse {
   bool auto_paragraph_enabled = 12;
   bool is_adult_only = 13;
   bool allows_adult_content = 14;
+  bool require_2fa = 15;
 }
 
 message UpdateSpaceSettingsResponse {
@@ -583,6 +585,7 @@ message CommunitySettingsResponse {
   repeated int32 allowed_discussion_types = 5;
   optional string language_code = 6;
   bool hide_adult_discussions_from_lists = 7;
+  bool require_2fa = 8;
 }
 
 message UpdateCommunitySettingsRequest {
@@ -593,6 +596,7 @@ message UpdateCommunitySettingsRequest {
   repeated int32 allowed_discussion_types = 5;
   optional string language_code = 6;
   bool hide_adult_discussions_from_lists = 7;
+  bool require_2fa = 8;
 }
 
 message UpdateCommunitySettingsResponse {
@@ -615,6 +619,7 @@ message HubSettingsResponse {
   repeated int32 parent_allowed_types = 6; // Community's allowed types (for cascade UI)
   optional string language_code = 7;
   optional string community_language_code = 8;
+  bool require_2fa = 9;
 }
 
 message UpdateHubSettingsRequest {
@@ -623,6 +628,7 @@ message UpdateHubSettingsRequest {
   optional string description = 3;
   repeated int32 allowed_discussion_types = 4;
   optional string language_code = 5;
+  bool require_2fa = 6;
 }
 
 message UpdateHubSettingsResponse {

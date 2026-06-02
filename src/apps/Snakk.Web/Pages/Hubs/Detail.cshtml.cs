@@ -38,6 +38,9 @@ public class DetailModel(
     // Banners (bubble-down: hub + community)
     public Snakk.Protos.Banner.BannerList? Banners { get; set; }
 
+    // 2FA gating: true when the hub requires 2FA and the visitor doesn't have it enabled.
+    public bool Require2FAGate { get; set; }
+
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
@@ -100,6 +103,13 @@ public class DetailModel(
 
             if (access is not null && access.AccessLevel < 1)
                 return StatusCode(403);
+        }
+
+        // 2FA gate — short-circuit if the hub requires 2FA and the visitor doesn't have it
+        if (Hub.Require2Fa && User.FindFirst("tfa")?.Value != "1")
+        {
+            Require2FAGate = true;
+            return Page();
         }
 
         return Page();

@@ -194,6 +194,7 @@ app.MapGrpcService<Snakk.Api.GrpcServices.TwoFactorGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.ConsentGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.SaveGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.PasskeyGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.DmGrpcService>();
 
 // Map REST endpoint groups (kept alongside gRPC during incremental migration)
 app.MapCommunityEndpoints();

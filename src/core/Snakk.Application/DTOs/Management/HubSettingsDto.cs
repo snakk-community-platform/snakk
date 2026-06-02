@@ -20,6 +20,8 @@ public class HubSettingsDto
 
     public string? CommunityLanguageCode { get; init; }
 
+    public bool Require2FA { get; set; }
+
     public List<string> ModeratorUserIds { get; set; } = new();
 }
 
@@ -35,4 +37,6 @@ public class UpdateHubSettingsRequest
     public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 
     public string? LanguageCode { get; init; }
+
+    public bool Require2FA { get; set; }
 }

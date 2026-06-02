@@ -233,6 +233,30 @@ interface NotificationsResponse {
         }
     });
 
+    // ===== DM Badge =====
+
+    async function loadDmUnreadCount(): Promise<void> {
+        try {
+            const response = await fetch('/bff/messages/unread-count', { credentials: 'include' });
+            if (!response.ok) return;
+            const data: { count: number } = await response.json();
+            updateDmBadge(data.count);
+        } catch {
+            // Feature may be disabled or user not authenticated — silent failure is correct
+        }
+    }
+
+    function updateDmBadge(count: number): void {
+        document.querySelectorAll<HTMLElement>('.dm-badge').forEach(badge => {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count.toString();
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        });
+    }
+
     // ===== Listen for Realtime Events =====
 
     document.addEventListener('snakk:realtime:notification-count', (event) => {
@@ -245,6 +269,11 @@ interface NotificationsResponse {
         loadNotifications();
     });
 
+    document.addEventListener('snakk:realtime:dm-count', (event) => {
+        const customEvent = event as CustomEvent<{ unreadCount: number }>;
+        updateDmBadge(customEvent.detail.unreadCount);
+    });
+
     // ===== Initialize =====
 
     function init(): void {
@@ -252,6 +281,7 @@ interface NotificationsResponse {
         if ((window as any).currentUserId) {
             loadNotificationCount();
             loadNotifications();
+            loadDmUnreadCount();
         }
 
         // Update theme toggle button icon with current state
@@ -266,6 +296,7 @@ interface NotificationsResponse {
 
     // Export minimal API
     (window as any).SnakkAuthNav = {
-        updateNotificationBadge
+        updateNotificationBadge,
+        updateDmBadge
     };
 })();

@@ -36,6 +36,9 @@ public class DetailModel(
     // Banners (community-level only)
     public Snakk.Protos.Banner.BannerList? Banners { get; set; }
 
+    // 2FA gating: true when the community requires 2FA and the visitor doesn't have it enabled.
+    public bool Require2FAGate { get; set; }
+
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarPlatformStatsVM? InlineCommunityStats { get; set; }
     public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
@@ -61,6 +64,13 @@ public class DetailModel(
             var communityAccess = await _apiClient.CheckGroupAccessAsync(CommunityDetail.PublicId);
             if (communityAccess is not null && communityAccess.AccessLevel < 1)
                 return StatusCode(403);
+        }
+
+        // 2FA gate — short-circuit if the community requires 2FA and the visitor doesn't have it
+        if (CommunityDetail.Require2Fa && User.FindFirst("tfa")?.Value != "1")
+        {
+            Require2FAGate = true;
+            return Page();
         }
 
         if (CommunityDetail.HasRules)

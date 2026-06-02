@@ -162,7 +162,8 @@ public class TwoFactorGrpcService(
             user.EmailVerified,
             roles.FirstOrDefault(),
             user.AvatarFileName,
-            authVersion: user.AuthVersion);
+            authVersion: user.AuthVersion,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(UserId.From(user.PublicId));
 

@@ -52,7 +52,10 @@ public static class ServiceCollectionExtensions
                     o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
                           .CommandTimeout(60))
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
-                .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>()),
+                .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>())
+                .ConfigureWarnings(w => w.Ignore(
+                    Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId
+                        .PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)),
             poolSize: 128);
 
         // Factory for services that need per-operation contexts (e.g. CounterService parallel updates)
@@ -63,7 +66,10 @@ public static class ServiceCollectionExtensions
                     o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
                           .CommandTimeout(60))
                 .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
-                .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>()));
+                .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>())
+                .ConfigureWarnings(w => w.Ignore(
+                    Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId
+                        .PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)));
 
         // Persist Data Protection keys in Postgres — shared across all services,
         // durable as app data, and read at most once per 24 h (cached in memory).
@@ -271,6 +277,9 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<Application.Services.DisplayNameValidator>();
 
+        // DM Repository
+        services.AddScoped<Application.Repositories.IDmRepository, Infrastructure.Database.Repositories.DmRepository>();
+
         // Use Cases
         services.AddScoped<CommunityUseCase>();
         services.AddScoped<HubUseCase>();
@@ -286,6 +295,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ModerationUseCase>();
         services.AddScoped<BannerUseCase>();
         services.AddScoped<StatisticsUseCase>();
+        services.AddScoped<DmUseCase>();
 
         // API Services
         services.AddHttpContextAccessor();

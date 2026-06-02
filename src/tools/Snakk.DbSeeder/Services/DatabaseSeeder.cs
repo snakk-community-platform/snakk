@@ -941,7 +941,6 @@ public class DatabaseSeeder(
 
         // Batch for performance
         var discussions = new List<DiscussionDatabaseEntity>();
-        var posts = new List<PostDatabaseEntity>();
 
         // Parallel list: tracks (type, curatedDataIndex) by position, used to populate
         // _discussionLinkIndex / _discussionDebateTopicIndex after discussion IDs are assigned.
@@ -1030,82 +1029,26 @@ public class DatabaseSeeder(
         var milestoneThresholds = new HashSet<int> { 100, 500, 1000, 2500, 5000, 10000 };
         var necroDays = 30;
 
-        // Now create posts for each discussion
-        foreach (var discussion in discussions)
+        // Process posts in batches to avoid OOM when SaveChangesAsync builds a massive SQL command
+        const int postBatchSize = 10;
+        for (var batchStart = 0; batchStart < discussions.Count; batchStart += postBatchSize)
         {
-            var author = users.First(u => u.Id == discussion.CreatedByUserId);
-            var usersWhoPostedInDiscussion = new HashSet<int>();
-            var postNumber = 0;
+            var batchDiscussions = discussions.GetRange(batchStart, Math.Min(postBatchSize, discussions.Count - batchStart));
+            var batchPosts = new List<PostDatabaseEntity>();
 
-            // First post (opening post) — type-aware content
-            postNumber++;
-            var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
-            usersWhoPostedInDiscussion.Add(author.Id);
-            var firstPostContent = GenerateTypedFirstPostContent((DiscussionTypeEnum)discussion.Type);
-            var firstPostPlainText = _markupParser.ToPlainText(firstPostContent);
-            posts.Add(new PostDatabaseEntity
+            foreach (var discussion in batchDiscussions)
             {
-                PublicId = Ulid.NewUlid().ToString(),
-                DiscussionId = discussion.Id,
-                DiscussionPublicId = discussion.PublicId,
-                SpaceId = space.Id,
-                SpacePublicId = space.PublicId,
-                HubId = space.HubId,
-                HubPublicId = space.HubPublicId,
-                CommunityId = hub!.CommunityId,
-                CommunityPublicId = space.CommunityPublicId,
-                Content = firstPostContent,
-                RenderedContent = _markupParser.ToHtml(firstPostContent),
-                PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
-                CreatedByUserId = author.Id,
-                CreatedByUserPublicId = author.PublicId,
-                CreatedAt = discussion.CreatedAt,
-                IsFirstPost = true,
-                RevisionCount = 0,
-                IsOp = true,
-                IsUsersFirstPostInDiscussion = true,
-                IsUsersFirstPostInSpace = isFirstInSpace,
-                IsNecro = false,
-                IsMilestone = milestoneThresholds.Contains(postNumber),
-                HasCodeBlock = firstPostContent.Contains('`')
-            });
+                var author = users.First(u => u.Id == discussion.CreatedByUserId);
+                var usersWhoPostedInDiscussion = new HashSet<int>();
+                var postNumber = 0;
 
-            // Variable number of replies
-            var replyCount = GetSkewedReplyCount();
-            var lastActivityAt = discussion.CreatedAt;
-            UserDatabaseEntity? lastReplyAuthor = null;
-            string lastReplyExcerpt = "";
-
-            // Time budget: from discussion creation to latest allowed
-            var replyTimeWindow = (latestAllowed - discussion.CreatedAt).TotalMinutes;
-
-            for (var j = 0; j < replyCount; j++)
-            {
-                var replyAuthor = _faker.PickRandom(users);
+                // First post (opening post) — type-aware content
                 postNumber++;
-
-                // Each reply is some time after the last, but capped to not exceed Now
-                var maxDelay = Math.Max(5, replyTimeWindow / (replyCount + 1));
-                var delay = _faker.Random.Double(5, Math.Min(maxDelay, 60 * 24 * 3)); // Up to 3 days, capped
-                var replyCreatedAt = lastActivityAt.AddMinutes(delay);
-
-                // Hard cap: never exceed 1 hour ago, but always after the discussion's first post
-                if (replyCreatedAt >= latestAllowed)
-                {
-                    var minutesAfterDiscussion = (latestAllowed - discussion.CreatedAt).TotalMinutes;
-                    var clampedDelay = minutesAfterDiscussion > 1
-                        ? _faker.Random.Double(1, minutesAfterDiscussion)
-                        : 1;
-                    replyCreatedAt = discussion.CreatedAt.AddMinutes(clampedDelay);
-                }
-
-                var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
-                var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
-                var isNecro = (replyCreatedAt - lastActivityAt).TotalDays >= necroDays;
-
-                var replyContent = GeneratePostContent(isOpeningPost: false);
-                var replyPlainText = _markupParser.ToPlainText(replyContent);
-                posts.Add(new PostDatabaseEntity
+                var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
+                usersWhoPostedInDiscussion.Add(author.Id);
+                var firstPostContent = GenerateTypedFirstPostContent((DiscussionTypeEnum)discussion.Type);
+                var firstPostPlainText = _markupParser.ToPlainText(firstPostContent);
+                batchPosts.Add(new PostDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     DiscussionId = discussion.Id,
@@ -1116,57 +1059,128 @@ public class DatabaseSeeder(
                     HubPublicId = space.HubPublicId,
                     CommunityId = hub!.CommunityId,
                     CommunityPublicId = space.CommunityPublicId,
-                    Content = replyContent,
-                    RenderedContent = _markupParser.ToHtml(replyContent),
-                    PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
-                    CreatedByUserId = replyAuthor.Id,
-                    CreatedByUserPublicId = replyAuthor.PublicId,
-                    CreatedAt = replyCreatedAt,
-                    IsFirstPost = false,
+                    Content = firstPostContent,
+                    RenderedContent = _markupParser.ToHtml(firstPostContent),
+                    PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
+                    CreatedByUserId = author.Id,
+                    CreatedByUserPublicId = author.PublicId,
+                    CreatedAt = discussion.CreatedAt,
+                    IsFirstPost = true,
                     RevisionCount = 0,
-                    IsOp = replyAuthor.Id == discussion.CreatedByUserId,
-                    IsUsersFirstPostInDiscussion = isFirstInDiscussion,
-                    IsUsersFirstPostInSpace = isFirstInSpaceReply,
-                    IsNecro = isNecro,
+                    IsOp = true,
+                    IsUsersFirstPostInDiscussion = true,
+                    IsUsersFirstPostInSpace = isFirstInSpace,
+                    IsNecro = false,
                     IsMilestone = milestoneThresholds.Contains(postNumber),
-                    HasCodeBlock = replyContent.Contains('`')
+                    HasCodeBlock = firstPostContent.Contains('`')
                 });
 
-                if (replyCreatedAt > lastActivityAt)
+                // Variable number of replies
+                var replyCount = GetSkewedReplyCount();
+                var lastActivityAt = discussion.CreatedAt;
+                UserDatabaseEntity? lastReplyAuthor = null;
+                string lastReplyExcerpt = "";
+
+                // Time budget: from discussion creation to latest allowed
+                var replyTimeWindow = (latestAllowed - discussion.CreatedAt).TotalMinutes;
+
+                for (var j = 0; j < replyCount; j++)
                 {
-                    lastActivityAt = replyCreatedAt;
-                    lastReplyAuthor = replyAuthor;
-                    lastReplyExcerpt = replyPlainText.Length > 150 ? replyPlainText[..150] : replyPlainText;
+                    var replyAuthor = _faker.PickRandom(users);
+                    postNumber++;
+
+                    // Each reply is some time after the last, but capped to not exceed Now
+                    var maxDelay = Math.Max(5, replyTimeWindow / (replyCount + 1));
+                    var delay = _faker.Random.Double(5, Math.Min(maxDelay, 60 * 24 * 3)); // Up to 3 days, capped
+                    var replyCreatedAt = lastActivityAt.AddMinutes(delay);
+
+                    // Hard cap: never exceed 1 hour ago, but always after the discussion's first post
+                    if (replyCreatedAt >= latestAllowed)
+                    {
+                        var minutesAfterDiscussion = (latestAllowed - discussion.CreatedAt).TotalMinutes;
+                        var clampedDelay = minutesAfterDiscussion > 1
+                            ? _faker.Random.Double(1, minutesAfterDiscussion)
+                            : 1;
+                        replyCreatedAt = discussion.CreatedAt.AddMinutes(clampedDelay);
+                    }
+
+                    var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
+                    var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
+                    var isNecro = (replyCreatedAt - lastActivityAt).TotalDays >= necroDays;
+
+                    var replyContent = GeneratePostContent(isOpeningPost: false);
+                    var replyPlainText = _markupParser.ToPlainText(replyContent);
+                    batchPosts.Add(new PostDatabaseEntity
+                    {
+                        PublicId = Ulid.NewUlid().ToString(),
+                        DiscussionId = discussion.Id,
+                        DiscussionPublicId = discussion.PublicId,
+                        SpaceId = space.Id,
+                        SpacePublicId = space.PublicId,
+                        HubId = space.HubId,
+                        HubPublicId = space.HubPublicId,
+                        CommunityId = hub!.CommunityId,
+                        CommunityPublicId = space.CommunityPublicId,
+                        Content = replyContent,
+                        RenderedContent = _markupParser.ToHtml(replyContent),
+                        PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
+                        CreatedByUserId = replyAuthor.Id,
+                        CreatedByUserPublicId = replyAuthor.PublicId,
+                        CreatedAt = replyCreatedAt,
+                        IsFirstPost = false,
+                        RevisionCount = 0,
+                        IsOp = replyAuthor.Id == discussion.CreatedByUserId,
+                        IsUsersFirstPostInDiscussion = isFirstInDiscussion,
+                        IsUsersFirstPostInSpace = isFirstInSpaceReply,
+                        IsNecro = isNecro,
+                        IsMilestone = milestoneThresholds.Contains(postNumber),
+                        HasCodeBlock = replyContent.Contains('`')
+                    });
+
+                    if (replyCreatedAt > lastActivityAt)
+                    {
+                        lastActivityAt = replyCreatedAt;
+                        lastReplyAuthor = replyAuthor;
+                        lastReplyExcerpt = replyPlainText.Length > 150 ? replyPlainText[..150] : replyPlainText;
+                    }
+                }
+
+                discussion.LastActivityAt = lastActivityAt;
+                discussion.PostCount = 1 + replyCount;
+                discussion.ReactionCount = 0;
+                discussion.EngagementScore = discussion.PostCount;
+                if (lastReplyAuthor is not null)
+                {
+                    discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
+                    discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
+                    discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
+                    discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
+                    discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
+                }
+                else
+                {
+                    discussion.LastPostAuthorPublicId = author.PublicId;
+                    discussion.LastPostAuthorDisplayName = author.DisplayName;
+                    discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
+                    discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
+                    discussion.LastPostPlainTextExcerpt = firstPostPlainText.Length > 150 ? firstPostPlainText[..150] : firstPostPlainText;
                 }
             }
 
-            discussion.LastActivityAt = lastActivityAt;
-            discussion.PostCount = 1 + replyCount;
-            discussion.ReactionCount = 0;
-            discussion.EngagementScore = discussion.PostCount;
-            if (lastReplyAuthor is not null)
-            {
-                discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
-                discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
-                discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
-                discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
-                discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
-            }
-            else
-            {
-                discussion.LastPostAuthorPublicId = author.PublicId;
-                discussion.LastPostAuthorDisplayName = author.DisplayName;
-                discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
-                discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
-                discussion.LastPostPlainTextExcerpt = firstPostPlainText.Length > 150 ? firstPostPlainText[..150] : firstPostPlainText;
-            }
+            // Re-attach discussions: ChangeTracker.Clear() in a prior batch detaches them,
+            // so we must explicitly mark them Modified so their updates (LastActivityAt etc.) are saved.
+            foreach (var d in batchDiscussions)
+                _context.Entry(d).State = EntityState.Modified;
+
+            _context.Posts.AddRange(batchPosts);
+            await _context.SaveChangesAsync();
+
+            // Extension records need post IDs — call only after posts are persisted
+            await CreateDiscussionExtensionRecords(batchDiscussions, batchPosts, users);
+
+            // Release all tracked entities to prevent unbounded memory growth across batches and spaces
+            _context.ChangeTracker.Clear();
         }
-
-        _context.Posts.AddRange(posts);
-        await _context.SaveChangesAsync();
-
-        // Extension records need post IDs — call only after posts are persisted
-        await CreateDiscussionExtensionRecords(discussions, posts, users);
     }
 
     private async Task CreateDiscussionExtensionRecords(

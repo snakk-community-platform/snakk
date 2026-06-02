@@ -110,6 +110,17 @@ public interface IRealtimeNotifier
     /// Notify global subscribers when poll vote counts change
     /// </summary>
     Task NotifyPollUpdatedAsync(DiscussionId discussionId, IReadOnlyList<PollOptionUpdate> options, int totalVotes);
+
+    /// <summary>
+    /// Notify a user when their unread DM conversation count changes
+    /// </summary>
+    Task NotifyDirectMessageCountUpdatedAsync(string userPublicId, int userIntId, int unreadCount);
+
+    /// <summary>
+    /// Notify a user when specific DM messages are hard-deleted.
+    /// Empty messageIds means the entire conversation was deleted.
+    /// </summary>
+    Task NotifyDmMessagesDeletedAsync(string recipientPublicId, int recipientIntId, string conversationId, IReadOnlyList<string> messageIds);
 }
 
 public record DebatePositionUpdate(int Index, string Label, int PostCount, int Pct);

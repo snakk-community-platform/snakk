@@ -216,7 +216,7 @@ public class SpaceGrpcService(
     }
 
     private sealed record LatestDiscussionMeta(string PublicId, string Title, string Slug, DateTime LastActivityAt, string AuthorPublicId, string AuthorDisplayName, string? AuthorAvatarFileName, int PostCount);
-    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes, string? HubSlug, string? CommunitySlug, int DiscussionCount = 0, int ReplyCount = 0, LatestDiscussionMeta? LatestDiscussion = null);
+    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes, string? HubSlug, string? CommunitySlug, int DiscussionCount = 0, int ReplyCount = 0, LatestDiscussionMeta? LatestDiscussion = null, bool Require2FA = false);
     private async Task PopulateDiscordInviteUrlAsync(SpaceInfo info, string publicId)
     {
         var inviteUrl = await dbContext.Spaces
@@ -245,6 +245,7 @@ public class SpaceGrpcService(
                         s.ParentCommunityHasRules,
                         s.TeamRevision,
                         s.IsRestricted,
+                        s.Require2FA,
                         AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList(),
                         HubSlug = s.Hub.Slug,
                         CommunitySlug = s.Hub.Community.Slug,
@@ -273,7 +274,7 @@ public class SpaceGrpcService(
                     latestRaw.LastActivityAt, latestRaw.AuthorPublicId,
                     latestRaw.AuthorDisplayName ?? "", latestRaw.AuthorAvatarFileName,
                     latestRaw.PostCount);
-                return new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes, raw.HubSlug, raw.CommunitySlug, raw.DiscussionCount, raw.ReplyCount, ld);
+                return new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes, raw.HubSlug, raw.CommunitySlug, raw.DiscussionCount, raw.ReplyCount, ld, raw.Require2FA);
             },
             MetaCacheOptions);
 
@@ -290,6 +291,7 @@ public class SpaceGrpcService(
             info.CommunitySlug = data.CommunitySlug ?? "";
             info.DiscussionCount = data.DiscussionCount;
             info.ReplyCount = data.ReplyCount;
+            info.Require2Fa = data.Require2FA;
             if (data.LatestDiscussion is not null)
             {
                 var ld = data.LatestDiscussion;

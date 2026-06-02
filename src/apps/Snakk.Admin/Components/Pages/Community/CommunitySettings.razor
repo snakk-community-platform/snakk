@@ -36,6 +36,9 @@ else
                     <MudTextField @bind-Value="_languageCode" Label="Language Code" Variant="Variant.Outlined" Class="mb-4"
                                   HelperText="BCP 47 code, e.g. en, nb" />
 
+                    <MudText Typo="Typo.h6" GutterBottom="true" Class="mt-2">Access</MudText>
+                    <MudCheckBox @bind-Value="_require2FA" Label="Require 2FA to access" />
+
                     <MudText Typo="Typo.h6" GutterBottom="true" Class="mt-2">Content</MudText>
                     <MudCheckBox @bind-Value="_isAdultOnly" Label="Adult-only community" Class="mb-1" />
                     <MudCheckBox @bind-Value="_hideAdult" Label="Hide adult discussions from lists" />
@@ -63,6 +66,7 @@ else
     private string _languageCode = "";
     private bool _isAdultOnly;
     private bool _hideAdult;
+    private bool _require2FA;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -77,6 +81,7 @@ else
             _timezone = s.Timezone;
             _languageCode = s.HasLanguageCode ? s.LanguageCode : "";
             _hideAdult = s.HideAdultDiscussionsFromLists;
+            _require2FA = s.Require2Fa;
         }
         catch (Exception ex) { Snackbar.Add($"Failed to load settings: {ex.Message}", Severity.Error); }
         finally { _loading = false; }
@@ -94,7 +99,8 @@ else
                 Description = _description,
                 Timezone = _timezone,
                 LanguageCode = _languageCode,
-                HideAdultDiscussionsFromLists = _hideAdult
+                HideAdultDiscussionsFromLists = _hideAdult,
+                Require2Fa = _require2FA
             });
             Snackbar.Add("Settings saved.", Severity.Success);
         }

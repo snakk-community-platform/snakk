@@ -55,6 +55,7 @@ public class TestWebApp : WebApplicationFactory<Program>
             Substitute.For<Snakk.Protos.Banner.BannerService.BannerServiceClient>(),
             Substitute.For<Snakk.Protos.Consent.ConsentService.ConsentServiceClient>(),
             Substitute.For<Snakk.Protos.Save.SaveService.SaveServiceClient>(),
+            Substitute.For<Snakk.Protos.Dm.DmService.DmServiceClient>(),
             Substitute.For<ILogger<SnakkApiClient>>());
         MockAuthClient = Substitute.For<AuthService.AuthServiceClient>();
     }

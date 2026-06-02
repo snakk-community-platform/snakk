@@ -710,6 +710,20 @@ interface Subscriptions {
         }));
     }
 
+    function handleDmCount(data: NotificationData): void {
+        document.dispatchEvent(new CustomEvent('snakk:realtime:dm-count', {
+            detail: { unreadCount: data.unreadCount }
+        }));
+    }
+
+    function handleDmTyping(data: { conversationId: string; displayName: string; isTyping: boolean }): void {
+        document.dispatchEvent(new CustomEvent('snakk:realtime:dm-typing', { detail: data }));
+    }
+
+    function handleDmMessagesDeleted(data: { conversationId: string; messageIds: string[] }): void {
+        document.dispatchEvent(new CustomEvent('snakk:realtime:dm-messages-deleted', { detail: data }));
+    }
+
     // ============================================================================
     // SharedWorker path
     // ============================================================================
@@ -723,7 +737,9 @@ interface Subscriptions {
             const meta = document.querySelector<HTMLMetaElement>('meta[name="signalr-src"]');
             if (!meta) return false;
 
-            worker = new SharedWorker('/js/dist/services/realtime-worker.js');
+            const workerSrc = document.querySelector<HTMLMetaElement>('meta[name="realtime-worker-src"]')?.content
+                || '/js/dist/services/realtime-worker.js';
+            worker = new SharedWorker(workerSrc);
             worker.port.start();
 
             // Send init with the realtime URL and SignalR script URL
@@ -738,6 +754,9 @@ interface Subscriptions {
                         case 'ReceiveTyping':          handleTypingIndicator(msg.data); break;
                         case 'ReceiveNotificationCount': handleNotificationCount(msg.data); break;
                         case 'ReceiveNotification':    handleNotification(msg.data); break;
+                        case 'ReceiveDirectMessageCount':  handleDmCount(msg.data); break;
+                        case 'ReceiveDmTyping':            handleDmTyping(msg.data); break;
+                        case 'ReceiveDmMessagesDeleted':   handleDmMessagesDeleted(msg.data); break;
                     }
                 } else if (msg.type === 'connection-state') {
                     debugLog(`Worker connection: ${msg.state}`);
@@ -829,6 +848,9 @@ interface Subscriptions {
                 connection.on('ReceiveTyping', handleTypingIndicator);
                 connection.on('ReceiveNotificationCount', handleNotificationCount);
                 connection.on('ReceiveNotification', handleNotification);
+                connection.on('ReceiveDirectMessageCount', handleDmCount);
+                connection.on('ReceiveDmTyping', handleDmTyping);
+                connection.on('ReceiveDmMessagesDeleted', handleDmMessagesDeleted);
 
                 connection.onreconnected(() => { debugLog('Reconnected'); subscribeToGroups(); });
                 connection.onreconnecting(() => debugLog('Reconnecting...'));
@@ -922,6 +944,20 @@ interface Subscriptions {
                 worker.port.postMessage({ type: 'invoke', method: 'StopTyping', args: [discussionId] });
             } else if (connection?.state === signalR.HubConnectionState.Connected) {
                 connection.invoke('StopTyping', discussionId).catch(() => {});
+            }
+        },
+        startDmTyping(conversationId: string, otherUserPublicId: string): void {
+            if (worker) {
+                worker.port.postMessage({ type: 'invoke', method: 'StartDmTyping', args: [conversationId, otherUserPublicId] });
+            } else if (connection?.state === signalR.HubConnectionState.Connected) {
+                connection.invoke('StartDmTyping', conversationId, otherUserPublicId).catch(() => {});
+            }
+        },
+        stopDmTyping(conversationId: string, otherUserPublicId: string): void {
+            if (worker) {
+                worker.port.postMessage({ type: 'invoke', method: 'StopDmTyping', args: [conversationId, otherUserPublicId] });
+            } else if (connection?.state === signalR.HubConnectionState.Connected) {
+                connection.invoke('StopDmTyping', conversationId, otherUserPublicId).catch(() => {});
             }
         },
         reconnect(): void {

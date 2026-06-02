@@ -24,7 +24,7 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -38,7 +38,7 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -52,7 +52,7 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -92,7 +92,7 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA))
             .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());
@@ -152,6 +152,7 @@ public class SpaceRepositoryAdapter(
         entity.AvatarRevision = space.AvatarRevision;
         entity.IsAdultOnly = space.IsAdultOnly;
         entity.AllowsAdultContent = space.AllowsAdultContent;
+        entity.Require2FA = space.Require2FA;
 
         await databaseRepository.UpdateAsync(entity, ct);
         await databaseRepository.SaveChangesAsync(ct);
@@ -174,7 +175,8 @@ public class SpaceRepositoryAdapter(
         int AvatarRevision,
         bool AutoParagraphEnabled,
         bool IsAdultOnly,
-        bool AllowsAdultContent)
+        bool AllowsAdultContent,
+        bool Require2FA)
     {
         public Space ToDomain() => Space.Rehydrate(
             SpaceId.From(PublicId),
@@ -188,6 +190,7 @@ public class SpaceRepositoryAdapter(
             avatarRevision: AvatarRevision,
             autoParagraphEnabled: AutoParagraphEnabled,
             isAdultOnly: IsAdultOnly,
-            allowsAdultContent: AllowsAdultContent);
+            allowsAdultContent: AllowsAdultContent,
+            require2FA: Require2FA);
     }
 }

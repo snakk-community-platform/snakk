@@ -1,0 +1,149 @@
+@page "/messages/{conversationId}"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@model Snakk.Web.Pages.Messages.DetailModel
+@{
+    ViewData["Title"] = Model.Conversation != null
+        ? $"{T.Pages.MessagesTitle} - {Model.Conversation.OtherUser.DisplayName}"
+        : T.Pages.MessagesTitle;
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<div class="sn-center">
+    <div class="sn-center-inner">
+        @if (Model.Conversation == null)
+        {
+            <p class="text-muted py-8 text-center">Conversation not found.</p>
+        }
+        else
+        {
+            <!-- Scoping marker — CSS uses body:has(#dm-detail-page-marker) to apply layout overrides -->
+            <div id="dm-detail-page-marker" hidden></div>
+
+            <!-- Hidden data elements -->
+            <input type="hidden" id="dm-conversation-id" value="@Model.ConversationId" />
+            <input type="hidden" id="dm-current-user-id" value="@Model.CurrentUserPublicId" />
+
+            <!-- Header -->
+            <div class="dm-detail-header">
+                <a href="/messages" class="btn btn-ghost btn-sm btn-square" aria-label="Back to messages">
+                    <span class="icon icon-chevron-left h-4 w-4" aria-hidden="true"></span>
+                </a>
+                <div class="avatar avatar-sm">
+                    <img src="@Model.Conversation.OtherUser.AvatarUrl"
+                         alt="@Model.Conversation.OtherUser.DisplayName"
+                         loading="lazy" />
+                </div>
+                <a href="@SnakkUrlHelper.UserProfile(Model.Conversation.OtherUser.PublicId)"
+                   class="font-semibold hover:underline flex-1 min-w-0 truncate text-sm">
+                    @Model.Conversation.OtherUser.DisplayName
+                </a>
+                <button id="dm-delete-conv-btn"
+                        class="btn btn-ghost btn-sm text-error gap-1 text-xs"
+                        aria-label="Delete conversation">
+                    <span class="icon icon-trash h-3.5 w-3.5" aria-hidden="true"></span>
+                    Delete conversation
+                </button>
+            </div>
+
+            <!-- Message list -->
+            <div id="dm-message-list" class="dm-detail-messages">
+                @if (Model.HasMoreMessages)
+                {
+                    <div class="text-center pb-2">
+                        <a href="/messages/@Model.ConversationId?offset=@(Model.Messages.Count)"
+                           class="text-xs text-muted hover:underline">
+                            Load older messages
+                        </a>
+                    </div>
+                }
+
+                @{
+                    string dmPrevSender = "";
+                    string dmPrevDate = "";
+                    var today = DateTime.UtcNow.Date;
+                }
+                @if (Model.Messages.Count == 0)
+                {
+                    <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
+                        <p>@T.Pages.MessagesDetailEmpty</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var msg in Enumerable.Reverse(Model.Messages))
+                    {
+                        DateTime.TryParse(msg.CreatedAt, out var msgDt);
+                        var msgDateStr = msgDt == default ? "" : msgDt.ToString("yyyy-MM-dd");
+                        var needsDateSep = dmPrevDate.Length > 0 && msgDateStr != dmPrevDate;
+                        var isFirstInGroup = dmPrevDate.Length == 0 || needsDateSep || dmPrevSender != msg.SenderPublicId;
+                        var dateLabel = msgDt.Date == today ? "Today"
+                            : msgDt.Date == today.AddDays(-1) ? "Yesterday"
+                            : msgDt.ToString("MMMM d");
+                        if (needsDateSep || dmPrevDate.Length == 0)
+                        {
+                            <div class="dm-date-separator"><span>@dateLabel</span></div>
+                        }
+                        <div id="dm-msg-@msg.PublicId"
+                             class="dm-msg-row flex items-center gap-1.5"
+                             data-msg-id="@msg.PublicId"
+                             data-is-mine="@msg.IsMine.ToString().ToLower()">
+                            <input type="checkbox" class="dm-msg-check dm-detail-check" aria-label="Select message" />
+                            <div class="dm-bubble @(msg.IsMine ? "dm-bubble--mine" : "dm-bubble--theirs") @(isFirstInGroup ? "dm-bubble--first-in-group" : "") flex-1"
+                                 data-sender-public-id="@msg.SenderPublicId"
+                                 data-date-str="@msgDateStr">
+                                <div class="dm-bubble-body">
+                                    <div class="dm-bubble-content">@msg.Content</div>
+                                    <span class="dm-bubble-time">@msgDt.ToString("HH:mm")</span>
+                                </div>
+                            </div>
+                        </div>
+                        dmPrevSender = msg.SenderPublicId;
+                        dmPrevDate = msgDateStr;
+                    }
+                }
+            </div>
+
+            <!-- Delete action pane — appears between messages and compose when messages are checked -->
+            <div id="dm-delete-pane" class="dm-detail-delete-pane hidden">
+                <span class="text-sm">
+                    You have marked <strong id="dm-selected-count">0</strong> messages for deletion
+                </span>
+                <button id="dm-delete-selected-btn" class="btn btn-error btn-xs">Delete</button>
+            </div>
+
+            <!-- Compose area — reuses widget styles -->
+            <div class="dm-win-compose dm-detail-compose">
+                <textarea id="dm-compose-textarea"
+                          class="dm-win-textarea dm-detail-textarea"
+                          placeholder="Write a message…"
+                          maxlength="2000"
+                          rows="1"></textarea>
+                <button id="dm-send-btn" class="dm-win-send" disabled aria-label="Send">↑</button>
+            </div>
+
+            <!-- Delete confirmation modal -->
+            <dialog id="dm-delete-modal" class="modal">
+                <div class="modal-box">
+                    <h3 id="dm-delete-modal-title" class="font-bold text-base mb-2">Delete messages</h3>
+                    <p id="dm-delete-modal-desc" class="text-sm text-muted mb-4">Choose how to delete.</p>
+                    <div class="flex flex-col gap-2">
+                        <button id="dm-delete-for-me-btn" class="btn btn-sm btn-outline w-full">Delete for me</button>
+                        <button id="dm-delete-for-all-btn" class="btn btn-sm btn-error w-full">Delete for everyone</button>
+                    </div>
+                    <div class="modal-action mt-4">
+                        <form method="dialog">
+                            <button class="btn btn-ghost btn-sm">Cancel</button>
+                        </form>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop"><button>close</button></form>
+            </dialog>
+        }
+    </div>
+</div>
+
+<script src="@SnakkUrlHelper.Js("pages/dm-detail")" asp-append-version="true" defer></script>

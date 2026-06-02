@@ -86,6 +86,11 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Discussion view counts (hourly, by country)
     public DbSet<DiscussionViewSnapshotDatabaseEntity> DiscussionViewSnapshots { get; set; } = null!;
 
+    // Direct Messages
+    public DbSet<DmConversationDatabaseEntity> DmConversations { get; set; } = null!;
+    public DbSet<DmMessageDatabaseEntity> DmMessages { get; set; } = null!;
+    public DbSet<DmReadStateDatabaseEntity> DmReadStates { get; set; } = null!;
+
     // Discussion types — allowed type permissions
     public DbSet<CommunityAllowedDiscussionTypeDatabaseEntity> CommunityAllowedDiscussionTypes { get; set; } = null!;
     public DbSet<HubAllowedDiscussionTypeDatabaseEntity> HubAllowedDiscussionTypes { get; set; } = null!;
@@ -1925,5 +1930,72 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(c => c.Id)
             .HasFilter("\"IsRestricted\" = TRUE")
             .HasDatabaseName("IX_Community_IsRestricted_True");
+
+        // === Direct Messages ===
+
+        modelBuilder.Entity<DmConversationDatabaseEntity>(entity =>
+        {
+            entity.HasIndex(c => c.PublicId).IsUnique();
+
+            entity.HasOne(c => c.InitiatorUser)
+                .WithMany()
+                .HasForeignKey(c => c.InitiatorUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(c => c.RecipientUser)
+                .WithMany()
+                .HasForeignKey(c => c.RecipientUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Prevent duplicate conversations between the same two users
+            entity.HasIndex(c => new { c.InitiatorUserId, c.RecipientUserId })
+                .IsUnique()
+                .HasDatabaseName("IX_DmConversation_InitiatorUserId_RecipientUserId");
+
+            // Conversation list sorted by most recent message
+            entity.HasIndex(c => new { c.InitiatorUserId, c.LastMessageAt })
+                .IsDescending(false, true)
+                .HasDatabaseName("IX_DmConversation_InitiatorUserId_LastMessageAt_Desc");
+
+            entity.HasIndex(c => new { c.RecipientUserId, c.LastMessageAt })
+                .IsDescending(false, true)
+                .HasDatabaseName("IX_DmConversation_RecipientUserId_LastMessageAt_Desc");
+        });
+
+        modelBuilder.Entity<DmMessageDatabaseEntity>(entity =>
+        {
+            entity.HasIndex(m => m.PublicId).IsUnique();
+
+            entity.HasOne(m => m.Conversation)
+                .WithMany(c => c.Messages)
+                .HasForeignKey(m => m.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(m => m.Sender)
+                .WithMany()
+                .HasForeignKey(m => m.SenderUserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Paginate messages newest-first within a conversation
+            entity.HasIndex(m => new { m.ConversationId, m.CreatedAt, m.Id })
+                .IsDescending(false, true, true)
+                .HasDatabaseName("IX_DmMessage_ConversationId_CreatedAt_Desc_Id_Desc");
+        });
+
+        modelBuilder.Entity<DmReadStateDatabaseEntity>(entity =>
+        {
+            entity.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(r => r.Conversation)
+                .WithMany(c => c.ReadStates)
+                .HasForeignKey(r => r.ConversationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DmConversationDatabaseEntity>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<DmMessageDatabaseEntity>().HasQueryFilter(e => !e.IsDeleted);
     }
 }

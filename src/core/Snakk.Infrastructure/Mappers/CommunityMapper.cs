@@ -22,7 +22,8 @@ public static class CommunityMapper
             timezone: entity.Timezone,
             avatarFileName: entity.AvatarFileName,
             avatarRevision: entity.AvatarRevision,
-            languageCode: entity.LanguageCode);
+            languageCode: entity.LanguageCode,
+            require2FA: entity.Require2FA);
 
     public static CommunityDatabaseEntity ToPersistence(this Community community) =>
         new()
@@ -37,6 +38,7 @@ public static class CommunityMapper
             LastModifiedAt = community.LastModifiedAt,
             AvatarFileName = community.AvatarFileName,
             AvatarRevision = community.AvatarRevision,
-            LanguageCode = community.LanguageCode
+            LanguageCode = community.LanguageCode,
+            Require2FA = community.Require2FA
         };
 }
