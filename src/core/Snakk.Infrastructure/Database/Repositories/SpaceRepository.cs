@@ -3,6 +3,7 @@ namespace Snakk.Infrastructure.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Shared.Models;
 
 public class SpaceRepository(SnakkDbContext context)
@@ -60,11 +61,9 @@ public class SpaceRepository(SnakkDbContext context)
         CancellationToken ct = default)
     {
         var hubDbId = await context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync(ct);
-        var items = await _dbSet
+        return await _dbSet
             .Where(s => s.HubId == hubDbId)
             .OrderBy(s => s.Name)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(s => new SpaceListDto(
                 s.PublicId,
                 s.Name,
@@ -75,21 +74,6 @@ public class SpaceRepository(SnakkDbContext context)
                 s.CreatedAt,
                 s.HubPublicId,
                 s.HubName))
-            .ToListAsync(ct);
-
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems
-            ? items
-                .Take(pageSize)
-                .ToList()
-            : items;
-
-        return new PagedResult<SpaceListDto>
-        {
-            Items = resultItems,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 }

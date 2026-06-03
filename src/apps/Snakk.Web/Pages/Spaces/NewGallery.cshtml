@@ -1,135 +1,91 @@
-﻿@page "/new/gallery"
+@page "/new/gallery"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewGalleryModel
 @{
+    Layout = "~/Pages/Shared/_NewDiscussionLayout.cshtml";
     ViewData["Title"] = string.Format(T.Pages.SpacesNewGalleryTitlePattern, Model.Space?.Name);
+    ViewData["NewDiscussion.Crumb"]        = T.Pages.SpacesNewGalleryCrumb;
+    ViewData["NewDiscussion.Heading"]      = T.Pages.SpacesNewGalleryHeading;
+    ViewData["NewDiscussion.TitlePh"]      = T.Pages.SpacesNewGalleryTitlePh;
+    ViewData["NewDiscussion.SubmitLabel"]  = T.Pages.SpacesNewGallerySubmit;
+    ViewData["NewDiscussion.EditorHeight"] = "150px";
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion")" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("editor")" asp-append-version="true" />
+@section ExtraStyles {
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("type-images")" asp-append-version="true" />
 }
 
-@section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
+@section ExtraFormFields {
+    <!-- Images section -->
+    <div>
+        <!-- Inline image picker (mounted by gallery-new.ts) -->
+        <div id="images-picker-container"></div>
+
+        <!-- Spoiler toggle (shown always, below picker) -->
+        <label class="flex items-center gap-3 cursor-pointer mt-3">
+            <input type="checkbox" name="ImagesIsSpoiler" value="true" class="toggle toggle-primary toggle-sm" />
+            <span>
+                <span class="font-medium text-sm">@T.Pages.SpacesNewGallerySpoiler</span>
+                <span class="block text-xs text-base-content/50">@T.Pages.SpacesNewGallerySpoilerDesc</span>
+            </span>
+        </label>
+
+        <!-- Layout submitted via hidden input (synced by JS from widget onChange) -->
+        <input type="hidden" name="ImagesLayout" id="images-layout-hidden" value="masonry" />
+
+        <!-- Hidden image URL inputs (populated at submit by JS) -->
+        <div id="images-hidden-inputs"></div>
+    </div>
 }
 
-@section CenterHeader {
-    @if (Model.ShowCommunityInBreadcrumb)
-    {
-        <a href="/c/@Model.CommunitySlug" class="badge badge-ghost badge-sm">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a>
-        <span class="sn-page-labels-sep">›</span>
-    }
-    @if (Model.Space != null)
-    {
-        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-        <span class="sn-page-labels-sep">›</span>
-        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="badge badge-ghost badge-sm">@Model.Space.Name</a>
-        <span class="sn-page-labels-sep">›</span>
-        <a href="/new?spaceId=@Model.SpaceId" class="badge badge-ghost badge-sm">@T.Pages.SpacesNewCrumbNew</a>
-        <span class="sn-page-labels-sep">›</span>
-        <span class="badge badge-ghost badge-sm">@T.Pages.SpacesNewGalleryCrumb</span>
-    }
+@section EditorContainer {
+    <!-- Description editor -->
+    <div>
+        <div class="text-sm font-medium mb-2">@T.Pages.SpacesNewGalleryDescLabel</div>
+        <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+
+        <div id="editor-container" data-hide-image="true" data-placeholder="@T.Pages.SpacesNewGalleryEditorPh">
+            <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+        </div>
+    </div>
 }
 
-@if (User.Identity?.IsAuthenticated != true) {
-    { ViewData["AuthPrompt.Title"] = T.Pages.SpacesNewAuthPrompt; }
-    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
-    return;
+@section SubmitRow {
+    <div class="flex items-center gap-3">
+        <div id="upload-progress-row" class="upload-progress-row hidden">
+            <div id="upload-image-chips" class="upload-image-chips"></div>
+            <span id="upload-status-text" class="upload-status-text"></span>
+        </div>
+        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">
+            <span id="new-discussion-submit-label">@T.Pages.SpacesNewGallerySubmit</span>
+            <span id="new-discussion-submit-spinner" class="loading loading-spinner loading-xs hidden"></span>
+        </button>
+    </div>
 }
-@if (Model.Space == null) { <div class="empty-state-simple"><h3>@T.Pages.SpacesNewSpaceNotFound</h3></div> return; }
 
-<div class="sn-center">
-    <div class="sn-center-inner">
-        <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">@T.Pages.SpacesNewGalleryHeading</h1>
+@section ExtraScripts {
+    <script src="@SnakkUrlHelper.Js("pages/gallery-new")" asp-append-version="true" defer></script>
+}
 
-            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
-
-            <form method="post" id="new-discussion-form" hx-boost="false">
-                <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
-                <div class="space-y-4">
-                    <input type="text" name="NewTitle" id="new-discussion-title" value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="@T.Pages.SpacesNewGalleryTitlePh" autofocus />
-
-                    <!-- Images section -->
-                    <div>
-                        <!-- Inline image picker (mounted by gallery-new.ts) -->
-                        <div id="images-picker-container"></div>
-
-                        <!-- Spoiler toggle (shown always, below picker) -->
-                        <label class="flex items-center gap-3 cursor-pointer mt-3">
-                            <input type="checkbox" name="ImagesIsSpoiler" value="true" class="toggle toggle-primary toggle-sm" />
-                            <span>
-                                <span class="font-medium text-sm">@T.Pages.SpacesNewGallerySpoiler</span>
-                                <span class="block text-xs text-base-content/50">@T.Pages.SpacesNewGallerySpoilerDesc</span>
-                            </span>
-                        </label>
-
-                        <!-- Layout submitted via hidden input (synced by JS from widget onChange) -->
-                        <input type="hidden" name="ImagesLayout" id="images-layout-hidden" value="masonry" />
-
-                        <!-- Hidden image URL inputs (populated at submit by JS) -->
-                        <div id="images-hidden-inputs"></div>
-                    </div>
-
-                    <!-- Description editor -->
-                    <div>
-                        <div class="text-sm font-medium mb-2">@T.Pages.SpacesNewGalleryDescLabel</div>
-                        <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
-
-                        <div id="editor-container" data-hide-image="true" data-placeholder="@T.Pages.SpacesNewGalleryEditorPh">
-                            <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
-                        </div>
-                    </div>
-
-                    <partial name="_NewDiscussionAdultToggle" model="Model.Space" />
-
-                    <div class="flex items-center justify-between">
-                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
-                        <div class="flex items-center gap-3">
-                            <div id="upload-progress-row" class="upload-progress-row hidden">
-                                <div id="upload-image-chips" class="upload-image-chips"></div>
-                                <span id="upload-status-text" class="upload-status-text"></span>
-                            </div>
-                            <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">
-                                <span id="new-discussion-submit-label">@T.Pages.SpacesNewGallerySubmit</span>
-                                <span id="new-discussion-submit-spinner" class="loading loading-spinner loading-xs hidden"></span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
-
-            <div class="mt-8 border-t border-base-content/10 pt-6">
-                <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewGalleryHowHeading</h3>
-                <div class="text-sm text-base-content/60 space-y-3">
-                    <p>@T.Pages.SpacesNewGalleryIntro</p>
-                    <div>
-                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>@T.Pages.SpacesNewGalleryAfter1</li>
-                            <li>@T.Pages.SpacesNewGalleryAfter2</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>@T.Pages.SpacesNewGalleryTip1</li>
-                            <li>@T.Pages.SpacesNewGalleryTip2</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+<div class="mt-8 border-t border-base-content/10 pt-6">
+    <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewGalleryHowHeading</h3>
+    <div class="text-sm text-base-content/60 space-y-3">
+        <p>@T.Pages.SpacesNewGalleryIntro</p>
+        <div>
+            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
+            <ul class="space-y-1 list-disc pl-4">
+                <li>@T.Pages.SpacesNewGalleryAfter1</li>
+                <li>@T.Pages.SpacesNewGalleryAfter2</li>
+            </ul>
+        </div>
+        <div>
+            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
+            <ul class="space-y-1 list-disc pl-4">
+                <li>@T.Pages.SpacesNewGalleryTip1</li>
+                <li>@T.Pages.SpacesNewGalleryTip2</li>
+            </ul>
         </div>
     </div>
 </div>
-
-<partial name="Shared/_NewDiscussionSpaceSidebar" model="Model" />
-
-<script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true" defer></script>
-<script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true" defer></script>
-<script src="@SnakkUrlHelper.Js("pages/gallery-new")" asp-append-version="true" defer></script>

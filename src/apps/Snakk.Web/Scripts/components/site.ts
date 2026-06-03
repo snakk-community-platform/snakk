@@ -547,6 +547,7 @@ class SnakkPopup {
         // (e.g. iPad with keyboard) that report (hover: hover) but still fire a
         // synthetic mouseover before the click when the user taps a link.
         if (isCoarse || lastPointerType === 'touch') return;
+        try { if (localStorage.getItem('snakk:disable-hover-popup') === 'true') return; } catch { /* ignore */ }
 
         // Check for standard popup triggers or entity-link elements
         let triggerEl = (e.target as HTMLElement).closest('[data-popup-type]') as HTMLElement | null;

@@ -23,7 +23,8 @@ public class CommunityRepositoryAdapter(
                 c.PublicId, c.Name, c.Slug, c.Description,
                 c.VisibilityId, c.ExposeToPlatformFeed,
                 c.CreatedAt, c.LastModifiedAt,
-                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision, c.Require2FA))
+                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision, c.Require2FA,
+                c.Timezone, c.LanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -36,7 +37,8 @@ public class CommunityRepositoryAdapter(
                 c.PublicId, c.Name, c.Slug, c.Description,
                 c.VisibilityId, c.ExposeToPlatformFeed,
                 c.CreatedAt, c.LastModifiedAt,
-                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision, c.Require2FA))
+                c.AvatarFileName, c.AvatarThumbnailFileName, c.AvatarMicroFileName, c.AvatarRevision, c.Require2FA,
+                c.Timezone, c.LanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -51,7 +53,8 @@ public class CommunityRepositoryAdapter(
                 d.Community.PublicId, d.Community.Name, d.Community.Slug, d.Community.Description,
                 d.Community.VisibilityId, d.Community.ExposeToPlatformFeed,
                 d.Community.CreatedAt, d.Community.LastModifiedAt,
-                d.Community.AvatarFileName, d.Community.AvatarThumbnailFileName, d.Community.AvatarMicroFileName, d.Community.AvatarRevision, d.Community.Require2FA))
+                d.Community.AvatarFileName, d.Community.AvatarThumbnailFileName, d.Community.AvatarMicroFileName, d.Community.AvatarRevision, d.Community.Require2FA,
+                d.Community.Timezone, d.Community.LanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -60,46 +63,30 @@ public class CommunityRepositoryAdapter(
     {
         var result = await databaseRepository.GetPublicListedAsync(offset, pageSize, ct);
 
-        return new PagedResult<Community>
-        {
-            Items = result.Items
-                .Select(dto => Community.RehydrateForList(
-                    CommunityId.From(dto.PublicId),
-                    dto.Name,
-                    dto.Slug,
-                    dto.Description,
-                    ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
-                    dto.ExposeToPlatformFeed,
-                    dto.CreatedAt,
-                    avatarFileName: dto.AvatarFileName))
-                .ToList(),
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
-        };
+        return result.Map(dto => Community.RehydrateForList(
+            CommunityId.From(dto.PublicId),
+            dto.Name,
+            dto.Slug,
+            dto.Description,
+            ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
+            dto.ExposeToPlatformFeed,
+            dto.CreatedAt,
+            avatarFileName: dto.AvatarFileName));
     }
 
     public async Task<PagedResult<Community>> GetForPlatformFeedAsync(int offset, int pageSize, CancellationToken ct = default)
     {
         var result = await databaseRepository.GetForPlatformFeedAsync(offset, pageSize, ct);
 
-        return new PagedResult<Community>
-        {
-            Items = result.Items
-                .Select(dto => Community.RehydrateForList(
-                    CommunityId.From(dto.PublicId),
-                    dto.Name,
-                    dto.Slug,
-                    dto.Description,
-                    ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
-                    dto.ExposeToPlatformFeed,
-                    dto.CreatedAt,
-                    avatarFileName: dto.AvatarFileName))
-                .ToList(),
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
-        };
+        return result.Map(dto => Community.RehydrateForList(
+            CommunityId.From(dto.PublicId),
+            dto.Name,
+            dto.Slug,
+            dto.Description,
+            ((CommunityVisibilityEnum)dto.VisibilityId).ToDomain(),
+            dto.ExposeToPlatformFeed,
+            dto.CreatedAt,
+            avatarFileName: dto.AvatarFileName));
     }
 
     public async Task AddAsync(Community community, CancellationToken ct = default)
@@ -165,7 +152,9 @@ public class CommunityRepositoryAdapter(
         string? AvatarThumbnailFileName,
         string? AvatarMicroFileName,
         int AvatarRevision,
-        bool Require2FA)
+        bool Require2FA,
+        string? Timezone,
+        string? LanguageCode)
     {
         public Community ToDomain() => Community.Rehydrate(
             CommunityId.From(PublicId),
@@ -173,10 +162,12 @@ public class CommunityRepositoryAdapter(
             ((CommunityVisibilityEnum)VisibilityId).ToDomain(),
             ExposeToPlatformFeed,
             CreatedAt, LastModifiedAt, hubs: [],
+            timezone: Timezone,
             avatarFileName: AvatarFileName,
             avatarThumbnailFileName: AvatarThumbnailFileName,
             avatarMicroFileName: AvatarMicroFileName,
             avatarRevision: AvatarRevision,
+            languageCode: LanguageCode,
             require2FA: Require2FA);
     }
 }

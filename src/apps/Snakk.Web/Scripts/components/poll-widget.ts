@@ -44,11 +44,7 @@ interface PollData {
     const isAuthenticated = container.dataset.authenticated === 'true';
     if (!discussionId) return;
 
-    const escapeHtml = (window as any).SnakkUtils?.escapeHtml || function(text: string): string {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    };
+    const escapeHtml = (text: string): string => (window as any).SnakkUtils.escapeHtml(text);
 
     let pollData: PollData | null = null;
     let selectedOptionIds: Set<number> = new Set();
@@ -198,10 +194,6 @@ interface PollData {
         }
 
         html += '</div>';
-
-        if (pollData.isSecret && !pollData.isClosed && hasVoted) {
-            html += '<div class="text-sm text-base-content/50 mt-2">✓ Your vote has been recorded. Results will be revealed when the poll closes.</div>';
-        }
 
         // Footer
         html += '<div class="poll-footer">';

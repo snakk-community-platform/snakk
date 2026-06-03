@@ -22,7 +22,7 @@
         </h2>
 
         <!-- Period tabs -->
-        <div class="flex gap-1 mb-4 border-b border-subtle">
+        <div class="sn-tabs mb-4">
             @{
                 var tabs = new[]
                 {
@@ -35,19 +35,13 @@
             }
             @foreach (var (period, label) in tabs)
             {
-                var isActive = Model.Period == period;
-                <a href="/top?period=@period"
-                   class="px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors @(isActive ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
-                    @label
-                </a>
+                <a href="/top?period=@period" class="sn-tab @(Model.Period == period ? "active" : "")">@label</a>
             }
         </div>
 
         @if (Model.TopDiscussions?.Items == null || !Model.TopDiscussions.Items.Any())
         {
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.TopEmpty</p>
-            </div>
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.TopEmpty)" />
         }
         else
         {

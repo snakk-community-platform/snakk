@@ -22,18 +22,9 @@ interface ActivityDataPoint {
     'use strict';
 
     // Use utilities from utils.js
-    const escapeHtml = window.SnakkUtils?.escapeHtml || function(text: string | null | undefined): string {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    };
+    const escapeHtml = (text: string): string => (window as any).SnakkUtils.escapeHtml(text);
 
-    const _dp = (window as unknown as { DOMPurify?: { sanitize: (html: string, cfg?: object) => string } }).DOMPurify;
-    const sanitizeHtml = (html: string): string => {
-        if (!html) return '';
-        return _dp ? _dp.sanitize(html, { USE_PROFILES: { html: true } }) : '';
-    };
+    const sanitizeHtml = (html: string): string => (window as any).SnakkUtils.sanitizeHtml(html);
 
     const sanitizeUrl = window.SnakkUtils?.sanitizeUrl || function(url: string): string {
         if (!url) return '#';
@@ -43,23 +34,7 @@ interface ActivityDataPoint {
     };
 
 
-    const formatRelativeTime = window.SnakkUtils?.formatRelativeTime || function(dateString: string): string {
-        const date = new Date(dateString);
-        const now = new Date();
-        const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-        if (seconds < 60) return 'just now';
-        if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-        if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
-        if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
-
-        const tz = (window as any).snakkTimezone || 'UTC';
-        try {
-            return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' });
-        } catch {
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
-    };
+    const formatRelativeTime = (dateString: string): string => (window as any).SnakkUtils.formatRelativeTime(dateString);
 
     // Read config from JSON tag
     const configEl = document.getElementById('profile-page-config');
@@ -404,17 +379,18 @@ interface ActivityDataPoint {
 
     // Profile tabs
     function initProfileTabs(): void {
-        const tabs = document.querySelectorAll<HTMLElement>('.sn-profile-tab');
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                const target = tab.dataset.tab;
-                tabs.forEach(t => {
-                    t.classList.toggle('active', t === tab);
-                    t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
-                });
-                document.querySelectorAll<HTMLElement>('.sn-profile-tab-panel').forEach(p => {
-                    p.hidden = p.id !== 'tab-' + target;
-                });
+        const tabList = document.querySelector<HTMLElement>('[role="tablist"]');
+        if (!tabList) return;
+        tabList.addEventListener('click', (e) => {
+            const tab = (e.target as HTMLElement).closest<HTMLElement>('[data-tab]');
+            if (!tab) return;
+            const target = tab.dataset.tab;
+            tabList.querySelectorAll<HTMLElement>('[data-tab]').forEach(t => {
+                t.classList.toggle('active', t === tab);
+                t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+            });
+            document.querySelectorAll<HTMLElement>('.sn-profile-tab-panel').forEach(p => {
+                p.hidden = p.id !== 'tab-' + target;
             });
         });
     }

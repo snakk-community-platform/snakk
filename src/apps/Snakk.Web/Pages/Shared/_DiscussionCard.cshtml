@@ -40,10 +40,17 @@
         @if (Model.ShowUser)
         {
             <img src="@discussion.Author.AvatarMicroUrl" alt="" class="sn-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
-            <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="sn-card-author p-author h-card"
-               data-popup-type="user"
-               data-popup-id="@discussion.Author.PublicId"
-               data-popup-name="@discussion.Author.DisplayName">@discussion.Author.DisplayName</a>
+            @if (string.IsNullOrEmpty(discussion.Author.PublicId))
+            {
+                <span class="sn-card-author">@T.Card.DeletedUser</span>
+            }
+            else
+            {
+                <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="sn-card-author p-author h-card"
+                   data-popup-type="user"
+                   data-popup-id="@discussion.Author.PublicId"
+                   data-popup-name="@discussion.Author.DisplayName">@discussion.Author.DisplayName</a>
+            }
             <span class="sn-card-dot">&middot;</span>
         }
         <div class="tooltip tooltip-bottom" data-tip="@T.Card.CreatedAt @FormatFullDateTime(discussion.CreatedAt?.ToDateTime())">
@@ -521,11 +528,18 @@
                     <time class="sn-card-reply-time">@FormatRelativeTime(discussion.LastActivityAt?.ToDateTime())</time>
                 </div>
                 <img src="@discussion.LastReplier.AvatarMicroUrl" alt="" class="sn-card-reply-avatar" width="16" height="16" loading="lazy" decoding="async" />
-                <a href="@SnakkUrlHelper.UserProfile(discussion.LastReplier.PublicId)"
-                   class="sn-card-reply-username"
-                   data-popup-type="user"
-                   data-popup-id="@discussion.LastReplier.PublicId"
-                   data-popup-name="@discussion.LastReplier.DisplayName">@discussion.LastReplier.DisplayName</a>
+                @if (string.IsNullOrEmpty(discussion.LastReplier.PublicId))
+                {
+                    <span class="sn-card-reply-username">@T.Card.DeletedUser</span>
+                }
+                else
+                {
+                    <a href="@SnakkUrlHelper.UserProfile(discussion.LastReplier.PublicId)"
+                       class="sn-card-reply-username"
+                       data-popup-type="user"
+                       data-popup-id="@discussion.LastReplier.PublicId"
+                       data-popup-name="@discussion.LastReplier.DisplayName">@discussion.LastReplier.DisplayName</a>
+                }
                 @if (isOp) { <span class="sn-card-op-badge">OP</span> }
             </div>
         </div>

@@ -2,32 +2,12 @@
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Settings.DisplayModel
 @{
+    Layout = "~/Pages/Shared/_SettingsLayout.cshtml";
     ViewData["Title"] = T.Settings.TitleDisplay;
     ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
+    ViewData["Settings.Icon"] = "icon-display-monitor";
+    ViewData["Settings.Heading"] = T.Settings.HeadingDisplay;
 }
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("settings")" asp-append-version="true" />
-}
-
-@section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
-}
-
-<!-- Center Column -->
-<div class="sn-center">
-    <div class="sn-center-inner">
-        @if (User.Identity?.IsAuthenticated != true)
-        {
-            <partial name="Shared/_AuthPrompt" />
-        }
-        else
-        {
-        <h2 class="sn-section-title">
-            <span class="icon icon-display-monitor" aria-hidden="true"></span>
-            @T.Settings.HeadingDisplay
-        </h2>
-        <div class="sn-settings-content">
 
             <!-- Timezone -->
             <div id="section-timezone" class="sn-settings-section">
@@ -150,16 +130,6 @@
                 </select>
                 <span class="text-xs" style="color: var(--text-tertiary)">@T.Settings.TimezoneHelp</span>
             </div>
-
-        </div>
-        } @* end IsAuthenticated *@
-    </div>
-</div>
-
-<!-- Right Column -->
-<aside class="sn-right">
-<partial name="Shared/_SettingsRightNav" />
-</aside>
 
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>
 <script src="/js/dist/components/timezone-map.js"></script>

@@ -5,6 +5,7 @@ using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
+using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Infrastructure.Database.Repositories;
 using Snakk.Domain.Extensions;
 using Snakk.Infrastructure.Mappers;
@@ -45,11 +46,9 @@ public class NotificationRepositoryAdapter(
         if (userDbId is null)
             return new PagedResult<Notification> { Items = [], Offset = offset, PageSize = pageSize, HasMoreItems = false };
 
-        var projections = await context.UserNotifications
+        var result = await context.UserNotifications
             .Where(n => n.RecipientUserId == userDbId.Value)
             .OrderByDescending(n => n.CreatedAt)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(n => new NotificationProjection(
                 n.PublicId, n.RecipientUserPublicId!, n.TypeId,
                 n.Title, n.Body,
@@ -58,18 +57,9 @@ public class NotificationRepositoryAdapter(
                 n.SourceSpacePublicId,
                 n.ActorUserPublicId,
                 n.IsRead, n.CreatedAt, n.ReadAt))
-            .ToListAsync(ct);
+            .ToPagedResultAsync(offset, pageSize, ct);
 
-        var hasMoreItems = projections.Count > pageSize;
-        var items = hasMoreItems ? projections.Take(pageSize) : projections;
-
-        return new PagedResult<Notification>
-        {
-            Items = items.Select(p => p.ToDomain()),
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+        return result.Map(p => p.ToDomain());
     }
 
     public async Task<int> GetUnreadCountAsync(UserId userId, CancellationToken ct = default) =>

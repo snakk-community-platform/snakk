@@ -253,7 +253,8 @@ public class PostUseCase(
 
             if (!post.IsFirstPost)
             {
-                await counterService.DecrementUserReplyCountAsync(post.CreatedByUserId);
+                if (post.CreatedByUserId is not null)
+                    await counterService.DecrementUserReplyCountAsync(post.CreatedByUserId);
                 await discussionRepository.RecalculateLastPostAsync(discussionId);
             }
 
@@ -295,6 +296,8 @@ public class PostUseCase(
         // 2. Prepare batch IDs for parallel fetching
         var authorIds = visiblePosts
             .Select(p => p.CreatedByUserId)
+            .Where(id => id is not null)
+            .Select(id => id!)
             .Distinct()
             .ToList();
 
@@ -352,7 +355,8 @@ public class PostUseCase(
             // Fetch reply authors not already in authorsDict
             var missingReplyAuthorIds = replyPostsList
                 .Select(p => p.CreatedByUserId)
-                .Where(id => !authorsDict.ContainsKey(id.Value))
+                .Where(id => id is not null && !authorsDict.ContainsKey(id.Value))
+                .Select(id => id!)
                 .Distinct()
                 .ToList();
 
@@ -365,7 +369,7 @@ public class PostUseCase(
 
             foreach (var replyPost in replyPostsList)
             {
-                var authorName = authorsDict.TryGetValue(replyPost.CreatedByUserId.Value, out var replyAuthor)
+                var authorName = replyPost.CreatedByUserId is not null && authorsDict.TryGetValue(replyPost.CreatedByUserId.Value, out var replyAuthor)
                     ? replyAuthor.DisplayName ?? ""
                     : "Deleted User";
 
@@ -385,7 +389,7 @@ public class PostUseCase(
             .Select((p, index) => new EnrichedPost(
                 Post: p,
                 PostNumber: offset + index + 1,
-                Author: authors[p.CreatedByUserId.Value],
+                Author: p.CreatedByUserId is not null ? authors[p.CreatedByUserId.Value] : new AuthorInfo("Deleted User", null, null, null, null, 0, true, DateTime.MinValue, 0, 0),
                 ReplyTo: p.ReplyToPostId is not null && replyToPostsDict.ContainsKey(p.ReplyToPostId.Value)
                     ? replyToPostsDict[p.ReplyToPostId.Value]
                     : null,

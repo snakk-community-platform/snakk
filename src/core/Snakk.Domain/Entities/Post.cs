@@ -7,7 +7,7 @@ public class Post
 {
     public PostId PublicId { get; private set; }
     public DiscussionId DiscussionId { get; private set; }
-    public UserId CreatedByUserId { get; private set; }
+    public UserId? CreatedByUserId { get; private set; }
     public string Content { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
@@ -46,7 +46,7 @@ public class Post
     private Post(
         PostId publicId,
         DiscussionId discussionId,
-        UserId createdByUserId,
+        UserId? createdByUserId,
         string content,
         string renderedContent,
         DateTime createdAt,
@@ -121,7 +121,7 @@ public class Post
     public static Post Rehydrate(
         PostId publicId,
         DiscussionId discussionId,
-        UserId createdByUserId,
+        UserId? createdByUserId,
         string content,
         string renderedContent,
         DateTime createdAt,
@@ -208,10 +208,10 @@ public class Post
         CreatedAt > DateTime.UtcNow.AddMinutes(-5);
 
     public bool CanEdit(UserId userId) =>
-        CreatedByUserId.Value == userId.Value;
+        CreatedByUserId?.Value == userId.Value;
 
     public bool CanDelete(UserId userId) =>
-        CreatedByUserId.Value == userId.Value;
+        CreatedByUserId?.Value == userId.Value;
 
     private void AddDomainEvent(IDomainEvent domainEvent)
     {

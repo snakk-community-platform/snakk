@@ -28,30 +28,18 @@
         </h2>
 
         <!-- Tabs -->
-        <div class="flex gap-1 mb-4 border-b border-subtle">
-            <a href="/following?tab=discussions"
-               class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "discussions" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
+        <div class="sn-tabs mb-4">
+            <a href="/following?tab=discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "active" : "")">
                 @T.Pages.FollowingTabDiscussions
-                @if (Model.DiscussionCount > 0)
-                {
-                    <span class="badge badge-sm badge-ghost ml-1">@Model.DiscussionCount</span>
-                }
+                @if (Model.DiscussionCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.DiscussionCount</span> }
             </a>
-            <a href="/following?tab=spaces"
-               class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "spaces" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
+            <a href="/following?tab=spaces" class="sn-tab @(Model.ActiveTab == "spaces" ? "active" : "")">
                 @T.Pages.FollowingTabSpaces
-                @if (Model.SpaceCount > 0)
-                {
-                    <span class="badge badge-sm badge-ghost ml-1">@Model.SpaceCount</span>
-                }
+                @if (Model.SpaceCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.SpaceCount</span> }
             </a>
-            <a href="/following?tab=users"
-               class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "users" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
+            <a href="/following?tab=users" class="sn-tab @(Model.ActiveTab == "users" ? "active" : "")">
                 @T.Pages.FollowingTabPeople
-                @if (Model.UserCount > 0)
-                {
-                    <span class="badge badge-sm badge-ghost ml-1">@Model.UserCount</span>
-                }
+                @if (Model.UserCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.UserCount</span> }
             </a>
         </div>
 

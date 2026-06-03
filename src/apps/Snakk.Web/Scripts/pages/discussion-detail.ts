@@ -511,19 +511,11 @@ async function editPost(postId: string, _userId: string): Promise<void> {
     instance.focus();
 }
 
-function escapeHtml(text: string): string {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+const escapeHtml = (text: string): string => (window as any).SnakkUtils.escapeHtml(text);
 
 const encodeUlid = (window as any).SnakkUtils?.encodeUlid || function(s: string): string { return s; };
 
-const _domPurify = (window as unknown as { DOMPurify?: { sanitize: (html: string, cfg?: object) => string } }).DOMPurify;
-function sanitizeHtml(html: string): string {
-    if (!html) return '';
-    return _domPurify ? _domPurify.sanitize(html, { USE_PROFILES: { html: true } }) : '';
-}
+const sanitizeHtml = (html: string): string => (window as any).SnakkUtils.sanitizeHtml(html);
 
 async function submitEdit(postId: string): Promise<void> {
     const editor = activeEditEditors.get(postId);
@@ -1650,29 +1642,7 @@ function retryLoadPosts(discussionId: string, currentUserId: string, isAuthentic
     loadMorePosts(discussionId, currentUserId, isAuthenticated, isLocked);
 }
 
-function formatPostRelativeTime(dateString: string): string {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-
-    const tz = window.snakkTimezone || 'UTC';
-    try {
-        if (days < 365) return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric' });
-        return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric', year: 'numeric' });
-    } catch {
-        if (days < 365) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-}
+const formatPostRelativeTime = (dateString: string): string => (window as any).SnakkUtils.formatRelativeTime(dateString);
 
 function formatTimeBetween(dateA: string, dateB: string): string {
     const a = new Date(dateA).getTime();
@@ -1952,7 +1922,6 @@ function openReportModal(type: string, targetId: string, description: string, sp
     const form = document.getElementById('report-form') as HTMLFormElement | null;
     form?.reset();
     document.getElementById('report-error')?.classList.add('hidden');
-    document.getElementById('report-success')?.classList.add('hidden');
     const submitBtn = document.getElementById('report-submit-btn') as HTMLButtonElement | null;
     if (submitBtn) submitBtn.disabled = false;
     document.getElementById('report-submit-text')?.classList.remove('hidden');
@@ -2032,9 +2001,7 @@ async function submitReport(event: Event): Promise<void> {
             throw new Error(errorData.message || 'Failed to submit report');
         }
 
-        // Show success
         document.getElementById('report-error')?.classList.add('hidden');
-        document.getElementById('report-success')?.classList.remove('hidden');
         if (submitBtn) submitBtn.disabled = true;
 
         // Close the modal after a delay

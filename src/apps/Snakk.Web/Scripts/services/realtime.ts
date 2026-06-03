@@ -111,11 +111,7 @@ interface Subscriptions {
     const realtimeUrl = document.querySelector<HTMLMetaElement>('meta[name="realtime-service-url"]')?.content
         || 'https://localhost:17103/realtime';
 
-    const _dp = (window as unknown as { DOMPurify?: { sanitize: (html: string, cfg?: object) => string } }).DOMPurify;
-    function sanitizeHtml(html: string): string {
-        if (!html) return '';
-        return _dp ? _dp.sanitize(html, { USE_PROFILES: { html: true } }) : '';
-    }
+    const sanitizeHtml = (html: string): string => (window as any).SnakkUtils.sanitizeHtml(html);
 
     const snakkDebug = (window as any).SnakkDebug;
     function debugLog(message: string): void {

@@ -216,7 +216,8 @@ public class PasskeyService(
                 p.FriendlyName,
                 p.CreatedAt,
                 p.LastUsedAt,
-                p.Transports))
+                p.Transports,
+                p.AaGuid))
             .ToListAsync(ct);
     }
 

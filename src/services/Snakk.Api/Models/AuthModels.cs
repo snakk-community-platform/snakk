@@ -35,3 +35,5 @@ public record RevokeSessionRequest(string? SudoToken);
 public record RevokeAllOtherSessionsRequest(string? SudoToken, string ExcludeSessionId);
 
 public record OAuthSudoNonceRequest(string Nonce);
+
+public record DeleteAccountRequest(string? SudoToken, string Confirmation);

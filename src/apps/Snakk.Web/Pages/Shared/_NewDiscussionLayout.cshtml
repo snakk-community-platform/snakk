@@ -1,0 +1,101 @@
+@model Snakk.Web.Pages.Spaces.NewDiscussionBaseModel
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@{
+    Layout = "_Layout";
+
+    var crumb          = ViewData["NewDiscussion.Crumb"]        as string ?? string.Empty;
+    var heading        = ViewData["NewDiscussion.Heading"]      as string ?? string.Empty;
+    var titlePh        = ViewData["NewDiscussion.TitlePh"]      as string ?? string.Empty;
+    var submitLabel    = ViewData["NewDiscussion.SubmitLabel"]  as string ?? string.Empty;
+    var editorHeight   = ViewData["NewDiscussion.EditorHeight"] as string ?? "250px";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion")" asp-append-version="true" />
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("editor")" asp-append-version="true" />
+    @RenderSection("ExtraStyles", required: false)
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+@section CenterHeader {
+    @if (Model.ShowCommunityInBreadcrumb)
+    {
+        <a href="/c/@Model.CommunitySlug" class="badge badge-ghost badge-sm">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a>
+        <span class="sn-page-labels-sep">›</span>
+    }
+    @if (Model.Space != null)
+    {
+        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+        <span class="sn-page-labels-sep">›</span>
+        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="badge badge-ghost badge-sm">@Model.Space.Name</a>
+        <span class="sn-page-labels-sep">›</span>
+        <a href="/new?spaceId=@Model.SpaceId" class="badge badge-ghost badge-sm">@T.Pages.SpacesNewCrumbNew</a>
+        <span class="sn-page-labels-sep">›</span>
+        <span class="badge badge-ghost badge-sm">@crumb</span>
+    }
+}
+
+@if (User.Identity?.IsAuthenticated != true) {
+    { ViewData["AuthPrompt.Title"] = T.Pages.SpacesNewAuthPrompt; }
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
+    return;
+}
+@if (Model.Space == null) { <div class="empty-state-simple"><h3>@T.Pages.SpacesNewSpaceNotFound</h3></div> return; }
+
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <div class="max-w-3xl py-8">
+            <h1 class="text-xl font-semibold mb-6">@heading</h1>
+
+            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
+
+            <form method="post" id="new-discussion-form" hx-boost="false">
+                <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
+                <div class="space-y-4">
+                    <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
+                           class="input w-full text-lg" required maxlength="200" placeholder="@titlePh" />
+
+                    @RenderSection("ExtraFormFields", required: false)
+
+                    @if (IsSectionDefined("EditorContainer"))
+                    {
+                        @RenderSection("EditorContainer")
+                    }
+                    else
+                    {
+                        <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+                        <div id="editor-container" data-hide-image="true">
+                            <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:@editorHeight"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+                        </div>
+                    }
+
+                    <partial name="_NewDiscussionAdultToggle" model="Model.Space" />
+
+                    <div class="flex items-center justify-between">
+                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
+                        @if (IsSectionDefined("SubmitRow"))
+                        {
+                            @RenderSection("SubmitRow")
+                        }
+                        else
+                        {
+                            <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@submitLabel</button>
+                        }
+                    </div>
+                </div>
+            </form>
+
+            @RenderBody()
+        </div>
+    </div>
+</div>
+
+<partial name="Shared/_NewDiscussionSpaceSidebar" model="Model" />
+
+<script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true" defer></script>
+<script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true" defer></script>
+@RenderSection("ExtraScripts", required: false)

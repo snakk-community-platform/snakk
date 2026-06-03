@@ -172,16 +172,16 @@
         {
 
             <!-- Discussions / Top / Posts Tabs -->
-            <div class="sn-profile-tabs" role="tablist">
-                <button class="sn-profile-tab active" role="tab" aria-selected="true" data-tab="discussions">
+            <div class="sn-tabs mb-4" role="tablist">
+                <button class="sn-tab sn-profile-tab active" role="tab" aria-selected="true" data-tab="discussions">
                     <span class="icon icon-chat-bubbles h-4 w-4" aria-hidden="true"></span>
                     Discussions
                 </button>
-                <button class="sn-profile-tab" role="tab" aria-selected="false" data-tab="top">
+                <button class="sn-tab sn-profile-tab" role="tab" aria-selected="false" data-tab="top">
                     <span class="icon icon-star h-4 w-4" aria-hidden="true"></span>
                     Top
                 </button>
-                <button class="sn-profile-tab" role="tab" aria-selected="false" data-tab="posts">
+                <button class="sn-tab sn-profile-tab" role="tab" aria-selected="false" data-tab="posts">
                     <span class="icon icon-posts-tab h-4 w-4" aria-hidden="true"></span>
                     Posts
                 </button>
@@ -216,27 +216,13 @@
 
             <!-- Top Discussions Tab -->
             <div id="tab-top" class="sn-profile-tab-panel" hidden>
-                @if (Model.Profile.TopDiscussions.Count > 0)
+                @if (Model.TopDiscussionsFull.Count > 0)
                 {
-                    <div class="flex flex-col divide-y" style="border-color: var(--border-secondary)">
-                        @foreach (var td in Model.Profile.TopDiscussions)
+                    <div id="top-discussions-container">
+                        @foreach (var discussion in Model.TopDiscussionsFull)
                         {
-                            var tdUrl = $"/c/{td.CommunitySlug}/h/{td.HubSlug}/{td.SpaceSlug}/{td.Slug}";
-                            <a href="@tdUrl" class="py-3 first:pt-0 last:pb-0 block hover:opacity-80 transition-opacity">
-                                <div class="flex items-center gap-2 text-xs mb-1" style="color: var(--text-tertiary)">
-                                    <span>@td.CommunityName</span>
-                                    <span>&rsaquo;</span>
-                                    <span>@td.HubName</span>
-                                    <span>&rsaquo;</span>
-                                    <span>@td.SpaceName</span>
-                                </div>
-                                <p class="text-sm font-medium mb-1">@td.Title</p>
-                                <div class="flex items-center gap-4 text-xs" style="color: var(--text-tertiary)">
-                                    <span>❤️ @FormatCount(td.ReactionCount)</span>
-                                    <span>💬 @FormatCount(td.PostCount)</span>
-                                    <span>@Model.FormatDate(td.CreatedAt.ToDateTime())</span>
-                                </div>
-                            </a>
+                            @await Html.PartialAsync("Shared/_DiscussionCard",
+                                new DiscussionListItemVM(discussion, true, Model.Community))
                         }
                     </div>
                 }

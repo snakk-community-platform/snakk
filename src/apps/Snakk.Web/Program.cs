@@ -190,6 +190,9 @@ builder.Services.AddSingleton<IPrefetchCacheService, PrefetchCacheService>();
 // Per-user cache for followed space IDs (2-min TTL, invalidated on follow toggle)
 builder.Services.AddSingleton<IFollowedSpacesCacheService, FollowedSpacesCacheService>();
 
+// FIDO AAGUID → authenticator name + icon lookup (loaded once from wwwroot/data/aaguid.json)
+builder.Services.AddSingleton<AaguidLookupService>();
+
 // WebOptimizer for CSS minification only (JS minification breaks TypeScript output)
 builder.Services.AddWebOptimizer(pipeline =>
 {

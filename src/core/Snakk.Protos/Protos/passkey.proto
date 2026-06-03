@@ -76,6 +76,7 @@ message PasskeyInfo {
   google.protobuf.Timestamp created_at = 3;
   optional google.protobuf.Timestamp last_used_at = 4;
   string transports = 5;
+  string aaguid = 6;
 }
 
 message DeletePasskeyRequest {

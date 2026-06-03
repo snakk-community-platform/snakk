@@ -40,6 +40,8 @@ public class User
     public long AuthVersion { get; private set; } = 1;
     public DateTime AuthVersionUpdatedAt { get; private set; }
     public bool TwoFactorEnabled { get; private set; }
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
 
     private readonly List<IDomainEvent> _domainEvents = [];
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -330,9 +332,20 @@ public class User
 
     public void Anonymize()
     {
-        DisplayName = "Anonymous User";
+        DisplayName = "Deleted User";
         Email = null;
+        Bio = null;
+        Timezone = null;
+        AvatarFileName = null;
+        AvatarThumbnailFileName = null;
+        AvatarMicroFileName = null;
+        AvatarRevision++;
+        FeedToken = null;
+        TwoFactorEnabled = false;
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
         LastModifiedAt = DateTime.UtcNow;
+        AddDomainEvent(new UserDeletedEvent(PublicId));
     }
 
     public void SetPasswordHash(string passwordHash)

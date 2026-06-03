@@ -29,16 +29,11 @@
 
         @if (!Model.HasFollowedSpaces)
         {
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.MyFeedNoFollows</p>
-                <a href="/communities" class="btn btn-primary btn-sm mt-4">@T.Pages.MyFeedBrowseSpaces</a>
-            </div>
+            <partial name="Shared/_EmptyState" model='new EmptyStateVM(T.Pages.MyFeedNoFollows, T.Pages.MyFeedBrowseSpaces, "/communities")' />
         }
         else if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
         {
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.MyFeedNoDiscussions</p>
-            </div>
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.MyFeedNoDiscussions)" />
         }
         else
         {

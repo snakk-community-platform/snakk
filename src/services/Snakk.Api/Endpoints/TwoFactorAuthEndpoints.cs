@@ -2,6 +2,7 @@ namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Snakk.Application.Services;
 using Snakk.Domain;
@@ -132,7 +133,7 @@ public static class TwoFactorAuthEndpoints
         [FromBody] DisableTwoFactorRequest request,
         HttpContext httpContext,
         ITwoFactorAuthService twoFactorService,
-        IMemoryCache cache,
+        IDistributedCache cache,
         CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
@@ -146,7 +147,7 @@ public static class TwoFactorAuthEndpoints
         if (string.IsNullOrWhiteSpace(request.SudoToken))
             return Results.BadRequest(new { error = "Sudo token is required." });
 
-        if (!MeEndpoints.ValidateSudoToken(request.SudoToken, userIdClaim.Value, cache))
+        if (!await MeEndpoints.ValidateSudoTokenAsync(request.SudoToken, userIdClaim.Value, cache, ct))
             return Results.Json(new { error = "Re-authentication required." }, statusCode: 403);
 
         var success = await twoFactorService.DisableTwoFactorAsync(userIdClaim.Value, null, ct);
@@ -329,14 +330,14 @@ public static class TwoFactorAuthEndpoints
         [FromBody] RegenerateBackupCodesRequest request,
         HttpContext httpContext,
         ITwoFactorAuthService twoFactorService,
-        IMemoryCache cache,
+        IDistributedCache cache,
         CancellationToken ct)
     {
         var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier);
         if (userIdClaim is null)
             return Results.Unauthorized();
 
-        if (!MeEndpoints.ValidateSudoToken(request.SudoToken, userIdClaim.Value, cache))
+        if (!await MeEndpoints.ValidateSudoTokenAsync(request.SudoToken, userIdClaim.Value, cache, ct))
             return Results.Json(new { error = "Authentication required." }, statusCode: 403);
 
         try

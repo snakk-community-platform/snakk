@@ -2,26 +2,13 @@
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Settings.BrowserModel
 @{
+    Layout = "~/Pages/Shared/_SettingsLayout.cshtml";
     ViewData["Title"] = T.Settings.TitleBrowser;
     ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
+    ViewData["Settings.Icon"] = "icon-globe";
+    ViewData["Settings.Heading"] = T.Settings.HeadingBrowser;
+    ViewData["Settings.SkipAuthGuard"] = true;
 }
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("settings")" asp-append-version="true" />
-}
-
-@section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
-}
-
-<!-- Center Column -->
-<div class="sn-center">
-    <div class="sn-center-inner">
-        <h2 class="sn-section-title">
-            <span class="icon icon-globe" aria-hidden="true"></span>
-            @T.Settings.HeadingBrowser
-        </h2>
-        <div class="sn-settings-content">
 
             <div class="flex items-start gap-2 text-xs p-2.5 rounded-lg mb-2" style="color: var(--text-tertiary); background: color-mix(in srgb, var(--sidebar-bg) 30%, transparent);">
                 <span class="icon icon-display-monitor h-4 w-4 shrink-0 mt-0.5" aria-hidden="true"></span>
@@ -81,6 +68,13 @@
                             <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserLinkPreviewLargeHelp</p>
                         </div>
                         <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-link-preview-large" />
+                    </label>
+                    <label class="flex items-start justify-between gap-6 cursor-pointer">
+                        <div>
+                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserHoverPopupTitle</p>
+                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserHoverPopupHelp</p>
+                        </div>
+                        <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-hover-popup" />
                     </label>
                 </div>
             </div>
@@ -240,10 +234,6 @@
                 </div>
             </div>
 
-        </div>
-    </div>
-</div>
-
 <!-- Content Width Modal -->
 <div id="content-width-modal" class="fixed inset-0 hidden" style="z-index: 10000;" aria-modal="true" role="dialog">
     <div id="content-width-backdrop" class="absolute inset-0 bg-black/50"></div>
@@ -268,10 +258,5 @@
         </div>
     </div>
 </div>
-
-<!-- Right Column -->
-<aside class="sn-right">
-<partial name="Shared/_SettingsRightNav" />
-</aside>
 
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

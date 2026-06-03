@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Snakk.Api.Endpoints;
 using Snakk.Api.Helpers;
@@ -32,7 +33,8 @@ public class AuthGrpcService(
     ITrustedDeviceService trustedDeviceService,
     IConfiguration configuration,
     ISessionManagementService sessionManagement,
-    IMemoryCache cache) : AuthService.AuthServiceBase
+    IMemoryCache cache,
+    IDistributedCache distributedCache) : AuthService.AuthServiceBase
 {
     public override async Task<AuthTokenResponse> Register(RegisterRequest request, ServerCallContext context)
     {
@@ -315,7 +317,7 @@ public class AuthGrpcService(
 
         var userId = UserId.From(userIdValue);
         var sudoVerified = request.HasSudoToken &&
-            MeEndpoints.ValidateSudoToken(request.SudoToken, userIdValue, cache);
+            await MeEndpoints.ValidateSudoTokenAsync(request.SudoToken, userIdValue, distributedCache, ctx.CancellationToken);
         var result = await authUseCase.UpdateDisplayNameAsync(
             userId,
             request.DisplayName,
@@ -831,7 +833,8 @@ public class AuthGrpcService(
 
         var nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
         var cacheKey = $"sudo-oauth-nonce:{userPublicId}:{nonce}";
-        cache.Set(cacheKey, true, TimeSpan.FromSeconds(60));
+        await distributedCache.SetStringAsync(cacheKey, "1",
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60) }, ctx.CancellationToken);
 
         return new GenerateOAuthSudoNonceResponse { Nonce = nonce };
     }

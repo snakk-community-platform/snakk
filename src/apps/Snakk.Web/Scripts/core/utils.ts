@@ -22,6 +22,7 @@ interface ScrollOptions {
 
 interface SnakkUtilsAPI {
     formatRelativeTime(dateString: string | Date): string;
+    formatRelativeDate(dateStr: string): string;
     formatCount(count: number | null | undefined): string;
     escapeHtml(text: string): string;
     sanitizeHtml(html: string): string;
@@ -77,6 +78,18 @@ interface SnakkUtilsAPI {
             if (diffDays < 365) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
+    }
+
+    function formatRelativeDate(dateStr: string): string {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffMs = now.getTime() - date.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) return 'today';
+        if (diffDays === 1) return 'yesterday';
+        if (diffDays < 30) return `${diffDays} days ago`;
+        return date.toLocaleDateString();
     }
 
     /**
@@ -414,6 +427,7 @@ interface SnakkUtilsAPI {
     // Export all utilities
     const SnakkUtils: SnakkUtilsAPI = {
         formatRelativeTime,
+        formatRelativeDate,
         formatCount,
         escapeHtml,
         sanitizeHtml,

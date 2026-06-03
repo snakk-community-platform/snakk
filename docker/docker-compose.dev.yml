@@ -18,6 +18,10 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
     volumes:
       - snakk-web-wwwroot:/app/web/wwwroot
+      - ../src/apps/Snakk.Web/wwwroot/svg:/app/web/wwwroot/svg
+      - ../src/apps/Snakk.Web/wwwroot/img:/app/web/wwwroot/img
+      - ../src/apps/Snakk.Web/wwwroot/icons:/app/web/wwwroot/icons
+      - ../src/apps/Snakk.Web/wwwroot/data:/app/web/wwwroot/data
 
 volumes:
   snakk-web-modules:

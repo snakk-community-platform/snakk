@@ -24,6 +24,7 @@ public static class PasskeyBffEndpoints
     private static async Task<IResult> ListPasskeysAsync(
         HttpContext ctx,
         PasskeyService.PasskeyServiceClient passkeyClient,
+        AaguidLookupService aaguidLookup,
         CancellationToken ct)
     {
         var publicId = ctx.User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -34,13 +35,20 @@ public static class PasskeyBffEndpoints
             var response = await passkeyClient.GetUserPasskeysAsync(
                 new GetUserPasskeysRequest { UserPublicId = publicId }, cancellationToken: ct);
 
-            var passkeys = response.Passkeys.Select(p => new
+            var passkeys = response.Passkeys.Select(p =>
             {
-                id = p.Id,
-                friendlyName = p.FriendlyName,
-                transports = p.Transports,
-                createdAt = p.CreatedAt.ToDateTimeOffset(),
-                lastUsedAt = p.LastUsedAt != null ? p.LastUsedAt.ToDateTimeOffset() : (DateTimeOffset?)null
+                var aaguid = Guid.TryParse(p.Aaguid, out var g) ? g : Guid.Empty;
+                var authenticator = aaguidLookup.Lookup(aaguid);
+                return new
+                {
+                    id = p.Id,
+                    friendlyName = p.FriendlyName,
+                    transports = p.Transports,
+                    createdAt = p.CreatedAt.ToDateTimeOffset(),
+                    lastUsedAt = p.LastUsedAt != null ? p.LastUsedAt.ToDateTimeOffset() : (DateTimeOffset?)null,
+                    authenticatorName = authenticator?.Name,
+                    authenticatorIcon = authenticator?.IconLight
+                };
             });
 
             return Results.Ok(passkeys);

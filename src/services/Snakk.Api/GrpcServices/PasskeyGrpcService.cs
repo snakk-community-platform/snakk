@@ -140,6 +140,7 @@ public class PasskeyGrpcService(
                 Id = p.Id,
                 FriendlyName = p.FriendlyName ?? "",
                 Transports = p.Transports ?? "",
+                Aaguid = p.AaGuid.ToString(),
                 CreatedAt = Timestamp.FromDateTimeOffset(p.CreatedAt)
             };
             if (p.LastUsedAt.HasValue)

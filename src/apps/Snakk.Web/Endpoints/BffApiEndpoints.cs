@@ -20,63 +20,66 @@ public static class BffApiEndpoints
         var group = app.MapGroup("/bff")
             .WithTags("BFF");
 
+        // Authenticated-only sub-group — eliminates per-handler IsAuthenticated preambles
+        var authGroup = group.MapGroup("").RequireAuthorization();
+
         // Homepage aggregated data
         group.MapGet("/homepage-data", GetHomepageDataAsync)
             .WithName("GetHomepageData");
 
         // Notifications
-        group.MapGet("/notifications", GetNotificationsAsync)
+        authGroup.MapGet("/notifications", GetNotificationsAsync)
             .WithName("BffGetNotifications");
 
-        group.MapGet("/notifications/unread-count", GetUnreadNotificationCountAsync)
+        authGroup.MapGet("/notifications/unread-count", GetUnreadNotificationCountAsync)
             .WithName("BffGetUnreadCount");
 
-        group.MapPost("/notifications/{notificationId}/read", MarkNotificationAsReadAsync)
+        authGroup.MapPost("/notifications/{notificationId}/read", MarkNotificationAsReadAsync)
             .WithName("BffMarkNotificationRead");
 
-        group.MapPost("/notifications/read-all", MarkAllNotificationsAsReadAsync)
+        authGroup.MapPost("/notifications/read-all", MarkAllNotificationsAsReadAsync)
             .WithName("BffMarkAllNotificationsRead");
 
         // Space follow actions
-        group.MapGet("/spaces/{spaceId}/follow-status", GetSpaceFollowStatusAsync)
+        authGroup.MapGet("/spaces/{spaceId}/follow-status", GetSpaceFollowStatusAsync)
             .WithName("BffGetSpaceFollowStatus");
 
-        group.MapPost("/spaces/{spaceId}/follow", ToggleSpaceFollowAsync)
+        authGroup.MapPost("/spaces/{spaceId}/follow", ToggleSpaceFollowAsync)
             .WithName("BffToggleSpaceFollow");
 
-        group.MapPut("/spaces/{spaceId}/follow-level", SetSpaceFollowLevelAsync)
+        authGroup.MapPut("/spaces/{spaceId}/follow-level", SetSpaceFollowLevelAsync)
             .WithName("BffSetSpaceFollowLevel");
 
         // Discussion follow actions
-        group.MapGet("/discussions/{discussionId}/follow-status", GetDiscussionFollowStatusAsync)
+        authGroup.MapGet("/discussions/{discussionId}/follow-status", GetDiscussionFollowStatusAsync)
             .WithName("BffGetDiscussionFollowStatus");
 
-        group.MapPost("/discussions/{discussionId}/follow", ToggleDiscussionFollowAsync)
+        authGroup.MapPost("/discussions/{discussionId}/follow", ToggleDiscussionFollowAsync)
             .WithName("BffToggleDiscussionFollow");
 
-        group.MapPost("/discussions/{discussionId}/mark-read", MarkDiscussionAsReadAsync)
+        authGroup.MapPost("/discussions/{discussionId}/mark-read", MarkDiscussionAsReadAsync)
             .WithName("BffMarkDiscussionRead");
 
         // Poll voting
         group.MapGet("/discussions/{discussionId}/poll", GetPollAsync)
             .WithName("BffGetPoll");
-        group.MapPost("/discussions/{discussionId}/poll/vote", VotePollAsync)
+        authGroup.MapPost("/discussions/{discussionId}/poll/vote", VotePollAsync)
             .WithName("BffVotePoll")
             .RequireRateLimiting("flood-engage");
-        group.MapDelete("/discussions/{discussionId}/poll/vote", RemovePollVoteAsync)
+        authGroup.MapDelete("/discussions/{discussionId}/poll/vote", RemovePollVoteAsync)
             .WithName("BffRemovePollVote");
 
         // Question
         group.MapGet("/discussions/{discussionId}/question", GetQuestionStatusBffAsync)
             .WithName("BffGetQuestionStatus");
-        group.MapPost("/discussions/{discussionId}/question/solve", MarkQuestionSolvedBffAsync)
+        authGroup.MapPost("/discussions/{discussionId}/question/solve", MarkQuestionSolvedBffAsync)
             .WithName("BffMarkQuestionSolved");
 
         // Debate
         group.MapGet("/discussions/{discussionId}/debate", GetDebateInfoBffAsync)
             .WithName("BffGetDebateInfo");
 
-        group.MapPost("/discussions/{discussionId}/debate/position", SetPostDebatePositionBffAsync)
+        authGroup.MapPost("/discussions/{discussionId}/debate/position", SetPostDebatePositionBffAsync)
             .WithName("BffSetPostDebatePosition")
             .RequireRateLimiting("flood-post");
 
@@ -87,49 +90,49 @@ public static class BffApiEndpoints
         // Journal
         group.MapGet("/discussions/{discussionId}/journal", GetJournalEntriesBffAsync)
             .WithName("BffGetJournalEntries");
-        group.MapPost("/discussions/{discussionId}/journal/entry", AddJournalEntryBffAsync)
+        authGroup.MapPost("/discussions/{discussionId}/journal/entry", AddJournalEntryBffAsync)
             .WithName("BffAddJournalEntry")
             .RequireRateLimiting("flood-post");
 
         // IAmA
         group.MapGet("/discussions/{discussionId}/iama", GetIamaInfoBffAsync)
             .WithName("BffGetIamaInfo");
-        group.MapPost("/discussions/{discussionId}/iama/end", EndIamaSessionBffAsync)
+        authGroup.MapPost("/discussions/{discussionId}/iama/end", EndIamaSessionBffAsync)
             .WithName("BffEndIamaSession")
             .RequireRateLimiting("flood-engage");
 
         // Follow lists (for caching)
-        group.MapGet("/follows/spaces", GetFollowedSpacesAsync)
+        authGroup.MapGet("/follows/spaces", GetFollowedSpacesAsync)
             .WithName("BffGetFollowedSpaces");
 
-        group.MapGet("/follows/discussions", GetFollowedDiscussionsAsync)
+        authGroup.MapGet("/follows/discussions", GetFollowedDiscussionsAsync)
             .WithName("BffGetFollowedDiscussions");
 
-        group.MapGet("/follows/users", GetFollowedUsersAsync)
+        authGroup.MapGet("/follows/users", GetFollowedUsersAsync)
             .WithName("BffGetFollowedUsers");
 
         // Batch read states
-        group.MapPost("/read-states/batch", BatchUpdateReadStatesAsync)
+        authGroup.MapPost("/read-states/batch", BatchUpdateReadStatesAsync)
             .WithName("BffBatchUpdateReadStates");
 
         // Post reactions
         group.MapGet("/posts/{postId}/reactions", GetPostReactionsAsync)
             .WithName("BffGetPostReactions");
 
-        group.MapGet("/posts/{postId}/reactions/me", GetMyPostReactionsAsync)
+        authGroup.MapGet("/posts/{postId}/reactions/me", GetMyPostReactionsAsync)
             .WithName("BffGetMyPostReactions");
 
-        group.MapPost("/posts/{postId}/reactions", TogglePostReactionAsync)
+        authGroup.MapPost("/posts/{postId}/reactions", TogglePostReactionAsync)
             .WithName("BffTogglePostReaction")
             .RequireRateLimiting("flood-engage");
 
         // Markup preview
-        group.MapPost("/markup/preview", PreviewMarkupAsync)
+        authGroup.MapPost("/markup/preview", PreviewMarkupAsync)
             .WithName("BffPreviewMarkup")
             .RequireRateLimiting("flood-post");
 
         // Moderation
-        group.MapPost("/moderation/reports", CreateReportAsync)
+        authGroup.MapPost("/moderation/reports", CreateReportAsync)
             .WithName("BffCreateReport")
             .RequireRateLimiting("flood-post");
 
@@ -150,7 +153,7 @@ public static class BffApiEndpoints
         group.MapGet("/auth/status", GetAuthStatusAsync)
             .WithName("BffGetAuthStatus");
 
-        group.MapPost("/auth/logout", LogoutAsync)
+        authGroup.MapPost("/auth/logout", LogoutAsync)
             .WithName("BffLogout");
 
         group.MapPost("/auth/refresh", RefreshTokenAsync)
@@ -181,10 +184,10 @@ public static class BffApiEndpoints
         group.MapGet("/me", GetCurrentUserMeAsync)
             .WithName("BffGetCurrentUser");
 
-        group.MapPut("/me/profile", UpdateProfileMeAsync)
+        authGroup.MapPut("/me/profile", UpdateProfileMeAsync)
             .WithName("BffUpdateProfileMe");
 
-        group.MapPut("/me/preferences", UpdatePreferencesMeAsync)
+        authGroup.MapPut("/me/preferences", UpdatePreferencesMeAsync)
             .WithName("BffUpdatePreferences");
 
         group.MapPost("/me/password", ChangePasswordBffAsync)
@@ -208,7 +211,7 @@ public static class BffApiEndpoints
             .WithName("BffGetMyDevices")
             .RequireAuthorization();
 
-        group.MapDelete("/me/devices/{deviceId}", RevokeMyDeviceAsync)
+        authGroup.MapDelete("/me/devices/{deviceId}", RevokeMyDeviceAsync)
             .WithName("BffRevokeMyDevice");
 
         // 2FA management
@@ -240,36 +243,36 @@ public static class BffApiEndpoints
         group.MapGet("/activity/sparkline", GetActivitySparklineAsync)
             .WithName("BffGetActivitySparkline");
 
-        group.MapGet("/users/{userId}/follow-status", GetUserFollowStatusAsync)
+        authGroup.MapGet("/users/{userId}/follow-status", GetUserFollowStatusAsync)
             .WithName("BffGetUserFollowStatus");
 
-        group.MapPost("/users/{userId}/follow", ToggleUserFollowAsync)
+        authGroup.MapPost("/users/{userId}/follow", ToggleUserFollowAsync)
             .WithName("BffToggleUserFollow");
 
-        group.MapGet("/me/display-name-history", GetDisplayNameHistoryAsync)
+        authGroup.MapGet("/me/display-name-history", GetDisplayNameHistoryAsync)
             .WithName("BffGetDisplayNameHistory");
 
-        group.MapPost("/me/feed-token", GenerateFeedTokenAsync)
+        authGroup.MapPost("/me/feed-token", GenerateFeedTokenAsync)
             .WithName("BffGenerateFeedToken");
-        group.MapDelete("/me/feed-token", RevokeFeedTokenAsync)
+        authGroup.MapDelete("/me/feed-token", RevokeFeedTokenAsync)
             .WithName("BffRevokeFeedToken");
 
-        group.MapPost("/me/discord/link-token", GenerateDiscordLinkTokenAsync)
+        authGroup.MapPost("/me/discord/link-token", GenerateDiscordLinkTokenAsync)
             .WithName("BffGenerateDiscordLinkToken");
-        group.MapDelete("/me/discord", UnlinkDiscordAsync)
+        authGroup.MapDelete("/me/discord", UnlinkDiscordAsync)
             .WithName("BffUnlinkDiscord");
-        group.MapGet("/me/discord/status", GetDiscordStatusAsync)
+        authGroup.MapGet("/me/discord/status", GetDiscordStatusAsync)
             .WithName("BffGetDiscordStatus");
 
-        group.MapGet("/me/sessions", GetMySessionsBffAsync)
+        authGroup.MapGet("/me/sessions", GetMySessionsBffAsync)
             .WithName("BffGetMySessions");
-        group.MapDelete("/me/sessions/{sessionId}", RevokeMySessionBffAsync)
+        authGroup.MapDelete("/me/sessions/{sessionId}", RevokeMySessionBffAsync)
             .WithName("BffRevokeMySession")
             .RequireRateLimiting("flood-post");
-        group.MapDelete("/me/sessions", RevokeAllOtherSessionsBffAsync)
+        authGroup.MapDelete("/me/sessions", RevokeAllOtherSessionsBffAsync)
             .WithName("BffRevokeAllOtherSessions")
             .RequireRateLimiting("flood-post");
-        group.MapGet("/me/login-history", GetMyLoginHistoryBffAsync)
+        authGroup.MapGet("/me/login-history", GetMyLoginHistoryBffAsync)
             .WithName("BffGetMyLoginHistory");
 
         // Search operations
@@ -285,22 +288,22 @@ public static class BffApiEndpoints
         group.MapGet("/spaces/{spaceId}/allowed-types", GetSpaceAllowedTypesAsync)
             .WithName("BffGetSpaceAllowedTypes");
 
-        group.MapGet("/spaces/{spaceId}/info", GetSpaceInfoAsync)
+        authGroup.MapGet("/spaces/{spaceId}/info", GetSpaceInfoAsync)
             .WithName("BffGetSpaceInfo");
 
         // Post operations
         group.MapGet("/discussions/{discussionId}/posts", GetDiscussionPostsAsync)
             .WithName("BffGetDiscussionPosts");
 
-        group.MapPost("/posts/{postId}/edit", EditPostAsync)
+        authGroup.MapPost("/posts/{postId}/edit", EditPostAsync)
             .WithName("BffEditPost")
             .RequireRateLimiting("flood-post");
 
-        group.MapPatch("/discussions/{discussionId}/title", EditDiscussionTitleAsync)
+        authGroup.MapPatch("/discussions/{discussionId}/title", EditDiscussionTitleAsync)
             .WithName("BffEditDiscussionTitle")
             .RequireRateLimiting("flood-post");
 
-        group.MapDelete("/posts/{postId}", DeletePostAsync)
+        authGroup.MapDelete("/posts/{postId}", DeletePostAsync)
             .WithName("BffDeletePost");
 
         group.MapGet("/posts/{postId}/history", GetPostHistoryAsync)
@@ -365,9 +368,9 @@ public static class BffApiEndpoints
             .WithName("BffDeleteEntityAvatar");
 
         // Save / Bookmark
-        group.MapPost("/discussions/{discussionId}/save", ToggleSaveDiscussionAsync)
+        authGroup.MapPost("/discussions/{discussionId}/save", ToggleSaveDiscussionAsync)
             .WithName("BffToggleSaveDiscussion");
-        group.MapPost("/posts/{postId}/save", ToggleSavePostAsync)
+        authGroup.MapPost("/posts/{postId}/save", ToggleSavePostAsync)
             .WithName("BffToggleSavePost");
         group.MapGet("/saves/discussion-ids", GetSavedDiscussionIdsAsync)
             .WithName("BffGetSavedDiscussionIds");
@@ -388,37 +391,48 @@ public static class BffApiEndpoints
             .WithName("BffGetUserSocialLinks");
 
         // Direct Messages
-        group.MapGet("/messages/unread-count", GetDmUnreadCountAsync)
+        authGroup.MapGet("/messages/unread-count", GetDmUnreadCountAsync)
             .WithName("BffGetDmUnreadCount");
 
-        group.MapGet("/messages/conversations", GetDmConversationsAsync)
+        authGroup.MapGet("/messages/conversations", GetDmConversationsAsync)
             .WithName("BffGetDmConversations");
 
-        group.MapGet("/messages/conversations/{conversationId}", GetDmConversationAsync)
+        authGroup.MapGet("/messages/conversations/{conversationId}", GetDmConversationAsync)
             .WithName("BffGetDmConversation");
 
-        group.MapPost("/messages/conversations", GetOrCreateDmConversationAsync)
+        authGroup.MapPost("/messages/conversations", GetOrCreateDmConversationAsync)
             .WithName("BffGetOrCreateDmConversation")
             .RequireRateLimiting("flood-engage");
 
-        group.MapGet("/messages/conversations/{conversationId}/messages", GetDmMessagesAsync)
+        authGroup.MapGet("/messages/conversations/{conversationId}/messages", GetDmMessagesAsync)
             .WithName("BffGetDmMessages");
 
-        group.MapPost("/messages/conversations/{conversationId}/send", SendDmMessageAsync)
+        authGroup.MapPost("/messages/conversations/{conversationId}/send", SendDmMessageAsync)
             .WithName("BffSendDmMessage")
             .RequireRateLimiting("flood-post");
 
-        group.MapPost("/messages/conversations/{conversationId}/read", MarkDmAsReadAsync)
+        authGroup.MapPost("/messages/conversations/{conversationId}/read", MarkDmAsReadAsync)
             .WithName("BffMarkDmAsRead");
 
-        group.MapDelete("/messages/conversations/{conversationId}/messages", DeleteDmMessagesAsync)
+        authGroup.MapDelete("/messages/conversations/{conversationId}/messages", DeleteDmMessagesAsync)
             .WithName("BffDeleteDmMessages");
 
-        group.MapDelete("/messages/conversations/{conversationId}", DeleteDmConversationAsync)
+        authGroup.MapDelete("/messages/conversations/{conversationId}", DeleteDmConversationAsync)
             .WithName("BffDeleteDmConversation");
 
-        group.MapPost("/messages/conversations/{conversationId}/pin", PinDmConversationAsync)
+        authGroup.MapPost("/messages/conversations/{conversationId}/pin", PinDmConversationAsync)
             .WithName("BffPinDmConversation");
+
+        // GDPR
+        group.MapDelete("/me/account", DeleteMyAccountBffAsync)
+            .WithName("BffDeleteMyAccount")
+            .RequireAuthorization()
+            .RequireRateLimiting("auth");
+
+        group.MapGet("/me/data-export", ExportMyDataBffAsync)
+            .WithName("BffExportMyData")
+            .RequireAuthorization()
+            .RequireRateLimiting("expensive");
     }
 
     private static bool IsAuthenticated(HttpContext httpContext)
@@ -458,8 +472,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiResult = await apiClient.GetNotificationsAsync(offset, Math.Min(pageSize, MaxPageSize), ct);
         if (apiResult?.Items is null)
@@ -492,8 +504,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiResult = await apiClient.GetUnreadNotificationCountAsync(ct);
 
@@ -512,8 +522,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         await apiClient.MarkNotificationAsReadAsync(notificationId, ct);
         return Results.Ok();
@@ -523,8 +531,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         await apiClient.MarkAllNotificationsAsReadAsync(ct);
         return Results.Ok();
@@ -536,8 +542,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiResult = await apiClient.GetSpaceFollowStatusAsync(spaceId, ct);
         if (apiResult is null) return Results.NotFound();
@@ -559,8 +563,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.ToggleSpaceFollowResultAsync(spaceId, level, ct);
 
@@ -586,8 +588,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiResult = await apiClient.SetSpaceFollowLevelAsync(spaceId, level, ct);
         if (apiResult is null) return Results.BadRequest();
@@ -607,8 +607,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiResult = await apiClient.GetDiscussionFollowStatusAsync(discussionId, ct);
         if (apiResult is null) return Results.NotFound();
@@ -628,8 +626,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.ToggleDiscussionFollowResultAsync(discussionId, ct);
 
@@ -652,8 +648,6 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         // Read userId from auth claims, not query params (IDOR prevention)
         var userId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
@@ -683,8 +677,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiResult = await apiClient.GetMyPostReactionsAsync(postId, ct);
 
@@ -703,8 +695,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         await apiClient.TogglePostReactionAsync(postId, request.Type, ct);
         return Results.Ok();
@@ -716,8 +706,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var html = await apiClient.PreviewMarkupAsync(request.Content, ct);
 
@@ -735,8 +723,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiRequest = new Models.CreateReportRequest(
             request.EntityType,
@@ -820,8 +806,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiResult = await apiClient.GetFollowedSpacesAsync(ct);
 
@@ -837,8 +821,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiResult = await apiClient.GetFollowedDiscussionsAsync(ct);
 
@@ -854,8 +836,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var apiResult = await apiClient.GetFollowedUsersAsync(ct);
 
@@ -873,8 +853,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         await apiClient.BatchUpdateReadStatesAsync(request.Updates.Select(u => (u.DiscussionId, u.PostId)).ToList(), ct);
         return Results.Ok();
@@ -908,8 +886,6 @@ public static class BffApiEndpoints
 
     private static async Task<IResult> LogoutAsync(SnakkApiClient apiClient, HttpContext httpContext, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         await apiClient.LogoutAsync(ct);
         AuthCookieHelper.DeleteAuthCookies(httpContext);
@@ -1031,7 +1007,6 @@ public static class BffApiEndpoints
         {
             publicId = apiResult.PublicId,
             displayName = apiResult.DisplayName,
-            email = apiResult.Email,
             emailVerified = apiResult.EmailVerified,
             connectedProviders = apiResult.ConnectedProviders,
             autoFollowOnReply = apiResult.AutoFollowOnReply,
@@ -1054,8 +1029,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.GetDisplayNameHistoryAsync(ct);
         if (result is null)
@@ -1077,10 +1050,9 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
-        var result = await apiClient.UpdateProfileAsync(request.DisplayName, ct: ct);
+        var sudoToken = httpContext.Request.Cookies[AuthCookieHelper.SudoCookieName];
+        var result = await apiClient.UpdateProfileAsync(request.DisplayName, sudoToken: sudoToken, ct: ct);
 
         if (result is null)
             return Results.StatusCode(503);
@@ -1101,8 +1073,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var success = await apiClient.UpdatePreferencesAsync(request.AutoFollowOnReply, request.Timezone, request.Bio, request.AllowAdultContent, request.ClearAllowAdultContent, request.AdultPreviewImageMode, request.HidePresence, ct);
         if (!success) return Results.BadRequest(new { error = "Failed to update preferences" });
@@ -1274,8 +1244,6 @@ public static class BffApiEndpoints
         SnakkApiClient apiClient,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         // Read currentUserId from auth claims, not query params (IDOR prevention)
         var currentUserId = httpContext.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
@@ -1296,8 +1264,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.ToggleUserFollowResultAsync(userId, ct);
 
@@ -1442,8 +1408,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var space = await apiClient.GetSpaceAsync(spaceId, ct);
         if (space is null) return Results.NotFound();
@@ -1590,8 +1554,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.EditPostResultAsync(postId, body.Content, ct);
 
@@ -1610,8 +1572,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.EditDiscussionTitleResultAsync(discussionId, body.Title, ct);
 
@@ -1627,8 +1587,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var success = await apiClient.DeletePostAsync(postId, ct: ct);
 
@@ -2159,8 +2117,6 @@ public static class BffApiEndpoints
     private static async Task<IResult> MarkQuestionSolvedBffAsync(string discussionId, string postPublicId, SnakkApiClient apiClient,
         HttpContext httpContext, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.MarkQuestionSolvedAsync(discussionId, postPublicId, ct);
         if (result is null) return Results.StatusCode(503);
@@ -2189,8 +2145,6 @@ public static class BffApiEndpoints
     private static async Task<IResult> SetPostDebatePositionBffAsync(string discussionId, string postPublicId, int positionId, SnakkApiClient apiClient,
         HttpContext httpContext, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.SetPostDebatePositionAsync(discussionId, postPublicId, positionId, ct);
         if (result is null) return Results.StatusCode(503);
@@ -2204,8 +2158,6 @@ public static class BffApiEndpoints
     private static async Task<IResult> AddJournalEntryBffAsync(string discussionId, string postPublicId, SnakkApiClient apiClient,
         HttpContext httpContext, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.AddJournalEntryAsync(discussionId, postPublicId, ct);
         if (result is null) return Results.StatusCode(503);
@@ -2238,8 +2190,6 @@ public static class BffApiEndpoints
     private static async Task<IResult> EndIamaSessionBffAsync(string discussionId, SnakkApiClient apiClient,
         HttpContext httpContext, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.TransitionIamaPhaseAsync(discussionId, 2, ct);
         if (result is null) return Results.StatusCode(503);
@@ -2310,8 +2260,6 @@ public static class BffApiEndpoints
     private static async Task<IResult> VotePollAsync(string discussionId, int optionId, SnakkApiClient apiClient,
         HttpContext httpContext, CancellationToken ct, int? segmentIndex = null)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.VotePollAsync(discussionId, optionId, segmentIndex, ct);
         if (result is null)
@@ -2325,8 +2273,6 @@ public static class BffApiEndpoints
     private static async Task<IResult> RemovePollVoteAsync(string discussionId, int optionId, SnakkApiClient apiClient,
         HttpContext httpContext, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.RemovePollVoteAsync(discussionId, optionId, ct);
         if (result is null)
@@ -2674,8 +2620,6 @@ public static class BffApiEndpoints
         IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
             return Results.Json(new { error = "Authentication required." }, statusCode: 403);
@@ -2691,8 +2635,6 @@ public static class BffApiEndpoints
         IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
             return Results.Json(new { error = "Authentication required." }, statusCode: 403);
@@ -2707,8 +2649,6 @@ public static class BffApiEndpoints
         IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
             return Results.Json(new { error = "Authentication required." }, statusCode: 403);
@@ -2725,8 +2665,6 @@ public static class BffApiEndpoints
         IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
             return Results.Json(new { error = "Authentication required." }, statusCode: 403);
@@ -2739,8 +2677,6 @@ public static class BffApiEndpoints
         HttpContext httpContext,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var status = await apiClient.GetDiscordStatusAsync(ct);
         if (status is null) return Results.StatusCode(503);
@@ -2757,9 +2693,6 @@ public static class BffApiEndpoints
         IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
-
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
 
@@ -2785,8 +2718,6 @@ public static class BffApiEndpoints
         IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
             return Results.Json(new { error = "Authentication required." }, statusCode: 403);
@@ -2811,8 +2742,6 @@ public static class BffApiEndpoints
         IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         if (!await IsSudoValidBffAsync(httpContext, httpClientFactory, ct))
             return Results.Json(new { error = "Authentication required." }, statusCode: 403);
@@ -2836,9 +2765,6 @@ public static class BffApiEndpoints
         IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
-
         var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
 
@@ -2854,8 +2780,6 @@ public static class BffApiEndpoints
     private static async Task<IResult> ToggleSaveDiscussionAsync(string discussionId,
         SnakkApiClient apiClient, HttpContext httpContext, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
         var result = await apiClient.ToggleSaveDiscussionAsync(discussionId, ct);
         if (result is null) return Results.StatusCode(503);
         return Results.Ok(new { isSaved = result.IsSaved });
@@ -2864,8 +2788,6 @@ public static class BffApiEndpoints
     private static async Task<IResult> ToggleSavePostAsync(string postId,
         SnakkApiClient apiClient, HttpContext httpContext, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
         var result = await apiClient.ToggleSavePostAsync(postId, ct);
         if (result is null) return Results.StatusCode(503);
         return Results.Ok(new { isSaved = result.IsSaved });
@@ -3003,7 +2925,6 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.GetDmUnreadCountAsync(ct);
         return Results.Ok(new Models.Bff.BffDmUnreadCountResponse(result?.Count ?? 0));
@@ -3015,7 +2936,6 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.GetDmConversationsAsync(offset, Math.Min(pageSize, 50), ct);
         if (result is null) return Results.Ok(new Models.Bff.BffDmConversationsResponse([], 0, 0, false));
@@ -3029,7 +2949,6 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.GetDmConversationAsync(conversationId, ct);
         if (result is null || !result.Found || result.Conversation is null)
@@ -3044,7 +2963,6 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
         if (string.IsNullOrWhiteSpace(body.RecipientPublicId)) return Results.BadRequest();
 
         var result = await apiClient.GetOrCreateDmConversationAsync(body.RecipientPublicId, ct);
@@ -3060,7 +2978,6 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var result = await apiClient.GetDmMessagesAsync(conversationId, offset, Math.Min(pageSize, 50), ct);
         if (result is null) return Results.Ok(new Models.Bff.BffDmMessagesResponse([], 0, 0, false));
@@ -3078,7 +2995,6 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
         if (string.IsNullOrWhiteSpace(body.Content)) return Results.BadRequest();
 
         var result = await apiClient.SendDmMessageAsync(conversationId, body.Content, ct);
@@ -3096,7 +3012,6 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         await apiClient.MarkDmAsReadAsync(conversationId, ct);
         return Results.NoContent();
@@ -3108,7 +3023,6 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
         if (body.MessageIds is null || body.MessageIds.Count == 0) return Results.BadRequest();
 
         var success = await apiClient.DeleteDmMessagesAsync(conversationId, body.MessageIds, body.DeleteForAll, ct);
@@ -3121,7 +3035,6 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var success = await apiClient.DeleteDmConversationAsync(conversationId, deleteForAll, ct);
         return success ? Results.NoContent() : Results.BadRequest();
@@ -3133,10 +3046,76 @@ public static class BffApiEndpoints
     {
         ct.ThrowIfCancellationRequested();
         if (!IsDmEnabled(configuration)) return Results.NotFound();
-        if (!IsAuthenticated(httpContext)) return Results.Unauthorized();
 
         var success = await apiClient.PinDmConversationAsync(conversationId, body.IsPinned, ct);
         return success ? Results.NoContent() : Results.BadRequest();
+    }
+
+    private static async Task<IResult> DeleteMyAccountBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var sudoToken = httpContext.Request.Cookies[AuthCookieHelper.SudoCookieName];
+        if (string.IsNullOrWhiteSpace(sudoToken))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
+
+        using var reader = new System.IO.StreamReader(httpContext.Request.Body);
+        var rawBody = await reader.ReadToEndAsync(ct);
+        System.Text.Json.JsonElement clientJson;
+        try { clientJson = System.Text.Json.JsonDocument.Parse(rawBody).RootElement; }
+        catch { return Results.BadRequest(new { error = "Invalid request body." }); }
+
+        var merged = new System.Collections.Generic.Dictionary<string, object?>
+        {
+            ["sudoToken"] = sudoToken
+        };
+        foreach (var prop in clientJson.EnumerateObject())
+            merged[prop.Name] = prop.Value.Clone();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Delete, "/me/account");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+        request.Content = new StringContent(
+            System.Text.Json.JsonSerializer.Serialize(merged),
+            System.Text.Encoding.UTF8, "application/json");
+
+        var response = await client.SendAsync(request, ct);
+
+        if (response.IsSuccessStatusCode)
+        {
+            AuthCookieHelper.DeleteAuthCookies(httpContext);
+            AuthCookieHelper.DeleteSudoCookie(httpContext);
+        }
+
+        var body = await response.Content.ReadAsStringAsync(ct);
+        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+    }
+
+    private static async Task<IResult> ExportMyDataBffAsync(
+        HttpContext httpContext,
+        IHttpClientFactory httpClientFactory,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
+        if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
+
+        var client = httpClientFactory.CreateClient("InternalApi");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/me/data-export");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+
+        var response = await client.SendAsync(request, ct);
+        if (!response.IsSuccessStatusCode)
+            return Results.StatusCode((int)response.StatusCode);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+        var fileName = $"snakk-data-export-{DateTime.UtcNow:yyyy-MM-dd}.json";
+        return Results.File(bytes, "application/json", fileName);
     }
 
     private static Models.Bff.BffDmConversationResponse MapConversation(Snakk.Protos.Dm.ConversationInfo c) =>

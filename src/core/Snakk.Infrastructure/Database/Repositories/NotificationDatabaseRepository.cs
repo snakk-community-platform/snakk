@@ -3,6 +3,7 @@ namespace Snakk.Infrastructure.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Shared.Models;
 
 public class NotificationDatabaseRepository(SnakkDbContext context)
@@ -19,23 +20,10 @@ public class NotificationDatabaseRepository(SnakkDbContext context)
         CancellationToken ct = default)
     {
         // Don't use Include() - the DTOs only need FK IDs which are already on the notification entity
-        var items = await _dbSet
+        return await _dbSet
             .Where(n => n.RecipientUserId == userId)
             .OrderByDescending(n => n.CreatedAt)
-            .Skip(offset)
-            .Take(pageSize + 1)
-            .ToListAsync(ct);
-
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize) : items;
-
-        return new PagedResult<UserNotificationDatabaseEntity>
-        {
-            Items = resultItems,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 
     public async Task<int> GetUnreadCountAsync(int userId, CancellationToken ct = default) =>

@@ -21,7 +21,8 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA,
+                h.LanguageCode, h.CommunityLanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -34,7 +35,8 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA,
+                h.LanguageCode, h.CommunityLanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -47,7 +49,8 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA,
+                h.LanguageCode, h.CommunityLanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -59,7 +62,8 @@ public class HubRepositoryAdapter(
                 h.PublicId, h.CommunityPublicId, h.Name, h.Slug, h.Description,
                 h.AllowAnonymousReading, h.RequireEmailConfirmation,
                 h.CreatedAt, h.LastModifiedAt,
-                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA))
+                h.AvatarFileName, h.AvatarThumbnailFileName, h.AvatarMicroFileName, h.AvatarRevision, h.Require2FA,
+                h.LanguageCode, h.CommunityLanguageCode))
             .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());
@@ -69,23 +73,15 @@ public class HubRepositoryAdapter(
     {
         var result = await databaseRepository.GetFilteredForDisplayAsync(offset, pageSize, ct);
 
-        return new PagedResult<Hub>
-        {
-            Items = result.Items
-                .Select(dto => Hub.RehydrateForList(
-                    HubId.From(dto.PublicId),
-                    CommunityId.From(dto.CommunityPublicId),
-                    dto.Name,
-                    dto.Slug,
-                    dto.Description,
-                    dto.AllowAnonymousReading,
-                    dto.RequireEmailConfirmation,
-                    dto.CreatedAt))
-                .ToList(),
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
-        };
+        return result.Map(dto => Hub.RehydrateForList(
+            HubId.From(dto.PublicId),
+            CommunityId.From(dto.CommunityPublicId),
+            dto.Name,
+            dto.Slug,
+            dto.Description,
+            dto.AllowAnonymousReading,
+            dto.RequireEmailConfirmation,
+            dto.CreatedAt));
     }
 
     public async Task<PagedResult<Hub>> GetByCommunityAsync(
@@ -111,23 +107,15 @@ public class HubRepositoryAdapter(
 
         var result = await databaseRepository.GetByCommunityAsync(communityDbId.Value, offset, pageSize, userId, ct);
 
-        return new PagedResult<Hub>
-        {
-            Items = result.Items
-                .Select(dto => Hub.RehydrateForList(
-                    HubId.From(dto.PublicId),
-                    CommunityId.From(dto.CommunityPublicId),
-                    dto.Name,
-                    dto.Slug,
-                    dto.Description,
-                    dto.AllowAnonymousReading,
-                    dto.RequireEmailConfirmation,
-                    dto.CreatedAt))
-                .ToList(),
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
-        };
+        return result.Map(dto => Hub.RehydrateForList(
+            HubId.From(dto.PublicId),
+            CommunityId.From(dto.CommunityPublicId),
+            dto.Name,
+            dto.Slug,
+            dto.Description,
+            dto.AllowAnonymousReading,
+            dto.RequireEmailConfirmation,
+            dto.CreatedAt));
     }
 
     public async Task AddAsync(Hub hub, CancellationToken ct = default)
@@ -202,7 +190,9 @@ public class HubRepositoryAdapter(
         string? AvatarThumbnailFileName,
         string? AvatarMicroFileName,
         int AvatarRevision,
-        bool Require2FA)
+        bool Require2FA,
+        string? LanguageCode,
+        string? CommunityLanguageCode)
     {
         public Hub ToDomain() => Hub.Rehydrate(
             HubId.From(PublicId),
@@ -214,6 +204,8 @@ public class HubRepositoryAdapter(
             avatarThumbnailFileName: AvatarThumbnailFileName,
             avatarMicroFileName: AvatarMicroFileName,
             avatarRevision: AvatarRevision,
+            languageCode: LanguageCode,
+            communityLanguageCode: CommunityLanguageCode,
             require2FA: Require2FA);
     }
 }

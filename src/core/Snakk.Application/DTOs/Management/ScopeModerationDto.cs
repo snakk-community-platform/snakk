@@ -1,0 +1,8 @@
+namespace Snakk.Application.DTOs.Management;
+
+public class ScopeModerationDto
+{
+    public List<ModerationReportDto> PendingReports { get; set; } = new();
+    public List<ModerationActionDto> RecentActions { get; set; } = new();
+    public ModerationStatsDto Stats { get; set; } = new();
+}

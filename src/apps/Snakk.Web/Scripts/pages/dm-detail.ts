@@ -106,11 +106,7 @@
 
     // ─── Render helpers ───────────────────────────────────────────
 
-    function escapeHtml(s: string): string {
-        const el = document.createElement('div');
-        el.textContent = s;
-        return el.innerHTML;
-    }
+    const escapeHtml = (text: string): string => (window as any).SnakkUtils.escapeHtml(text);
 
     function formatTime(iso: string): string {
         try { return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }

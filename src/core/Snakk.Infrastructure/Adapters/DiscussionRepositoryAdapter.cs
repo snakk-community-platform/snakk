@@ -116,7 +116,7 @@ public class DiscussionRepositoryAdapter(
                 .Select(dto => Discussion.RehydrateForList(
                     DiscussionId.From(dto.PublicId),
                     SpaceId.From(spaceId.Value),
-                    UserId.From(dto.CreatedByUserPublicId),
+                    UserId.FromNullable(dto.CreatedByUserPublicId),
                     dto.Title,
                     dto.Slug,
                     (DiscussionTypeEnum)dto.Type,
@@ -177,6 +177,9 @@ public class DiscussionRepositoryAdapter(
 
         if (space is null)
             throw new InvalidOperationException($"Space with PublicId '{discussion.SpaceId}' not found");
+
+        if (discussion.CreatedByUserId is null)
+            throw new InvalidOperationException("Cannot save a discussion with no author");
 
         var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == discussion.CreatedByUserId.Value, ct);
 
@@ -470,7 +473,7 @@ public class DiscussionRepositoryAdapter(
     private record DiscussionProjection(
         string PublicId,
         string SpacePublicId,
-        string CreatedByUserPublicId,
+        string? CreatedByUserPublicId,
         string Title,
         string Slug,
         int Type,
@@ -486,7 +489,7 @@ public class DiscussionRepositoryAdapter(
         public Discussion ToDomain() => Discussion.Rehydrate(
             DiscussionId.From(PublicId),
             SpaceId.From(SpacePublicId),
-            UserId.From(CreatedByUserPublicId),
+            UserId.FromNullable(CreatedByUserPublicId),
             Title, Slug, (DiscussionTypeEnum)Type,
             CreatedAt, LastModifiedAt, LastActivityAt,
             IsPinned, IsLocked, posts: [], isAdult: IsAdult, wasNormalized: WasNormalized,

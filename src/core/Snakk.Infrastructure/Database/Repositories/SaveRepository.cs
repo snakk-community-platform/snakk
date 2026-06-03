@@ -5,6 +5,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Repositories;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Shared.Models;
 
 public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRepository
@@ -207,11 +208,9 @@ public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRe
                 HasMoreItems = false
             };
 
-        var items = await context.UserSaves
+        return await context.UserSaves
             .Where(s => s.UserId == userDbId && s.PostId != null && !s.Post!.IsDeleted)
             .OrderByDescending(s => s.CreatedAt)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(s => new SavedPostDto(
                 s.Post!.PublicId,
                 s.Post.Content.Length > 300
@@ -230,17 +229,7 @@ public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRe
                 s.Post.CreatedByUser.DisplayName ?? "",
                 s.Post.CreatedByUser.AvatarFileName,
                 s.CreatedAt))
-            .ToListAsync(ct);
-
-        var hasMoreItems = items.Count > pageSize;
-
-        return new PagedResult<SavedPostDto>
-        {
-            Items = hasMoreItems ? items.Take(pageSize).ToList() : items,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 
     public async Task<(int DiscussionCount, int PostCount)> GetSaveCountsAsync(string userId, CancellationToken ct = default)

@@ -812,24 +812,24 @@ function showChartPickerModal(editor: Editor): void {
     ];
 
     const backdrop = document.createElement('div');
-    backdrop.className = 'chart-modal-backdrop';
+    backdrop.className = 'sn-modal-backdrop';
     activeChartModal = backdrop;
 
     const modal = document.createElement('div');
-    modal.className = 'chart-modal chart-picker-modal';
+    modal.className = 'sn-modal chart-picker-modal';
 
     const header = document.createElement('div');
-    header.className = 'chart-modal-header';
+    header.className = 'sn-modal-header';
     const title = document.createElement('span');
     title.textContent = 'Insert Chart';
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'chart-modal-close';
+    closeBtn.className = 'sn-modal-close';
     closeBtn.innerHTML = '&times;';
     closeBtn.onclick = closeChartModal;
     header.append(title, closeBtn);
 
     const body = document.createElement('div');
-    body.className = 'chart-modal-body chart-picker-body';
+    body.className = 'sn-modal-body chart-picker-body';
     const grid = document.createElement('div');
     grid.className = 'chart-picker-grid';
 
@@ -862,9 +862,9 @@ function showChartPickerModal(editor: Editor): void {
 
 function buildChartModalField(labelText: string, input: HTMLElement): HTMLElement {
     const wrap = document.createElement('div');
-    wrap.className = 'chart-modal-field';
+    wrap.className = 'sn-modal-field';
     const lbl = document.createElement('label');
-    lbl.className = 'chart-modal-label';
+    lbl.className = 'sn-modal-label';
     lbl.textContent = labelText;
     wrap.appendChild(lbl);
     wrap.appendChild(input);
@@ -874,7 +874,7 @@ function buildChartModalField(labelText: string, input: HTMLElement): HTMLElemen
 function makeChartInput(placeholder: string, value = '', extraClass = ''): HTMLInputElement {
     const inp = document.createElement('input');
     inp.type = 'text';
-    inp.className = `chart-modal-input${extraClass ? ' ' + extraClass : ''}`;
+    inp.className = `sn-modal-input${extraClass ? ' ' + extraClass : ''}`;
     inp.placeholder = placeholder;
     inp.value = value;
     return inp;
@@ -946,9 +946,9 @@ function buildChartForm(type: string, form: HTMLElement, initial?: Partial<Chart
 
     if (type === 'pie' || type === 'donut') {
         const listWrap = document.createElement('div');
-        listWrap.className = 'chart-modal-field';
+        listWrap.className = 'sn-modal-field';
         const lbl = document.createElement('label');
-        lbl.className = 'chart-modal-label';
+        lbl.className = 'sn-modal-label';
         lbl.textContent = 'Data';
         listWrap.appendChild(lbl);
 
@@ -971,7 +971,7 @@ function buildChartForm(type: string, form: HTMLElement, initial?: Partial<Chart
 
             const valInp = document.createElement('input');
             valInp.type = 'number';
-            valInp.className = 'chart-modal-input chart-series-values';
+            valInp.className = 'sn-modal-input chart-series-values';
             valInp.placeholder = '0';
             valInp.value = value;
 
@@ -1014,9 +1014,9 @@ function buildChartForm(type: string, form: HTMLElement, initial?: Partial<Chart
 
     } else if (type === 'scatter') {
         const listWrap = document.createElement('div');
-        listWrap.className = 'chart-modal-field';
+        listWrap.className = 'sn-modal-field';
         const lbl = document.createElement('label');
-        lbl.className = 'chart-modal-label';
+        lbl.className = 'sn-modal-label';
         lbl.textContent = 'Series';
         listWrap.appendChild(lbl);
 
@@ -1081,9 +1081,9 @@ function buildChartForm(type: string, form: HTMLElement, initial?: Partial<Chart
         ));
 
         const listWrap = document.createElement('div');
-        listWrap.className = 'chart-modal-field';
+        listWrap.className = 'sn-modal-field';
         const lbl = document.createElement('label');
-        lbl.className = 'chart-modal-label';
+        lbl.className = 'sn-modal-label';
         lbl.textContent = 'Series';
         listWrap.appendChild(lbl);
 
@@ -1368,38 +1368,38 @@ function showChartEditorModal(type: string, options: ChartModalOptions): void {
     const initial = options.initialConfig ? parseChartFormData(options.initialConfig) : undefined;
 
     const backdrop = document.createElement('div');
-    backdrop.className = 'chart-modal-backdrop';
+    backdrop.className = 'sn-modal-backdrop';
 
     const modal = document.createElement('div');
-    modal.className = 'chart-modal';
+    modal.className = 'sn-modal';
     backdrop.appendChild(modal);
 
     // Header
     const header = document.createElement('div');
-    header.className = 'chart-modal-header';
+    header.className = 'sn-modal-header';
     const titleSpan = document.createElement('span');
     titleSpan.textContent = `${options.isEdit ? 'Edit' : 'Insert'} ${typeLabels[type] ?? type} Chart`;
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.className = 'chart-modal-close';
+    closeBtn.className = 'sn-modal-close';
     closeBtn.textContent = '×';
     const chartHeaderActions = document.createElement('div');
-    chartHeaderActions.className = 'chart-modal-header-actions';
+    chartHeaderActions.className = 'sn-modal-header-actions';
     chartHeaderActions.append(createModalExpandBtn(modal), closeBtn);
     header.append(titleSpan, chartHeaderActions);
     modal.appendChild(header);
 
     // Body
     const body = document.createElement('div');
-    body.className = 'chart-modal-body';
+    body.className = 'sn-modal-body';
 
     const form = document.createElement('div');
-    form.className = 'chart-modal-form';
+    form.className = 'sn-modal-form';
     buildChartForm(type, form, initial);
     body.appendChild(form);
 
     const previewPane = document.createElement('div');
-    previewPane.className = 'chart-modal-preview';
+    previewPane.className = 'sn-modal-preview';
     const canvas = document.createElement('canvas');
     previewPane.appendChild(canvas);
     body.appendChild(previewPane);
@@ -1408,14 +1408,14 @@ function showChartEditorModal(type: string, options: ChartModalOptions): void {
 
     // Footer
     const footer = document.createElement('div');
-    footer.className = 'chart-modal-footer';
+    footer.className = 'sn-modal-footer';
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.className = 'sn-modal-cancel';
     cancelBtn.textContent = 'Cancel';
     const insertBtn = document.createElement('button');
     insertBtn.type = 'button';
-    insertBtn.className = 'chart-modal-insert';
+    insertBtn.className = 'sn-modal-insert';
     insertBtn.textContent = options.isEdit ? 'Update Chart' : 'Insert Chart';
     footer.appendChild(cancelBtn);
     footer.appendChild(insertBtn);
@@ -1595,28 +1595,28 @@ function showCodeModal(options: CodeModalOptions): void {
     let currentLang = data?.language ?? '';
 
     const backdrop = document.createElement('div');
-    backdrop.className = 'chart-modal-backdrop';
+    backdrop.className = 'sn-modal-backdrop';
 
     const modal = document.createElement('div');
-    modal.className = 'chart-modal';
+    modal.className = 'sn-modal';
     modal.style.maxWidth = '48rem';
 
     const header = document.createElement('div');
-    header.className = 'chart-modal-header';
+    header.className = 'sn-modal-header';
     const title = document.createElement('span');
     title.textContent = isEdit ? 'Edit Code' : 'Insert Code';
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.className = 'chart-modal-close';
+    closeBtn.className = 'sn-modal-close';
     closeBtn.innerHTML = '&times;';
     closeBtn.addEventListener('click', closeCodeModal);
     const codeHeaderActions = document.createElement('div');
-    codeHeaderActions.className = 'chart-modal-header-actions';
+    codeHeaderActions.className = 'sn-modal-header-actions';
     codeHeaderActions.append(createModalExpandBtn(modal), closeBtn);
     header.append(title, codeHeaderActions);
 
     const body = document.createElement('div');
-    body.className = 'chart-modal-body';
+    body.className = 'sn-modal-body';
     body.style.flexDirection = 'column';
 
     const langRow = document.createElement('div');
@@ -1718,15 +1718,15 @@ function showCodeModal(options: CodeModalOptions): void {
     body.append(langRow, editorContainer);
 
     const footer = document.createElement('div');
-    footer.className = 'chart-modal-footer';
+    footer.className = 'sn-modal-footer';
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.className = 'sn-modal-cancel';
     cancelBtn.textContent = 'Cancel';
     cancelBtn.addEventListener('click', closeCodeModal);
     const insertBtn = document.createElement('button');
     insertBtn.type = 'button';
-    insertBtn.className = 'chart-modal-insert';
+    insertBtn.className = 'sn-modal-insert';
     insertBtn.textContent = isEdit ? 'Update' : 'Insert';
     insertBtn.disabled = textarea.value.trim() === '';
     textarea.addEventListener('input', () => {
@@ -2459,21 +2459,21 @@ function showImageModal(options: ImageModalOptions): void {
 
     // ── DOM ─────────────────────────────────────────────────────────────────
     const backdrop = document.createElement('div');
-    backdrop.className = 'chart-modal-backdrop';
+    backdrop.className = 'sn-modal-backdrop';
 
     const modal = document.createElement('div');
-    modal.className = 'chart-modal';
+    modal.className = 'sn-modal';
     modal.style.maxWidth = '42rem';
 
     // Body
     const body = document.createElement('div');
-    body.className = 'chart-modal-body';
+    body.className = 'sn-modal-body';
     body.style.flexDirection = 'column';
 
     // Insert button (created before widget so onChange can reference it)
     const insertBtn = document.createElement('button');
     insertBtn.type = 'button';
-    insertBtn.className = 'chart-modal-insert';
+    insertBtn.className = 'sn-modal-insert';
     insertBtn.textContent = isEdit ? 'Update' : 'Insert';
     insertBtn.disabled = true;
 
@@ -2502,27 +2502,27 @@ function showImageModal(options: ImageModalOptions): void {
 
     // Header
     const header = document.createElement('div');
-    header.className = 'chart-modal-header';
+    header.className = 'sn-modal-header';
     const title = document.createElement('span');
     title.textContent = isEdit ? 'Edit Images' : 'Upload Images';
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.className = 'chart-modal-close';
+    closeBtn.className = 'sn-modal-close';
     closeBtn.innerHTML = '&times;';
     closeBtn.addEventListener('click', confirmClose);
     const imageHeaderActions = document.createElement('div');
-    imageHeaderActions.className = 'chart-modal-header-actions';
+    imageHeaderActions.className = 'sn-modal-header-actions';
     imageHeaderActions.append(createModalExpandBtn(modal), closeBtn);
     header.append(title, imageHeaderActions);
 
     // Footer
     const footer = document.createElement('div');
-    footer.className = 'chart-modal-footer';
+    footer.className = 'sn-modal-footer';
     const statusEl = document.createElement('span');
     statusEl.className = 'image-modal-status';
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.className = 'sn-modal-cancel';
     cancelBtn.textContent = 'Cancel';
     cancelBtn.addEventListener('click', confirmClose);
     footer.appendChild(statusEl);
@@ -2720,36 +2720,36 @@ function showTableModal(options: TableModalOptions): void {
     let updateInsertState: () => void = () => {};
 
     const backdrop = document.createElement('div');
-    backdrop.className = 'chart-modal-backdrop';
+    backdrop.className = 'sn-modal-backdrop';
 
     const modal = document.createElement('div');
-    modal.className = 'chart-modal';
+    modal.className = 'sn-modal';
     modal.style.maxWidth = '54rem';
     backdrop.appendChild(modal);
 
     // Header
     const header = document.createElement('div');
-    header.className = 'chart-modal-header';
+    header.className = 'sn-modal-header';
     const titleSpan = document.createElement('span');
     titleSpan.textContent = isEdit ? 'Edit Table' : 'Insert Table';
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.className = 'chart-modal-close';
+    closeBtn.className = 'sn-modal-close';
     closeBtn.textContent = '×';
     const tableHeaderActions = document.createElement('div');
-    tableHeaderActions.className = 'chart-modal-header-actions';
+    tableHeaderActions.className = 'sn-modal-header-actions';
     tableHeaderActions.append(createModalExpandBtn(modal), closeBtn);
     header.append(titleSpan, tableHeaderActions);
     modal.appendChild(header);
 
     // Body (vertical, no preview panel)
     const body = document.createElement('div');
-    body.className = 'chart-modal-body';
+    body.className = 'sn-modal-body';
     body.style.flexDirection = 'column';
     modal.appendChild(body);
 
     const form = document.createElement('div');
-    form.className = 'chart-modal-form';
+    form.className = 'sn-modal-form';
     body.appendChild(form);
 
     // Cell grid container
@@ -3025,14 +3025,14 @@ function showTableModal(options: TableModalOptions): void {
 
     // Footer
     const footer = document.createElement('div');
-    footer.className = 'chart-modal-footer';
+    footer.className = 'sn-modal-footer';
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.className = 'sn-modal-cancel';
     cancelBtn.textContent = 'Cancel';
     const insertBtn = document.createElement('button');
     insertBtn.type = 'button';
-    insertBtn.className = 'chart-modal-insert';
+    insertBtn.className = 'sn-modal-insert';
     insertBtn.textContent = isEdit ? 'Update Table' : 'Insert Table';
     footer.appendChild(cancelBtn);
     footer.appendChild(insertBtn);
@@ -3294,25 +3294,25 @@ function showListPickerModal(editor: Editor): void {
     closeTableModal();
 
     const backdrop = document.createElement('div');
-    backdrop.className = 'chart-modal-backdrop';
+    backdrop.className = 'sn-modal-backdrop';
     activeListModal = backdrop;
 
     const modal = document.createElement('div');
-    modal.className = 'chart-modal chart-picker-modal';
+    modal.className = 'sn-modal chart-picker-modal';
 
     const header = document.createElement('div');
-    header.className = 'chart-modal-header';
+    header.className = 'sn-modal-header';
     const title = document.createElement('span');
     title.textContent = 'Insert List';
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.className = 'chart-modal-close';
+    closeBtn.className = 'sn-modal-close';
     closeBtn.innerHTML = '&times;';
     closeBtn.onclick = closeListModal;
     header.append(title, closeBtn);
 
     const body = document.createElement('div');
-    body.className = 'chart-modal-body chart-picker-body';
+    body.className = 'sn-modal-body chart-picker-body';
     const grid = document.createElement('div');
     grid.className = 'chart-picker-grid';
 
@@ -3351,17 +3351,17 @@ function showListEditorModal(type: ListModalData['type'], options: ListModalOpti
     const meta = LIST_TYPE_META[type];
 
     const backdrop = document.createElement('div');
-    backdrop.className = 'chart-modal-backdrop';
+    backdrop.className = 'sn-modal-backdrop';
     activeListModal = backdrop;
 
     const modal = document.createElement('div');
-    modal.className = 'chart-modal';
+    modal.className = 'sn-modal';
     modal.style.maxWidth = '32rem';
     backdrop.appendChild(modal);
 
     // Header
     const header = document.createElement('div');
-    header.className = 'chart-modal-header';
+    header.className = 'sn-modal-header';
     const titleSpan = document.createElement('span');
     titleSpan.textContent = isEdit ? `Edit ${meta.label}` : `Insert ${meta.label}`;
     function isDirty(): boolean {
@@ -3376,18 +3376,18 @@ function showListEditorModal(type: ListModalData['type'], options: ListModalOpti
 
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.className = 'chart-modal-close';
+    closeBtn.className = 'sn-modal-close';
     closeBtn.textContent = '×';
     closeBtn.onclick = confirmClose;
     const headerActions = document.createElement('div');
-    headerActions.className = 'chart-modal-header-actions';
+    headerActions.className = 'sn-modal-header-actions';
     headerActions.append(createModalExpandBtn(modal), closeBtn);
     header.append(titleSpan, headerActions);
     modal.appendChild(header);
 
     // Body
     const body = document.createElement('div');
-    body.className = 'chart-modal-body';
+    body.className = 'sn-modal-body';
     body.style.flexDirection = 'column';
     modal.appendChild(body);
 
@@ -3409,7 +3409,7 @@ function showListEditorModal(type: ListModalData['type'], options: ListModalOpti
 
         const inp = document.createElement('input');
         inp.type = 'text';
-        inp.className = 'chart-modal-input lmc-item-input';
+        inp.className = 'sn-modal-input lmc-item-input';
         inp.placeholder = 'List item…';
         inp.value = text;
         inp.addEventListener('keydown', (e) => {
@@ -3472,18 +3472,18 @@ function showListEditorModal(type: ListModalData['type'], options: ListModalOpti
 
     // Footer
     const footer = document.createElement('div');
-    footer.className = 'chart-modal-footer';
+    footer.className = 'sn-modal-footer';
     modal.appendChild(footer);
 
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.className = 'chart-modal-cancel';
+    cancelBtn.className = 'sn-modal-cancel';
     cancelBtn.textContent = 'Cancel';
     cancelBtn.onclick = confirmClose;
 
     const insertBtn = document.createElement('button');
     insertBtn.type = 'button';
-    insertBtn.className = 'chart-modal-insert';
+    insertBtn.className = 'sn-modal-insert';
     insertBtn.textContent = isEdit ? 'Update' : 'Insert';
     insertBtn.addEventListener('click', () => {
         const items: ListItem[] = [];
@@ -3996,27 +3996,27 @@ const EXPAND_SVG = '<span class="icon icon-code-expand" style="width:12px;height
 const COLLAPSE_SVG = '<span class="icon icon-code-collapse" style="width:12px;height:12px" aria-hidden="true"></span>';
 
 // Shared expand/collapse button for all modals (code, image, table, chart editor).
-// Returns a button sized like .chart-modal-close that toggles .chart-modal-expanded
+// Returns a button sized like .sn-modal-close that toggles .sn-modal-expanded
 // on the given modal element and saves/restores any inline maxWidth.
 function createModalExpandBtn(modal: HTMLElement): HTMLButtonElement {
     let savedMaxWidth = '';
 
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'chart-modal-close';
+    btn.className = 'sn-modal-close';
     btn.title = 'Expand';
     btn.innerHTML = EXPAND_SVG;
 
     btn.addEventListener('click', () => {
-        if (modal.classList.contains('chart-modal-expanded')) {
-            modal.classList.remove('chart-modal-expanded');
+        if (modal.classList.contains('sn-modal-expanded')) {
+            modal.classList.remove('sn-modal-expanded');
             modal.style.maxWidth = savedMaxWidth;
             btn.innerHTML = EXPAND_SVG;
             btn.title = 'Expand';
         } else {
             savedMaxWidth = modal.style.maxWidth;
             modal.style.maxWidth = '';
-            modal.classList.add('chart-modal-expanded');
+            modal.classList.add('sn-modal-expanded');
             btn.innerHTML = COLLAPSE_SVG;
             btn.title = 'Collapse';
         }

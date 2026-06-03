@@ -6,6 +6,7 @@ using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Shared.Models;
 
 public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache, IFileStorage fileStorage, HybridCache cache) : ISearchRepository
@@ -252,9 +253,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                     .OrderByDescending(p => p.CreatedAt)
         };
 
-        var items = await orderedQuery
-            .Skip(offset)
-            .Take(pageSize + 1)
+        return await orderedQuery
             .Select(p => new PostSearchResultDto(
                 p.PublicId,
                 p.PlainTextExcerpt ?? "",
@@ -270,18 +269,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 p.Discussion.Space.HubName,
                 p.Discussion.Space.CommunitySlug,
                 p.CreatedAt))
-            .ToListAsync(ct);
-
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize) : items;
-
-        return new PagedResult<PostSearchResultDto>
-        {
-            Items = resultItems,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 
     public async Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId, CancellationToken ct = default) => await _context.Users
@@ -410,10 +398,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         // Use denormalized counts + fetch one extra row to check HasMoreItems
         var query = _context.Hubs.AsQueryable();
         query = await WithHubAccessFilterAsync(query, userId, ct);
-        var hubs = await query
+        return await query
             .OrderBy(h => h.Name)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(h => new HubListItemDto(
                 h.PublicId,
                 h.CommunityPublicId,
@@ -424,21 +410,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
                 h.SpaceCount,
                 h.DiscussionCount,
                 h.PostCount - h.DiscussionCount))
-            .ToListAsync(ct);
-
-        var hasMore = hubs.Count > pageSize;
-
-        return new PagedResult<HubListItemDto>
-        {
-            Items = hasMore
-                ? hubs
-                    .Take(pageSize)
-                    .ToList()
-                : hubs,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMore
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 
     public async Task<List<SpaceSearchItemDto>> SearchSpacesAsync(

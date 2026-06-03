@@ -204,6 +204,13 @@ public class UserRepositoryAdapter(
             entity.Email = emailProtector.Protect(plainEmail);
             entity.EmailHash = emailProtector.ComputeHash(plainEmail);
         }
+        else
+        {
+            entity.Email = null;
+            entity.EmailHash = null;
+        }
+        entity.IsDeleted = user.IsDeleted;
+        entity.DeletedAt = user.DeletedAt;
         entity.PasswordHash = user.PasswordHash;
         entity.AvatarFileName = user.AvatarFileName;
         entity.AvatarThumbnailFileName = user.AvatarThumbnailFileName;

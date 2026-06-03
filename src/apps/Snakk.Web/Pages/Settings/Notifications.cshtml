@@ -2,32 +2,12 @@
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Settings.NotificationsModel
 @{
+    Layout = "~/Pages/Shared/_SettingsLayout.cshtml";
     ViewData["Title"] = T.Settings.TitleNotifications;
     ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
+    ViewData["Settings.Icon"] = "icon-bell";
+    ViewData["Settings.Heading"] = T.Settings.HeadingNotifications;
 }
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("settings")" asp-append-version="true" />
-}
-
-@section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
-}
-
-<!-- Center Column -->
-<div class="sn-center">
-    <div class="sn-center-inner">
-        @if (User.Identity?.IsAuthenticated != true)
-        {
-            <partial name="Shared/_AuthPrompt" />
-        }
-        else
-        {
-        <h2 class="sn-section-title">
-            <span class="icon icon-bell" aria-hidden="true"></span>
-            @T.Settings.HeadingNotifications
-        </h2>
-        <div class="sn-settings-content">
 
             <!-- Auto-follow -->
             <div id="section-auto-follow" class="sn-settings-section">
@@ -106,14 +86,4 @@
                     </label>
                 </div>
             </div>
-        </div>
-        } @* end IsAuthenticated *@
-    </div>
-</div>
-
-<!-- Right Column -->
-<aside class="sn-right">
-<partial name="Shared/_SettingsRightNav" />
-</aside>
-
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

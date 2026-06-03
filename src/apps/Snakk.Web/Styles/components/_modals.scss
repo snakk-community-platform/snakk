@@ -11,3 +11,119 @@
 .modal-backdrop {
     background: rgba(0, 0, 0, 0.5);
 }
+
+// ============================================
+// Chart-modal system
+// Used by: sudo modals (settings), delete/export confirmations,
+// and the rich-text editor chart/table modal (editor bundle).
+// Defined here so every page that loads site.css gets it.
+// ============================================
+
+.sn-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sn-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    width: min(720px, 95vw);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.sn-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-primary);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    flex-shrink: 0;
+}
+
+.sn-modal-close {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+    }
+}
+
+// Only the header ✕ button gets the fixed small-square sizing
+.sn-modal-header .sn-modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
+    font-size: 1.125rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.sn-modal-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.sn-modal-body {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.sn-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border-primary);
+    flex-shrink: 0;
+}
+
+.sn-modal-cancel {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8125rem;
+    background: transparent;
+    border: 1px solid var(--border-primary);
+    border-radius: 0.25rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover { background: var(--bg-tertiary); }
+}
+
+.sn-modal-insert {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8125rem;
+    background: var(--link-primary);
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    color: #fff;
+    cursor: pointer;
+
+    &:hover:not(:disabled) { opacity: 0.9; }
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+}

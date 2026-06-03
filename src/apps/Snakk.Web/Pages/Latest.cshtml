@@ -24,9 +24,7 @@
 
         @if (Model.LatestDiscussions?.Items == null || !Model.LatestDiscussions.Items.Any())
         {
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.LatestEmpty</p>
-            </div>
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.LatestEmpty)" />
         }
         else
         {

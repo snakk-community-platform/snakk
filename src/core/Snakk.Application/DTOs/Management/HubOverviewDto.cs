@@ -25,16 +25,8 @@ public class HubOverviewDto
     public int PendingReports { get; set; }
 
     // Team
-    public List<HubModeratorDto> Moderators { get; set; } = new();
+    public List<ScopeModeratorDto> Moderators { get; set; } = new();
 
     // Recent Activity
     public List<RecentActivityItemDto> RecentActivity { get; set; } = new();
-}
-
-public class HubModeratorDto
-{
-    public string UserId { get; set; } = string.Empty;
-    public string DisplayName { get; set; } = string.Empty;
-    public string? AvatarUrl { get; set; }
-    public DateTime AssignedAt { get; set; }
 }

@@ -280,6 +280,9 @@ public static class ServiceCollectionExtensions
         // DM Repository
         services.AddScoped<Application.Repositories.IDmRepository, Infrastructure.Database.Repositories.DmRepository>();
 
+        // GDPR Repository
+        services.AddScoped<Application.Repositories.IGdprRepository, Infrastructure.Database.Repositories.GdprRepository>();
+
         // Use Cases
         services.AddScoped<CommunityUseCase>();
         services.AddScoped<HubUseCase>();
@@ -296,6 +299,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<BannerUseCase>();
         services.AddScoped<StatisticsUseCase>();
         services.AddScoped<DmUseCase>();
+        services.AddScoped<GdprUseCase>();
 
         // API Services
         services.AddHttpContextAccessor();
@@ -365,6 +369,8 @@ public static class ServiceCollectionExtensions
             Infrastructure.EventHandlers.Avatars.UserCreatedAvatarGenerationHandler>();
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.UserDeletedEvent>,
             Infrastructure.EventHandlers.Avatars.UserDeletedAvatarCleanupHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.UserDeletedEvent>,
+            Infrastructure.EventHandlers.Gdpr.UserDeletedDataCleanupHandler>();
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.HubCreatedEvent>,
             Infrastructure.EventHandlers.Avatars.HubCreatedAvatarGenerationHandler>();
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.HubDeletedEvent>,

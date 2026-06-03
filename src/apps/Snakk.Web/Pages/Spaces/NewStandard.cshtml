@@ -1,101 +1,36 @@
-﻿@page "/new/standard"
+@page "/new/standard"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewStandardModel
 @{
+    Layout = "~/Pages/Shared/_NewDiscussionLayout.cshtml";
     ViewData["Title"] = string.Format(T.Pages.SpacesNewStdTitlePattern, Model.Space?.Name);
+    ViewData["NewDiscussion.Crumb"]       = T.Pages.SpacesNewStdCrumb;
+    ViewData["NewDiscussion.Heading"]     = T.Pages.SpacesNewStdHeading;
+    ViewData["NewDiscussion.TitlePh"]     = T.Pages.SpacesNewStdTitlePh;
+    ViewData["NewDiscussion.SubmitLabel"] = T.Pages.SpacesNewStdSubmit;
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion")" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("editor")" asp-append-version="true" />
-}
-
-@section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
-}
-
-@section CenterHeader {
-    @if (Model.ShowCommunityInBreadcrumb)
-    {
-        <a href="/c/@Model.CommunitySlug" class="badge badge-ghost badge-sm">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a>
-        <span class="sn-page-labels-sep">›</span>
-    }
-    @if (Model.Space != null)
-    {
-        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-        <span class="sn-page-labels-sep">›</span>
-        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="badge badge-ghost badge-sm">@Model.Space.Name</a>
-        <span class="sn-page-labels-sep">›</span>
-        <a href="/new?spaceId=@Model.SpaceId" class="badge badge-ghost badge-sm">@T.Pages.SpacesNewCrumbNew</a>
-        <span class="sn-page-labels-sep">›</span>
-        <span class="badge badge-ghost badge-sm">@T.Pages.SpacesNewStdCrumb</span>
-    }
-}
-
-@if (User.Identity?.IsAuthenticated != true) {
-    { ViewData["AuthPrompt.Title"] = T.Pages.SpacesNewAuthPrompt; }
-    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_AuthPrompt" /></div></div>
-    return;
-}
-@if (Model.Space == null) { <div class="empty-state-simple"><h3>@T.Pages.SpacesNewSpaceNotFound</h3></div> return; }
-
-<div class="sn-center">
-    <div class="sn-center-inner">
-        <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">@T.Pages.SpacesNewStdHeading</h1>
-
-            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
-
-            <form method="post" id="new-discussion-form" hx-boost="false">
-                <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
-                <div class="space-y-4">
-                    <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="@T.Pages.SpacesNewStdTitlePh" />
-
-                    <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
-
-                    <div id="editor-container" data-hide-image="true">
-                        <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:250px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
-                    </div>
-
-                    <partial name="_NewDiscussionAdultToggle" model="Model.Space" />
-
-                    <div class="flex items-center justify-between">
-                        <a href="/new?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@T.Pages.SpacesNewStdSubmit</button>
-                    </div>
-                </div>
-            </form>
-
-            <div class="mt-8 border-t border-base-content/10 pt-6">
-                <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewStdHowHeading</h3>
-                <div class="text-sm text-base-content/60 space-y-3">
-                    <p>@T.Pages.SpacesNewStdIntro</p>
-                    <div>
-                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewStdWhatNext</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>@T.Pages.SpacesNewStdWhatNext1</li>
-                            <li>@T.Pages.SpacesNewStdWhatNext2</li>
-                            <li>@T.Pages.SpacesNewStdWhatNext3</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
-                        <ul class="space-y-1 list-disc pl-4">
-                            <li>@T.Pages.SpacesNewStdTip1</li>
-                            <li>@T.Pages.SpacesNewStdTip2</li>
-                            <li>@T.Pages.SpacesNewStdTip3</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+<div class="mt-8 border-t border-base-content/10 pt-6">
+    <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewStdHowHeading</h3>
+    <div class="text-sm text-base-content/60 space-y-3">
+        <p>@T.Pages.SpacesNewStdIntro</p>
+        <div>
+            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewStdWhatNext</div>
+            <ul class="space-y-1 list-disc pl-4">
+                <li>@T.Pages.SpacesNewStdWhatNext1</li>
+                <li>@T.Pages.SpacesNewStdWhatNext2</li>
+                <li>@T.Pages.SpacesNewStdWhatNext3</li>
+            </ul>
+        </div>
+        <div>
+            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
+            <ul class="space-y-1 list-disc pl-4">
+                <li>@T.Pages.SpacesNewStdTip1</li>
+                <li>@T.Pages.SpacesNewStdTip2</li>
+                <li>@T.Pages.SpacesNewStdTip3</li>
+            </ul>
         </div>
     </div>
 </div>
-
-<partial name="Shared/_NewDiscussionSpaceSidebar" model="Model" />
-
-<script src="@SnakkUrlHelper.Js("components/markdown-editor")" asp-append-version="true" defer></script>
-<script src="@SnakkUrlHelper.Js("pages/new-discussion")" asp-append-version="true" defer></script>

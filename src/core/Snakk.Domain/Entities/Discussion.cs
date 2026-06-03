@@ -8,7 +8,7 @@ public class Discussion
 {
     public DiscussionId PublicId { get; private set; }
     public SpaceId SpaceId { get; private set; }
-    public UserId CreatedByUserId { get; private set; }
+    public UserId? CreatedByUserId { get; private set; }
     public string Title { get; private set; }
     public string Slug { get; private set; }
     public DiscussionTypeEnum Type { get; private set; }
@@ -38,7 +38,7 @@ public class Discussion
     private Discussion(
         DiscussionId publicId,
         SpaceId spaceId,
-        UserId createdByUserId,
+        UserId? createdByUserId,
         string title,
         string slug,
         DiscussionTypeEnum type,
@@ -105,7 +105,7 @@ public class Discussion
     public static Discussion Rehydrate(
         DiscussionId publicId,
         SpaceId spaceId,
-        UserId createdByUserId,
+        UserId? createdByUserId,
         string title,
         string slug,
         DiscussionTypeEnum type,
@@ -138,7 +138,7 @@ public class Discussion
     public static Discussion RehydrateForList(
         DiscussionId publicId,
         SpaceId spaceId,
-        UserId createdByUserId,
+        UserId? createdByUserId,
         string title,
         string slug,
         DiscussionTypeEnum type,

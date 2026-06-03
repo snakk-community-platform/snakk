@@ -109,7 +109,7 @@ public static class AdminSettingsEndpoints
 
             return Results.Ok(siteInfo);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
@@ -156,7 +156,7 @@ public static class AdminSettingsEndpoints
 
             return TypedResults.Ok(new MessageResponse($"{provider} OAuth provider {(request.Enabled ? "enabled" : "disabled")}"));
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
@@ -197,7 +197,7 @@ public static class AdminSettingsEndpoints
 
             return Results.Ok(config);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
@@ -216,7 +216,7 @@ public static class AdminSettingsEndpoints
 
             return TypedResults.Ok(new MessageResponse("Test email sent successfully"));
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return Results.BadRequest(new { error = "Failed to send test email." });
         }
@@ -257,7 +257,7 @@ public static class AdminSettingsEndpoints
 
             return Results.Ok(settings);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
@@ -298,7 +298,7 @@ public static class AdminSettingsEndpoints
 
             return Results.Ok(settings);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return Results.BadRequest(new { error = "An unexpected error occurred." });
         }
@@ -339,7 +339,7 @@ public static class AdminSettingsEndpoints
 
             return Results.Ok(settings);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return Results.BadRequest(new { error = "An unexpected error occurred." });
         }

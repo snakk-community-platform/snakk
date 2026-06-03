@@ -5,4 +5,5 @@ public record PasskeyDto(
     string? FriendlyName,
     DateTimeOffset CreatedAt,
     DateTimeOffset? LastUsedAt,
-    string? Transports);
+    string? Transports,
+    Guid AaGuid);

@@ -29,10 +29,7 @@
 {
     <div class="sn-center">
         <div class="sn-center-inner">
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.SpaceModsNotFound</p>
-                <a href="/" class="btn btn-primary btn-sm mt-4">@T.Pages.SpaceModsBackToHome</a>
-            </div>
+            <partial name="Shared/_EmptyState" model='new EmptyStateVM(T.Pages.SpaceModsNotFound, T.Pages.SpaceModsBackToHome, "/")' />
         </div>
     </div>
 }

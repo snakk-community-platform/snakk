@@ -348,11 +348,11 @@ public class DiscussionGrpcService(
                 },
                 Author = new AuthorRef
                 {
-                    PublicId = d.CreatedByUserPublicId,
-                    DisplayName = d.CreatedByUserDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
+                    PublicId = d.CreatedByUserPublicId ?? "",
+                    DisplayName = d.CreatedByUserDisplayName ?? "",
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
+                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
+                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
                 }
             };
 
@@ -549,11 +549,11 @@ public class DiscussionGrpcService(
                 },
                 Author = new AuthorRef
                 {
-                    PublicId = d.CreatedByUserPublicId,
-                    DisplayName = d.CreatedByUserDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
+                    PublicId = d.CreatedByUserPublicId ?? "",
+                    DisplayName = d.CreatedByUserDisplayName ?? "",
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
+                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
+                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
                 }
             };
 
@@ -771,7 +771,7 @@ public class DiscussionGrpcService(
         if (!discussionResult.IsSuccess || discussionResult.Value is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
-        if (discussionResult.Value.CreatedByUserId != userId)
+        if (discussionResult.Value.CreatedByUserId?.Value != userId)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Only the author can edit the discussion title"));
 
         var result = await discussionUseCase.UpdateDiscussionTitleAsync(DiscussionId.From(request.DiscussionId), request.NewTitle);

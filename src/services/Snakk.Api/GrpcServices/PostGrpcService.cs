@@ -70,25 +70,25 @@ public class PostGrpcService(
                 CreatedAt = ToTimestamp(post.CreatedAt),
                 IsFirstPost = post.IsFirstPost,
                 IsDeleted = post.IsDeleted,
-                CreatedByUserId = post.CreatedByUserId.Value,
+                CreatedByUserId = post.CreatedByUserId?.Value ?? "",
 
                 Author = new AuthorRef
                 {
-                    PublicId = post.CreatedByUserId.Value,
+                    PublicId = post.CreatedByUserId?.Value ?? "",
                     DisplayName = ep.Author.DisplayName,
                     AvatarUrl = AvatarHelper.GetAvatarUrl(
-                        post.CreatedByUserId.Value,
+                        post.CreatedByUserId?.Value ?? "",
                         AvatarEntityType.User,
                         ep.Author.AvatarRevision,
                         ep.Author.AvatarFileName),
                     AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(
-                        post.CreatedByUserId.Value,
+                        post.CreatedByUserId?.Value ?? "",
                         AvatarEntityType.User,
                         ep.Author.AvatarRevision,
                         ep.Author.AvatarFileName,
                         ep.Author.AvatarThumbnailFileName),
                     AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(
-                        post.CreatedByUserId.Value,
+                        post.CreatedByUserId?.Value ?? "",
                         AvatarEntityType.User,
                         ep.Author.AvatarRevision,
                         ep.Author.AvatarFileName,

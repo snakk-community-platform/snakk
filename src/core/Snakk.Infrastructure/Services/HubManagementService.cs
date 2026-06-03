@@ -53,7 +53,7 @@ public class HubManagementService(
 
         var moderatorsTask = ReadAsync(db => db.UserRoles
             .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.HubMod && ur.HubId == hubDbId && ur.RevokedAt == null)
-            .Select(ur => new HubModeratorDto
+            .Select(ur => new ScopeModeratorDto
             {
                 UserId = ur.User.PublicId,
                 DisplayName = ur.User.DisplayName ?? "",

@@ -24,7 +24,8 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA,
+                s.LanguageCode, s.HubLanguageCode, s.CommunityLanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -38,7 +39,8 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA,
+                s.LanguageCode, s.HubLanguageCode, s.CommunityLanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -52,7 +54,8 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA,
+                s.LanguageCode, s.HubLanguageCode, s.CommunityLanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -65,23 +68,15 @@ public class SpaceRepositoryAdapter(
     {
         var result = await databaseRepository.GetFilteredForDisplayAsync(hubId.Value, offset, pageSize, ct);
 
-        return new PagedResult<Space>
-        {
-            Items = result.Items
-                .Select(dto => Space.RehydrateForList(
-                    SpaceId.From(dto.PublicId),
-                    HubId.From(dto.HubPublicId),
-                    dto.Name,
-                    dto.Slug,
-                    dto.Description,
-                    dto.AllowAnonymousReading,
-                    dto.RequireEmailConfirmation,
-                    dto.CreatedAt))
-                .ToList(),
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
-        };
+        return result.Map(dto => Space.RehydrateForList(
+            SpaceId.From(dto.PublicId),
+            HubId.From(dto.HubPublicId),
+            dto.Name,
+            dto.Slug,
+            dto.Description,
+            dto.AllowAnonymousReading,
+            dto.RequireEmailConfirmation,
+            dto.CreatedAt));
     }
 
     public async Task<IEnumerable<Space>> GetAllAsync(CancellationToken ct = default)
@@ -92,7 +87,8 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA,
+                s.LanguageCode, s.HubLanguageCode, s.CommunityLanguageCode))
             .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());
@@ -176,7 +172,10 @@ public class SpaceRepositoryAdapter(
         bool AutoParagraphEnabled,
         bool IsAdultOnly,
         bool AllowsAdultContent,
-        bool Require2FA)
+        bool Require2FA,
+        string? LanguageCode,
+        string? HubLanguageCode,
+        string? CommunityLanguageCode)
     {
         public Space ToDomain() => Space.Rehydrate(
             SpaceId.From(PublicId),
@@ -188,6 +187,9 @@ public class SpaceRepositoryAdapter(
             avatarThumbnailFileName: AvatarThumbnailFileName,
             avatarMicroFileName: AvatarMicroFileName,
             avatarRevision: AvatarRevision,
+            languageCode: LanguageCode,
+            hubLanguageCode: HubLanguageCode,
+            communityLanguageCode: CommunityLanguageCode,
             autoParagraphEnabled: AutoParagraphEnabled,
             isAdultOnly: IsAdultOnly,
             allowsAdultContent: AllowsAdultContent,

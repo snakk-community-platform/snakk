@@ -27,10 +27,7 @@
 {
     <div class="sn-center">
         <div class="sn-center-inner">
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.HubModsNotFound</p>
-                <a href="/" class="btn btn-primary btn-sm mt-4">@T.Pages.HubModsBackToHome</a>
-            </div>
+            <partial name="Shared/_EmptyState" model='new EmptyStateVM(T.Pages.HubModsNotFound, T.Pages.HubModsBackToHome, "/")' />
         </div>
     </div>
 }
@@ -57,35 +54,7 @@ else
             }
             else
             {
-                @foreach (var group in Model.Moderators.Groups)
-                {
-                    <p class="text-xs font-semibold uppercase tracking-wide mt-6 mb-3" style="color: var(--text-tertiary)">
-                        @group.Level
-                        @if (!string.IsNullOrEmpty(group.ScopeName))
-                        {
-                            <span class="font-normal normal-case">(@group.ScopeName)</span>
-                        }
-                    </p>
-                    <div class="sn-mod-list-grid">
-                        @foreach (var mod in group.Moderators)
-                        {
-                            <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="sn-mod-list-card"
-                               data-popup-type="user" data-popup-id="@mod.UserPublicId" data-popup-name="@mod.DisplayName">
-                                <div class="sn-mod-list-banner"
-                                     style="background-image: @UserGradient(mod.UserPublicId)">
-                                    <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
-                                         alt="" width="34" height="34"
-                                         class="sn-mod-list-avatar"
-                                         loading="lazy" decoding="async" />
-                                    <span class="sn-mod-list-name">@mod.DisplayName</span>
-                                </div>
-                                <div class="sn-mod-list-body">
-                                    <span class="badge badge-sm badge-ghost">@FormatRole(mod.Role)</span>
-                                </div>
-                            </a>
-                        }
-                    </div>
-                }
+                <partial name="Shared/_ModeratorGrid" model="Model.Moderators.Groups" />
             }
 
             <div class="mt-6 pt-4" style="border-top: 1px solid var(--border-secondary)">
@@ -141,14 +110,3 @@ else
 </aside>
 }
 
-@functions {
-    static string FormatRole(string role) => role switch
-    {
-        "GlobalAdmin" => T.Pages.RoleGlobalAdmin,
-        "CommunityAdmin" => T.Pages.RoleCommunityAdmin,
-        "CommunityMod" => T.Pages.RoleCommunityMod,
-        "HubMod" => T.Pages.RoleHubMod,
-        "SpaceMod" => T.Pages.RoleSpaceMod,
-        _ => role
-    };
-}

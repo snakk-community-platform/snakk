@@ -59,7 +59,7 @@ public class SpaceManagementService(
 
         var moderatorsTask = ReadAsync(db => db.UserRoles
             .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.SpaceMod && ur.SpaceId == spaceDbId && ur.RevokedAt == null)
-            .Select(ur => new SpaceModeratorDto
+            .Select(ur => new ScopeModeratorDto
             {
                 UserId = ur.User.PublicId,
                 DisplayName = ur.User.DisplayName ?? "",

@@ -610,7 +610,7 @@ ol.list-node-view-list { list-style: decimal; }
     }
 }
 
-// Table Modal â€” visual table editor (backdrop/modal/header/footer reuse .chart-modal-*)
+// Table Modal â€” visual table editor (backdrop/modal/header/footer reuse .sn-modal-*)
 
 .tmc-grid-section {
     overflow: auto;
@@ -1742,7 +1742,7 @@ ol.list-node-view-list { list-style: decimal; }
 }
 
 // Chart Editor Modal
-.chart-modal-backdrop {
+.sn-modal-backdrop {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
@@ -1752,7 +1752,7 @@ ol.list-node-view-list { list-style: decimal; }
     justify-content: center;
 }
 
-.chart-modal {
+.sn-modal {
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     border-radius: 0.5rem;
@@ -1763,7 +1763,7 @@ ol.list-node-view-list { list-style: decimal; }
     flex-direction: column;
 }
 
-.chart-modal-header {
+.sn-modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1774,7 +1774,7 @@ ol.list-node-view-list { list-style: decimal; }
     flex-shrink: 0;
 }
 
-.chart-modal-close {
+.sn-modal-close {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1794,13 +1794,13 @@ ol.list-node-view-list { list-style: decimal; }
     }
 }
 
-.chart-modal-header-actions {
+.sn-modal-header-actions {
     display: flex;
     align-items: center;
     gap: 0.25rem;
 }
 
-.chart-modal.chart-modal-expanded {
+.sn-modal.sn-modal-expanded {
     position: fixed;
     top: 1rem;
     bottom: 1rem;
@@ -1812,7 +1812,7 @@ ol.list-node-view-list { list-style: decimal; }
     z-index: 201;
 
     // Table modal: let the grid section grow to fill available height
-    .chart-modal-form:has(.tmc-grid-section) {
+    .sn-modal-form:has(.tmc-grid-section) {
         min-height: 0;
     }
 
@@ -1823,7 +1823,7 @@ ol.list-node-view-list { list-style: decimal; }
     }
 }
 
-.chart-modal-body {
+.sn-modal-body {
     display: flex;
     gap: 1rem;
     padding: 1rem;
@@ -1831,7 +1831,7 @@ ol.list-node-view-list { list-style: decimal; }
     flex: 1;
 }
 
-.chart-modal-form {
+.sn-modal-form {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -1839,19 +1839,19 @@ ol.list-node-view-list { list-style: decimal; }
     min-width: 0;
 }
 
-.chart-modal-field {
+.sn-modal-field {
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
 }
 
-.chart-modal-label {
+.sn-modal-label {
     font-size: 0.75rem;
     font-weight: 500;
     color: var(--text-secondary);
 }
 
-.chart-modal-input {
+.sn-modal-input {
     width: 100%;
     padding: 0.375rem 0.5rem;
     font-size: 0.8125rem;
@@ -1965,7 +1965,7 @@ ol.list-node-view-list { list-style: decimal; }
     }
 }
 
-.chart-modal-preview {
+.sn-modal-preview {
     width: 300px;
     min-height: 130px;
     flex-shrink: 0;
@@ -1983,7 +1983,7 @@ ol.list-node-view-list { list-style: decimal; }
     }
 }
 
-.chart-modal-footer {
+.sn-modal-footer {
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
@@ -1992,7 +1992,7 @@ ol.list-node-view-list { list-style: decimal; }
     flex-shrink: 0;
 }
 
-.chart-modal-cancel {
+.sn-modal-cancel {
     padding: 0.25rem 0.75rem;
     font-size: 0.8125rem;
     background: transparent;
@@ -2004,7 +2004,7 @@ ol.list-node-view-list { list-style: decimal; }
     &:hover { background: var(--bg-tertiary); }
 }
 
-.chart-modal-insert {
+.sn-modal-insert {
     padding: 0.25rem 0.75rem;
     font-size: 0.8125rem;
     background: var(--link-primary);
