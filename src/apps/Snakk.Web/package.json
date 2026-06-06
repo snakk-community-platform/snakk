@@ -46,7 +46,7 @@
     "esbuild": "^0.28.0",
     "htmx.org": "^2.0.10",
     "sass": "^1.100.0",
-    "simple-icons": "^16.21.0",
+    "simple-icons": "^16.22.0",
     "typescript": "^6.0.3"
   },
   "dependencies": {
