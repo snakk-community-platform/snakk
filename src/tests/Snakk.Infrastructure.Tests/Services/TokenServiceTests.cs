@@ -29,11 +29,17 @@ public class TokenServiceTests : IDisposable
         _jwtTokenService = Substitute.For<IJwtTokenService>();
         _jwtTokenService.GenerateToken(
                 Arg.Any<string>(),
-                Arg.Any<string>(),
+                Arg.Any<string?>(),
                 Arg.Any<string?>(),
                 Arg.Any<bool>(),
                 Arg.Any<string?>(),
-                Arg.Any<string?>())
+                Arg.Any<string?>(),
+                Arg.Any<bool>(),
+                Arg.Any<string?>(),
+                Arg.Any<string?>(),
+                Arg.Any<long>(),
+                Arg.Any<string?>(),
+                Arg.Any<bool>())
             .Returns("mock-jwt-token");
 
         _tokenService = new TokenService(_context, _jwtTokenService);

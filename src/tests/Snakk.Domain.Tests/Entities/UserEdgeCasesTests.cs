@@ -18,7 +18,7 @@ public class UserEdgeCasesTests
         user.Anonymize();
 
         // Assert
-        await Assert.That(user.DisplayName).IsEqualTo("Anonymous User");
+        await Assert.That(user.DisplayName).IsEqualTo("Deleted User");
         await Assert.That(user.Email).IsNull();
     }
 
@@ -33,7 +33,7 @@ public class UserEdgeCasesTests
         user.Anonymize();
 
         // Assert
-        await Assert.That(user.DisplayName).IsEqualTo("Anonymous User");
+        await Assert.That(user.DisplayName).IsEqualTo("Deleted User");
         await Assert.That(user.Email).IsNull();
     }
 

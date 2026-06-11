@@ -320,10 +320,10 @@ public class BffAccessControlTests : IAsyncDisposable
     }
 
     [Test]
-    public async Task Unauthenticated_DeleteMeDevice_Returns403()
+    public async Task Unauthenticated_DeleteMeDevice_Returns401()
     {
         var response = await _client.DeleteAsync("/bff/me/devices/test-id");
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Forbidden);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
     [Test]
