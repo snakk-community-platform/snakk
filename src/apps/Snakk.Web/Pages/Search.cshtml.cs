@@ -85,7 +85,7 @@ public class SearchModel(
         // Normalize search type
         SearchType = SearchType?.ToLowerInvariant() ?? "discussion";
 
-        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 10);
+        var maxPages = Configuration.GetValue("EndlessScroll:MaxPages", 10);
         MaxOffset = maxPages * 20;
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);

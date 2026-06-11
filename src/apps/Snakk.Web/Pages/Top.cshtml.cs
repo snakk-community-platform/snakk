@@ -32,7 +32,7 @@ public class TopModel(
         "week"     => "Last Week",
         "month"    => "Last Month",
         "year"     => "Last Year",
-        "all_time" => "All Time",
+        "all-time" => "All Time",
         _          => "Last Week"
     };
 
@@ -41,18 +41,25 @@ public class TopModel(
         "day"      => "posts today",
         "month"    => "posts this month",
         "year"     => "posts this year",
-        "all_time" => "all-time posts",
+        "all-time" => "all-time posts",
         _          => "posts this week"
     };
+
+    private static string ToApiPeriod(string period) => period == "all-time" ? "all_time" : period;
 
     public SidebarPlatformStatsVM? InlinePlatformStats { get; set; }
     public SidebarTrendingSpacesVM? InlineTrendingSpaces { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
 
-    public async Task OnGetAsync([FromQuery] string period = "week", [FromQuery] int offset = 0, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> OnGetAsync(string? period, [FromQuery] int offset = 0, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        Period = period is "day" or "week" or "month" or "year" or "all_time"
+        if (Request.Query.TryGetValue("period", out var queryPeriod) && !string.IsNullOrEmpty(queryPeriod))
+        {
+            var mapped = queryPeriod.ToString() == "all_time" ? "all-time" : queryPeriod.ToString();
+            return RedirectToPage(new { period = mapped });
+        }
+        Period = period is "day" or "week" or "month" or "year" or "all-time"
             ? period
             : "week";
 
@@ -73,8 +80,9 @@ public class TopModel(
         await EnsureSidebarDataAsync(communityId);
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
-        try { TopDiscussions = await _apiClient.GetTopDiscussionsAsync(offset, 20, communityId, Period, viewerAllowsAdult: viewerAllowsAdult); }
+        try { TopDiscussions = await _apiClient.GetTopDiscussionsAsync(offset, 20, communityId, ToApiPeriod(Period), viewerAllowsAdult: viewerAllowsAdult); }
         catch { }
+        return Page();
     }
 
     private async Task EnsureSidebarDataAsync(string? communityId)
@@ -118,7 +126,7 @@ public class TopModel(
         {
             var result = await prefetchCache.GetOrFetchAsync(
                 $"top-spaces:{Period}:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopSpacesByPeriodAsync(Period, communityId: communityId));
+                () => _apiClient.GetTopSpacesByPeriodAsync(ToApiPeriod(Period), communityId: communityId));
             if (result.Value is not null)
                 InlineTrendingSpaces = new(result.Value, CommunityContext, result.Source, SpacesLabel);
         }
@@ -131,7 +139,7 @@ public class TopModel(
         {
             var result = await prefetchCache.GetOrFetchAsync(
                 $"top-contributors:{Period}:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetTopContributorsByPeriodAsync(Period, communityId: communityId));
+                () => _apiClient.GetTopContributorsByPeriodAsync(ToApiPeriod(Period), communityId: communityId));
             if (result.Value is not null)
                 InlineTrendingContributors = new(result.Value, CommunityContext, result.Source, SpacesLabel);
         }
@@ -157,12 +165,12 @@ public class TopModel(
 
         InlineTrendingSpaces = prefetchCache.ResolveOrPrefetch(
             $"top-spaces:{Period}:{SidebarScopeType}:{SidebarScopeId}",
-            () => _apiClient.GetTopSpacesByPeriodAsync(Period, communityId: communityId),
+            () => _apiClient.GetTopSpacesByPeriodAsync(ToApiPeriod(Period), communityId: communityId),
             d => new SidebarTrendingSpacesVM(d, CommunityContext, "cache", SpacesLabel));
 
         InlineTrendingContributors = prefetchCache.ResolveOrPrefetch(
             $"top-contributors:{Period}:{SidebarScopeType}:{SidebarScopeId}",
-            () => _apiClient.GetTopContributorsByPeriodAsync(Period, communityId: communityId),
+            () => _apiClient.GetTopContributorsByPeriodAsync(ToApiPeriod(Period), communityId: communityId),
             d => new SidebarTrendingContributorsVM(d, CommunityContext, "cache", SpacesLabel));
     }
 }

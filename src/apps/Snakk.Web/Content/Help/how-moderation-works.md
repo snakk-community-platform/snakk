@@ -1,5 +1,9 @@
 Snakk uses a hierarchical moderation system where permissions flow downward through the organizational structure.
 
+::: callout-info
+Moderation is scoped per community. A moderator in one community has no authority over another community's content.
+:::
+
 ## Moderator roles
 
 | Role | Scope | Can moderate |

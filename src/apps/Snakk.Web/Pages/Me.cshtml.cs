@@ -23,11 +23,14 @@ public class MeModel(
     public bool PostsHasMore { get; set; }
 
     public async Task<IActionResult> OnGetAsync(
-        [FromQuery] string? tab,
+        string? tab,
         [FromQuery] int offset = 0,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (Request.Query.TryGetValue("tab", out var queryTab) && !string.IsNullOrEmpty(queryTab))
+            return RedirectToPage(new { tab = queryTab.ToString() });
+
         IsAuthenticated = HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
         if (!IsAuthenticated) return Page();
 

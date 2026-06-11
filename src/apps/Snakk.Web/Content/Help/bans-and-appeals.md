@@ -23,3 +23,7 @@ You cannot:
 ## Appeals
 
 If you believe a ban was issued in error, you can appeal by contacting the community moderators through the channels they provide (typically listed on the community's rules page or moderator page). Appeals are reviewed by moderators at or above the level that issued the ban.
+
+::: callout-note
+Keep your appeal respectful and factual. Explain why you believe the ban was a mistake and provide any relevant context. Hostile or repeated appeals are unlikely to be successful.
+:::

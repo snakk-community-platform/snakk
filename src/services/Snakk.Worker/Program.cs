@@ -37,7 +37,13 @@ builder.Services.AddDbContextPool<SnakkDbContext>(options =>
     options
         .UseNpgsql(connectionString,
             o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
-        .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution),
+        .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
+        .ConfigureWarnings(w => w.Ignore(
+            // Intentional: soft-delete filter on principals (User, Discussion, etc.) is not propagated
+            // to dependent entities by design. Audit/log entities must survive user soft-delete.
+            // Review new relationships manually if this pattern changes.
+            Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId
+                .PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)),
     poolSize: 32);
 
 // Distributed cache: Valkey on production, in-memory fallback for development

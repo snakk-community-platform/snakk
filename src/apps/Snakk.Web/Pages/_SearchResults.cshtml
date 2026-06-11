@@ -112,44 +112,7 @@ else if (Model.SearchType == "post")
         {
             @foreach (var post in Model.Posts.Items)
             {
-                var discussionUrl = SnakkUrlHelper.Discussion(
-                    Model.Community,
-                    post.Hub?.Slug ?? "",
-                    post.Space?.Slug ?? "",
-                    SnakkUrlHelper.DiscussionSlugId(post.DiscussionSlug, post.DiscussionPublicId));
-                var postUrl = $"{discussionUrl}#post-{post.PublicId}";
-
-                <article class="sn-card">
-                    <div class="sn-card-header">
-                        <img src="@post.Author.AvatarMicroUrl" alt=""
-                             class="sn-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
-                        <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
-                           class="sn-card-author">@post.Author.DisplayName</a>
-                        <span class="sn-card-dot">&middot;</span>
-                        <time class="sn-card-time" datetime="@(post.CreatedAt?.ToDateTime().ToString("o"))">
-                            @FormatRelativeTime(post.CreatedAt?.ToDateTime())
-                        </time>
-                        <span class="sn-card-path">
-                            <a href="@discussionUrl" class="sn-card-path-link">@post.DiscussionTitle</a>
-                            @if (!string.IsNullOrEmpty(post.Hub?.Name))
-                            {
-                                <span class="sn-card-path-sep">&rsaquo;</span>
-                                <span class="sn-card-path-link">@post.Hub.Name</span>
-                            }
-                        </span>
-                    </div>
-                    @if (!string.IsNullOrEmpty(post.ContentHighlight))
-                    {
-                        <div class="px-4 pt-1 pb-2 text-sm sn-post-preview" style="color: var(--text-secondary)">
-                            @post.ContentHighlight
-                        </div>
-                    }
-                    <div class="px-4 pb-3 flex justify-end">
-                        <a href="@postUrl" class="text-xs font-medium" style="color: var(--link-primary)">
-                            View post &rarr;
-                        </a>
-                    </div>
-                </article>
+                @await Html.PartialAsync("Shared/_PostCard", PostListItemVM.FromSearchResult(post))
             }
             @if (Model.Posts.HasMoreItems && Model.Posts.Offset + Model.Posts.PageSize < Model.MaxOffset)
             {
@@ -169,44 +132,7 @@ else if (Model.SearchType == "post")
             <div id="posts-container">
                 @foreach (var post in Model.Posts.Items)
                 {
-                    var discussionUrl = SnakkUrlHelper.Discussion(
-                        Model.Community,
-                        post.Hub?.Slug ?? "",
-                        post.Space?.Slug ?? "",
-                        SnakkUrlHelper.DiscussionSlugId(post.DiscussionSlug, post.DiscussionPublicId));
-                    var postUrl = $"{discussionUrl}#post-{post.PublicId}";
-
-                    <article class="sn-card">
-                        <div class="sn-card-header">
-                            <img src="@post.Author.AvatarMicroUrl" alt=""
-                                 class="sn-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
-                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
-                               class="sn-card-author">@post.Author.DisplayName</a>
-                            <span class="sn-card-dot">&middot;</span>
-                            <time class="sn-card-time" datetime="@(post.CreatedAt?.ToDateTime().ToString("o"))">
-                                @FormatRelativeTime(post.CreatedAt?.ToDateTime())
-                            </time>
-                            <span class="sn-card-path">
-                                <a href="@discussionUrl" class="sn-card-path-link">@post.DiscussionTitle</a>
-                                @if (!string.IsNullOrEmpty(post.Hub?.Name))
-                                {
-                                    <span class="sn-card-path-sep">&rsaquo;</span>
-                                    <span class="sn-card-path-link">@post.Hub.Name</span>
-                                }
-                            </span>
-                        </div>
-                        @if (!string.IsNullOrEmpty(post.ContentHighlight))
-                        {
-                            <div class="prose prose-sm max-w-none px-4 pt-1 pb-2 sn-post-preview" style="color: var(--text-secondary)">
-                                @Html.Raw(post.ContentHighlight)
-                            </div>
-                        }
-                        <div class="px-4 pb-3 flex justify-end">
-                            <a href="@postUrl" class="text-xs font-medium" style="color: var(--link-primary)">
-                                View post &rarr;
-                            </a>
-                        </div>
-                    </article>
+                    @await Html.PartialAsync("Shared/_PostCard", PostListItemVM.FromSearchResult(post))
                 }
                 @if (Model.Posts.HasMoreItems && Model.Posts.Offset + Model.Posts.PageSize < Model.MaxOffset)
                 {

@@ -154,7 +154,7 @@ else
     ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.HubSlug}/{Model.Slug}/feed";
     ViewData["RightPane.ShareTitle"] = Model.Space?.Name ?? T.Pages.SpaceDetailFallbackTitle;
     ViewData["RightPane.ShareIsPublic"] = Model.Space is not { IsRestricted: true };
-    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageSpace(Model.Community, Model.Hub?.Slug ?? "", Model.Space.Slug);
+    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageSpace(Model.Community, Model.Hub?.Slug ?? "", Model.Space!.Slug);
     ViewData["RightPane.SubscribeAction"] = "toggle-follow-space";
 }
 <div class="sn-right-sticky">
@@ -326,7 +326,6 @@ else
 
 @section Scripts {
     <script type="application/json" id="space-page-config">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { communityPrefix = SnakkUrlHelper.CommunityPrefix(Model.Community), space = new { publicId = Model.Space!.PublicId, hubSlug = Model.HubSlug, slug = Model.Slug } }))</script>
-    <script src="@SnakkUrlHelper.Js("core/utils")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("pages/space-detail")" asp-append-version="true" defer></script>
 }

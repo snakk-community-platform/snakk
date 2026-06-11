@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Markdig;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -17,10 +18,20 @@ public class HelpModel : PageModel
         PropertyNameCaseInsensitive = true
     };
 
+    private static readonly Regex HeadingRegex = new(
+        @"<h2[^>]*\bid=""([^""]+)""[^>]*>(.*?)</h2>",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex TagRegex = new(@"<[^>]+>", RegexOptions.Compiled);
+
     public string Slug { get; private set; } = "what-is-snakk";
     public string ArticleTitle { get; private set; } = "";
+    public string SectionTitle { get; private set; } = "";
     public string RenderedHtml { get; private set; } = "";
     public List<HelpSection> Sections { get; private set; } = [];
+    public HelpArticle? PrevArticle { get; private set; }
+    public HelpArticle? NextArticle { get; private set; }
+    public List<(string Id, string Text)> TableOfContents { get; private set; } = [];
 
     public IActionResult OnGet(string? slug)
     {
@@ -45,6 +56,14 @@ public class HelpModel : PageModel
 
         ArticleTitle = article.Title;
 
+        var section = Sections.FirstOrDefault(s => s.Items.Any(a => a.Slug == Slug));
+        SectionTitle = section?.Title ?? "";
+
+        var flat = Sections.SelectMany(s => s.Items).ToList();
+        var idx = flat.FindIndex(a => a.Slug == Slug);
+        PrevArticle = idx > 0 ? flat[idx - 1] : null;
+        NextArticle = idx < flat.Count - 1 ? flat[idx + 1] : null;
+
         var mdPath = Path.Combine(contentRoot, $"{Slug}.md");
         if (System.IO.File.Exists(mdPath))
         {
@@ -55,6 +74,10 @@ public class HelpModel : PageModel
         {
             RenderedHtml = "<p>This article is coming soon.</p>";
         }
+
+        TableOfContents = HeadingRegex.Matches(RenderedHtml)
+            .Select(m => (m.Groups[1].Value, TagRegex.Replace(m.Groups[2].Value, "")))
+            .ToList();
 
         return Page();
     }

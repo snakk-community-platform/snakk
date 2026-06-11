@@ -122,6 +122,7 @@
     <script id="js-htmx-head"    hx-preserve src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
     <script id="js-loading-bar"  hx-preserve src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
     <script id="js-actions"      hx-preserve src="@SnakkUrlHelper.Js("core/actions")" asp-append-version="true" defer></script>
+    <script id="js-utils"        hx-preserve src="@SnakkUrlHelper.Js("core/utils")" asp-append-version="true" defer></script>
     @if (!string.IsNullOrEmpty(Context.Request.Cookies[".Snakk.ReloginHint"]))
     {
         <script>window.snakkReloginStrings={wrongPassword:@Json.Serialize(T.Relogin.ErrorWrongPassword),generic:@Json.Serialize(T.Relogin.ErrorGeneric)};</script>

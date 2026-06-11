@@ -18,6 +18,10 @@ You can react to any post with emoji reactions. Click the reaction button to see
 
 Posts support markdown formatting. See the Markdown Guide for the full syntax reference.
 
+::: callout-tip
+The editor toolbar has shortcuts for the most common formatting — bold, italic, links, lists, and code blocks — so you don't need to type markdown by hand.
+:::
+
 ## Images
 
 You can upload images directly into your post by dragging them into the editor or using the image button in the toolbar. Images are automatically optimized and thumbnailed.

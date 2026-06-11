@@ -27,9 +27,12 @@ public class FollowingModel(
     public bool DiscussionsHasMore { get; set; }
     public int DiscussionsNextOffset { get; set; }
 
-    public async Task<IActionResult> OnGetAsync([FromQuery] string? tab, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> OnGetAsync(string? tab, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (Request.Query.TryGetValue("tab", out var queryTab) && !string.IsNullOrEmpty(queryTab))
+            return RedirectToPage(new { tab = queryTab.ToString() });
+
         IsAuthenticated = HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
         if (!IsAuthenticated) return Page();
 

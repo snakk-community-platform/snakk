@@ -1,4 +1,4 @@
-﻿@page "/u/{publicId}"
+﻿@page "/u/{publicId}/{tab?}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Shared.Helpers
@@ -173,22 +173,22 @@
 
             <!-- Discussions / Top / Posts Tabs -->
             <div class="sn-tabs mb-4" role="tablist">
-                <button class="sn-tab sn-profile-tab active" role="tab" aria-selected="true" data-tab="discussions">
+                <button class="sn-tab sn-profile-tab @(Model.ActiveTab == "discussions" ? "active" : "")" role="tab" aria-selected="@(Model.ActiveTab == "discussions" ? "true" : "false")" data-tab="discussions">
                     <span class="icon icon-chat-bubbles h-4 w-4" aria-hidden="true"></span>
                     Discussions
                 </button>
-                <button class="sn-tab sn-profile-tab" role="tab" aria-selected="false" data-tab="top">
+                <button class="sn-tab sn-profile-tab @(Model.ActiveTab == "top" ? "active" : "")" role="tab" aria-selected="@(Model.ActiveTab == "top" ? "true" : "false")" data-tab="top">
                     <span class="icon icon-star h-4 w-4" aria-hidden="true"></span>
                     Top
                 </button>
-                <button class="sn-tab sn-profile-tab" role="tab" aria-selected="false" data-tab="posts">
+                <button class="sn-tab sn-profile-tab @(Model.ActiveTab == "posts" ? "active" : "")" role="tab" aria-selected="@(Model.ActiveTab == "posts" ? "true" : "false")" data-tab="posts">
                     <span class="icon icon-posts-tab h-4 w-4" aria-hidden="true"></span>
                     Posts
                 </button>
             </div>
 
             <!-- Discussions Tab -->
-            <div id="tab-discussions" class="sn-profile-tab-panel">
+            <div id="tab-discussions" class="sn-profile-tab-panel" @(Model.ActiveTab != "discussions" ? "hidden" : "")>
                 <div id="recent-discussions">
                     @if (Model.RecentDiscussions?.Items != null && Model.RecentDiscussions.Items.Any())
                     {
@@ -215,7 +215,7 @@
             </div>
 
             <!-- Top Discussions Tab -->
-            <div id="tab-top" class="sn-profile-tab-panel" hidden>
+            <div id="tab-top" class="sn-profile-tab-panel" @(Model.ActiveTab != "top" ? "hidden" : "")>
                 @if (Model.TopDiscussionsFull.Count > 0)
                 {
                     <div id="top-discussions-container">
@@ -233,7 +233,7 @@
             </div>
 
             <!-- Posts Tab -->
-            <div id="tab-posts" class="sn-profile-tab-panel" hidden>
+            <div id="tab-posts" class="sn-profile-tab-panel" @(Model.ActiveTab != "posts" ? "hidden" : "")>
                 <div id="recent-posts">
                     <div class="flex flex-col gap-3">
                         <div class="skeleton h-20 w-full rounded"></div>

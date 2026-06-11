@@ -86,30 +86,34 @@ interface ActivityDataPoint {
                     return;
                 }
 
-                container.innerHTML = `<div class="topic-list">${data.items.map((p: any) => `
-                    <div class="topic-item-wrapper">
-                        <div class="topic-item">
-                            <div class="topic-content">
-                                <div class="topic-title">
-                                    <a href="${sanitizeUrl(p.url)}" class="topic-title-link">${escapeHtml(p.discussionTitle)}</a>
-                                </div>
-                                <div class="topic-meta">
-                                    <span class="topic-meta-link">${escapeHtml(p.hubName)}</span>
-                                    <span class="icon icon-chevron-right-sm" style="width:12px;height:12px" aria-hidden="true"></span>
-                                    <span class="topic-meta-link">${escapeHtml(p.spaceName)}</span>
-                                    <span class="topic-meta-separator">&middot;</span>
-                                    <span>${formatRelativeTime(p.createdAt)}</span>
-                                </div>
-                                <div class="prose prose-sm max-w-none mt-1 text-sm text-base-content/70 sn-post-preview">
-                                    ${sanitizeHtml(p.contentPreview)}
-                                </div>
-                            </div>
-                            <a href="${sanitizeUrl(p.url)}" class="topic-latest-link" title="Go to discussion">
-                                <span class="icon icon-chevron-down chevron-right" style="width:18px;height:18px" aria-hidden="true"></span>
-                            </a>
+                container.innerHTML = `<div class="sn-card-list">${data.items.map((p: any) => {
+                    const postUrl = p.postPublicId ? `${sanitizeUrl(p.url)}#post-${p.postPublicId}` : sanitizeUrl(p.url);
+                    const authorHref = p.authorPublicId ? `/u/${encodeURIComponent(p.authorPublicId)}` : '#';
+                    const spaceStyle = p.spaceGradientCss ? ` style="--space-grad: ${p.spaceGradientCss}"` : '';
+                    const excerpt = p.contentPreview
+                        ? `<div class="sn-card-excerpt"><div class="sn-post-preview prose prose-sm">${sanitizeHtml(p.contentPreview)}</div></div>`
+                        : '';
+                    return `
+                    <article class="sn-card">
+                        <div class="sn-card-header">
+                            <img src="${escapeHtml(p.authorAvatarUrl || '')}" alt="" class="sn-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
+                            <a href="${authorHref}" class="sn-card-author">${escapeHtml(p.authorDisplayName || '')}</a>
+                            <span class="sn-card-dot">&middot;</span>
+                            <time class="sn-card-time">${formatRelativeTime(p.createdAt)}</time>
+                            <span class="sn-card-path">
+                                <span class="sn-card-path-link">${escapeHtml(p.hubName)}</span>
+                                <span class="sn-card-path-sep">&rsaquo;</span>
+                                <span class="sn-card-tag sn-card-tag--space"${spaceStyle}>${escapeHtml(p.spaceName)}</span>
+                            </span>
                         </div>
-                    </div>
-                `).join('')}</div>`;
+                        <div class="sn-card-title-row">
+                            <div class="sn-card-title">
+                                <a href="${postUrl}">${escapeHtml(p.discussionTitle)}</a>
+                            </div>
+                        </div>
+                        ${excerpt}
+                    </article>`;
+                }).join('')}</div>`;
             } catch (error) {
                 console.error('Error loading posts:', error);
                 container.innerHTML = '<div class="text-center py-8 text-error">Failed to load posts</div>';
@@ -385,6 +389,7 @@ interface ActivityDataPoint {
             const tab = (e.target as HTMLElement).closest<HTMLElement>('[data-tab]');
             if (!tab) return;
             const target = tab.dataset.tab;
+            if (!target) return;
             tabList.querySelectorAll<HTMLElement>('[data-tab]').forEach(t => {
                 t.classList.toggle('active', t === tab);
                 t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
@@ -392,6 +397,15 @@ interface ActivityDataPoint {
             document.querySelectorAll<HTMLElement>('.sn-profile-tab-panel').forEach(p => {
                 p.hidden = p.id !== 'tab-' + target;
             });
+            // Update URL: replace or append the tab path segment
+            const validTabs = ['discussions', 'top', 'posts'];
+            const parts = window.location.pathname.replace(/\/$/, '').split('/');
+            if (validTabs.includes(parts[parts.length - 1] ?? '')) {
+                parts[parts.length - 1] = target;
+            } else {
+                parts.push(target);
+            }
+            history.replaceState(null, '', parts.join('/'));
         });
     }
 

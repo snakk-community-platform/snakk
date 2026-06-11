@@ -1,4 +1,4 @@
-﻿@page
+﻿@page "/top/{period?}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
@@ -30,12 +30,12 @@
                     ("week",     T.Pages.TopTabWeek),
                     ("month",    T.Pages.TopTabMonth),
                     ("year",     T.Pages.TopTabYear),
-                    ("all_time", T.Pages.TopTabAllTime),
+                    ("all-time", T.Pages.TopTabAllTime),
                 };
             }
             @foreach (var (period, label) in tabs)
             {
-                <a href="/top?period=@period" class="sn-tab @(Model.Period == period ? "active" : "")">@label</a>
+                <a href="/top/@period" class="sn-tab @(Model.Period == period ? "active" : "")">@label</a>
             }
         </div>
 
@@ -56,7 +56,7 @@
                 {
                     var nextOffset = Model.TopDiscussions.Items.Count;
                     <div class="flex justify-center mt-6">
-                        <a href="/top?period=@Model.Period&offset=@nextOffset" class="btn btn-ghost btn-sm">@T.Pages.TopLoadMore</a>
+                        <a href="/top/@Model.Period?offset=@nextOffset" class="btn btn-ghost btn-sm">@T.Pages.TopLoadMore</a>
                     </div>
                 }
             </div>

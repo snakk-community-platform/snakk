@@ -13,7 +13,6 @@ public class ReactionsModel(
     private readonly SnakkApiClient _apiClient = apiClient;
     private const int PageSize = 10;
 
-    [BindProperty(SupportsGet = true)]
     public string Tab { get; set; } = "discussions";
 
     public bool IsAuthenticated { get; set; }
@@ -22,9 +21,13 @@ public class ReactionsModel(
     public bool HasMoreItems { get; set; }
     public int NextOffset { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken)
+    public async Task<IActionResult> OnGetAsync(string? tab, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        if (Request.Query.TryGetValue("tab", out var queryTab) && !string.IsNullOrEmpty(queryTab))
+            return RedirectToPage(new { tab = queryTab.ToString() });
+
+        Tab = tab == "posts" ? "posts" : "discussions";
         IsAuthenticated = HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
         if (!IsAuthenticated) return Page();
 

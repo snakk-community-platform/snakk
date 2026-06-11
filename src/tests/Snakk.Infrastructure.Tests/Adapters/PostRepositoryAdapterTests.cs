@@ -44,7 +44,7 @@ public class PostRepositoryAdapterTests : IDisposable
         await Assert.That(result!.PublicId.Value).IsEqualTo(post.PublicId);
         await Assert.That(result.Content).IsEqualTo(post.Content);
         await Assert.That(result.DiscussionId.Value).IsEqualTo(discussion.PublicId);
-        await Assert.That(result.CreatedByUserId.Value).IsEqualTo(user.PublicId);
+        await Assert.That(result!.CreatedByUserId!.Value).IsEqualTo(user.PublicId);
         await Assert.That(result.IsFirstPost).IsTrue();
     }
 

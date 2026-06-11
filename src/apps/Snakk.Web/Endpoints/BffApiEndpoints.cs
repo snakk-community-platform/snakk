@@ -1341,40 +1341,51 @@ public static class BffApiEndpoints
         [FromQuery] int offset = 0)
     {
         ct.ThrowIfCancellationRequested();
-        var result = await apiClient.SearchPostsAsync(
-            query: q,
-            authorPublicId: authorPublicId,
-            discussionPublicId: null,
-            spacePublicId: null,
-            offset: offset,
-            pageSize: Math.Min(pageSize, MaxPageSize),
-            ct: ct);
-
-        if (result is null)
-            return Results.Ok(new BffSearchResponse<BffPostSearchItem> { Items = [], Offset = 0, PageSize = pageSize, HasMoreItems = false });
-
-        var items = result.Items.Select(p =>
+        var empty = new BffSearchResponse<BffPostSearchItem> { Items = [], Offset = 0, PageSize = pageSize, HasMoreItems = false };
+        try
         {
-            var slugId = SnakkUrlHelper.DiscussionSlugId(p.DiscussionSlug, p.DiscussionPublicId);
-            var url = SnakkUrlHelper.Discussion(p.CommunitySlug, communityContext, p.Hub.Slug, p.Space.Slug, slugId);
-            return new BffPostSearchItem
+            var result = await apiClient.SearchPostsAsync(
+                query: q,
+                authorPublicId: authorPublicId,
+                discussionPublicId: null,
+                spacePublicId: null,
+                offset: offset,
+                pageSize: Math.Min(pageSize, MaxPageSize),
+                ct: ct);
+
+            if (result is null) return Results.Ok(empty);
+
+            var items = result.Items.Select(p =>
             {
-                Url = url,
-                DiscussionTitle = p.DiscussionTitle,
-                HubName = p.Hub.Name,
-                SpaceName = p.Space.Name,
-                ContentPreview = p.ContentHighlight,
-                CreatedAt = p.CreatedAt?.ToDateTime().ToString("o") ?? ""
-            };
-        }).ToList();
+                var slugId = SnakkUrlHelper.DiscussionSlugId(p.DiscussionSlug, p.DiscussionPublicId);
+                var url = SnakkUrlHelper.Discussion(p.CommunitySlug, communityContext, p.Hub.Slug, p.Space.Slug, slugId);
+                return new BffPostSearchItem
+                {
+                    Url = url,
+                    DiscussionTitle = p.DiscussionTitle,
+                    HubName = p.Hub.Name,
+                    SpaceName = p.Space.Name,
+                    SpaceGradientCss = GradientHelper.SpaceGradient(p.Space.PublicId),
+                    ContentPreview = p.ContentHighlight,
+                    CreatedAt = p.CreatedAt?.ToDateTime().ToString("o") ?? "",
+                    AuthorPublicId = p.Author.PublicId,
+                    AuthorDisplayName = p.Author.DisplayName,
+                    AuthorAvatarUrl = p.Author.HasAvatarUrl
+                        ? p.Author.AvatarUrl
+                        : SnakkUrlHelper.UserAvatar(p.Author.PublicId),
+                    PostPublicId = p.PublicId,
+                };
+            }).ToList();
 
-        return Results.Ok(new BffSearchResponse<BffPostSearchItem>
-        {
-            Items = items,
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
-        });
+            return Results.Ok(new BffSearchResponse<BffPostSearchItem>
+            {
+                Items = items,
+                Offset = result.Offset,
+                PageSize = result.PageSize,
+                HasMoreItems = result.HasMoreItems
+            });
+        }
+        catch { return Results.Ok(empty); }
     }
 
     private static async Task<IResult> GetSpaceAllowedTypesAsync(

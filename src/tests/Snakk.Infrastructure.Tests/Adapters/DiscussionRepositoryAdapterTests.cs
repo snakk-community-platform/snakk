@@ -43,7 +43,7 @@ public class DiscussionRepositoryAdapterTests : IDisposable
         await Assert.That(result.Title).IsEqualTo(discussion.Title);
         await Assert.That(result.Slug).IsEqualTo(discussion.Slug);
         await Assert.That(result.SpaceId.Value).IsEqualTo(space.PublicId);
-        await Assert.That(result.CreatedByUserId.Value).IsEqualTo(user.PublicId);
+        await Assert.That(result!.CreatedByUserId!.Value).IsEqualTo(user.PublicId);
     }
 
     #endregion

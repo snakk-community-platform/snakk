@@ -49,7 +49,7 @@
             ? T.Pages.DiscAdultOgDescription
             : firstPost != null
                 ? (firstPost.Content.Length > 160 ? firstPost.Content.Substring(0, 157) + "..." : firstPost.Content)
-                : Model.Discussion.Title;
+                : Model.Discussion!.Title;
         var url = $"{siteBase}{path}";
         var authorAvatar = firstPost?.Author?.AvatarUrl;
         var authorName = firstPost?.Author?.DisplayName ?? T.Pages.DiscAnonymous;
@@ -58,7 +58,7 @@
         <meta name="description" content="@description" />
 
         <!-- Open Graph -->
-        <meta property="og:title" content="@Model.Discussion.Title" />
+        <meta property="og:title" content="@Model.Discussion!.Title" />
         <meta property="og:description" content="@description" />
         <meta property="og:type" content="article" />
         <meta property="og:url" content="@url" />
@@ -76,7 +76,7 @@
 
         <!-- Twitter Card -->
         <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="@Model.Discussion.Title" />
+        <meta name="twitter:title" content="@Model.Discussion!.Title" />
         <meta name="twitter:description" content="@description" />
         @if (!contentIsAdult && !string.IsNullOrEmpty(authorAvatar))
         {
@@ -88,7 +88,7 @@
             {
             "@@context": "https://schema.org",
             "@@type": "DiscussionForumPosting",
-            "headline": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Discussion.Title)),
+            "headline": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Discussion!.Title)),
             "url": "@url",
             "datePublished": "@Model.Discussion.CreatedAt.ToDateTime().ToString("O")",
             "author": {
@@ -110,7 +110,7 @@
         <!-- oEmbed Discovery -->
         <link rel="alternate" type="application/json+oembed"
               href="/oembed?url=@Uri.EscapeDataString(url)"
-              title="@Html.Encode(Model.Discussion.Title)" />
+              title="@Html.Encode(Model.Discussion!.Title)" />
 
         <!-- Breadcrumb Schema -->
         <script type="application/ld+json">
@@ -145,7 +145,7 @@
             {
             "@@type": "ListItem",
             "position": 5,
-            "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Discussion.Title))
+            "name": @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Discussion!.Title))
             }
             ]
             }
@@ -254,7 +254,7 @@
                         {
                             <span class="badge badge-primary badge-xs">@T.Pages.DiscBadgePinned</span>
                         }
-                        @if (Model.Discussion.IsLocked)
+                        @if (Model.Discussion!.IsLocked)
                         {
                             <span class="badge badge-warning badge-xs">@T.Pages.DiscBadgeLocked</span>
                         }
@@ -309,7 +309,7 @@
                                             }
                                         }
                                         <li>
-                                            <button data-action="open-report-modal" data-report-type="discussion" data-report-id="@Model.Discussion.PublicId" data-report-label="@Model.Discussion.Title" class="text-sm text-error">
+                                            <button data-action="open-report-modal" data-report-type="discussion" data-report-id="@Model.Discussion.PublicId" data-report-label="@Model.Discussion!.Title" class="text-sm text-error">
                                                 <span class="icon icon-exclamation-triangle h-4 w-4" aria-hidden="true"></span>
                                                 @T.Pages.DiscReportDiscussion
                                             </button>
@@ -325,16 +325,16 @@
                         <div id="discussion-title-container"
                              class="flex items-start gap-2 flex-1 min-w-0"
                              data-discussion-id="@Model.Discussion.PublicId"
-                             data-current-title="@Model.Discussion.Title">
+                             data-current-title="@Model.Discussion!.Title">
                         <h1 class="text-xl font-bold">
                             @if (!string.IsNullOrEmpty(Model.Discussion.Type) && Model.Discussion.Type != "Standard")
                             {
                                 var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
                                 <span class="sn-card-type-badge @cssClass">@icon @label</span>
                             }
-                            @Model.Discussion.Title
+                            @Model.Discussion!.Title
                         </h1>
-                        @if (firstPostItem != null && Model.CurrentUserId == firstPostItem.Author.PublicId && !Model.Discussion.IsLocked)
+                        @if (firstPostItem != null && Model.CurrentUserId == firstPostItem.Author.PublicId && !Model.Discussion!.IsLocked)
                         {
                             <button data-action="edit-discussion-title"
                                     class="btn btn-ghost btn-xs btn-square shrink-0 mt-1"
@@ -363,13 +363,13 @@
                             };
                             @if (opHasReactions || Model.IsAuthenticated)
                             {
-                                <div class="sn-reaction-badge shrink-0 @(Model.IsAuthenticated && !Model.Discussion.IsLocked ? "cursor-pointer" : "")"
-                                    @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
+                                <div class="sn-reaction-badge shrink-0 @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "cursor-pointer" : "")"
+                                    @if (Model.IsAuthenticated && !Model.Discussion!.IsLocked)
                                     {
                                         <text>data-action="toggle-reaction-picker" data-post-id="@firstPostItem.PublicId"</text>
                                     }
                                      aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
-                                    @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
+                                    @if (Model.IsAuthenticated && !Model.Discussion!.IsLocked)
                                     {
                                         @if (!opHasReactions)
                                         {
@@ -914,7 +914,7 @@
 
 
             <!-- Locked Thread Banner -->
-            @if (Model.Discussion.IsLocked)
+            @if (Model.Discussion!.IsLocked)
             {
                 <div class="mb-4">
                     <div class="bg-warning/10 border-l-4 border-warning px-4 py-3 rounded">
@@ -1249,7 +1249,7 @@
                                             </span>
                                         </div>
                                         <div class="post-toolbar-right">
-                                            @if (!isOP && !Model.Discussion.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
+                                            @if (!isOP && !Model.Discussion!.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
                                             {
                                                 <div class="hidden group-hover:flex items-center gap-1">
                                                     <button data-action="reply-to-post"
@@ -1271,11 +1271,11 @@
                                                     </button>
                                                 </div>
                                             }
-                                            <div class="flex items-center gap-2 text-base text-muted @(Model.IsAuthenticated && !Model.Discussion.IsLocked ? "cursor-pointer" : "")"
+                                            <div class="flex items-center gap-2 text-base text-muted @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "cursor-pointer" : "")"
                                                  id="reactions-@post.PublicId"
                                                  data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(reactionCounts.ToDictionary(k => k.Key, k => k.Value))"
                                                  data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(myReactions)"
-                                                @if (Model.IsAuthenticated && !Model.Discussion.IsLocked)
+                                                @if (Model.IsAuthenticated && !Model.Discussion!.IsLocked)
                                                 {
                                                     <text>data-action="toggle-reaction-picker" data-post-id="@post.PublicId"</text>
                                                 }
@@ -1286,7 +1286,7 @@
                                                     var isActive = myReactions.Contains(kvp.Key);
                                                     <span data-type="@kvp.Key" class="@(isActive ? "active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
                                                 }
-                                                @if (!hasReactions && !Model.Discussion.IsLocked && Model.IsAuthenticated)
+                                                @if (!hasReactions && !Model.Discussion!.IsLocked && Model.IsAuthenticated)
                                                 {
                                                     <span class="hidden group-hover:inline" data-reaction-placeholder>
                                                         <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
@@ -1438,7 +1438,7 @@
                 </div>
             </div>
 
-            @if (Model.Discussion.IsLocked)
+            @if (Model.Discussion!.IsLocked)
             {
                 <div class="mt-8">
                     <div class="clean-card p-6 text-center">
@@ -1558,7 +1558,7 @@
         ViewData["RightPane.NewDiscussionUrl"] = Model.Space != null ? "/new?spaceId=" + Model.Space.PublicId : "/new";
         ViewData["RightPane.Actions"] = new[] { "share", "subscribe", "save" };
         ViewData["RightPane.ShareUrl"] = Model.CanonicalUrl;
-        ViewData["RightPane.ShareTitle"] = Model.Discussion.Title;
+        ViewData["RightPane.ShareTitle"] = Model.Discussion!.Title;
         ViewData["RightPane.ShareIsPublic"] = Model.Space is not { IsRestricted: true };
         ViewData["RightPane.SubscribeAction"] = "toggle-follow-discussion";
         ViewData["RightPane.SubscribeEntityAttr"] = "discussion-id";
@@ -1809,7 +1809,7 @@
         readHistory = Model.Discussion != null ? new
         {
             discussionPublicId = Model.Discussion.PublicId,
-            discussionTitle = Model.Discussion.Title,
+            discussionTitle = Model.Discussion!.Title,
             discussionSlug = Model.SlugWithId.Split('~')[0],
             spacePublicId = Model.Space?.PublicId ?? "",
             spaceSlug = Model.SpaceSlug ?? "",
