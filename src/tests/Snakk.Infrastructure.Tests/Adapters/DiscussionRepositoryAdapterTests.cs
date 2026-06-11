@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Hybrid;
 using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Tests.Helpers;
@@ -22,7 +23,8 @@ public class DiscussionRepositoryAdapterTests : IDisposable
         var mockGrants = Substitute.For<IUserGrantsCacheService>();
         mockGrants.GetGrantsAsync(Arg.Any<string>())
             .Returns(new UserGrants([], [], []));
-        _adapter = new DiscussionRepositoryAdapter(databaseRepo, _db.Context, mockGrants);
+        var mockCache = Substitute.For<HybridCache>();
+        _adapter = new DiscussionRepositoryAdapter(databaseRepo, _db.Context, mockGrants, mockCache);
     }
 
     public void Dispose() => _db.Dispose();

@@ -14,10 +14,6 @@
         : $"/partials/reacted-posts?offset={Model.NextOffset}&pageSize=10";
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
-}
-
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
@@ -35,15 +31,11 @@
                 @T.Pages.ReactionsHeading
             </h2>
 
-            <div class="flex border-b mb-4" style="border-color: var(--border-subtle)">
-                <a href="/reactions"
-                   class="px-4 py-2 text-sm font-medium border-b-2 -mb-px @(isDiscussionsTab ? "" : "border-transparent hover:underline")"
-                   style="@(isDiscussionsTab ? "border-color: var(--color-primary); color: var(--color-primary)" : "color: var(--text-muted)")">
+            <div class="sn-tabs mb-4">
+                <a href="/reactions" class="sn-tab @(isDiscussionsTab ? "active" : "")">
                     @T.Pages.ReactionsTabDiscussions
                 </a>
-                <a href="/reactions?tab=posts"
-                   class="px-4 py-2 text-sm font-medium border-b-2 -mb-px @(!isDiscussionsTab ? "" : "border-transparent hover:underline")"
-                   style="@(!isDiscussionsTab ? "border-color: var(--color-primary); color: var(--color-primary)" : "color: var(--text-muted)")">
+                <a href="/reactions?tab=posts" class="sn-tab @(!isDiscussionsTab ? "active" : "")">
                     @T.Pages.ReactionsTabPosts
                 </a>
             </div>

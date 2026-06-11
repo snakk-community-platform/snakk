@@ -23,7 +23,9 @@ public class ProfileModel(
 
     public UserProfileInfo? Profile { get; set; }
     public PagedRecentDiscussionList? RecentDiscussions { get; set; }
+    public List<RecentDiscussionInfo> TopDiscussionsFull { get; set; } = [];
     public List<ProfileSocialLink>? SocialLinks { get; set; }
+    public bool IsMessagingEnabled { get; private set; }
 
     public string FormatDate(DateTimeOffset? dateTime)
     {
@@ -44,16 +46,19 @@ public class ProfileModel(
             return profileResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
         Profile = profileResult.Value;
+        IsMessagingEnabled = Configuration.GetValue<bool>("Features:PrivateMessagingEnabled");
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
 
-        // Fetch recent discussions and social links in parallel
+        // Fetch recent discussions, top discussions, and social links in parallel
         var discussionsTask = FetchDiscussionsAsync(decodedPublicId, viewerAllowsAdult);
+        var topDiscussionsTask = FetchTopDiscussionsFullAsync(Profile);
         var socialLinksTask = FetchSocialLinksAsync(decodedPublicId);
 
-        await Task.WhenAll(discussionsTask, socialLinksTask);
+        await Task.WhenAll(discussionsTask, topDiscussionsTask, socialLinksTask);
 
         RecentDiscussions = discussionsTask.Result;
+        TopDiscussionsFull = topDiscussionsTask.Result;
         SocialLinks = socialLinksTask.Result;
 
         return Page();
@@ -67,6 +72,20 @@ public class ProfileModel(
                 offset: 0, pageSize: 5, authorId: decodedPublicId, viewerAllowsAdult: viewerAllowsAdult);
         }
         catch { return null; }
+    }
+
+    private async Task<List<RecentDiscussionInfo>> FetchTopDiscussionsFullAsync(UserProfileInfo profile)
+    {
+        try
+        {
+            var ids = profile.TopDiscussions.Select(t => t.PublicId).ToList();
+            if (ids.Count == 0) return [];
+            var result = await _apiClient.GetRecentDiscussionsByIdsAsync(ids);
+            if (result?.Items == null || result.Items.Count == 0) return [];
+            var order = ids.Select((id, i) => (id, i)).ToDictionary(x => x.id, x => x.i);
+            return [.. result.Items.OrderBy(d => order.TryGetValue(d.PublicId, out var i) ? i : int.MaxValue)];
+        }
+        catch { return []; }
     }
 
     private async Task<List<ProfileSocialLink>?> FetchSocialLinksAsync(string decodedPublicId)

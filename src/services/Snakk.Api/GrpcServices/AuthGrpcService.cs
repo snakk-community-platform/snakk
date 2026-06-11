@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Snakk.Api.Endpoints;
 using Snakk.Api.Helpers;
@@ -32,7 +33,8 @@ public class AuthGrpcService(
     ITrustedDeviceService trustedDeviceService,
     IConfiguration configuration,
     ISessionManagementService sessionManagement,
-    IMemoryCache cache) : AuthService.AuthServiceBase
+    IMemoryCache cache,
+    IDistributedCache distributedCache) : AuthService.AuthServiceBase
 {
     public override async Task<AuthTokenResponse> Register(RegisterRequest request, ServerCallContext context)
     {
@@ -64,7 +66,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             roles.FirstOrDefault(),
             user.AvatarFileName,
-            authVersion: user.AuthVersion);
+            authVersion: user.AuthVersion,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 
@@ -156,7 +159,8 @@ public class AuthGrpcService(
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion,
-            sessionId: sessionPublicId);
+            sessionId: sessionPublicId,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         logger.LogInformation("Login succeeded for {UserId} from {Ip}", user.PublicId.Value, request.IpAddress);
 
@@ -211,7 +215,8 @@ public class AuthGrpcService(
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion,
-            sessionId: newSessionPublicId);
+            sessionId: newSessionPublicId,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         var needsConsent = !await consentService.HasAllRequiredConsentsAsync(user.PublicId.Value);
 
@@ -312,7 +317,7 @@ public class AuthGrpcService(
 
         var userId = UserId.From(userIdValue);
         var sudoVerified = request.HasSudoToken &&
-            MeEndpoints.ValidateSudoToken(request.SudoToken, userIdValue, cache);
+            await MeEndpoints.ValidateSudoTokenAsync(request.SudoToken, userIdValue, distributedCache, ctx.CancellationToken);
         var result = await authUseCase.UpdateDisplayNameAsync(
             userId,
             request.DisplayName,
@@ -340,7 +345,8 @@ public class AuthGrpcService(
                 user.EmailVerified,
                 roles.FirstOrDefault(),
                 user.AvatarFileName,
-                authVersion: user.AuthVersion);
+                authVersion: user.AuthVersion,
+                twoFactorEnabled: user.TwoFactorEnabled);
 
             return new UpdateProfileResponse
             {
@@ -380,7 +386,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             roles.FirstOrDefault(),
             user.AvatarFileName,
-            authVersion: user.AuthVersion);
+            authVersion: user.AuthVersion,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         return new SetEmailResponse { Token = newToken };
     }
@@ -486,7 +493,8 @@ public class AuthGrpcService(
             user.EmailVerified,
             roles.FirstOrDefault(),
             user.AvatarFileName,
-            authVersion: user.AuthVersion);
+            authVersion: user.AuthVersion,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 
@@ -512,20 +520,15 @@ public class AuthGrpcService(
     public override async Task<PublicSettingsResponse> GetPublicSettings(
         GetPublicSettingsRequest request, ServerCallContext context)
     {
-        const string key = "public-settings";
-        if (cache.TryGetValue(key, out PublicSettingsResponse? cached) && cached is not null)
-            return cached;
-
-        var siteInfo = await settingsService.GetSiteInfoAsync();
-        var regSettings = await settingsService.GetRegistrationSettingsAsync();
-        var response = new PublicSettingsResponse
+        var siteInfoTask = settingsService.GetSiteInfoAsync();
+        var regSettingsTask = settingsService.GetRegistrationSettingsAsync();
+        await Task.WhenAll(siteInfoTask, regSettingsTask);
+        return new PublicSettingsResponse
         {
-            Timezone = siteInfo.Timezone,
-            SiteName = siteInfo.SiteName,
-            RegistrationMode = regSettings.Mode
+            Timezone = siteInfoTask.Result.Timezone,
+            SiteName = siteInfoTask.Result.SiteName,
+            RegistrationMode = regSettingsTask.Result.Mode
         };
-        cache.Set(key, response, TimeSpan.FromMinutes(10));
-        return response;
     }
 
     public override async Task<DisplayNameHistoryResponse> GetDisplayNameHistory(
@@ -590,7 +593,11 @@ public class AuthGrpcService(
         GenerateDiscordLinkTokenRequest request, ServerCallContext ctx)
     {
         var userId = RequireAuth();
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        // AsTracking() so the DiscordLinkToken / DiscordLinkTokenExpiry assignments
+        // below actually persist. Without this the whole Discord link flow was dead:
+        // GenerateDiscordLinkToken returned a token never written to the DB, so
+        // CompleteDiscordLink's lookup by that token always failed (CR-25).
+        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId.Value);
         if (user is null) throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
 
         var token = Guid.NewGuid().ToString("N");
@@ -609,7 +616,12 @@ public class AuthGrpcService(
     public override async Task<CompleteDiscordLinkResponse> CompleteDiscordLink(
         CompleteDiscordLinkRequest request, ServerCallContext ctx)
     {
-        var user = await context.Users.FirstOrDefaultAsync(u =>
+        // AsTracking() so the Discord-field assignments and the link-token clearing
+        // at lines 613-617 actually persist (CR-25). Without it, the link would
+        // appear to succeed but the row would be unchanged, AND the link token
+        // would remain valid until DiscordLinkTokenExpiry — letting any party that
+        // intercepted the token claim the same victim's Discord linkage repeatedly.
+        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u =>
             u.DiscordLinkToken == request.LinkToken &&
             u.DiscordLinkTokenExpiry != null &&
             u.DiscordLinkTokenExpiry > DateTime.UtcNow);
@@ -637,7 +649,10 @@ public class AuthGrpcService(
         UnlinkDiscordRequest request, ServerCallContext ctx)
     {
         var userId = RequireAuth();
-        var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value);
+        // AsTracking() so the field nulling below actually persists. Pre-fix the
+        // user got a success response but the Discord linkage row was unchanged —
+        // so "Unlink Discord" was UX-only (CR-25).
+        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId.Value);
         if (user is null) throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
 
         user.DiscordUserId = null;
@@ -746,10 +761,16 @@ public class AuthGrpcService(
     public override async Task<ConnectOAuthProviderResponse> ConnectOAuthProvider(
         ConnectOAuthProviderRequest request, ServerCallContext ctx)
     {
-        // Server-to-server (Snakk.Auth) passes user_public_id explicitly; BFF callers use JWT
-        var userPublicId = request.HasUserPublicId
-            ? request.UserPublicId
-            : RequireAuth().Value;
+        // Identity is taken from the authenticated JWT only. The previous code path
+        // honored a client-supplied request.UserPublicId when set, with the comment
+        // that Snakk.Auth was a trusted server-to-server caller — but no
+        // service-to-service auth gated the bypass, so any caller reaching the
+        // gRPC surface could spoof the user. Snakk.Auth now forwards the validated
+        // JWT cookie as a Bearer header instead. (CR-21 / HI-60 in
+        // docs/SECURITY-AUDIT-2026-05-23.md.) The request.UserPublicId proto field
+        // is left in place for wire-compat with older clients but the value is
+        // ignored.
+        var userPublicId = RequireAuth().Value;
 
         var result = await authUseCase.ConnectOAuthProviderAsync(
             userPublicId, request.Provider, request.ProviderUserId, ctx.CancellationToken);
@@ -795,10 +816,14 @@ public class AuthGrpcService(
     public override async Task<GenerateOAuthSudoNonceResponse> GenerateOAuthSudoNonce(
         GenerateOAuthSudoNonceRequest request, ServerCallContext ctx)
     {
+        // As in ConnectOAuthProvider, identity must come from the authenticated JWT,
+        // not from request.UserPublicId — see comment there.
+        var userPublicId = RequireAuth().Value;
+
         // Verify the provider+providerUserId matches a connection for this user
         var connection = await context.UserOAuthConnections
             .FirstOrDefaultAsync(c =>
-                c.User.PublicId == request.UserPublicId &&
+                c.User.PublicId == userPublicId &&
                 c.Provider == request.Provider &&
                 c.ProviderUserId == request.ProviderUserId,
                 ctx.CancellationToken);
@@ -807,8 +832,9 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.PermissionDenied, "OAuth connection not found for user"));
 
         var nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
-        var cacheKey = $"sudo-oauth-nonce:{request.UserPublicId}:{nonce}";
-        cache.Set(cacheKey, true, TimeSpan.FromSeconds(60));
+        var cacheKey = $"sudo-oauth-nonce:{userPublicId}:{nonce}";
+        await distributedCache.SetStringAsync(cacheKey, "1",
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60) }, ctx.CancellationToken);
 
         return new GenerateOAuthSudoNonceResponse { Nonce = nonce };
     }

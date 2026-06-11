@@ -40,6 +40,13 @@
         var avatarThumbnailFileName = User.FindFirst("AvatarThumbnailFileName")?.Value;
         var avatarUrl = SnakkUrlHelper.UserAvatarThumbnail(publicId, avatarFileName: avatarFileName, avatarThumbnailFileName: avatarThumbnailFileName);
 
+        <!-- DM (Messages) tab -->
+        <a href="/messages" class="sn-tabbar-item@(Active("/messages", prefix: true))" aria-label="@T.AuthNav.Messages" hx-boost="false">
+            <span class="relative inline-flex">
+                <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
+                <span class="dm-badge hidden">0</span>
+            </span>
+        </a>
         <!-- Notification bell -->
         <div class="dropdown dropdown-top dropdown-end flex-1 flex">
             <label tabindex="0" class="sn-tabbar-item flex-1" aria-label="@T.AuthNav.Notifications">

@@ -1,6 +1,7 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Domain.Entities;
@@ -11,7 +12,8 @@ using Snakk.Shared.Models;
 
 public class SpaceRepositoryAdapter(
     Infrastructure.Database.Repositories.ISpaceRepository databaseRepository,
-    SnakkDbContext context) : Domain.Repositories.ISpaceRepository
+    SnakkDbContext context,
+    HybridCache cache) : Domain.Repositories.ISpaceRepository
 {
     public async Task<Space?> GetByIdAsync(int id, CancellationToken ct = default)
     {
@@ -22,7 +24,8 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA,
+                s.LanguageCode, s.HubLanguageCode, s.CommunityLanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -36,7 +39,8 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA,
+                s.LanguageCode, s.HubLanguageCode, s.CommunityLanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -50,7 +54,8 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA,
+                s.LanguageCode, s.HubLanguageCode, s.CommunityLanguageCode))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
     }
@@ -63,23 +68,15 @@ public class SpaceRepositoryAdapter(
     {
         var result = await databaseRepository.GetFilteredForDisplayAsync(hubId.Value, offset, pageSize, ct);
 
-        return new PagedResult<Space>
-        {
-            Items = result.Items
-                .Select(dto => Space.RehydrateForList(
-                    SpaceId.From(dto.PublicId),
-                    HubId.From(dto.HubPublicId),
-                    dto.Name,
-                    dto.Slug,
-                    dto.Description,
-                    dto.AllowAnonymousReading,
-                    dto.RequireEmailConfirmation,
-                    dto.CreatedAt))
-                .ToList(),
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
-        };
+        return result.Map(dto => Space.RehydrateForList(
+            SpaceId.From(dto.PublicId),
+            HubId.From(dto.HubPublicId),
+            dto.Name,
+            dto.Slug,
+            dto.Description,
+            dto.AllowAnonymousReading,
+            dto.RequireEmailConfirmation,
+            dto.CreatedAt));
     }
 
     public async Task<IEnumerable<Space>> GetAllAsync(CancellationToken ct = default)
@@ -90,7 +87,8 @@ public class SpaceRepositoryAdapter(
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
-                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent))
+                s.AutoParagraphEnabled, s.IsAdultOnly, s.AllowsAdultContent, s.Require2FA,
+                s.LanguageCode, s.HubLanguageCode, s.CommunityLanguageCode))
             .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());
@@ -150,9 +148,11 @@ public class SpaceRepositoryAdapter(
         entity.AvatarRevision = space.AvatarRevision;
         entity.IsAdultOnly = space.IsAdultOnly;
         entity.AllowsAdultContent = space.AllowsAdultContent;
+        entity.Require2FA = space.Require2FA;
 
         await databaseRepository.UpdateAsync(entity, ct);
         await databaseRepository.SaveChangesAsync(ct);
+        await cache.RemoveAsync($"space-display:{entity.Id}", ct);
     }
 
     private record SpaceProjection(
@@ -171,7 +171,11 @@ public class SpaceRepositoryAdapter(
         int AvatarRevision,
         bool AutoParagraphEnabled,
         bool IsAdultOnly,
-        bool AllowsAdultContent)
+        bool AllowsAdultContent,
+        bool Require2FA,
+        string? LanguageCode,
+        string? HubLanguageCode,
+        string? CommunityLanguageCode)
     {
         public Space ToDomain() => Space.Rehydrate(
             SpaceId.From(PublicId),
@@ -183,8 +187,12 @@ public class SpaceRepositoryAdapter(
             avatarThumbnailFileName: AvatarThumbnailFileName,
             avatarMicroFileName: AvatarMicroFileName,
             avatarRevision: AvatarRevision,
+            languageCode: LanguageCode,
+            hubLanguageCode: HubLanguageCode,
+            communityLanguageCode: CommunityLanguageCode,
             autoParagraphEnabled: AutoParagraphEnabled,
             isAdultOnly: IsAdultOnly,
-            allowsAdultContent: AllowsAdultContent);
+            allowsAdultContent: AllowsAdultContent,
+            require2FA: Require2FA);
     }
 }

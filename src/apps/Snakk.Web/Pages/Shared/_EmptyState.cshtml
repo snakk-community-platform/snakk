@@ -1,0 +1,9 @@
+@using Snakk.Web.Pages.ViewModels
+@model EmptyStateVM
+<div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
+    <p>@Model.Message</p>
+    @if (Model.ButtonText != null && Model.ButtonHref != null)
+    {
+        <a href="@Model.ButtonHref" class="btn btn-primary btn-sm mt-4">@Model.ButtonText</a>
+    }
+</div>

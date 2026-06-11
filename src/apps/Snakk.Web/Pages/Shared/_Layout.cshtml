@@ -10,6 +10,7 @@
     var isAuth = User.Identity?.IsAuthenticated == true;
     var themeCookie = isAuth ? Context.Request.Cookies[AuthCookieHelper.ThemeCookieName] : null;
     var initialTheme = themeCookie == "dark" ? "dark" : "lofi";
+    var isMessagingEnabled = Configuration.GetValue<bool>("Features:PrivateMessagingEnabled");
 }
 <!DOCTYPE html>
 <html lang="en" data-theme="@initialTheme">
@@ -110,6 +111,10 @@
 
     <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
+    @if (isAuth && isMessagingEnabled)
+    {
+        <link rel="stylesheet" href="@SnakkUrlHelper.Css("dm-widget")" asp-append-version="true" />
+    }
     @await RenderSectionAsync("Styles", required: false)
 
     <script id="js-dompurify"    hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true" defer></script>
@@ -154,10 +159,15 @@
         <script src="@SnakkUrlHelper.Js("core/upload")" asp-append-version="true" defer></script>
         <script src="@SnakkUrlHelper.Js("services/save-cache")" asp-append-version="true" defer></script>
         <script src="@SnakkUrlHelper.Js("components/save")" asp-append-version="true" defer></script>
+        @if (isMessagingEnabled)
+        {
+            <script src="@SnakkUrlHelper.Js("components/dm-widget")" asp-append-version="true" defer></script>
+        }
     }
     <script src="@SnakkUrlHelper.Js("components/share")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/sparkline")" asp-append-version="true" defer></script>
     <script id="js-social-icons" hx-preserve src="@SnakkUrlHelper.Js("data/social-icons")" asp-append-version="true" defer></script>
+    <script id="js-lang-icons" hx-preserve src="@SnakkUrlHelper.Js("data/lang-icons")" asp-append-version="true" defer></script>
     <script nonce="@(Context.Items["csp-nonce"] as string)">(function () {
         function hydrateSocialIcons() {
             var icons = window.snakkSocialIcons;
@@ -203,28 +213,106 @@
                 {
                 <div class="sn-search-wrap" id="sn-search-wrap">
                     <span class="icon icon-search sn-search-icon" aria-hidden="true"></span>
+                    <div class="sn-filter-pills" aria-hidden="true">
+                        <div class="sn-filter-pill-wrap">
+                            <button type="button" class="sn-filter-pill" id="sn-pill-type" tabindex="-1">
+                                <span class="icon icon-document-text sn-filter-pill-icon" aria-hidden="true"></span>
+                                <span id="sn-pill-type-label">@T.Pages.SearchTypePost</span>
+                            </button>
+                            <div class="sn-filter-dropdown" id="sn-dropdown-type" hidden>
+                                <div class="sn-filter-option-list">
+                                    <input type="radio" name="sn-search-type-d" id="sn-type-post-d" value="post" />
+                                    <label for="sn-type-post-d">@T.Pages.SearchTypePost</label>
+                                    <input type="radio" name="sn-search-type-d" id="sn-type-discussion-d" value="discussion" checked />
+                                    <label for="sn-type-discussion-d">@T.Pages.SearchTypeDiscussion</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sn-filter-pill-wrap">
+                            <button type="button" class="sn-filter-pill" id="sn-pill-sort" tabindex="-1">
+                                <span class="icon icon-sort sn-filter-pill-icon" aria-hidden="true"></span>
+                                <span id="sn-pill-sort-label">@T.Pages.SearchSortNewest</span>
+                            </button>
+                            <div class="sn-filter-dropdown" id="sn-dropdown-sort" hidden>
+                                <div class="sn-filter-option-list">
+                                    <input type="radio" name="sn-search-sort-d" id="sn-sort-newest-d" value="newest" checked />
+                                    <label for="sn-sort-newest-d">@T.Pages.SearchSortNewest</label>
+                                    <input type="radio" name="sn-search-sort-d" id="sn-sort-oldest-d" value="oldest" />
+                                    <label for="sn-sort-oldest-d">@T.Pages.SearchSortOldest</label>
+                                    <input type="radio" name="sn-search-sort-d" id="sn-sort-popular-d" value="popular" />
+                                    <label for="sn-sort-popular-d">@T.Pages.SearchSortPopular</label>
+                                    <input type="radio" name="sn-search-sort-d" id="sn-sort-reactions-d" value="reactions" />
+                                    <label for="sn-sort-reactions-d">@T.Pages.SearchSortReactions</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sn-filter-pill-wrap">
+                            <button type="button" class="sn-filter-pill" id="sn-pill-date" tabindex="-1">
+                                <span class="icon icon-calendar sn-filter-pill-icon" aria-hidden="true"></span>
+                                <span id="sn-pill-date-label">@T.Pages.SearchDateShortWeek</span>
+                            </button>
+                            <div class="sn-filter-dropdown" id="sn-dropdown-date" hidden>
+                                <div class="sn-search-date-slider">
+                                    <input type="range" class="range range-xs" id="sn-date-range-d"
+                                           min="0" max="5" step="1" value="2"
+                                           aria-label="@T.Pages.SearchDateLabel" />
+                                    <div class="sn-search-date-ticks" aria-hidden="true">
+                                        <span>@T.Pages.SearchDateShortHour</span>
+                                        <span>@T.Pages.SearchDateShortToday</span>
+                                        <span>@T.Pages.SearchDateShortWeek</span>
+                                        <span>@T.Pages.SearchDateShortMonth</span>
+                                        <span>@T.Pages.SearchDateShortYear</span>
+                                        <span>@T.Pages.SearchDateShortAll</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <input type="search" class="sn-search-input" id="sn-search-input"
                            placeholder="@T.Common.SearchPlaceholder" autocomplete="off" spellcheck="false"
                            aria-label="@T.Common.SearchPlaceholder" />
                     <div class="sn-search-popup" id="sn-search-popup" hidden>
-                        <div class="sn-search-popup-row">
-                            <span class="sn-search-popup-label">@T.Pages.SearchTypeLabel</span>
-                            <div class="join flex-wrap">
-                                <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="post" aria-label="@T.Pages.SearchTypePost" />
-                                <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="discussion" aria-label="@T.Pages.SearchTypeDiscussion" />
-                                <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="space" aria-label="@T.Pages.SearchTypeSpace" />
-                                <input class="join-item btn btn-sm" type="radio" name="sn-search-type" value="user" aria-label="@T.Pages.SearchTypeUser" />
+                        <div class="sn-search-popup-group" id="sn-type-group">
+                            <p class="sn-search-popup-group-label">@T.Pages.SearchTypeLabel</p>
+                            <div class="sn-search-pills" id="sn-type-pills">
+                                <input type="radio" name="sn-search-type" id="sn-type-post" value="post" />
+                                <label for="sn-type-post">@T.Pages.SearchTypePost</label>
+                                <input type="radio" name="sn-search-type" id="sn-type-discussion" value="discussion" checked />
+                                <label for="sn-type-discussion">@T.Pages.SearchTypeDiscussion</label>
                             </div>
                         </div>
-                        <div class="sn-search-popup-row">
-                            <span class="sn-search-popup-label">@T.Pages.SearchDateLabel</span>
-                            <div class="join flex-wrap">
-                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="past hour" aria-label="@T.Pages.SearchDatePastHour" />
-                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="today" aria-label="@T.Pages.SearchDateToday" />
-                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="past week" aria-label="@T.Pages.SearchDatePastWeek" />
-                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="past month" aria-label="@T.Pages.SearchDatePastMonth" />
-                                <input class="join-item btn btn-sm" type="radio" name="sn-search-date" value="all time" aria-label="@T.Pages.SearchDateAllTime" checked />
+                        <div class="sn-search-popup-group" id="sn-sort-group">
+                            <p class="sn-search-popup-group-label">@T.Pages.SearchSortLabel</p>
+                            <div class="sn-search-pills">
+                                <input type="radio" name="sn-search-sort" id="sn-sort-newest" value="newest" checked />
+                                <label for="sn-sort-newest">@T.Pages.SearchSortNewest</label>
+                                <input type="radio" name="sn-search-sort" id="sn-sort-oldest" value="oldest" />
+                                <label for="sn-sort-oldest">@T.Pages.SearchSortOldest</label>
+                                <input type="radio" name="sn-search-sort" id="sn-sort-popular" value="popular" />
+                                <label for="sn-sort-popular">@T.Pages.SearchSortPopular</label>
+                                <input type="radio" name="sn-search-sort" id="sn-sort-reactions" value="reactions" />
+                                <label for="sn-sort-reactions">@T.Pages.SearchSortReactions</label>
                             </div>
+                        </div>
+                        <div class="sn-search-popup-group" id="sn-date-group">
+                            <p class="sn-search-popup-group-label">@T.Pages.SearchDateLabel</p>
+                            <div class="sn-search-date-slider">
+                                <input type="range" class="range range-xs" id="sn-date-range"
+                                       min="0" max="5" step="1" value="2"
+                                       aria-label="@T.Pages.SearchDateLabel" />
+                                <div class="sn-search-date-ticks" aria-hidden="true">
+                                    <span>@T.Pages.SearchDateShortHour</span>
+                                    <span>@T.Pages.SearchDateShortToday</span>
+                                    <span>@T.Pages.SearchDateShortWeek</span>
+                                    <span>@T.Pages.SearchDateShortMonth</span>
+                                    <span>@T.Pages.SearchDateShortYear</span>
+                                    <span>@T.Pages.SearchDateShortAll</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="sn-search-popup-footer" id="sn-popup-footer">
+                            <span class="sn-search-popup-hint"><kbd>↵</kbd> to search</span>
+                            <button type="button" class="btn btn-primary btn-xs" id="sn-search-submit">@T.Common.Search</button>
                         </div>
                     </div>
                 </div>
@@ -252,6 +340,7 @@
     </div>
 
     <meta name="signalr-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("signalr.min", isVendor: true))" />
+    <meta name="realtime-worker-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("services/realtime-worker"))" />
     <script src="@SnakkUrlHelper.Js("services/realtime")" asp-append-version="true" defer></script>
 
     <meta name="lazy-site-js" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/site"))" />
@@ -288,5 +377,26 @@
     <script src="@SnakkUrlHelper.Js("components/inline-gallery")" asp-append-version="true" defer></script>
 
     @await RenderSectionAsync("Scripts", required: false)
+    <script>
+    (function () {
+        function dbg() {
+            var layout = document.querySelector('.sn-layout');
+            var left   = document.querySelector('.sn-left');
+            var center = document.querySelector('.sn-center, .sn-center-wide');
+            var right  = document.querySelector('.sn-right');
+            console.log('[layout]',
+                'innerWidth=' + window.innerWidth,
+                'clientWidth=' + document.documentElement.clientWidth,
+                'body=' + document.body.getBoundingClientRect().width.toFixed(2),
+                'left=' + (left   ? left.getBoundingClientRect().width.toFixed(2)   : '-'),
+                'center=' + (center ? center.getBoundingClientRect().width.toFixed(2) : '-'),
+                'right=' + (right  ? right.getBoundingClientRect().width.toFixed(2)  : '-')
+            );
+        }
+        window.addEventListener('resize', dbg);
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', dbg);
+        else dbg();
+    })();
+    </script>
 </body>
 </html>

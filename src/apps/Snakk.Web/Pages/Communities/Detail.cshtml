@@ -11,11 +11,6 @@
         : null;
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("space")" asp-append-version="true" />
-}
-
 @section Meta {
     @if (Model.CommunityDetail is { IsRestricted: false })
     {
@@ -36,6 +31,12 @@
     ViewData["LeftNav.NewDiscussionUrl"] = "/new?communityId=" + Model.CommunityDetail?.PublicId;
 }
 <partial name="Shared/_LeftSidebar" />
+}
+
+@if (Model.Require2FAGate)
+{
+    <partial name="_Require2FAGate" />
+    return;
 }
 
 @if (Model.CommunityDetail != null)
@@ -171,9 +172,7 @@
         }
         else
         {
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.CommDetailEmpty</p>
-            </div>
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.CommDetailEmpty)" />
         }
     </div>
 </div>
@@ -384,5 +383,6 @@
 </aside>
 
 @section Scripts {
+    <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("pages/frontpage")" asp-append-version="true" defer></script>
 }

@@ -1,5 +1,5 @@
 // ============================================
-// Profile Page
+// Profile Page Styles
 // ============================================
 
 .sn-profile-card {
@@ -167,39 +167,6 @@
     margin-bottom: 1.5rem;
 }
 
-.sn-profile-tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 1px solid var(--border-primary);
-    margin-bottom: 1rem;
-}
-
-.sn-profile-tab {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.8125rem;
-    font-weight: 500;
-    color: var(--text-tertiary);
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
-    margin-bottom: -1px;
-    white-space: nowrap;
-    flex-shrink: 0;
-
-    &:hover {
-        color: var(--text-primary);
-    }
-
-    &.active {
-        color: var(--text-primary);
-        border-bottom-color: var(--link-primary);
-    }
-}
 
 // Narrow viewports: tighten the hero card and let tabs scroll horizontally
 // instead of wrapping.
@@ -218,12 +185,5 @@
         height: 4rem;
     }
 
-    .sn-profile-tabs {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scrollbar-width: none;
-    }
-
-    .sn-profile-tabs::-webkit-scrollbar { display: none; }
 }
 

@@ -1,0 +1,33 @@
+@using Snakk.Protos.Moderation
+@using Snakk.Web.Helpers
+@model IEnumerable<ModeratorGroup>
+
+@foreach (var group in Model)
+{
+    <p class="text-xs font-semibold uppercase tracking-wide mt-6 mb-3" style="color: var(--text-tertiary)">
+        @group.Level
+        @if (!string.IsNullOrEmpty(group.ScopeName))
+        {
+            <span class="font-normal normal-case">(@group.ScopeName)</span>
+        }
+    </p>
+    <div class="sn-mod-list-grid">
+        @foreach (var mod in group.Moderators)
+        {
+            <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="sn-mod-list-card"
+               data-popup-type="user" data-popup-id="@mod.UserPublicId" data-popup-name="@mod.DisplayName">
+                <div class="sn-mod-list-banner"
+                     style="background-image: @UserGradient(mod.UserPublicId)">
+                    <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
+                         alt="" width="34" height="34"
+                         class="sn-mod-list-avatar"
+                         loading="lazy" decoding="async" />
+                    <span class="sn-mod-list-name">@mod.DisplayName</span>
+                </div>
+                <div class="sn-mod-list-body">
+                    <span class="badge badge-sm badge-ghost">@FormatRole(mod.Role)</span>
+                </div>
+            </a>
+        }
+    </div>
+}

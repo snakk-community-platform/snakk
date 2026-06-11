@@ -37,6 +37,9 @@ public class DetailModel(
     // confirmed/declined, the page renders an interstitial instead of content.
     public AdultContentState AdultGateState { get; set; } = AdultContentState.Allowed;
 
+    // 2FA gating: true when the space requires 2FA and the visitor doesn't have it enabled.
+    public bool Require2FAGate { get; set; }
+
     // Trending settings
     public bool ShowTrendingDiscussions => Configuration.GetValue("Trending:DiscussionList:ShowDiscussions", true);
     public bool ShowTrendingContributors => Configuration.GetValue("Trending:DiscussionList:ShowContributors", true);
@@ -102,6 +105,13 @@ public class DetailModel(
 
             if (access is not null && access.AccessLevel < 1)
                 return StatusCode(403);
+        }
+
+        // 2FA gate — short-circuit if the space requires 2FA and the visitor doesn't have it
+        if (Space.Require2Fa && User.FindFirst("tfa")?.Value != "1")
+        {
+            Require2FAGate = true;
+            return Page();
         }
 
         SidebarScopeId = Space.PublicId;

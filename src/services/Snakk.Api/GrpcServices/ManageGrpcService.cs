@@ -150,7 +150,8 @@ public class ManageGrpcService(
             AllowAnonymous = settings.AllowAnonymous,
             AutoParagraphEnabled = settings.AutoParagraphEnabled,
             IsAdultOnly = settings.IsAdultOnly,
-            AllowsAdultContent = settings.AllowsAdultContent
+            AllowsAdultContent = settings.AllowsAdultContent,
+            Require2Fa = settings.Require2FA
         };
 
         if (settings.LanguageCode is not null) response.LanguageCode = settings.LanguageCode;
@@ -193,7 +194,8 @@ public class ManageGrpcService(
             AllowAnonymous = request.AllowAnonymous,
             AutoParagraphEnabled = request.AutoParagraphEnabled,
             IsAdultOnly = request.IsAdultOnly,
-            AllowsAdultContent = request.AllowsAdultContent
+            AllowsAdultContent = request.AllowsAdultContent,
+            Require2FA = request.Require2Fa
         };
 
         var result = await spaceManagementService.UpdateSettingsAsync(
@@ -244,7 +246,10 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
-        var space = await dbContext.Spaces.FirstOrDefaultAsync(s => s.PublicId == request.SpacePublicId);
+        // AsTracking() so the Discord settings assignments below actually persist
+        // (HI-22a). Same class-of-bug as CR-1 / CR-25 — the SnakkDbContext default
+        // is NoTracking, so untracked reads + property mutation silently no-ops.
+        var space = await dbContext.Spaces.AsTracking().FirstOrDefaultAsync(s => s.PublicId == request.SpacePublicId);
         if (space is null)
             return new UpdateSpaceDiscordSettingsResponse { Success = false, ErrorMessage = "Space not found" };
 
@@ -844,7 +849,8 @@ public class ManageGrpcService(
         {
             Name = settings.Name,
             Slug = settings.Slug,
-            HideAdultDiscussionsFromLists = settings.HideAdultDiscussionsFromLists
+            HideAdultDiscussionsFromLists = settings.HideAdultDiscussionsFromLists,
+            Require2Fa = settings.Require2FA
         };
         if (settings.Description is not null) response.Description = settings.Description;
         if (settings.Timezone is not null) response.Timezone = settings.Timezone;
@@ -873,7 +879,8 @@ public class ManageGrpcService(
             LanguageCode = request.HasLanguageCode ? request.LanguageCode : null,
             AllowedDiscussionTypes = request.AllowedDiscussionTypes
                 .Select(t => (Snakk.Shared.Enums.DiscussionTypeEnum)t).ToList(),
-            HideAdultDiscussionsFromLists = request.HideAdultDiscussionsFromLists
+            HideAdultDiscussionsFromLists = request.HideAdultDiscussionsFromLists,
+            Require2FA = request.Require2Fa
         };
 
         var result = await communityManagementService.UpdateSettingsAsync(
@@ -905,7 +912,8 @@ public class ManageGrpcService(
         var response = new HubSettingsResponse
         {
             Slug = settings.Slug,
-            Name = settings.Name
+            Name = settings.Name,
+            Require2Fa = settings.Require2FA
         };
         if (settings.Description is not null) response.Description = settings.Description;
         if (settings.LanguageCode is not null) response.LanguageCode = settings.LanguageCode;
@@ -934,7 +942,8 @@ public class ManageGrpcService(
             Description = request.HasDescription ? request.Description : null,
             LanguageCode = request.HasLanguageCode ? request.LanguageCode : null,
             AllowedDiscussionTypes = request.AllowedDiscussionTypes
-                .Select(t => (Snakk.Shared.Enums.DiscussionTypeEnum)t).ToList()
+                .Select(t => (Snakk.Shared.Enums.DiscussionTypeEnum)t).ToList(),
+            Require2FA = request.Require2Fa
         };
 
         var result = await hubManagementService.UpdateSettingsAsync(

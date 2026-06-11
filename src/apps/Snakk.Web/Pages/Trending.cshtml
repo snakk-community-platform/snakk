@@ -10,10 +10,6 @@
     ViewData["Description"] = "See what's trending on Snakk right now — discussions with the most activity in the last 48 hours.";
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
-}
-
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
@@ -28,9 +24,7 @@
 
         @if (Model.TrendingDiscussions?.Items == null || !Model.TrendingDiscussions.Items.Any())
         {
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.TrendingEmpty</p>
-            </div>
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.TrendingEmpty)" />
         }
         else
         {

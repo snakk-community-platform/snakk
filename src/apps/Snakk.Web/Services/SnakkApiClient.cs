@@ -33,6 +33,17 @@ using ReadStateMarkRequest = Snakk.Protos.ReadState.MarkAsReadRequest;
 using ReadStateBatchRequest = Snakk.Protos.ReadState.BatchMarkAsReadRequest;
 using ReadStateBatchItem = Snakk.Protos.ReadState.BatchReadStateItem;
 using ReadStateInfo = Snakk.Protos.ReadState.ReadStateInfo;
+using DmClient = Snakk.Protos.Dm.DmService.DmServiceClient;
+using DmGetConversationsRequest = Snakk.Protos.Dm.GetConversationsRequest;
+using DmGetConversationRequest = Snakk.Protos.Dm.GetConversationRequest;
+using DmGetOrCreateRequest = Snakk.Protos.Dm.GetOrCreateConversationRequest;
+using DmGetMessagesRequest = Snakk.Protos.Dm.GetMessagesRequest;
+using DmSendMessageRequest = Snakk.Protos.Dm.SendMessageRequest;
+using DmMarkAsReadRequest = Snakk.Protos.Dm.MarkAsReadRequest;
+using DmGetUnreadCountRequest = Snakk.Protos.Dm.GetUnreadCountRequest;
+using DmDeleteMessagesRequest = Snakk.Protos.Dm.DeleteMessagesRequest;
+using DmDeleteConversationRequest = Snakk.Protos.Dm.DeleteConversationRequest;
+using DmPinConversationRequest = Snakk.Protos.Dm.PinConversationRequest;
 
 public class SnakkApiClient(
     CommunityService.CommunityServiceClient communityClient,
@@ -53,6 +64,7 @@ public class SnakkApiClient(
     Snakk.Protos.Banner.BannerService.BannerServiceClient bannerClient,
     Snakk.Protos.Consent.ConsentService.ConsentServiceClient consentClient,
     SaveService.SaveServiceClient saveClient,
+    DmClient dmClient,
     ILogger<SnakkApiClient> logger)
 {
     private void LogGrpcError(Exception ex, [CallerMemberName] string? caller = null)
@@ -773,34 +785,34 @@ public class SnakkApiClient(
 
     public virtual async Task<PagedDiscussionSearchResults?> SearchDiscussionsAsync(
         string? query = null, string? authorPublicId = null, string? spacePublicId = null,
-        string? hubPublicId = null, int offset = 0, int pageSize = 20, bool viewerAllowsAdult = false, CancellationToken ct = default)
+        string? hubPublicId = null, int offset = 0, int pageSize = 20, bool viewerAllowsAdult = false,
+        string? sortBy = null, string? dateRange = null, CancellationToken ct = default)
     {
-        try
-        {
-            var request = new SearchDiscussionsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult };
-            if (authorPublicId is not null) request.AuthorId = authorPublicId;
-            if (spacePublicId is not null) request.SpaceId = spacePublicId;
-            if (hubPublicId is not null) request.HubId = hubPublicId;
+        var request = new SearchDiscussionsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult };
+        if (authorPublicId is not null) request.AuthorId = authorPublicId;
+        if (spacePublicId is not null) request.SpaceId = spacePublicId;
+        if (hubPublicId is not null) request.HubId = hubPublicId;
+        if (!string.IsNullOrEmpty(sortBy)) request.SortBy = sortBy;
+        if (!string.IsNullOrEmpty(dateRange)) request.DateRange = dateRange;
 
-            return await searchClient.SearchDiscussionsAsync(request, cancellationToken: ct);
-        }
-        catch (RpcException ex) { LogGrpcError(ex); return null; }
+        // Let exceptions propagate so callers can distinguish API failure from empty results.
+        return await searchClient.SearchDiscussionsAsync(request, cancellationToken: ct);
     }
 
     public virtual async Task<PagedPostSearchResults?> SearchPostsAsync(
         string? query = null, string? authorPublicId = null, string? discussionPublicId = null,
-        string? spacePublicId = null, int offset = 0, int pageSize = 20, CancellationToken ct = default)
+        string? spacePublicId = null, int offset = 0, int pageSize = 20,
+        string? sortBy = null, string? dateRange = null, CancellationToken ct = default)
     {
-        try
-        {
-            var request = new SearchPostsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize };
-            if (authorPublicId is not null) request.AuthorId = authorPublicId;
-            if (discussionPublicId is not null) request.DiscussionId = discussionPublicId;
-            if (spacePublicId is not null) request.SpaceId = spacePublicId;
+        var request = new SearchPostsRequest { Query = query ?? "", Offset = offset, PageSize = pageSize };
+        if (authorPublicId is not null) request.AuthorId = authorPublicId;
+        if (discussionPublicId is not null) request.DiscussionId = discussionPublicId;
+        if (spacePublicId is not null) request.SpaceId = spacePublicId;
+        if (!string.IsNullOrEmpty(sortBy)) request.SortBy = sortBy;
+        if (!string.IsNullOrEmpty(dateRange)) request.DateRange = dateRange;
 
-            return await searchClient.SearchPostsAsync(request, cancellationToken: ct);
-        }
-        catch (RpcException ex) { LogGrpcError(ex); return null; }
+        // Let exceptions propagate so callers can distinguish API failure from empty results.
+        return await searchClient.SearchPostsAsync(request, cancellationToken: ct);
     }
 
     public virtual async Task<UserProfileInfo?> GetUserProfileAsync(string publicId, CancellationToken ct = default)
@@ -1745,6 +1757,90 @@ public class SnakkApiClient(
     {
         try { return await saveClient.GetSaveCountsAsync(new GetSaveCountsRequest(), cancellationToken: ct); }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    // ==================== Direct Messages ====================
+
+    public virtual async Task<Snakk.Protos.Dm.PagedConversationList?> GetDmConversationsAsync(
+        int offset = 0, int pageSize = 20, CancellationToken ct = default)
+    {
+        try { return await dmClient.GetConversationsAsync(new DmGetConversationsRequest { Offset = offset, PageSize = pageSize }, cancellationToken: ct); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<Snakk.Protos.Dm.ConversationResponse?> GetDmConversationAsync(
+        string conversationId, CancellationToken ct = default)
+    {
+        try { return await dmClient.GetConversationAsync(new DmGetConversationRequest { ConversationId = conversationId }, cancellationToken: ct); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<Snakk.Protos.Dm.ConversationResponse?> GetOrCreateDmConversationAsync(
+        string recipientPublicId, CancellationToken ct = default)
+    {
+        try { return await dmClient.GetOrCreateConversationAsync(new DmGetOrCreateRequest { RecipientPublicId = recipientPublicId }, cancellationToken: ct); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<Snakk.Protos.Dm.PagedMessageList?> GetDmMessagesAsync(
+        string conversationId, int offset = 0, int pageSize = 30, CancellationToken ct = default)
+    {
+        try { return await dmClient.GetMessagesAsync(new DmGetMessagesRequest { ConversationId = conversationId, Offset = offset, PageSize = pageSize }, cancellationToken: ct); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<Snakk.Protos.Dm.SendMessageResponse?> SendDmMessageAsync(
+        string conversationId, string content, CancellationToken ct = default)
+    {
+        try { return await dmClient.SendMessageAsync(new DmSendMessageRequest { ConversationId = conversationId, Content = content }, cancellationToken: ct); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<bool> MarkDmAsReadAsync(string conversationId, CancellationToken ct = default)
+    {
+        try { await dmClient.MarkAsReadAsync(new DmMarkAsReadRequest { ConversationId = conversationId }, cancellationToken: ct); return true; }
+        catch (RpcException ex) { LogGrpcError(ex); return false; }
+    }
+
+    public virtual async Task<Snakk.Protos.Dm.UnreadCountResponse?> GetDmUnreadCountAsync(CancellationToken ct = default)
+    {
+        try { return await dmClient.GetUnreadCountAsync(new DmGetUnreadCountRequest(), cancellationToken: ct); }
+        catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task<bool> DeleteDmMessagesAsync(
+        string conversationId, IReadOnlyList<string> messageIds, bool deleteForAll, CancellationToken ct = default)
+    {
+        try
+        {
+            var req = new DmDeleteMessagesRequest { ConversationId = conversationId, DeleteForAll = deleteForAll };
+            req.MessageIds.AddRange(messageIds);
+            var result = await dmClient.DeleteMessagesAsync(req, cancellationToken: ct);
+            return result.Success;
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return false; }
+    }
+
+    public virtual async Task<bool> DeleteDmConversationAsync(string conversationId, bool deleteForAll, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await dmClient.DeleteConversationAsync(
+                new DmDeleteConversationRequest { ConversationId = conversationId, DeleteForAll = deleteForAll }, cancellationToken: ct);
+            return result.Success;
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return false; }
+    }
+
+    public virtual async Task<bool> PinDmConversationAsync(string conversationId, bool isPinned, CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await dmClient.PinConversationAsync(
+                new DmPinConversationRequest { ConversationId = conversationId, IsPinned = isPinned }, cancellationToken: ct);
+            return result.Success;
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return false; }
     }
 }
 

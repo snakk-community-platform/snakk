@@ -1,8 +1,1 @@
-namespace Snakk.Application.DTOs.Management;
-
-public class SpaceModerationDto
-{
-    public List<ModerationReportDto> PendingReports { get; set; } = new();
-    public List<ModerationActionDto> RecentActions { get; set; } = new();
-    public ModerationStatsDto Stats { get; set; } = new();
-}
+global using SpaceModerationDto = Snakk.Application.DTOs.Management.ScopeModerationDto;

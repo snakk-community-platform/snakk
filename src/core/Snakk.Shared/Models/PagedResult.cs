@@ -12,4 +12,13 @@ public record PagedResult<T>
     /// Null if no more items.
     /// </summary>
     public string? NextCursor { get; init; }
+
+    public PagedResult<TOut> Map<TOut>(Func<T, TOut> selector) => new()
+    {
+        Items = Items.Select(selector).ToList(),
+        Offset = Offset,
+        PageSize = PageSize,
+        HasMoreItems = HasMoreItems,
+        NextCursor = NextCursor
+    };
 }

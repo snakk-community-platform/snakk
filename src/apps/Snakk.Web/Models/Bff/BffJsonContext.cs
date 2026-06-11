@@ -27,4 +27,11 @@ namespace Snakk.Web.Models.Bff;
 [JsonSerializable(typeof(BffUserFollowStatusResponse))]
 [JsonSerializable(typeof(BffUserStatsResponse))]
 [JsonSerializable(typeof(BffEntityResolveResponse))]
+[JsonSerializable(typeof(BffDmConversationResponse))]
+[JsonSerializable(typeof(BffDmConversationsResponse))]
+[JsonSerializable(typeof(BffDmMessageResponse))]
+[JsonSerializable(typeof(BffDmMessagesResponse))]
+[JsonSerializable(typeof(BffDmUnreadCountResponse))]
+[JsonSerializable(typeof(BffDmDeleteMessagesRequest))]
+[JsonSerializable(typeof(BffDmPinRequest))]
 public partial class BffJsonContext : JsonSerializerContext;

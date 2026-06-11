@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Snakk.Infrastructure.Database;
+using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Domain.Entities;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Mappers;
@@ -118,11 +119,9 @@ public class PostRepositoryAdapter(
                 HasMoreItems = false
             };
 
-        var projections = await context.Posts
+        var result = await context.Posts
             .Where(p => p.DiscussionId == discussionDbId)
             .OrderBy(p => p.CreatedAt)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(p => new PostProjection(
                 p.PublicId,
                 p.DiscussionPublicId,
@@ -143,22 +142,9 @@ public class PostRepositoryAdapter(
                 p.IsMilestone,
                 p.RevisionCount,
                 p.WasNormalized))
-            .ToListAsync(ct);
+            .ToPagedResultAsync(offset, pageSize, ct);
 
-        var hasMoreItems = projections.Count > pageSize;
-        var resultItems = hasMoreItems
-            ? projections
-                .Take(pageSize)
-                .Select(p => p.ToDomain())
-            : projections.Select(p => p.ToDomain());
-
-        return new PagedResult<Post>
-        {
-            Items = resultItems,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+        return result.Map(p => p.ToDomain());
     }
 
     public async Task AddAsync(Post post, CancellationToken ct = default)
@@ -168,6 +154,9 @@ public class PostRepositoryAdapter(
         // Resolve foreign keys (sequential — EF Core DbContext is not thread-safe)
         var discussion = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == post.DiscussionId.Value, ct)
             ?? throw new InvalidOperationException($"Discussion with PublicId '{post.DiscussionId}' not found");
+
+        if (post.CreatedByUserId is null)
+            throw new InvalidOperationException("Cannot save a post with no author");
 
         var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == post.CreatedByUserId.Value, ct)
             ?? throw new InvalidOperationException($"User with PublicId '{post.CreatedByUserId}' not found");
@@ -406,6 +395,19 @@ public class PostRepositoryAdapter(
         int limit,
         CancellationToken ct = default)
     {
+        // No scope filter — query User.LastSeenAt directly instead of GROUP BY across all posts.
+        if (communityId is null && hubId is null && spaceId is null)
+        {
+            var recent = await context.Users
+                .Where(u => !u.IsDeleted && u.LastSeenAt != null)
+                .OrderByDescending(u => u.LastSeenAt)
+                .Take(limit)
+                .Select(u => new { u.PublicId, LastSeenAt = u.LastSeenAt!.Value })
+                .ToListAsync(ct);
+
+            return recent.Select(u => (UserId.From(u.PublicId), u.LastSeenAt)).ToList();
+        }
+
         var postsQuery = context.Posts.AsQueryable();
 
         if (communityId is not null)
@@ -549,7 +551,7 @@ public class PostRepositoryAdapter(
     private record PostProjection(
         string PublicId,
         string DiscussionPublicId,
-        string CreatedByUserPublicId,
+        string? CreatedByUserPublicId,
         string Content,
         string RenderedContent,
         DateTime CreatedAt,
@@ -570,7 +572,7 @@ public class PostRepositoryAdapter(
         public Post ToDomain() => Post.Rehydrate(
             PostId.From(PublicId),
             DiscussionId.From(DiscussionPublicId),
-            UserId.From(CreatedByUserPublicId),
+            UserId.FromNullable(CreatedByUserPublicId),
             Content,
             RenderedContent,
             CreatedAt,

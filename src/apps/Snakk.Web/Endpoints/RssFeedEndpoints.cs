@@ -231,7 +231,7 @@ public static class RssFeedEndpoints
         var items = result.Items.Select(d =>
         {
             var slugWithId = $"{d.Slug}~{UlidBase62.Encode(d.PublicId)}";
-            var link = $"{baseUrl}/c/{d.CommunitySlug}/h/{d.Hub.Slug}/{d.Space.Slug}/{slugWithId}";
+            var link = $"{baseUrl}/c/{d.Community.Slug}/h/{d.Hub.Slug}/{d.Space.Slug}/{slugWithId}";
 
             return new FeedItem(
                 Title: d.Title,

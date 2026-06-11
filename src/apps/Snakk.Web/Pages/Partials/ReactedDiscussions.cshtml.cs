@@ -8,6 +8,7 @@ namespace Snakk.Web.Pages.Partials;
 
 public class ReactedDiscussionsModel(
     SnakkApiClient apiClient,
+    IConfiguration configuration,
     ICommunityContext communityContext) : PageModel
 {
     public ICommunityContext Community => communityContext;
@@ -15,6 +16,7 @@ public class ReactedDiscussionsModel(
     public bool HasMoreItems { get; set; }
     public int Offset { get; set; }
     public int NextOffset { get; set; }
+    public int MaxOffset { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 10, CancellationToken cancellationToken = default)
     {
@@ -24,6 +26,16 @@ public class ReactedDiscussionsModel(
 
         pageSize = Math.Clamp(pageSize, 1, 20);
         Offset = offset;
+
+        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 10);
+        MaxOffset = maxPages * pageSize;
+
+        if (offset >= MaxOffset)
+        {
+            Items = [];
+            HasMoreItems = false;
+            return Page();
+        }
 
         try
         {

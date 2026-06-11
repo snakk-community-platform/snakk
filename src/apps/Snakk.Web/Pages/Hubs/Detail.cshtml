@@ -17,11 +17,6 @@
     }
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("space")" asp-append-version="true" />
-}
-
 @section Meta {
     @if (Model.Hub is { IsRestricted: false })
     {
@@ -36,14 +31,17 @@
     }
 }
 
+@if (Model.Require2FAGate)
+{
+    <partial name="_Require2FAGate" />
+    return;
+}
+
 @if (Model.Hub == null)
 {
     <div class="sn-center">
         <div class="sn-center-inner">
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.HubDetailNotFound</p>
-                <a href="/" class="btn btn-primary btn-sm mt-4">@T.Pages.HubDetailBackToHome</a>
-            </div>
+            <partial name="Shared/_EmptyState" model='new EmptyStateVM(T.Pages.HubDetailNotFound, T.Pages.HubDetailBackToHome, "/")' />
         </div>
     </div>
 }
@@ -146,9 +144,7 @@ else
 
         @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
         {
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.HubDetailNoDiscussions</p>
-            </div>
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.HubDetailNoDiscussions)" />
         }
         else
         {
@@ -169,20 +165,7 @@ else
                          hx-target="this"
                          hx-push-url="false"
                          class="py-2">
-                        @for (var i = 0; i < 3; i++)
-                        {
-                            <div class="sn-card" style="opacity: 0.5">
-                                <div class="sn-card-header">
-                                    <div class="skeleton h-3 w-16 rounded"></div>
-                                    <div class="skeleton h-4 w-4 rounded-full"></div>
-                                    <div class="skeleton h-3 w-20 rounded"></div>
-                                </div>
-                                <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                <div class="sn-card-stats mt-2">
-                                    <div class="skeleton h-3 w-24 rounded"></div>
-                                </div>
-                            </div>
-                        }
+                        <partial name="Shared/_DiscussionSkeleton" />
                     </div>
                 }
                 else
@@ -364,6 +347,7 @@ else
 </aside>
 
 @section Scripts {
+    <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("pages/frontpage")" asp-append-version="true" defer></script>
 }
 }

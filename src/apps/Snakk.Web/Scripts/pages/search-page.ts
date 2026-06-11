@@ -19,42 +19,12 @@
     }
 
     /**
-     * Enable/disable date range based on search type
-     */
-    function updateDateRangeState(): void {
-        const selectedType = document.querySelector<HTMLInputElement>('#search-filters input[name="searchType"]:checked');
-        const type = selectedType?.getAttribute('aria-label')?.toLowerCase();
-
-        // Disable date range for user and space searches
-        const shouldDisable = type === 'user' || type === 'space';
-
-        dateRangeRadios.forEach((button, index) => {
-            button.disabled = shouldDisable;
-
-            const parentElement = button.parentElement;
-            if (!parentElement) return;
-
-            if (shouldDisable) {
-                // Deselect all date range buttons when disabled
-                button.checked = false;
-                parentElement.classList.add('btn-disabled', 'opacity-50', 'cursor-not-allowed');
-            } else {
-                parentElement.classList.remove('btn-disabled', 'opacity-50', 'cursor-not-allowed');
-                // Auto-select first option (Today) when enabled if nothing is selected
-                if (index === 0 && !document.querySelector('#search-filters input[name="dateRange"]:checked')) {
-                    button.checked = true;
-                }
-            }
-        });
-    }
-
-    /**
      * Initialize on page load
      */
     function initialize(): void {
         // Get search type and date range from URL
         const urlParams = new URLSearchParams(window.location.search);
-        const searchType = urlParams.get('searchType')?.toLowerCase() || 'post';
+        const searchType = urlParams.get('searchType')?.toLowerCase() || 'discussion';
         const dateRange = urlParams.get('dateRange')?.toLowerCase();
 
         // Set search type radio button
@@ -75,16 +45,7 @@
             });
         }
 
-        // Initialize date range state
-        updateDateRangeState();
     }
-
-    // Event listeners - only update date range state when search type changes
-    searchTypeRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            updateDateRangeState();
-        });
-    });
 
     // Initialize on page load
     initialize();

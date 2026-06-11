@@ -12,10 +12,6 @@
     ViewData["RssFeedTitle"] = T.Pages.LatestHeading;
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
-}
-
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
@@ -30,9 +26,7 @@
 
         @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
         {
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.IndexEmpty</p>
-            </div>
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.IndexEmpty)" />
         }
         else
         {
@@ -54,20 +48,7 @@
                          hx-target="this"
                          hx-push-url="false"
                          class="py-2">
-                        @for (var i = 0; i < 3; i++)
-                        {
-                            <div class="sn-card" style="opacity: 0.5">
-                                <div class="sn-card-header">
-                                    <div class="skeleton h-3 w-16 rounded"></div>
-                                    <div class="skeleton h-4 w-4 rounded-full"></div>
-                                    <div class="skeleton h-3 w-20 rounded"></div>
-                                </div>
-                                <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                <div class="sn-card-stats mt-2">
-                                    <div class="skeleton h-3 w-24 rounded"></div>
-                                </div>
-                            </div>
-                        }
+                        <partial name="Shared/_DiscussionSkeleton" />
                     </div>
                 }
             </div>
@@ -84,6 +65,7 @@
 <partial name="Shared/_GlobalRightSidebar" />
 
 @section Scripts {
+    <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("pages/frontpage")" asp-append-version="true" defer></script>
     @if (Model.RecentDiscussions?.Items != null && Model.RecentDiscussions.Items.Any())
     {

@@ -30,12 +30,16 @@
 @use 'components/sparkline';
 @use 'components/mobile-nav';
 @use 'components/site-header';
+@use 'components/tabs';
 
 // ============================================
 // Features
 // ============================================
 @use 'features/sidebar';
 @use 'features/nudge';
+@use 'features/profile';
+@use 'features/activity';
+@use 'features/stats';
 
 // ============================================
 // Pages
@@ -43,6 +47,14 @@
 @use 'pages/layout' as page-layout;
 @use 'pages/left-nav';
 @use 'pages/right-sidebar';
+@use 'pages/profile' as page-profile;
+@use 'pages/discussion-card';
+@use 'pages/card-previews';
+@use 'pages/discussion-header';
+@use 'pages/stats-chart';
+@use 'pages/space' as page-space;
+@use 'pages/hub' as page-hub;
+@use 'pages/community' as page-community;
 
 // ============================================
 // Utilities

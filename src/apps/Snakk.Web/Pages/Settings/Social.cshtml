@@ -1,32 +1,12 @@
 ﻿@page "/settings/social"
 @model Snakk.Web.Pages.Settings.SocialModel
 @{
+    Layout = "~/Pages/Shared/_SettingsLayout.cshtml";
     ViewData["Title"] = T.Settings.TitleSocial;
     ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleSocial;
+    ViewData["Settings.Icon"] = "icon-share";
+    ViewData["Settings.Heading"] = T.Settings.HeadingSocial;
 }
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("settings")" asp-append-version="true" />
-}
-
-@section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
-}
-
-<!-- Center Column -->
-<div class="sn-center">
-    <div class="sn-center-inner">
-        @if (User.Identity?.IsAuthenticated != true)
-        {
-            <partial name="Shared/_AuthPrompt" />
-        }
-        else
-        {
-        <h2 class="sn-section-title">
-            <span class="icon icon-share" aria-hidden="true"></span>
-            @T.Settings.HeadingSocial
-        </h2>
-        <div class="sn-settings-content">
 
             <div class="sn-settings-section">
                 <p class="text-sm mb-4" style="color: var(--text-tertiary)">
@@ -72,16 +52,6 @@
                     <span id="save-success" class="text-xs self-center hidden" style="color: var(--color-success)">@T.Settings.SocialSaved</span>
                 </div>
             </div>
-
-        </div>
-        } @* end IsAuthenticated *@
-    </div>
-</div>
-
-<!-- Right Column -->
-<aside class="sn-right">
-<partial name="Shared/_SettingsRightNav" />
-</aside>
 
 <script id="platforms-data" type="application/json">@Html.Raw(Model.PlatformsJson)</script>
 <script src="@Snakk.Web.Helpers.SnakkUrlHelper.Js("pages/settings-social")" asp-append-version="true"></script>

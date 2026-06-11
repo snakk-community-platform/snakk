@@ -124,7 +124,7 @@ public class SecurityService(SnakkDbContext context, IDbContextFactory<SnakkDbCo
                 Username = g
                     .OrderByDescending(a => a.CreatedAt)
                     .Select(a => a.ActorUser != null ? a.ActorUser.DisplayName : null)
-                    .First()
+                    .FirstOrDefault()
             })
             .OrderByDescending(f => f.AttemptCount)
             .Skip(offset)

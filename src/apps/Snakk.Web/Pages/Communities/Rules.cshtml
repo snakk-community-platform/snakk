@@ -6,10 +6,6 @@
     ViewData["Description"] = string.Format(T.Pages.CommRulesDescPattern, Model.CommunityDetail?.Name);
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("space")" asp-append-version="true" />
-}
-
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
@@ -25,10 +21,7 @@
 {
     <div class="sn-center">
         <div class="sn-center-inner">
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.CommModsNotFound</p>
-                <a href="/communities" class="btn btn-primary btn-sm mt-4">@T.Pages.CommModsBackToCommunities</a>
-            </div>
+            <partial name="Shared/_EmptyState" model='new EmptyStateVM(T.Pages.CommModsNotFound, T.Pages.CommModsBackToCommunities, "/communities")' />
         </div>
     </div>
 }

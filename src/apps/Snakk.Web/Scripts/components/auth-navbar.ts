@@ -168,32 +168,9 @@ interface NotificationsResponse {
         return icons[type] || '<span class="icon icon-bell h-4 w-4" aria-hidden="true"></span>';
     }
 
-    function formatTimeAgo(dateString: string): string {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMs / 3600000);
-        const diffDays = Math.floor(diffMs / 86400000);
+    const formatTimeAgo = (dateString: string): string => (window as any).SnakkUtils.formatRelativeTime(dateString);
 
-        if (diffMins < 1) return 'just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
-        const tz = (window as any).snakkTimezone || 'UTC';
-        try {
-            return date.toLocaleDateString('en-US', { timeZone: tz, month: 'short', day: 'numeric' });
-        } catch {
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }
-    }
-
-    function escapeHtml(text: string): string {
-        if (!text) return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    const escapeHtml = (text: string): string => (window as any).SnakkUtils.escapeHtml(text);
 
     // ===== Event Delegation =====
 
@@ -233,6 +210,30 @@ interface NotificationsResponse {
         }
     });
 
+    // ===== DM Badge =====
+
+    async function loadDmUnreadCount(): Promise<void> {
+        try {
+            const response = await fetch('/bff/messages/unread-count', { credentials: 'include' });
+            if (!response.ok) return;
+            const data: { count: number } = await response.json();
+            updateDmBadge(data.count);
+        } catch {
+            // Feature may be disabled or user not authenticated — silent failure is correct
+        }
+    }
+
+    function updateDmBadge(count: number): void {
+        document.querySelectorAll<HTMLElement>('.dm-badge').forEach(badge => {
+            if (count > 0) {
+                badge.textContent = count > 99 ? '99+' : count.toString();
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        });
+    }
+
     // ===== Listen for Realtime Events =====
 
     document.addEventListener('snakk:realtime:notification-count', (event) => {
@@ -245,6 +246,11 @@ interface NotificationsResponse {
         loadNotifications();
     });
 
+    document.addEventListener('snakk:realtime:dm-count', (event) => {
+        const customEvent = event as CustomEvent<{ unreadCount: number }>;
+        updateDmBadge(customEvent.detail.unreadCount);
+    });
+
     // ===== Initialize =====
 
     function init(): void {
@@ -252,6 +258,7 @@ interface NotificationsResponse {
         if ((window as any).currentUserId) {
             loadNotificationCount();
             loadNotifications();
+            loadDmUnreadCount();
         }
 
         // Update theme toggle button icon with current state
@@ -266,6 +273,7 @@ interface NotificationsResponse {
 
     // Export minimal API
     (window as any).SnakkAuthNav = {
-        updateNotificationBadge
+        updateNotificationBadge,
+        updateDmBadge
     };
 })();

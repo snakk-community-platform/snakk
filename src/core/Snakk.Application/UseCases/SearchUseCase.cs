@@ -5,7 +5,7 @@ using Snakk.Shared.Models;
 
 public class SearchUseCase(ISearchRepository searchRepository) : UseCaseBase
 {
-    public Task<PagedResult<DiscussionSearchResultDto>> SearchDiscussionsAsync(
+    public Task<PagedResult<RecentDiscussionDto>> SearchDiscussionsAsync(
         string query,
         string? authorPublicId = null,
         string? spacePublicId = null,

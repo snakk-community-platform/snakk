@@ -80,7 +80,8 @@ public class PasskeyGrpcService(
                     u.Email,
                     u.EmailVerified,
                     u.AvatarFileName,
-                    u.AuthVersion
+                    u.AuthVersion,
+                    u.TwoFactorEnabled
                 })
                 .FirstOrDefaultAsync(ctx.CancellationToken)
                 ?? throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
@@ -97,7 +98,8 @@ public class PasskeyGrpcService(
                 user.EmailVerified,
                 roles.FirstOrDefault(),
                 user.AvatarFileName,
-                authVersion: user.AuthVersion);
+                authVersion: user.AuthVersion,
+                twoFactorEnabled: user.TwoFactorEnabled);
 
             var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(UserId.From(publicId));
 
@@ -138,6 +140,7 @@ public class PasskeyGrpcService(
                 Id = p.Id,
                 FriendlyName = p.FriendlyName ?? "",
                 Transports = p.Transports ?? "",
+                Aaguid = p.AaGuid.ToString(),
                 CreatedAt = Timestamp.FromDateTimeOffset(p.CreatedAt)
             };
             if (p.LastUsedAt.HasValue)

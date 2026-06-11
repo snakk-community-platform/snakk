@@ -21,6 +21,7 @@ public class Space
     public int AvatarRevision { get; private set; }
     public bool IsAdultOnly { get; private set; }
     public bool AllowsAdultContent { get; private set; }
+    public bool Require2FA { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? LastModifiedAt { get; private set; }
 
@@ -54,7 +55,8 @@ public class Space
         string? communityLanguageCode = null,
         bool autoParagraphEnabled = true,
         bool isAdultOnly = false,
-        bool allowsAdultContent = false)
+        bool allowsAdultContent = false,
+        bool require2FA = false)
     {
         PublicId = publicId;
         HubId = hubId;
@@ -73,6 +75,7 @@ public class Space
         AvatarRevision = avatarRevision;
         IsAdultOnly = isAdultOnly;
         AllowsAdultContent = allowsAdultContent;
+        Require2FA = require2FA;
         CreatedAt = createdAt;
         LastModifiedAt = lastModifiedAt;
         _discussions = discussions ?? [];
@@ -123,7 +126,8 @@ public class Space
         string? communityLanguageCode = null,
         bool autoParagraphEnabled = true,
         bool isAdultOnly = false,
-        bool allowsAdultContent = false) =>
+        bool allowsAdultContent = false,
+        bool require2FA = false) =>
         new Space(
             publicId,
             hubId,
@@ -144,7 +148,8 @@ public class Space
             communityLanguageCode,
             autoParagraphEnabled,
             isAdultOnly,
-            allowsAdultContent);
+            allowsAdultContent,
+            require2FA);
 
     public static Space RehydrateForList(
         SpaceId publicId,
@@ -237,6 +242,12 @@ public class Space
     public void SetAutoParagraphEnabled(bool enabled)
     {
         AutoParagraphEnabled = enabled;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetRequire2FA(bool require)
+    {
+        Require2FA = require;
         LastModifiedAt = DateTime.UtcNow;
     }
 }

@@ -43,11 +43,15 @@ public class SettingsServiceTests : IDisposable
 
         _securityService = Substitute.For<ISecurityService>();
 
+        var dbContextFactory = Substitute.For<IDbContextFactory<SnakkDbContext>>();
+        dbContextFactory.CreateDbContextAsync(Arg.Any<CancellationToken>()).Returns(_context);
+
         // Use EphemeralDataProtectionProvider for testing
         var dataProtectionProvider = new EphemeralDataProtectionProvider();
 
         _service = new SettingsService(
             _context,
+            dbContextFactory,
             cache,
             dataProtectionProvider,
             _configuration,
@@ -213,14 +217,15 @@ public class SettingsServiceTests : IDisposable
     }
 
     [Test]
-    public async Task UpdateSettingAsync_NonexistentSetting_ThrowsException()
+    public async Task UpdateSettingAsync_NonexistentSetting_CreatesNewSetting()
     {
         var user = await CreateUser("update_err_admin");
 
-        var act = async () =>
-            await _service.UpdateSettingAsync("General", "NonExistent", "value", "update_err_admin");
+        var result = await _service.UpdateSettingAsync("General", "NonExistent", "value", "update_err_admin");
 
-        await Assert.That(act).ThrowsException();
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.Key).IsEqualTo("NonExistent");
+        await Assert.That(result.Category).IsEqualTo("General");
     }
 
     [Test]

@@ -2,7 +2,7 @@ namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Distributed;
 using Snakk.Api.Models;
 using Snakk.Api.Services;
 using Snakk.Application.Services;
@@ -55,12 +55,20 @@ public static class MeEndpoints
         group.MapPost("/sudo/oauth", IssueSudoTokenFromOAuthNonceAsync)
             .WithName("IssueSudoTokenFromOAuth")
             .RequireRateLimiting("auth");
+
+        group.MapDelete("/account", DeleteAccountAsync)
+            .WithName("DeleteAccount")
+            .RequireRateLimiting("auth");
+
+        group.MapGet("/data-export", ExportMyDataAsync)
+            .WithName("ExportMyData")
+            .RequireRateLimiting("expensive");
     }
 
-    internal static bool ValidateSudoToken(string? sudoToken, string userId, IMemoryCache cache)
+    internal static async Task<bool> ValidateSudoTokenAsync(string? sudoToken, string userId, IDistributedCache cache, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(sudoToken)) return false;
-        return cache.TryGetValue($"sudo:{userId}:{sudoToken}", out _);
+        return await cache.GetStringAsync($"sudo:{userId}:{sudoToken}", ct) is not null;
     }
 
     private static async Task<IResult> GetCurrentUserAsync(
@@ -134,7 +142,8 @@ public static class MeEndpoints
                 user.DisplayName,
                 user.Email,
                 user.EmailVerified,
-                roles.FirstOrDefault());
+                roles.FirstOrDefault(),
+                twoFactorEnabled: user.TwoFactorEnabled);
 
             return TypedResults.Ok(new UpdateProfileResponse("Profile updated successfully", newToken));
         }
@@ -168,7 +177,7 @@ public static class MeEndpoints
         ChangePasswordRequest request,
         ICurrentUserService currentUser,
         AuthenticationUseCase authUseCase,
-        IMemoryCache cache,
+        IDistributedCache cache,
         CancellationToken ct)
     {
         var userIdValue = currentUser.GetCurrentUserId();
@@ -178,7 +187,7 @@ public static class MeEndpoints
         if (request.NewPassword != request.ConfirmPassword)
             return Results.BadRequest(new { error = "Passwords do not match." });
 
-        if (!ValidateSudoToken(request.SudoToken, userIdValue, cache))
+        if (!await ValidateSudoTokenAsync(request.SudoToken, userIdValue, cache, ct))
             return Results.Json(new { error = "Authentication required." }, statusCode: 403);
 
         var result = await authUseCase.ChangePasswordAsync(
@@ -199,7 +208,7 @@ public static class MeEndpoints
         ITwoFactorAuthService twoFactorService,
         IPasswordHasher passwordHasher,
         SnakkDbContext context,
-        IMemoryCache cache,
+        IDistributedCache cache,
         CancellationToken ct)
     {
         var userIdValue = currentUser.GetCurrentUserId();
@@ -234,7 +243,8 @@ public static class MeEndpoints
         }
 
         var token = System.Security.Cryptography.RandomNumberGenerator.GetHexString(64);
-        cache.Set($"sudo:{userIdValue}:{token}", true, TimeSpan.FromMinutes(5));
+        await cache.SetStringAsync($"sudo:{userIdValue}:{token}", "1",
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }, ct);
 
         return Results.Ok(new { sudoToken = token, expiresInSeconds = 300 });
     }
@@ -261,7 +271,7 @@ public static class MeEndpoints
         [FromBody] SudoPasskeyCompleteRequest request,
         ICurrentUserService currentUser,
         IPasskeyService passkeyService,
-        IMemoryCache cache,
+        IDistributedCache cache,
         CancellationToken ct)
     {
         var userIdValue = currentUser.GetCurrentUserId();
@@ -281,28 +291,87 @@ public static class MeEndpoints
             return Results.BadRequest(new { error = "Passkey does not belong to this account." });
 
         var token = System.Security.Cryptography.RandomNumberGenerator.GetHexString(64);
-        cache.Set($"sudo:{userIdValue}:{token}", true, TimeSpan.FromMinutes(5));
+        await cache.SetStringAsync($"sudo:{userIdValue}:{token}", "1",
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }, ct);
         return Results.Ok(new { sudoToken = token, expiresInSeconds = 300 });
     }
 
-    private static IResult IssueSudoTokenFromOAuthNonceAsync(
+    private static async Task<IResult> IssueSudoTokenFromOAuthNonceAsync(
         [FromBody] OAuthSudoNonceRequest request,
         ICurrentUserService currentUser,
-        IMemoryCache cache)
+        IDistributedCache cache,
+        CancellationToken ct)
     {
         var userIdValue = currentUser.GetCurrentUserId();
         if (userIdValue is null)
             return Results.Unauthorized();
 
         var cacheKey = $"sudo-oauth-nonce:{userIdValue}:{request.Nonce}";
-        if (!cache.TryGetValue(cacheKey, out _))
+        if (await cache.GetStringAsync(cacheKey, ct) is null)
             return Results.BadRequest(new { error = "Invalid or expired nonce." });
 
-        cache.Remove(cacheKey);
+        await cache.RemoveAsync(cacheKey, ct);
 
         var token = System.Security.Cryptography.RandomNumberGenerator.GetHexString(64);
-        cache.Set($"sudo:{userIdValue}:{token}", true, TimeSpan.FromMinutes(5));
+        await cache.SetStringAsync($"sudo:{userIdValue}:{token}", "1",
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5) }, ct);
         return Results.Ok(new { sudoToken = token, expiresInSeconds = 300 });
+    }
+
+    private static async Task<IResult> DeleteAccountAsync(
+        [FromBody] DeleteAccountRequest request,
+        ICurrentUserService currentUser,
+        GdprUseCase gdprUseCase,
+        SnakkDbContext context,
+        IDistributedCache cache,
+        IEmailProtector emailProtector,
+        CancellationToken ct)
+    {
+        var userIdValue = currentUser.GetCurrentUserId();
+        if (userIdValue is null) return Results.Unauthorized();
+
+        if (!await ValidateSudoTokenAsync(request.SudoToken, userIdValue, cache, ct))
+            return Results.Json(new { error = "Authentication required." }, statusCode: 403);
+
+        var encryptedEmail = await context.Users
+            .Where(u => u.PublicId == userIdValue)
+            .Select(u => u.Email)
+            .FirstOrDefaultAsync(ct);
+
+        if (string.IsNullOrEmpty(encryptedEmail))
+            return Results.BadRequest(new { error = "No email address on this account." });
+
+        var actualEmail = emailProtector.Unprotect(encryptedEmail);
+        if (!string.Equals(request.Confirmation.Trim(), actualEmail, StringComparison.OrdinalIgnoreCase))
+            return Results.BadRequest(new { error = "Email address does not match." });
+
+        var result = await gdprUseCase.DeleteAccountAsync(userIdValue, ct);
+        if (!result.IsSuccess)
+            return Results.BadRequest(new { error = result.Error });
+
+        return Results.Ok(new { message = "Account deleted successfully." });
+    }
+
+    private static async Task<IResult> ExportMyDataAsync(
+        ICurrentUserService currentUser,
+        GdprUseCase gdprUseCase,
+        CancellationToken ct)
+    {
+        var userIdValue = currentUser.GetCurrentUserId();
+        if (userIdValue is null) return Results.Unauthorized();
+
+        var bundle = await gdprUseCase.ExportUserDataAsync(userIdValue, ct);
+        if (bundle is null) return Results.NotFound(new { error = "User not found." });
+
+        var json = System.Text.Json.JsonSerializer.Serialize(bundle,
+            new System.Text.Json.JsonSerializerOptions
+            {
+                WriteIndented = true,
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+            });
+        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        var fileName = $"snakk-data-export-{DateTime.UtcNow:yyyy-MM-dd}.json";
+        return Results.File(bytes, "application/json", fileName);
     }
 
     private static async Task<IResult> VerifyCredentialAsync(
@@ -311,7 +380,7 @@ public static class MeEndpoints
         ITwoFactorAuthService twoFactorService,
         IPasswordHasher passwordHasher,
         SnakkDbContext context,
-        IMemoryCache cache,
+        IDistributedCache cache,
         CancellationToken ct)
     {
         var userIdValue = currentUser.GetCurrentUserId();
@@ -320,7 +389,7 @@ public static class MeEndpoints
 
         if (!string.IsNullOrWhiteSpace(request.SudoToken))
         {
-            if (!ValidateSudoToken(request.SudoToken, userIdValue, cache))
+            if (!await ValidateSudoTokenAsync(request.SudoToken, userIdValue, cache, ct))
                 return Results.Json(new { error = "Authentication required." }, statusCode: 403);
             return TypedResults.Ok(new MessageResponse("Verified."));
         }

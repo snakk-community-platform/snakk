@@ -1,0 +1,35 @@
+@* 2FA required interstitial — shown when a space/hub/community requires 2FA and the visitor doesn't have it enabled *@
+@{
+    var returnUrl = ViewBag.ReturnUrl as string ?? Context.Request.Path + Context.Request.QueryString;
+}
+
+<div class="max-w-lg mx-auto mt-16 px-4">
+    <div class="clean-card">
+        <div class="p-8 text-center space-y-4">
+            <span class="icon icon-lock-closed h-12 w-12 mx-auto text-warning" aria-hidden="true"></span>
+
+            <h2 class="text-lg font-bold">@T.Require2fa.Title</h2>
+
+            <p class="text-sm text-base-content/60">
+                @T.Require2fa.Body
+            </p>
+
+            <div class="flex flex-col gap-2 pt-2">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a href="/settings/privacy?returnUrl=@Uri.EscapeDataString(returnUrl)"
+                       class="btn btn-primary btn-sm w-full">
+                        @T.Require2fa.CtaSetup
+                    </a>
+                }
+                else
+                {
+                    <a href="/auth/login?returnUrl=@Uri.EscapeDataString(returnUrl)"
+                       class="btn btn-primary btn-sm w-full">
+                        @T.Require2fa.CtaLogin
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+</div>

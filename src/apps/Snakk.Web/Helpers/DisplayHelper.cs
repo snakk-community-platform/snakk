@@ -51,6 +51,16 @@ public static class DisplayHelper
     public static string FormatFullDateTime(DateTime? dt) =>
         dt?.ToString("MMMM d, yyyy HH:mm") ?? "";
 
+    public static string FormatRole(string role) => role switch
+    {
+        "GlobalAdmin"    => T.Pages.RoleGlobalAdmin,
+        "CommunityAdmin" => T.Pages.RoleCommunityAdmin,
+        "CommunityMod"   => T.Pages.RoleCommunityMod,
+        "HubMod"         => T.Pages.RoleHubMod,
+        "SpaceMod"       => T.Pages.RoleSpaceMod,
+        _                => role
+    };
+
     public static string FormatCount(int count) =>
         count switch
         {

@@ -2,37 +2,13 @@
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Settings.ConnectedAccountsModel
 @{
+    Layout = "~/Pages/Shared/_SettingsLayout.cshtml";
     ViewData["Title"] = T.Settings.ConnAccTitle;
     ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
+    ViewData["Settings.Icon"] = "icon-user-group";
+    ViewData["Settings.Heading"] = T.Settings.ConnAccHeading;
 }
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("settings")" asp-append-version="true" />
-}
-
-@section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
-}
-
-<!-- Center Column -->
-<div class="sn-center">
-    <div class="sn-center-inner">
-        @if (User.Identity?.IsAuthenticated != true)
-        {
-            <partial name="Shared/_AuthPrompt" />
-        }
-        else
-        {
-        <h2 class="sn-section-title">
-            <span class="icon icon-user-group" aria-hidden="true"></span>
-            @T.Settings.ConnAccHeading
-        </h2>
-        <div class="sn-settings-content">
-            @if (Model.ConnectedProvider is not null)
-            {
-                <div class="alert alert-success mb-4 text-sm">@T.Settings.ConnAccConnectSuccess</div>
-            }
-            else if (Model.ErrorCode == "LAST_AUTH_METHOD")
+            @if (Model.ErrorCode == "LAST_AUTH_METHOD")
             {
                 <div class="alert alert-error mb-4 text-sm">@T.Settings.ConnAccLastAuthMethodError</div>
             }
@@ -52,16 +28,6 @@
                     <div class="text-sm" style="color: var(--text-tertiary)">Loading…</div>
                 </div>
             </div>
-        </div>
-        } @* end IsAuthenticated *@
-    </div>
-</div>
-
-<!-- Right Column -->
-<aside class="sn-right">
-<partial name="Shared/_SettingsRightNav" />
-</aside>
-
 <partial name="Shared/_SudoModals" />
 
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

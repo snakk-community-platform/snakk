@@ -24,6 +24,7 @@ public class HubDatabaseEntity
     public bool RequireEmailConfirmation { get; set; }
     public bool IsRestricted { get; set; }
     public bool IsAdultOnly { get; set; }
+    public bool Require2FA { get; set; }
 
     // Other attributes
     public DateTime? LastModifiedAt { get; set; }

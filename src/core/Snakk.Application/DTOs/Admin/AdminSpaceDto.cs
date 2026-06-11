@@ -1,13 +1,9 @@
 namespace Snakk.Application.DTOs.Admin;
 
-public class AdminSpaceDto
+public record AdminSpaceDto : AdminScopeBaseDto
 {
-    public required string Slug { get; set; }
-    public required string Name { get; set; }
-    public string? Description { get; set; }
-    public required string HubSlug { get; set; }
-    public required string HubName { get; set; }
-    public required string CommunitySlug { get; set; }
-    public int DiscussionCount { get; set; }
-    public required DateTime CreatedAt { get; set; }
+    public required string HubSlug { get; init; }
+    public required string HubName { get; init; }
+    public required string CommunitySlug { get; init; }
+    public int DiscussionCount { get; init; }
 }

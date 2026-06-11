@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Shared.Models;
 
 public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache)
@@ -57,10 +58,8 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
         int pageSize,
         CancellationToken ct = default)
     {
-        var items = await _dbSet
+        return await _dbSet
             .OrderBy(h => h.Name)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(h => new HubListDto(
                 h.PublicId,
                 h.CommunityPublicId,
@@ -70,22 +69,7 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
                 h.AllowAnonymousReading,
                 h.RequireEmailConfirmation,
                 h.CreatedAt))
-            .ToListAsync(ct);
-
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems
-            ? items
-                .Take(pageSize)
-                .ToList()
-            : items;
-
-        return new PagedResult<HubListDto>
-        {
-            Items = resultItems,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 
     public async Task<PagedResult<HubListDto>> GetByCommunityAsync(
@@ -100,10 +84,8 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
 
         query = await WithHubAccessFilterAsync(query, userId);
 
-        var items = await query
+        return await query
             .OrderBy(h => h.Name)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(h => new HubListDto(
                 h.PublicId,
                 h.CommunityPublicId,
@@ -113,22 +95,7 @@ public class HubRepository(SnakkDbContext context, IUserGrantsCacheService grant
                 h.AllowAnonymousReading,
                 h.RequireEmailConfirmation,
                 h.CreatedAt))
-            .ToListAsync(ct);
-
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems
-            ? items
-                .Take(pageSize)
-                .ToList()
-            : items;
-
-        return new PagedResult<HubListDto>
-        {
-            Items = resultItems,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 
     private async Task<IQueryable<HubDatabaseEntity>> WithHubAccessFilterAsync(

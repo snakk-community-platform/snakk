@@ -2,38 +2,19 @@
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.Settings.AccountModel
 @{
+    Layout = "~/Pages/Shared/_SettingsLayout.cshtml";
     ViewData["Title"] = T.Settings.TitleAccount;
     ViewData["Nudge.Title"] = T.Settings.NudgeTitleAccess;
     ViewData["Nudge.Body"] = T.Settings.NudgeBodyAccount;
+    ViewData["Settings.Icon"] = "icon-user";
+    ViewData["Settings.Heading"] = T.Settings.HeadingAccount;
+    ViewData["Settings.UseRegistrationNudge"] = true;
 
     var settingsAvatarFileName = User.FindFirst("AvatarFileName")?.Value;
     var hasUploadedAvatar = !string.IsNullOrEmpty(settingsAvatarFileName);
     var settingsAvatarUrl = SnakkUrlHelper.UserAvatar(Model.UserId ?? "", avatarFileName: settingsAvatarFileName);
     var settingsGeneratedUrl = SnakkUrlHelper.UserAvatar(Model.UserId ?? "");
 }
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("settings")" asp-append-version="true" />
-}
-
-@section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
-}
-
-<!-- Center Column -->
-<div class="sn-center">
-    <div class="sn-center-inner">
-        @if (User.Identity?.IsAuthenticated != true)
-        {
-            <partial name="Shared/_RegistrationNudge" />
-        }
-        else
-        {
-        <h2 class="sn-section-title">
-            <span class="icon icon-user" aria-hidden="true"></span>
-            @T.Settings.HeadingAccount
-        </h2>
-        <div class="sn-settings-content">
 
             <!-- Avatar -->
             <div id="section-avatar" class="sn-settings-section">
@@ -130,26 +111,17 @@
                     @T.Settings.SocialAddLinkBtn
                 </button>
             </div>
-        </div>
-        } @* end IsAuthenticated *@
-    </div>
-</div>
-
-<!-- Right Column -->
-<aside class="sn-right">
-<partial name="Shared/_SettingsRightNav" />
-</aside>
 
 <!-- Display Name Modal -->
 @if (User.Identity?.IsAuthenticated == true)
 {
-<div id="modal-display-name" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-display-name-title">
-    <div class="chart-modal" style="max-width:28rem">
-        <div class="chart-modal-header">
+<div id="modal-display-name" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-display-name-title">
+    <div class="sn-modal" style="max-width:28rem">
+        <div class="sn-modal-header">
             <span id="modal-display-name-title">@T.Settings.DisplayNameTitle</span>
-            <button type="button" class="chart-modal-close" id="display-name-modal-cancel-x" aria-label="Close">✕</button>
+            <button type="button" class="sn-modal-close" id="display-name-modal-cancel-x" aria-label="Close">✕</button>
         </div>
-        <div class="chart-modal-body" style="flex-direction:column">
+        <div class="sn-modal-body" style="flex-direction:column">
             <input type="text"
                    id="display-name-input"
                    class="input w-full"
@@ -160,9 +132,9 @@
             <span class="text-xs mt-1" style="color: var(--text-tertiary)">@T.Settings.DisplayNameHelp</span>
             <p id="display-name-modal-status" class="text-sm mt-2 hidden"></p>
         </div>
-        <div class="chart-modal-footer">
-            <button type="button" class="chart-modal-cancel" id="display-name-modal-cancel">@T.Settings.Priv2faCancelBtn</button>
-            <button type="button" class="chart-modal-insert" id="display-name-modal-submit">@T.Settings.DisplayNameSubmit</button>
+        <div class="sn-modal-footer">
+            <button type="button" class="sn-modal-cancel" id="display-name-modal-cancel">@T.Settings.Priv2faCancelBtn</button>
+            <button type="button" class="sn-modal-insert" id="display-name-modal-submit">@T.Settings.DisplayNameSubmit</button>
         </div>
     </div>
 </div>
@@ -171,11 +143,11 @@
 <!-- Add Social Link Modal -->
 @if (User.Identity?.IsAuthenticated == true)
 {
-<div id="modal-add-social" class="chart-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-add-social-title">
-    <div class="chart-modal social-picker-modal">
-        <div class="chart-modal-header">
+<div id="modal-add-social" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-add-social-title">
+    <div class="sn-modal social-picker-modal">
+        <div class="sn-modal-header">
             <span id="modal-add-social-title">@T.Settings.SocialAddLinkBtn</span>
-            <button type="button" class="chart-modal-close" id="social-modal-close" aria-label="Close">✕</button>
+            <button type="button" class="sn-modal-close" id="social-modal-close" aria-label="Close">✕</button>
         </div>
         <div class="social-picker-body">
             <div class="social-picker-search">
@@ -200,9 +172,9 @@
                 </div>
             </div>
         </div>
-        <div class="chart-modal-footer">
-            <button type="button" class="chart-modal-cancel" id="social-modal-cancel">@T.Settings.SocialCancel</button>
-            <button type="button" class="chart-modal-insert" id="social-modal-add" disabled>@T.Settings.SocialAdd</button>
+        <div class="sn-modal-footer">
+            <button type="button" class="sn-modal-cancel" id="social-modal-cancel">@T.Settings.SocialCancel</button>
+            <button type="button" class="sn-modal-insert" id="social-modal-add" disabled>@T.Settings.SocialAdd</button>
         </div>
     </div>
 </div>
@@ -212,4 +184,5 @@
 
 <script id="platforms-data" type="application/json">@Html.Raw(Model.PlatformsJson)</script>
 <script src="@SnakkUrlHelper.Js("data/social-icons")" asp-append-version="true"></script>
+<script src="@SnakkUrlHelper.Js("core/webauthn-utils")" asp-append-version="true"></script>
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

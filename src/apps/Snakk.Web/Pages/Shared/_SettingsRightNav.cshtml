@@ -55,7 +55,6 @@
             </a>
             @if (isActive("Privacy"))
             {
-                <a href="#section-email" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavEmail</a>
                 <a href="#section-password" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavPassword</a>
                 @if (twoFactorEnabled)
                 {
@@ -72,6 +71,8 @@
                 }
                 <a href="#section-sessions" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavActiveSessions</a>
                 <a href="#section-security-log" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavSecurityLog</a>
+                <a href="#section-data-export" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.DataExportTitle</a>
+                <a href="#section-danger-zone" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link style="color:var(--color-error)">@T.Settings.DangerZoneTitle</a>
             }
 
             <a href="/settings/integrations" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Integrations") ? "active" : "")">

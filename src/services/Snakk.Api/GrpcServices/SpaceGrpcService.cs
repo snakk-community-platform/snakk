@@ -216,7 +216,7 @@ public class SpaceGrpcService(
     }
 
     private sealed record LatestDiscussionMeta(string PublicId, string Title, string Slug, DateTime LastActivityAt, string AuthorPublicId, string AuthorDisplayName, string? AuthorAvatarFileName, int PostCount);
-    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes, string? HubSlug, string? CommunitySlug, int DiscussionCount = 0, int ReplyCount = 0, LatestDiscussionMeta? LatestDiscussion = null);
+    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes, string? HubSlug, string? CommunitySlug, int DiscussionCount = 0, int ReplyCount = 0, LatestDiscussionMeta? LatestDiscussion = null, bool Require2FA = false);
     private async Task PopulateDiscordInviteUrlAsync(SpaceInfo info, string publicId)
     {
         var inviteUrl = await dbContext.Spaces
@@ -238,39 +238,43 @@ public class SpaceGrpcService(
                 var raw = await dbContext.Spaces
                     .Where(s => s.PublicId == publicId)
                     .Select(s => new {
+                        s.Id,
                         s.HasRules,
                         s.RulesRevision,
                         s.ParentHubHasRules,
                         s.ParentCommunityHasRules,
                         s.TeamRevision,
                         s.IsRestricted,
+                        s.Require2FA,
                         AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList(),
                         HubSlug = s.Hub.Slug,
                         CommunitySlug = s.Hub.Community.Slug,
                         s.DiscussionCount,
                         ReplyCount = s.PostCount - s.DiscussionCount,
-                        LatestDiscussion = s.Discussions
-                            .Where(d => !d.IsDeleted)
-                            .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
-                            .Select(d => new {
-                                d.PublicId,
-                                d.Title,
-                                d.Slug,
-                                LastActivityAt = d.LastActivityAt ?? d.CreatedAt,
-                                AuthorPublicId = d.CreatedByUser.PublicId,
-                                AuthorDisplayName = d.CreatedByUser.DisplayName,
-                                AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                                d.PostCount })
-                            .FirstOrDefault()
                     })
                     .FirstOrDefaultAsync(cancel);
                 if (raw is null) return null;
-                var ld = raw.LatestDiscussion is null ? null : new LatestDiscussionMeta(
-                    raw.LatestDiscussion.PublicId, raw.LatestDiscussion.Title, raw.LatestDiscussion.Slug,
-                    raw.LatestDiscussion.LastActivityAt, raw.LatestDiscussion.AuthorPublicId,
-                    raw.LatestDiscussion.AuthorDisplayName ?? "", raw.LatestDiscussion.AuthorAvatarFileName,
-                    raw.LatestDiscussion.PostCount);
-                return new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes, raw.HubSlug, raw.CommunitySlug, raw.DiscussionCount, raw.ReplyCount, ld);
+                // Separate query avoids the ROW_NUMBER() window-function scan EF Core generates
+                // when FirstOrDefault() is used on a navigation collection inside a projection.
+                var latestRaw = await dbContext.Discussions
+                    .Where(d => d.SpaceId == raw.Id && !d.IsDeleted)
+                    .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
+                    .Select(d => new {
+                        d.PublicId,
+                        d.Title,
+                        d.Slug,
+                        LastActivityAt = d.LastActivityAt ?? d.CreatedAt,
+                        AuthorPublicId = d.CreatedByUser.PublicId,
+                        AuthorDisplayName = d.CreatedByUser.DisplayName,
+                        AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
+                        d.PostCount })
+                    .FirstOrDefaultAsync(cancel);
+                var ld = latestRaw is null ? null : new LatestDiscussionMeta(
+                    latestRaw.PublicId, latestRaw.Title, latestRaw.Slug,
+                    latestRaw.LastActivityAt, latestRaw.AuthorPublicId,
+                    latestRaw.AuthorDisplayName ?? "", latestRaw.AuthorAvatarFileName,
+                    latestRaw.PostCount);
+                return new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes, raw.HubSlug, raw.CommunitySlug, raw.DiscussionCount, raw.ReplyCount, ld, raw.Require2FA);
             },
             MetaCacheOptions);
 
@@ -287,6 +291,7 @@ public class SpaceGrpcService(
             info.CommunitySlug = data.CommunitySlug ?? "";
             info.DiscussionCount = data.DiscussionCount;
             info.ReplyCount = data.ReplyCount;
+            info.Require2Fa = data.Require2FA;
             if (data.LatestDiscussion is not null)
             {
                 var ld = data.LatestDiscussion;

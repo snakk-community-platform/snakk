@@ -59,6 +59,7 @@ message CommunityInfo {
   int32 discussion_count = 14;
   int32 reply_count = 15;
   optional string avatar_file_name = 16;
+  bool require_2fa = 17;
 }
 
 message GetCommunityRulesRequest {

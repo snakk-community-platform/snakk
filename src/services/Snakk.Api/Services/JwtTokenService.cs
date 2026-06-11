@@ -26,7 +26,7 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
 
     private static readonly byte[] Sentinel = [1];
 
-    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null)
+    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null, bool twoFactorEnabled = false)
     {
         var jti = Guid.NewGuid().ToString("N");
         var claims = new List<Claim>
@@ -63,6 +63,9 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
         if (!string.IsNullOrEmpty(sessionId))
             claims.Add(new(Snakk.Application.Auth.CustomClaimTypes.SessionId, sessionId));
 
+        if (twoFactorEnabled)
+            claims.Add(new(Snakk.Application.Auth.CustomClaimTypes.TwoFactorEnabled, "1"));
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) { KeyId = "snakk-hmac" };
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -88,7 +91,8 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
             user.AvatarThumbnailFileName,
             user.AvatarMicroFileName,
             authVersion: user.AuthVersion,
-            sessionId: sessionId);
+            sessionId: sessionId,
+            twoFactorEnabled: user.TwoFactorEnabled);
 
     public ClaimsPrincipal? ValidateToken(string token)
     {
@@ -161,6 +165,9 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
         cache.Set(SessionRevocationPrefix + sessionPublicId, Sentinel,
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl });
     }
+
+    public bool IsSessionRevoked(string sessionPublicId) =>
+        cache.Get(SessionRevocationPrefix + sessionPublicId) is not null;
 
     public string GenerateTwoFactorPendingToken(string userPublicId)
     {

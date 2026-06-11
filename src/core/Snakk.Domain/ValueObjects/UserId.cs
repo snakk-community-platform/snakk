@@ -13,6 +13,7 @@ public record UserId
     }
 
     public static UserId From(string value) => new(value);
+    public static UserId? FromNullable(string? value) => string.IsNullOrWhiteSpace(value) ? null : new UserId(value);
     public static UserId New() => new(Ulid.NewUlid().ToString());
 
     public override string ToString() => Value;

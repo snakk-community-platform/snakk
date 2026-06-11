@@ -26,6 +26,8 @@ public class SpaceSettingsDto
 
     public bool AllowsAdultContent { get; set; }
 
+    public bool Require2FA { get; set; }
+
     public string? LanguageCode { get; init; }
 
     public string? HubLanguageCode { get; init; }
@@ -55,6 +57,8 @@ public class UpdateSpaceSettingsRequest
     public bool IsAdultOnly { get; set; }
 
     public bool AllowsAdultContent { get; set; }
+
+    public bool Require2FA { get; set; }
 
     public string? LanguageCode { get; init; }
 }

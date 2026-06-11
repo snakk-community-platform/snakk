@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+option csharp_namespace = "Snakk.Protos.Dm";
+
+package snakk.dm;
+
+import "google/protobuf/timestamp.proto";
+
+service DmService {
+  rpc GetConversations (GetConversationsRequest) returns (PagedConversationList);
+  rpc GetConversation (GetConversationRequest) returns (ConversationResponse);
+  rpc GetOrCreateConversation (GetOrCreateConversationRequest) returns (ConversationResponse);
+  rpc GetMessages (GetMessagesRequest) returns (PagedMessageList);
+  rpc SendMessage (SendMessageRequest) returns (SendMessageResponse);
+  rpc MarkAsRead (MarkAsReadRequest) returns (MarkAsReadResponse);
+  rpc GetUnreadCount (GetUnreadCountRequest) returns (UnreadCountResponse);
+  rpc DeleteMessages (DeleteMessagesRequest) returns (DeleteMessagesResponse);
+  rpc DeleteConversation (DeleteConversationRequest) returns (DeleteConversationResponse);
+  rpc PinConversation (PinConversationRequest) returns (PinConversationResponse);
+}
+
+// --- Requests ---
+
+message GetConversationsRequest {
+  int32 offset = 1;
+  int32 page_size = 2;
+}
+
+message GetConversationRequest {
+  string conversation_id = 1;
+}
+
+message GetOrCreateConversationRequest {
+  string recipient_public_id = 1;
+}
+
+message GetMessagesRequest {
+  string conversation_id = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+}
+
+message SendMessageRequest {
+  string conversation_id = 1;
+  string content = 2;
+}
+
+message MarkAsReadRequest {
+  string conversation_id = 1;
+}
+
+message GetUnreadCountRequest {}
+
+message DeleteMessagesRequest {
+  string conversation_id = 1;
+  repeated string message_ids = 2;
+  bool delete_for_all = 3;
+}
+
+message DeleteConversationRequest {
+  string conversation_id = 1;
+  bool delete_for_all = 2;
+}
+
+message PinConversationRequest {
+  string conversation_id = 1;
+  bool is_pinned = 2;
+}
+
+// --- Shared types ---
+
+message DmUserInfo {
+  string public_id = 1;
+  string display_name = 2;
+  optional string avatar_thumbnail_file_name = 3;
+}
+
+message ConversationInfo {
+  string public_id = 1;
+  DmUserInfo other_user = 2;
+  optional string last_message_excerpt = 3;
+  optional google.protobuf.Timestamp last_message_at = 4;
+  bool is_pinned = 5;
+}
+
+message MessageInfo {
+  reserved 4;
+  reserved "rendered_content";
+  string public_id = 1;
+  string sender_public_id = 2;
+  string content = 3;
+  google.protobuf.Timestamp created_at = 5;
+  bool is_mine = 6;
+}
+
+// --- Responses ---
+
+message PagedConversationList {
+  repeated ConversationInfo items = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+  bool has_more_items = 4;
+}
+
+message ConversationResponse {
+  bool found = 1;
+  optional ConversationInfo conversation = 2;
+}
+
+message PagedMessageList {
+  repeated MessageInfo items = 1;
+  int32 offset = 2;
+  int32 page_size = 3;
+  bool has_more_items = 4;
+}
+
+message SendMessageResponse {
+  bool success = 1;
+  optional MessageInfo message = 2;
+}
+
+message MarkAsReadResponse {
+  bool success = 1;
+}
+
+message UnreadCountResponse {
+  int32 count = 1;
+}
+
+message DeleteMessagesResponse {
+  bool success = 1;
+}
+
+message DeleteConversationResponse {
+  bool success = 1;
+}
+
+message PinConversationResponse {
+  bool success = 1;
+}

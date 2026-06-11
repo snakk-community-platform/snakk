@@ -273,4 +273,14 @@ public class SignalRRealtimeNotifier(
                 htmlContent = "",
                 swapStrategy = ""
             });
+
+    public async Task NotifyDirectMessageCountUpdatedAsync(string userPublicId, int userIntId, int unreadCount) =>
+        await hubContext.Clients
+            .Group($"user:{userPublicId}")
+            .SendAsync("ReceiveDirectMessageCount", new { unreadCount });
+
+    public async Task NotifyDmMessagesDeletedAsync(string recipientPublicId, int recipientIntId, string conversationId, IReadOnlyList<string> messageIds) =>
+        await hubContext.Clients
+            .Group($"user:{recipientPublicId}")
+            .SendAsync("ReceiveDmMessagesDeleted", new { conversationId, messageIds });
 }

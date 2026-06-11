@@ -7,10 +7,6 @@
     ViewData["Description"] = string.Format(T.Pages.HubRulesDescPattern, Model.Hub?.Name);
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("space")" asp-append-version="true" />
-}
-
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
@@ -31,10 +27,7 @@
 {
     <div class="sn-center">
         <div class="sn-center-inner">
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.HubModsNotFound</p>
-                <a href="/" class="btn btn-primary btn-sm mt-4">@T.Pages.HubModsBackToHome</a>
-            </div>
+            <partial name="Shared/_EmptyState" model='new EmptyStateVM(T.Pages.HubModsNotFound, T.Pages.HubModsBackToHome, "/")' />
         </div>
     </div>
 }

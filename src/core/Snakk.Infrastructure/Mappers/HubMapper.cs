@@ -21,7 +21,8 @@ public static class HubMapper
             avatarFileName: entity.AvatarFileName,
             avatarRevision: entity.AvatarRevision,
             languageCode: entity.LanguageCode,
-            communityLanguageCode: entity.CommunityLanguageCode);
+            communityLanguageCode: entity.CommunityLanguageCode,
+            require2FA: entity.Require2FA);
 
     public static Hub FromPersistenceWithCommunityId(
         this HubDatabaseEntity entity,
@@ -40,7 +41,8 @@ public static class HubMapper
             avatarFileName: entity.AvatarFileName,
             avatarRevision: entity.AvatarRevision,
             languageCode: entity.LanguageCode,
-            communityLanguageCode: entity.CommunityLanguageCode);
+            communityLanguageCode: entity.CommunityLanguageCode,
+            require2FA: entity.Require2FA);
 
     public static HubDatabaseEntity ToPersistence(this Hub hub, int communityDbId) =>
         new()
@@ -57,6 +59,7 @@ public static class HubMapper
             AvatarFileName = hub.AvatarFileName,
             AvatarRevision = hub.AvatarRevision,
             LanguageCode = hub.LanguageCode,
-            CommunityLanguageCode = hub.CommunityLanguageCode
+            CommunityLanguageCode = hub.CommunityLanguageCode,
+            Require2FA = hub.Require2FA
         };
 }

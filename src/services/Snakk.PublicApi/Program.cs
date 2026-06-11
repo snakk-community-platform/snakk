@@ -110,7 +110,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (!builder.Configuration.GetValue<bool>("DisableRateLimiting"))
+if (builder.Configuration.GetValue<bool>("EnableRateLimiting"))
     app.UseRateLimiter();
 
 app.UseHttpMetrics();

@@ -53,7 +53,7 @@ public class HubManagementService(
 
         var moderatorsTask = ReadAsync(db => db.UserRoles
             .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.HubMod && ur.HubId == hubDbId && ur.RevokedAt == null)
-            .Select(ur => new HubModeratorDto
+            .Select(ur => new ScopeModeratorDto
             {
                 UserId = ur.User.PublicId,
                 DisplayName = ur.User.DisplayName ?? "",
@@ -143,6 +143,7 @@ public class HubManagementService(
             Description = hub.Description,
             LanguageCode = hub.LanguageCode,
             CommunityLanguageCode = hub.CommunityLanguageCode,
+            Require2FA = hub.Require2FA,
             AllowedDiscussionTypes = allowedTypes,
             ModeratorUserIds = modUserIds
         };
@@ -164,6 +165,7 @@ public class HubManagementService(
         var nameChanged = hub.Name != request.Name;
         hub.Name = request.Name;
         hub.Description = request.Description;
+        hub.Require2FA = request.Require2FA;
 
         if (nameChanged)
         {

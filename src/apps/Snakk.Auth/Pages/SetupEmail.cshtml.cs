@@ -72,11 +72,11 @@ public class SetupEmailModel(
                     var expiry = DateTimeOffset.UtcNow.AddHours(8);
                     Response.Cookies.Append(".Snakk.Auth", response.Token, new CookieOptions
                     {
-                        HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
+                        HttpOnly = true, Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
                     });
                     Response.Cookies.Append(".Snakk.Auth.Session", response.Token, new CookieOptions
                     {
-                        HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
+                        HttpOnly = true, Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
                     });
                 }
 
@@ -152,11 +152,11 @@ public class SetupEmailModel(
             var expiry = rememberMe ? DateTimeOffset.UtcNow.AddDays(30) : DateTimeOffset.UtcNow.AddHours(8);
             var strictOptions = new CookieOptions
             {
-                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
+                HttpOnly = true, Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure, SameSite = SameSiteMode.Strict, Path = "/", Expires = expiry
             };
             var laxOptions = new CookieOptions
             {
-                HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
+                HttpOnly = true, Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure, SameSite = SameSiteMode.Lax, Path = "/", Expires = expiry
             };
 
             Response.Cookies.Append(".Snakk.Auth", response.AccessToken, strictOptions);
@@ -167,7 +167,7 @@ public class SetupEmailModel(
             if (rememberMe)
                 Response.Cookies.Append(".Snakk.Pref.RememberMe", "1", new CookieOptions
                 {
-                    HttpOnly = true, Secure = true, SameSite = SameSiteMode.Lax,
+                    HttpOnly = true, Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure, SameSite = SameSiteMode.Lax,
                     Path = "/", Expires = DateTimeOffset.UtcNow.AddDays(30)
                 });
             else

@@ -10,10 +10,6 @@
     ViewData["Nudge.Body"] = T.Pages.MeNudgeBody;
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
-}
-
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
@@ -32,13 +28,11 @@
         </h2>
 
         <!-- Tabs -->
-        <div class="flex gap-1 mb-4 border-b border-subtle">
-            <a href="/me?tab=discussions"
-               class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "discussions" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
+        <div class="sn-tabs mb-4">
+            <a href="/me?tab=discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "active" : "")">
                 @T.Pages.MeTabDiscussions
             </a>
-            <a href="/me?tab=posts"
-               class="px-4 py-2 text-sm font-medium transition-colors @(Model.ActiveTab == "posts" ? "border-b-2 border-primary text-primary -mb-px" : "text-base-content/60 hover:text-base-content/80")">
+            <a href="/me?tab=posts" class="sn-tab @(Model.ActiveTab == "posts" ? "active" : "")">
                 @T.Pages.MeTabPosts
             </a>
         </div>

@@ -1,14 +1,24 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @using Snakk.Web.Pages.ViewModels
+@using static Snakk.Web.Helpers.DisplayHelper
 @model SearchModel
 @{
     var hasQuery = !string.IsNullOrEmpty(Model.Q);
 }
 
-@if (Model.SearchType == "discussion")
+@if (Model.HasSearchError)
 {
-    @if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
+    <div class="clean-card">
+        <div class="empty-state-simple">
+            <h3>Search is currently unavailable</h3>
+            <p>Please try again in a moment</p>
+        </div>
+    </div>
+}
+else if (Model.SearchType == "discussion")
+{
+    @if (Model.Discussions == null || !Model.Discussions.Items.Any())
     {
         <div class="clean-card">
             <div class="empty-state-simple">
@@ -27,63 +37,51 @@
     }
     else
     {
-        <div class="topic-list" id="discussions-container">
+        @if (Model.IsScrollAppend)
+        {
             @foreach (var discussion in Model.Discussions.Items)
             {
-                // TODO: In multi-community mode, cross-community search results need CommunitySlug
-                // from the API to generate correct /c/{slug}/h/... URLs. Currently uses page context.
-                var discussionUrl = SnakkUrlHelper.Discussion(
-                    Model.Community,
-                    discussion.Hub.Slug,
-                    discussion.Space.Slug,
-                    SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId));
-
-                <a href="@discussionUrl" class="topic-item">
-                    <div class="avatar avatar-sm mr-3 flex-shrink-0 hidden sm:block">
-                        <img src="@discussion.Author.AvatarThumbnailUrl"
-                             alt="@discussion.Author.DisplayName"
-                             width="32" height="32"
-                             loading="lazy" decoding="async" />
-                    </div>
-                    <div class="topic-content">
-                        <div class="topic-title">@discussion.Title</div>
-                        <div class="topic-meta">
-                            <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)"
-                               class="hover:underline"
-                               data-stop-propagation>@discussion.Author.DisplayName</a>
-                            <span class="topic-meta-separator">in</span>
-                            <span class="font-medium">@discussion.Space.Name</span>
-                            <span class="topic-meta-separator">·</span>
-                            <span>@Model.GetRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
-                        </div>
-                    </div>
-                    <div class="topic-stats hidden sm:flex">
-                        <div class="topic-stat">
-                            <div class="topic-stat-value">@discussion.PostCount</div>
-                            <div class="topic-stat-label">Replies</div>
-                        </div>
-                    </div>
-                </a>
+                @await Html.PartialAsync("Shared/_DiscussionCard", new DiscussionListItemVM(
+                    discussion,
+                    ShowCommunity: true,
+                    Community: Model.Community,
+                    ShowHub: true,
+                    ShowSpace: true,
+                    ShowPath: true))
             }
-        </div>
-
-        @* Pagination *@
-        @if (Model.Discussions.Offset > 0 || Model.Discussions.HasMoreItems)
+            @if (Model.Discussions.HasMoreItems && Model.Discussions.Offset + Model.Discussions.PageSize < Model.MaxOffset)
+            {
+                var nextUrl = Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Discussions.Offset + Model.Discussions.PageSize, Model.DateRange);
+                <div hx-get="@nextUrl" hx-trigger="revealed" hx-swap="outerHTML" hx-target="this"
+                     class="flex justify-center py-4">
+                    <span class="loading loading-spinner loading-sm"></span>
+                </div>
+            }
+            else
+            {
+                <partial name="Shared/_EndOfScroll" />
+            }
+        }
+        else
         {
-            <div class="flex justify-center gap-2 mt-6">
-                @if (Model.Discussions.Offset > 0)
+            <div id="discussions-container">
+                @foreach (var discussion in Model.Discussions.Items)
                 {
-                    <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Math.Max(0, Model.Discussions.Offset - Model.Discussions.PageSize), Model.DateRange)"
-                       class="btn btn-ghost btn-sm">
-                        Previous
-                    </a>
+                    @await Html.PartialAsync("Shared/_DiscussionCard", new DiscussionListItemVM(
+                        discussion,
+                        ShowCommunity: true,
+                        Community: Model.Community,
+                        ShowHub: true,
+                        ShowSpace: true,
+                        ShowPath: true))
                 }
-                @if (Model.Discussions.HasMoreItems)
+                @if (Model.Discussions.HasMoreItems && Model.Discussions.Offset + Model.Discussions.PageSize < Model.MaxOffset)
                 {
-                    <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Discussions.Offset + Model.Discussions.PageSize, Model.DateRange)"
-                       class="btn btn-ghost btn-sm">
-                        Next
-                    </a>
+                    var nextUrl = Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Discussions.Offset + Model.Discussions.PageSize, Model.DateRange);
+                    <div hx-get="@nextUrl" hx-trigger="revealed" hx-swap="outerHTML" hx-target="this"
+                         class="flex justify-center py-4">
+                        <span class="loading loading-spinner loading-sm"></span>
+                    </div>
                 }
             </div>
         }
@@ -91,7 +89,7 @@
 }
 else if (Model.SearchType == "post")
 {
-    @if (Model.Posts?.Items == null || !Model.Posts.Items.Any())
+    @if (Model.Posts == null || !Model.Posts.Items.Any())
     {
         <div class="clean-card">
             <div class="empty-state-simple">
@@ -110,50 +108,115 @@ else if (Model.SearchType == "post")
     }
     else
     {
-        <div class="topic-list" id="posts-container">
+        @if (Model.IsScrollAppend)
+        {
             @foreach (var post in Model.Posts.Items)
             {
-                @await Html.PartialAsync("Shared/_PostTopicItem", PostListItemVM.FromSearchResult(post))
-            }
-        </div>
+                var discussionUrl = SnakkUrlHelper.Discussion(
+                    Model.Community,
+                    post.Hub?.Slug ?? "",
+                    post.Space?.Slug ?? "",
+                    SnakkUrlHelper.DiscussionSlugId(post.DiscussionSlug, post.DiscussionPublicId));
+                var postUrl = $"{discussionUrl}#post-{post.PublicId}";
 
-        @* Pagination *@
-        @if (Model.Posts.Offset > 0 || Model.Posts.HasMoreItems)
+                <article class="sn-card">
+                    <div class="sn-card-header">
+                        <img src="@post.Author.AvatarMicroUrl" alt=""
+                             class="sn-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
+                        <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                           class="sn-card-author">@post.Author.DisplayName</a>
+                        <span class="sn-card-dot">&middot;</span>
+                        <time class="sn-card-time" datetime="@(post.CreatedAt?.ToDateTime().ToString("o"))">
+                            @FormatRelativeTime(post.CreatedAt?.ToDateTime())
+                        </time>
+                        <span class="sn-card-path">
+                            <a href="@discussionUrl" class="sn-card-path-link">@post.DiscussionTitle</a>
+                            @if (!string.IsNullOrEmpty(post.Hub?.Name))
+                            {
+                                <span class="sn-card-path-sep">&rsaquo;</span>
+                                <span class="sn-card-path-link">@post.Hub.Name</span>
+                            }
+                        </span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(post.ContentHighlight))
+                    {
+                        <div class="px-4 pt-1 pb-2 text-sm sn-post-preview" style="color: var(--text-secondary)">
+                            @post.ContentHighlight
+                        </div>
+                    }
+                    <div class="px-4 pb-3 flex justify-end">
+                        <a href="@postUrl" class="text-xs font-medium" style="color: var(--link-primary)">
+                            View post &rarr;
+                        </a>
+                    </div>
+                </article>
+            }
+            @if (Model.Posts.HasMoreItems && Model.Posts.Offset + Model.Posts.PageSize < Model.MaxOffset)
+            {
+                var nextUrl = Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Posts.Offset + Model.Posts.PageSize, Model.DateRange);
+                <div hx-get="@nextUrl" hx-trigger="revealed" hx-swap="outerHTML" hx-target="this"
+                     class="flex justify-center py-4">
+                    <span class="loading loading-spinner loading-sm"></span>
+                </div>
+            }
+            else
+            {
+                <partial name="Shared/_EndOfScroll" />
+            }
+        }
+        else
         {
-            <div class="flex justify-center gap-2 mt-6">
-                @if (Model.Posts.Offset > 0)
+            <div id="posts-container">
+                @foreach (var post in Model.Posts.Items)
                 {
-                    <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Math.Max(0, Model.Posts.Offset - Model.Posts.PageSize), Model.DateRange)"
-                       class="btn btn-ghost btn-sm">
-                        Previous
-                    </a>
+                    var discussionUrl = SnakkUrlHelper.Discussion(
+                        Model.Community,
+                        post.Hub?.Slug ?? "",
+                        post.Space?.Slug ?? "",
+                        SnakkUrlHelper.DiscussionSlugId(post.DiscussionSlug, post.DiscussionPublicId));
+                    var postUrl = $"{discussionUrl}#post-{post.PublicId}";
+
+                    <article class="sn-card">
+                        <div class="sn-card-header">
+                            <img src="@post.Author.AvatarMicroUrl" alt=""
+                                 class="sn-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
+                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                               class="sn-card-author">@post.Author.DisplayName</a>
+                            <span class="sn-card-dot">&middot;</span>
+                            <time class="sn-card-time" datetime="@(post.CreatedAt?.ToDateTime().ToString("o"))">
+                                @FormatRelativeTime(post.CreatedAt?.ToDateTime())
+                            </time>
+                            <span class="sn-card-path">
+                                <a href="@discussionUrl" class="sn-card-path-link">@post.DiscussionTitle</a>
+                                @if (!string.IsNullOrEmpty(post.Hub?.Name))
+                                {
+                                    <span class="sn-card-path-sep">&rsaquo;</span>
+                                    <span class="sn-card-path-link">@post.Hub.Name</span>
+                                }
+                            </span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(post.ContentHighlight))
+                        {
+                            <div class="prose prose-sm max-w-none px-4 pt-1 pb-2 sn-post-preview" style="color: var(--text-secondary)">
+                                @Html.Raw(post.ContentHighlight)
+                            </div>
+                        }
+                        <div class="px-4 pb-3 flex justify-end">
+                            <a href="@postUrl" class="text-xs font-medium" style="color: var(--link-primary)">
+                                View post &rarr;
+                            </a>
+                        </div>
+                    </article>
                 }
-                @if (Model.Posts.HasMoreItems)
+                @if (Model.Posts.HasMoreItems && Model.Posts.Offset + Model.Posts.PageSize < Model.MaxOffset)
                 {
-                    <a href="@Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Posts.Offset + Model.Posts.PageSize, Model.DateRange)"
-                       class="btn btn-ghost btn-sm">
-                        Next
-                    </a>
+                    var nextUrl = Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Posts.Offset + Model.Posts.PageSize, Model.DateRange);
+                    <div hx-get="@nextUrl" hx-trigger="revealed" hx-swap="outerHTML" hx-target="this"
+                         class="flex justify-center py-4">
+                        <span class="loading loading-spinner loading-sm"></span>
+                    </div>
                 }
             </div>
         }
     }
-}
-else if (Model.SearchType == "space")
-{
-    <div class="clean-card">
-        <div class="empty-state-simple">
-            <h3>Space search coming soon</h3>
-            <p>This feature is currently under development</p>
-        </div>
-    </div>
-}
-else if (Model.SearchType == "user")
-{
-    <div class="clean-card">
-        <div class="empty-state-simple">
-            <h3>User search coming soon</h3>
-            <p>This feature is currently under development</p>
-        </div>
-    </div>
 }

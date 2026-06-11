@@ -11,7 +11,7 @@ public static class PostMapper
         Post.Rehydrate(
             PostId.From(entity.PublicId),
             DiscussionId.From(entity.Discussion.PublicId),
-            UserId.From(entity.CreatedByUser.PublicId),
+            UserId.FromNullable(entity.CreatedByUser?.PublicId),
             entity.Content,
             entity.RenderedContent,
             entity.CreatedAt,

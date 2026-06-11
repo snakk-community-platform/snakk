@@ -2,6 +2,11 @@ using Snakk.Setup.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Auth cookies set Secure=true; over plain HTTP (dev) clients drop them. Default
+// secure, disable in Development so the setup-completion login sticks over HTTP.
+Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure =
+    builder.Configuration.GetValue<bool?>("Cookies:RequireSecure") ?? !builder.Environment.IsDevelopment();
+
 // Load shared config (written by the setup wizard itself)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"]
     ?? Environment.GetEnvironmentVariable("SNAKK_STORAGE_PATH")

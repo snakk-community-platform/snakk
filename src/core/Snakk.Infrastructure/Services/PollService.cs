@@ -1,11 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 
 namespace Snakk.Infrastructure.Services;
 
-public class PollService(SnakkDbContext context) : IPollService
+public class PollService(SnakkDbContext context, HybridCache cache) : IPollService
 {
     public async Task<PollData?> GetPollAsync(string discussionPublicId, string? userPublicId = null, CancellationToken ct = default)
     {
@@ -187,6 +188,7 @@ public class PollService(SnakkDbContext context) : IPollService
             .Where(o => o.Id == optionId)
             .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount + 1), ct);
 
+        await cache.RemoveAsync($"preview:poll:{discussionPublicId}", ct);
         return (true, null);
     }
 
@@ -229,6 +231,7 @@ public class PollService(SnakkDbContext context) : IPollService
             .Where(o => o.Id == optionId)
             .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount - 1), ct);
 
+        await cache.RemoveAsync($"preview:poll:{discussionPublicId}", ct);
         return (true, null);
     }
 }

@@ -3,6 +3,7 @@ namespace Snakk.Infrastructure.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Shared.Models;
 
 public class PostRepository(SnakkDbContext context)
@@ -55,11 +56,9 @@ public class PostRepository(SnakkDbContext context)
         int pageSize,
         CancellationToken ct = default)
     {
-        var items = await _dbSet
+        return await _dbSet
             .Where(p => p.DiscussionId == discussionId)
             .OrderBy(p => p.CreatedAt)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(p => new PostListDto(
                 p.PublicId,
                 p.Content,
@@ -68,17 +67,6 @@ public class PostRepository(SnakkDbContext context)
                 p.IsFirstPost,
                 p.CreatedByUserPublicId,
                 p.CreatedByUser.DisplayName ?? ""))
-            .ToListAsync(ct);
-
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems ? items.Take(pageSize) : items;
-
-        return new PagedResult<PostListDto>
-        {
-            Items = resultItems,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 }

@@ -54,6 +54,8 @@ public static class AvatarHelper
         return $"avatars/generated/{entityFolder}/{avatarPath}";
     }
 
+    public const string DeletedUserAvatarUrl = "/svg/deleted-user.svg";
+
     /// <summary>
     /// Gets the public URL for an avatar.
     /// If avatarFileName is set, returns the uploaded avatar URL.
@@ -61,6 +63,8 @@ public static class AvatarHelper
     /// </summary>
     public static string GetAvatarUrl(string publicId, AvatarEntityType entityType, int revision = 0, string? avatarFileName = null)
     {
+        if (string.IsNullOrEmpty(publicId)) return DeletedUserAvatarUrl;
+
         if (!string.IsNullOrEmpty(avatarFileName))
         {
             var baseUrl = UploadedAvatarBaseUrl;
@@ -92,6 +96,8 @@ public static class AvatarHelper
         string? avatarFileName = null,
         string? avatarThumbnailFileName = null)
     {
+        if (string.IsNullOrEmpty(publicId)) return DeletedUserAvatarUrl;
+
         // If a dedicated thumbnail exists, use it
         if (!string.IsNullOrEmpty(avatarThumbnailFileName))
         {
@@ -121,6 +127,8 @@ public static class AvatarHelper
         string? avatarFileName = null,
         string? avatarMicroFileName = null)
     {
+        if (string.IsNullOrEmpty(publicId)) return DeletedUserAvatarUrl;
+
         if (!string.IsNullOrEmpty(avatarMicroFileName))
         {
             var baseUrl = UploadedAvatarBaseUrl;

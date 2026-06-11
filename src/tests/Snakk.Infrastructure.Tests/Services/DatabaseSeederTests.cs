@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using NSubstitute;
 using Snakk.Application.Services;
@@ -34,7 +35,9 @@ public class DatabaseSeederTests : IAsyncDisposable
     private DatabaseSeeder NewSeeder(Dictionary<string, string?> config)
     {
         var configRoot = new ConfigurationBuilder().AddInMemoryCollection(config).Build();
-        return new DatabaseSeeder(_context, _passwordHasher, _avatarService, _markupParser, _emailProtector, configRoot);
+        var mockCache = Substitute.For<HybridCache>();
+        var mockFileStorage = Substitute.For<IFileStorage>();
+        return new DatabaseSeeder(_context, _passwordHasher, _avatarService, _markupParser, _emailProtector, configRoot, mockCache, mockFileStorage);
     }
 
     // Regression: the SECOND time the seeder runs (every container restart) with no

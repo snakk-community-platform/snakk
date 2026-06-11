@@ -79,7 +79,8 @@ public class SetupService()
             {
                 ["MultiCommunityEnabled"] = state.MultiCommunityEnabled,
                 ["PasskeysEnabled"] = state.PasskeysEnabled,
-                ["TwoFactorEnabled"] = state.TwoFactorEnabled
+                ["TwoFactorEnabled"] = state.TwoFactorEnabled,
+                ["PrivateMessagingEnabled"] = state.PrivateMessagingEnabled
             },
             ["FileStorage"] = BuildFileStorageConfig(state),
             ["Setup"] = new Dictionary<string, string>

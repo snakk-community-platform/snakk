@@ -2,6 +2,8 @@ namespace Snakk.DbSeeder.Services;
 
 using Bogus;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
+using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
@@ -13,7 +15,9 @@ public class DatabaseSeeder(
     IAvatarGenerationService avatarService,
     IMarkupParser markupParser,
     IEmailProtector emailProtector,
-    Microsoft.Extensions.Configuration.IConfiguration configuration)
+    Microsoft.Extensions.Configuration.IConfiguration configuration,
+    HybridCache cache,
+    IFileStorage fileStorage)
 {
     private readonly SnakkDbContext _context = context;
     private readonly IPasswordHasher _passwordHasher = passwordHasher;
@@ -21,6 +25,14 @@ public class DatabaseSeeder(
     private readonly IMarkupParser _markupParser = markupParser;
     private readonly IEmailProtector _emailProtector = emailProtector;
     private readonly Microsoft.Extensions.Configuration.IConfiguration _configuration = configuration;
+    private readonly HybridCache _cache = cache;
+    private readonly IFileStorage _fileStorage = fileStorage;
+
+    private static readonly HybridCacheEntryOptions _previewCacheOptions = new()
+    {
+        Expiration = TimeSpan.FromHours(24),
+        LocalCacheExpiration = TimeSpan.FromHours(24),
+    };
 
     // Fixed seed for reproducibility
     private const int Seed = 42;
@@ -209,6 +221,7 @@ public class DatabaseSeeder(
         await SeedHighVolumeDiscussionsAsync(users);
         await UpdateDenormalizedCountsAsync();
         await SeedActivitySnapshotsAsync();
+        await WarmPreviewCacheAsync();
 
         Console.WriteLine("Database seeding completed successfully.");
         await GenerateAllAvatarsAsync();
@@ -316,11 +329,13 @@ public class DatabaseSeeder(
 
         var testUsers = new[]
         {
-            // Original "Test User" — previously created without credentials; fixed here
+            // Vanity publicIds must be valid 26-char Crockford Base32 — the alphabet excludes
+            // I, L, O, U, so UlidBase62.Encode rejects them. ALICE/CHARLIE (I, L) and BOB (O)
+            // previously threw and 500'd every page that rendered their profile link. I/L→1, O→0.
             ("test@snakk.dev",       "Test User", "01JJQP0000000000000000TEST"),
-            ("alice@snakk.local",    "Alice",     "01JJQP000000000000000ALICE"),
-            ("bob@snakk.local",      "Bob",       "01JJQP00000000000000000BOB"),
-            ("charlie@snakk.local",  "Charlie",   "01JJQP0000000000000CHARLIE"),
+            ("alice@snakk.local",    "Alice",     "01JJQP000000000000000A11CE"),
+            ("bob@snakk.local",      "Bob",       "01JJQP00000000000000000B0B"),
+            ("charlie@snakk.local",  "Charlie",   "01JJQP0000000000000CHAR11E"),
             ("dave@snakk.local",     "Dave",      "01JJQP0000000000000000DAVE"),
             ("eve@snakk.local",      "Eve",       "01JJQP00000000000000000EVE"),
             ("frank@snakk.local",    "Frank",     "01JJQP000000000000000FRANK"),
@@ -577,28 +592,28 @@ public class DatabaseSeeder(
         var createdAt = community.CreatedAt;
 
         var techHub = await CreateHubAsync(community, "Technology", "technology", "All things tech", createdAt);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Web Development", "web-dev", "Frontend, backend, full-stack"), users, 220);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Mobile Apps", "mobile", "iOS, Android, cross-platform"), users, 85);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "AI & Machine Learning", "ai-ml", "Neural networks, LLMs, data science"), users, 310);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "DevOps & Cloud", "devops", "AWS, Azure, Kubernetes, CI/CD"), users, 55);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Programming Languages", "languages", "Rust, Go, Python, TypeScript and more"), users, 130);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Web Development", "web-dev", "Frontend, backend, full-stack"), users, 660);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Mobile Apps", "mobile", "iOS, Android, cross-platform"), users, 255);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "AI & Machine Learning", "ai-ml", "Neural networks, LLMs, data science"), users, 930);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "DevOps & Cloud", "devops", "AWS, Azure, Kubernetes, CI/CD"), users, 165);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(techHub, "Programming Languages", "languages", "Rust, Go, Python, TypeScript and more"), users, 390);
 
         var gamingHub = await CreateHubAsync(community, "Gaming", "gaming", "Video games and esports", createdAt);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "PC Gaming", "pc", "Steam, Epic, GOG discussions"), users, 150);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Console Gaming", "console", "PlayStation, Xbox, Nintendo"), users, 110);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Indie Games", "indie", "Hidden gems and indie devs"), users, 40);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Esports", "esports", "Competitive gaming and tournaments"), users, 65);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "PC Gaming", "pc", "Steam, Epic, GOG discussions"), users, 450);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Console Gaming", "console", "PlayStation, Xbox, Nintendo"), users, 330);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Indie Games", "indie", "Hidden gems and indie devs"), users, 120);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(gamingHub, "Esports", "esports", "Competitive gaming and tournaments"), users, 195);
 
         var scienceHub = await CreateHubAsync(community, "Science", "science", "Scientific discussions", createdAt);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Physics", "physics", "Quantum to cosmos"), users, 70);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Biology", "biology", "Life sciences"), users, 45);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Space & Astronomy", "space", "The universe and beyond"), users, 90);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Climate & Environment", "climate", "Environmental science and sustainability"), users, 35);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Physics", "physics", "Quantum to cosmos"), users, 210);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Biology", "biology", "Life sciences"), users, 135);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Space & Astronomy", "space", "The universe and beyond"), users, 270);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(scienceHub, "Climate & Environment", "climate", "Environmental science and sustainability"), users, 105);
 
         var entertainmentHub = await CreateHubAsync(community, "Entertainment", "entertainment", "Movies, TV, music, and more", createdAt);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Movies & TV", "movies-tv", "What are you watching?"), users, 95);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Music", "music", "Genres, artists, playlists"), users, 60);
-        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Books & Literature", "books", "Reading recommendations"), users, 50);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Movies & TV", "movies-tv", "What are you watching?"), users, 285);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Music", "music", "Genres, artists, playlists"), users, 180);
+        await CreateDiscussionsForSpace(await CreateSpaceAsync(entertainmentHub, "Books & Literature", "books", "Reading recommendations"), users, 150);
 
         Console.WriteLine($"Created 4 hubs and 16 spaces in community '{community.Slug}'.");
     }
@@ -926,7 +941,6 @@ public class DatabaseSeeder(
 
         // Batch for performance
         var discussions = new List<DiscussionDatabaseEntity>();
-        var posts = new List<PostDatabaseEntity>();
 
         // Parallel list: tracks (type, curatedDataIndex) by position, used to populate
         // _discussionLinkIndex / _discussionDebateTopicIndex after discussion IDs are assigned.
@@ -1015,82 +1029,26 @@ public class DatabaseSeeder(
         var milestoneThresholds = new HashSet<int> { 100, 500, 1000, 2500, 5000, 10000 };
         var necroDays = 30;
 
-        // Now create posts for each discussion
-        foreach (var discussion in discussions)
+        // Process posts in batches to avoid OOM when SaveChangesAsync builds a massive SQL command
+        const int postBatchSize = 10;
+        for (var batchStart = 0; batchStart < discussions.Count; batchStart += postBatchSize)
         {
-            var author = users.First(u => u.Id == discussion.CreatedByUserId);
-            var usersWhoPostedInDiscussion = new HashSet<int>();
-            var postNumber = 0;
+            var batchDiscussions = discussions.GetRange(batchStart, Math.Min(postBatchSize, discussions.Count - batchStart));
+            var batchPosts = new List<PostDatabaseEntity>();
 
-            // First post (opening post) — type-aware content
-            postNumber++;
-            var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
-            usersWhoPostedInDiscussion.Add(author.Id);
-            var firstPostContent = GenerateTypedFirstPostContent((DiscussionTypeEnum)discussion.Type);
-            var firstPostPlainText = _markupParser.ToPlainText(firstPostContent);
-            posts.Add(new PostDatabaseEntity
+            foreach (var discussion in batchDiscussions)
             {
-                PublicId = Ulid.NewUlid().ToString(),
-                DiscussionId = discussion.Id,
-                DiscussionPublicId = discussion.PublicId,
-                SpaceId = space.Id,
-                SpacePublicId = space.PublicId,
-                HubId = space.HubId,
-                HubPublicId = space.HubPublicId,
-                CommunityId = hub!.CommunityId,
-                CommunityPublicId = space.CommunityPublicId,
-                Content = firstPostContent,
-                RenderedContent = _markupParser.ToHtml(firstPostContent),
-                PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
-                CreatedByUserId = author.Id,
-                CreatedByUserPublicId = author.PublicId,
-                CreatedAt = discussion.CreatedAt,
-                IsFirstPost = true,
-                RevisionCount = 0,
-                IsOp = true,
-                IsUsersFirstPostInDiscussion = true,
-                IsUsersFirstPostInSpace = isFirstInSpace,
-                IsNecro = false,
-                IsMilestone = milestoneThresholds.Contains(postNumber),
-                HasCodeBlock = firstPostContent.Contains('`')
-            });
+                var author = users.First(u => u.Id == discussion.CreatedByUserId);
+                var usersWhoPostedInDiscussion = new HashSet<int>();
+                var postNumber = 0;
 
-            // Variable number of replies
-            var replyCount = GetSkewedReplyCount();
-            var lastActivityAt = discussion.CreatedAt;
-            UserDatabaseEntity? lastReplyAuthor = null;
-            string lastReplyExcerpt = "";
-
-            // Time budget: from discussion creation to latest allowed
-            var replyTimeWindow = (latestAllowed - discussion.CreatedAt).TotalMinutes;
-
-            for (var j = 0; j < replyCount; j++)
-            {
-                var replyAuthor = _faker.PickRandom(users);
+                // First post (opening post) — type-aware content
                 postNumber++;
-
-                // Each reply is some time after the last, but capped to not exceed Now
-                var maxDelay = Math.Max(5, replyTimeWindow / (replyCount + 1));
-                var delay = _faker.Random.Double(5, Math.Min(maxDelay, 60 * 24 * 3)); // Up to 3 days, capped
-                var replyCreatedAt = lastActivityAt.AddMinutes(delay);
-
-                // Hard cap: never exceed 1 hour ago, but always after the discussion's first post
-                if (replyCreatedAt >= latestAllowed)
-                {
-                    var minutesAfterDiscussion = (latestAllowed - discussion.CreatedAt).TotalMinutes;
-                    var clampedDelay = minutesAfterDiscussion > 1
-                        ? _faker.Random.Double(1, minutesAfterDiscussion)
-                        : 1;
-                    replyCreatedAt = discussion.CreatedAt.AddMinutes(clampedDelay);
-                }
-
-                var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
-                var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
-                var isNecro = (replyCreatedAt - lastActivityAt).TotalDays >= necroDays;
-
-                var replyContent = GeneratePostContent(isOpeningPost: false);
-                var replyPlainText = _markupParser.ToPlainText(replyContent);
-                posts.Add(new PostDatabaseEntity
+                var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
+                usersWhoPostedInDiscussion.Add(author.Id);
+                var firstPostContent = GenerateTypedFirstPostContent((DiscussionTypeEnum)discussion.Type);
+                var firstPostPlainText = _markupParser.ToPlainText(firstPostContent);
+                batchPosts.Add(new PostDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
                     DiscussionId = discussion.Id,
@@ -1101,57 +1059,128 @@ public class DatabaseSeeder(
                     HubPublicId = space.HubPublicId,
                     CommunityId = hub!.CommunityId,
                     CommunityPublicId = space.CommunityPublicId,
-                    Content = replyContent,
-                    RenderedContent = _markupParser.ToHtml(replyContent),
-                    PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
-                    CreatedByUserId = replyAuthor.Id,
-                    CreatedByUserPublicId = replyAuthor.PublicId,
-                    CreatedAt = replyCreatedAt,
-                    IsFirstPost = false,
+                    Content = firstPostContent,
+                    RenderedContent = _markupParser.ToHtml(firstPostContent),
+                    PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
+                    CreatedByUserId = author.Id,
+                    CreatedByUserPublicId = author.PublicId,
+                    CreatedAt = discussion.CreatedAt,
+                    IsFirstPost = true,
                     RevisionCount = 0,
-                    IsOp = replyAuthor.Id == discussion.CreatedByUserId,
-                    IsUsersFirstPostInDiscussion = isFirstInDiscussion,
-                    IsUsersFirstPostInSpace = isFirstInSpaceReply,
-                    IsNecro = isNecro,
+                    IsOp = true,
+                    IsUsersFirstPostInDiscussion = true,
+                    IsUsersFirstPostInSpace = isFirstInSpace,
+                    IsNecro = false,
                     IsMilestone = milestoneThresholds.Contains(postNumber),
-                    HasCodeBlock = replyContent.Contains('`')
+                    HasCodeBlock = firstPostContent.Contains('`')
                 });
 
-                if (replyCreatedAt > lastActivityAt)
+                // Variable number of replies
+                var replyCount = GetSkewedReplyCount();
+                var lastActivityAt = discussion.CreatedAt;
+                UserDatabaseEntity? lastReplyAuthor = null;
+                string lastReplyExcerpt = "";
+
+                // Time budget: from discussion creation to latest allowed
+                var replyTimeWindow = (latestAllowed - discussion.CreatedAt).TotalMinutes;
+
+                for (var j = 0; j < replyCount; j++)
                 {
-                    lastActivityAt = replyCreatedAt;
-                    lastReplyAuthor = replyAuthor;
-                    lastReplyExcerpt = replyPlainText.Length > 150 ? replyPlainText[..150] : replyPlainText;
+                    var replyAuthor = _faker.PickRandom(users);
+                    postNumber++;
+
+                    // Each reply is some time after the last, but capped to not exceed Now
+                    var maxDelay = Math.Max(5, replyTimeWindow / (replyCount + 1));
+                    var delay = _faker.Random.Double(5, Math.Min(maxDelay, 60 * 24 * 3)); // Up to 3 days, capped
+                    var replyCreatedAt = lastActivityAt.AddMinutes(delay);
+
+                    // Hard cap: never exceed 1 hour ago, but always after the discussion's first post
+                    if (replyCreatedAt >= latestAllowed)
+                    {
+                        var minutesAfterDiscussion = (latestAllowed - discussion.CreatedAt).TotalMinutes;
+                        var clampedDelay = minutesAfterDiscussion > 1
+                            ? _faker.Random.Double(1, minutesAfterDiscussion)
+                            : 1;
+                        replyCreatedAt = discussion.CreatedAt.AddMinutes(clampedDelay);
+                    }
+
+                    var isFirstInDiscussion = usersWhoPostedInDiscussion.Add(replyAuthor.Id);
+                    var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
+                    var isNecro = (replyCreatedAt - lastActivityAt).TotalDays >= necroDays;
+
+                    var replyContent = GeneratePostContent(isOpeningPost: false);
+                    var replyPlainText = _markupParser.ToPlainText(replyContent);
+                    batchPosts.Add(new PostDatabaseEntity
+                    {
+                        PublicId = Ulid.NewUlid().ToString(),
+                        DiscussionId = discussion.Id,
+                        DiscussionPublicId = discussion.PublicId,
+                        SpaceId = space.Id,
+                        SpacePublicId = space.PublicId,
+                        HubId = space.HubId,
+                        HubPublicId = space.HubPublicId,
+                        CommunityId = hub!.CommunityId,
+                        CommunityPublicId = space.CommunityPublicId,
+                        Content = replyContent,
+                        RenderedContent = _markupParser.ToHtml(replyContent),
+                        PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
+                        CreatedByUserId = replyAuthor.Id,
+                        CreatedByUserPublicId = replyAuthor.PublicId,
+                        CreatedAt = replyCreatedAt,
+                        IsFirstPost = false,
+                        RevisionCount = 0,
+                        IsOp = replyAuthor.Id == discussion.CreatedByUserId,
+                        IsUsersFirstPostInDiscussion = isFirstInDiscussion,
+                        IsUsersFirstPostInSpace = isFirstInSpaceReply,
+                        IsNecro = isNecro,
+                        IsMilestone = milestoneThresholds.Contains(postNumber),
+                        HasCodeBlock = replyContent.Contains('`')
+                    });
+
+                    if (replyCreatedAt > lastActivityAt)
+                    {
+                        lastActivityAt = replyCreatedAt;
+                        lastReplyAuthor = replyAuthor;
+                        lastReplyExcerpt = replyPlainText.Length > 150 ? replyPlainText[..150] : replyPlainText;
+                    }
+                }
+
+                discussion.LastActivityAt = lastActivityAt;
+                discussion.PostCount = 1 + replyCount;
+                discussion.ReactionCount = 0;
+                discussion.EngagementScore = discussion.PostCount;
+                if (lastReplyAuthor is not null)
+                {
+                    discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
+                    discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
+                    discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
+                    discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
+                    discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
+                }
+                else
+                {
+                    discussion.LastPostAuthorPublicId = author.PublicId;
+                    discussion.LastPostAuthorDisplayName = author.DisplayName;
+                    discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
+                    discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
+                    discussion.LastPostPlainTextExcerpt = firstPostPlainText.Length > 150 ? firstPostPlainText[..150] : firstPostPlainText;
                 }
             }
 
-            discussion.LastActivityAt = lastActivityAt;
-            discussion.PostCount = 1 + replyCount;
-            discussion.ReactionCount = 0;
-            discussion.EngagementScore = discussion.PostCount;
-            if (lastReplyAuthor is not null)
-            {
-                discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
-                discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
-                discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
-                discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
-                discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
-            }
-            else
-            {
-                discussion.LastPostAuthorPublicId = author.PublicId;
-                discussion.LastPostAuthorDisplayName = author.DisplayName;
-                discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
-                discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
-                discussion.LastPostPlainTextExcerpt = firstPostPlainText.Length > 150 ? firstPostPlainText[..150] : firstPostPlainText;
-            }
+            // Re-attach discussions: ChangeTracker.Clear() in a prior batch detaches them,
+            // so we must explicitly mark them Modified so their updates (LastActivityAt etc.) are saved.
+            foreach (var d in batchDiscussions)
+                _context.Entry(d).State = EntityState.Modified;
+
+            _context.Posts.AddRange(batchPosts);
+            await _context.SaveChangesAsync();
+
+            // Extension records need post IDs — call only after posts are persisted
+            await CreateDiscussionExtensionRecords(batchDiscussions, batchPosts, users);
+
+            // Release all tracked entities to prevent unbounded memory growth across batches and spaces
+            _context.ChangeTracker.Clear();
         }
-
-        _context.Posts.AddRange(posts);
-        await _context.SaveChangesAsync();
-
-        // Extension records need post IDs — call only after posts are persisted
-        await CreateDiscussionExtensionRecords(discussions, posts, users);
     }
 
     private async Task CreateDiscussionExtensionRecords(
@@ -1996,18 +2025,18 @@ public class DatabaseSeeder(
 
     private int GetSkewedReplyCount()
     {
-        // Simulate realistic reply distribution:
-        // ~30% have 0-2 replies (low engagement)
-        // ~40% have 3-7 replies (moderate)
-        // ~20% have 8-15 replies (active)
-        // ~10% have 16-30 replies (very active / viral)
+        // High-engagement distribution targeting ~50 replies on average:
+        // ~10% have 2-5 replies (low engagement)
+        // ~25% have 10-25 replies (moderate)
+        // ~40% have 30-70 replies (active)
+        // ~25% have 80-150 replies (very active / viral)
         var roll = _faker.Random.Int(0, 99);
         return roll switch
         {
-            < 30 => _faker.Random.Int(0, 2),
-            < 70 => _faker.Random.Int(3, 7),
-            < 90 => _faker.Random.Int(8, 15),
-            _ => _faker.Random.Int(16, 30)
+            < 10 => _faker.Random.Int(2, 5),
+            < 35 => _faker.Random.Int(10, 25),
+            < 75 => _faker.Random.Int(30, 70),
+            _ => _faker.Random.Int(80, 150)
         };
     }
 
@@ -3327,5 +3356,134 @@ public class DatabaseSeeder(
         await _context.SaveChangesAsync();
 
         Console.WriteLine($"Seeded {snapshots.Count} activity snapshot rows.");
+    }
+
+    private async Task WarmPreviewCacheAsync()
+    {
+        Console.WriteLine("Warming preview cache...");
+
+        var typedDiscussions = await _context.Discussions
+            .Where(d => !d.IsDeleted && (new[] { 2, 4, 5, 7, 9 }).Contains(d.Type))
+            .Select(d => new { d.Id, d.PublicId, d.Type })
+            .ToListAsync();
+
+        var byType = typedDiscussions.GroupBy(d => d.Type).ToDictionary(g => g.Key, g => g.ToList());
+        var count = 0;
+
+        // Polls
+        if (byType.TryGetValue(2, out var pollDiscussions))
+        {
+            var ids = pollDiscussions.Select(d => d.Id).ToList();
+            var idMap = pollDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var polls = await _context.DiscussionPolls
+                .Where(p => ids.Contains(p.DiscussionId))
+                .Select(p => new { p.DiscussionId, p.VotesVisible, p.ClosesAt, Options = p.Options.OrderBy(o => o.DisplayOrder).Select(o => new { o.Text, o.VoteCount }).ToList() })
+                .ToListAsync();
+            foreach (var poll in polls)
+            {
+                var isSecret = !poll.VotesVisible;
+                var isClosed = poll.ClosesAt.HasValue && poll.ClosesAt.Value <= DateTime.UtcNow;
+                var hideVotes = isSecret && !isClosed;
+                var options = poll.Options.Select(o => new PollOptionPreviewDto(o.Text, hideVotes ? 0 : o.VoteCount)).ToList();
+                var preview = new DiscussionPreviewDto(Poll: new(options, hideVotes ? 0 : options.Sum(o => o.VoteCount), IsSecret: isSecret, ClosesAt: poll.ClosesAt));
+                await _cache.SetAsync($"preview:poll:{idMap[poll.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        // Debates
+        if (byType.TryGetValue(7, out var debateDiscussions))
+        {
+            var ids = debateDiscussions.Select(d => d.Id).ToList();
+            var idMap = debateDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var debates = await _context.DiscussionDebates
+                .Where(db => ids.Contains(db.DiscussionId))
+                .Select(db => new { db.DiscussionId, Positions = db.Positions.OrderBy(p => p.Index).Select(p => new { p.Id, p.Label, p.Index }).ToList() })
+                .ToListAsync();
+            var allPositionIds = debates.SelectMany(d => d.Positions.Select(p => p.Id)).ToList();
+            var positionToDebate = debates
+                .SelectMany(d => d.Positions.Select(p => (PositionId: p.Id, d.DiscussionId)))
+                .ToDictionary(x => x.PositionId, x => x.DiscussionId);
+            var positionCounts = new Dictionary<int, int>();
+            if (allPositionIds.Count > 0)
+            {
+                var allPostPositions = await _context.DiscussionDebatePostPositions
+                    .Where(pdp => allPositionIds.Contains(pdp.PositionId))
+                    .Select(pdp => new { pdp.PositionId, pdp.Post.CreatedByUserId, pdp.Post.CreatedAt })
+                    .ToListAsync();
+                positionCounts = allPostPositions
+                    .GroupBy(x => (x.CreatedByUserId, DebateId: positionToDebate[x.PositionId]))
+                    .Select(g => g.OrderByDescending(x => x.CreatedAt).First())
+                    .GroupBy(x => x.PositionId)
+                    .ToDictionary(g => g.Key, g => g.Count());
+            }
+            foreach (var debate in debates)
+            {
+                var positions = debate.Positions
+                    .Select(p => new DebatePositionPreviewDto(p.Label, p.Index, positionCounts.GetValueOrDefault(p.Id, 0)))
+                    .ToList();
+                var preview = new DiscussionPreviewDto(Debate: new(positions));
+                await _cache.SetAsync($"preview:debate:{idMap[debate.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        // Links
+        if (byType.TryGetValue(4, out var linkDiscussions))
+        {
+            var ids = linkDiscussions.Select(d => d.Id).ToList();
+            var idMap = linkDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var links = await _context.DiscussionLinks
+                .Where(l => ids.Contains(l.DiscussionId))
+                .Select(l => new { l.DiscussionId, l.Url, l.Title, l.Description, l.Domain, l.ImageUrl, l.ImagePath, l.ImageThumbnailPath, l.OEmbedHtml, l.IsInternal, l.ImageBlurDataUri, l.ImageWidth, l.ImageHeight })
+                .ToListAsync();
+            foreach (var link in links)
+            {
+                var preview = new DiscussionPreviewDto(Link: new(link.Url, link.Title, link.Description, link.Domain, link.ImageUrl, link.ImagePath, link.ImageThumbnailPath, link.OEmbedHtml, link.IsInternal, link.ImageBlurDataUri, link.ImageWidth, link.ImageHeight));
+                await _cache.SetAsync($"preview:link:{idMap[link.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        // Images
+        if (byType.TryGetValue(5, out var imageDiscussions))
+        {
+            var ids = imageDiscussions.Select(d => d.Id).ToList();
+            var idMap = imageDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var images = await _context.DiscussionImages
+                .Where(g => ids.Contains(g.DiscussionId))
+                .Select(g => new { g.DiscussionId, g.IsSpoiler, g.Layout, Items = g.Images.OrderBy(i => i.DisplayOrder).Select(i => new { Url = i.Image.StoragePath, ThumbnailUrl = i.Image.ThumbnailPath, i.Image.ThumbnailWidth, i.Image.ThumbnailHeight, MediumThumbnailUrl = i.Image.MediumThumbnailPath, i.Image.MediumThumbnailWidth, i.Image.MediumThumbnailHeight, i.Image.BlurDataUri, i.Image.Width, i.Image.Height }).ToList() })
+                .ToListAsync();
+            foreach (var img in images)
+            {
+                var items = img.Items.Select(i => new ImagePreviewItemDto(
+                    _fileStorage.GetPublicUrl(i.Url),
+                    i.ThumbnailUrl is not null ? _fileStorage.GetPublicUrl(i.ThumbnailUrl) : null,
+                    i.MediumThumbnailUrl is not null ? _fileStorage.GetPublicUrl(i.MediumThumbnailUrl) : null,
+                    i.BlurDataUri, i.Width, i.Height, i.ThumbnailWidth, i.ThumbnailHeight, i.MediumThumbnailWidth, i.MediumThumbnailHeight)).ToList();
+                var preview = new DiscussionPreviewDto(Images: new(items.Count, items, img.IsSpoiler, img.Layout));
+                await _cache.SetAsync($"preview:images:{idMap[img.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        // IAMAs
+        if (byType.TryGetValue(9, out var iamaDiscussions))
+        {
+            var ids = iamaDiscussions.Select(d => d.Id).ToList();
+            var idMap = iamaDiscussions.ToDictionary(d => d.Id, d => d.PublicId);
+            var iamas = await _context.DiscussionIamas
+                .Where(i => ids.Contains(i.DiscussionId))
+                .Select(i => new { i.DiscussionId, i.Phase, i.ScheduledStartUtc, i.ScheduledEndUtc, i.OfficialAnswerCount, i.BestQuestionCount, IsVerified = i.VerificationNote != null && i.VerificationNote != "" })
+                .ToListAsync();
+            foreach (var iama in iamas)
+            {
+                var preview = new DiscussionPreviewDto(Iama: new(iama.Phase, iama.ScheduledStartUtc, iama.ScheduledEndUtc, iama.OfficialAnswerCount, iama.BestQuestionCount, iama.IsVerified));
+                await _cache.SetAsync($"preview:iama:{idMap[iama.DiscussionId]}", preview, _previewCacheOptions);
+                count++;
+            }
+        }
+
+        Console.WriteLine($"✓ Preview cache warmed for {count} discussions.");
     }
 }

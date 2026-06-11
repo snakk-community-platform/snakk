@@ -39,6 +39,9 @@ public class User
     public DateTime? LockoutEnd { get; private set; }
     public long AuthVersion { get; private set; } = 1;
     public DateTime AuthVersionUpdatedAt { get; private set; }
+    public bool TwoFactorEnabled { get; private set; }
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
 
     private readonly List<IDomainEvent> _domainEvents = [];
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -82,7 +85,8 @@ public class User
         bool hidePresence = false,
         DateTime? emailVerificationTokenCreatedAt = null,
         long authVersion = 1,
-        DateTime? authVersionUpdatedAt = null)
+        DateTime? authVersionUpdatedAt = null,
+        bool twoFactorEnabled = false)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -117,6 +121,7 @@ public class User
         LastLoginAt = lastLoginAt;
         AuthVersion = authVersion;
         AuthVersionUpdatedAt = authVersionUpdatedAt ?? DateTime.UtcNow;
+        TwoFactorEnabled = twoFactorEnabled;
     }
 
     public static User CreateWithEmail(
@@ -243,7 +248,8 @@ public class User
         bool hidePresence = false,
         DateTime? emailVerificationTokenCreatedAt = null,
         long authVersion = 1,
-        DateTime? authVersionUpdatedAt = null) =>
+        DateTime? authVersionUpdatedAt = null,
+        bool twoFactorEnabled = false) =>
         new User(
             publicId,
             displayName,
@@ -277,7 +283,8 @@ public class User
             hidePresence,
             emailVerificationTokenCreatedAt,
             authVersion,
-            authVersionUpdatedAt);
+            authVersionUpdatedAt,
+            twoFactorEnabled);
 
     public void UpdateDisplayName(string displayName)
     {
@@ -325,9 +332,20 @@ public class User
 
     public void Anonymize()
     {
-        DisplayName = "Anonymous User";
+        DisplayName = "Deleted User";
         Email = null;
+        Bio = null;
+        Timezone = null;
+        AvatarFileName = null;
+        AvatarThumbnailFileName = null;
+        AvatarMicroFileName = null;
+        AvatarRevision++;
+        FeedToken = null;
+        TwoFactorEnabled = false;
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
         LastModifiedAt = DateTime.UtcNow;
+        AddDomainEvent(new UserDeletedEvent(PublicId));
     }
 
     public void SetPasswordHash(string passwordHash)

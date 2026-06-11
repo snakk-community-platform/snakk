@@ -32,6 +32,8 @@ public class CommunitySettingsDto
 
     public bool HideAdultDiscussionsFromLists { get; set; }
 
+    public bool Require2FA { get; set; }
+
     // Owner and team
     public string OwnerId { get; set; } = string.Empty;
     public List<string> AdminUserIds { get; set; } = new();
@@ -64,4 +66,6 @@ public class UpdateCommunitySettingsRequest
     public List<DiscussionTypeEnum> AllowedDiscussionTypes { get; set; } = [];
 
     public bool HideAdultDiscussionsFromLists { get; set; }
+
+    public bool Require2FA { get; set; }
 }

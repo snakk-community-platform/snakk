@@ -71,7 +71,7 @@ public class ManageScopeServiceTests
 
         var result = ManageScopeService.GetManageUrl(scope);
 
-        await Assert.That(result).IsEqualTo("c/gaming/h/fps/s/valorant");
+        await Assert.That(result).IsEqualTo("c/gaming/h/fps/valorant");
     }
 
     // ===== GetSiteUrl Tests (multi-community) =====

@@ -17,13 +17,14 @@ interface SettingsPageConfig {
     let avatarBlobUrl: string | null = null;
 
     // Sudo state — token stored in httpOnly cookie, only expiry tracked in JS
-    const SUDO_EXPIRES_KEY = 'snakk:sudo-expires';
+    let SUDO_EXPIRES_KEY = 'snakk:sudo-expires';
     let sudoExpiresAt: number = 0;
     let sudoCallback: (() => void) | null = null;
     let pendingPasskeyChallenge: { challengeId: string; assertionJson: string } | null = null;
     let pendingPassword: string | null = null;
     let sudoTotpAutoSubmit = true;
     let enable2FaAutoSubmit = true;
+    let sudoIconTimer: ReturnType<typeof setInterval> | null = null;
 
     // Config available via #settings-page-config JSON tag if needed
     // const configEl = document.getElementById('settings-page-config');
@@ -206,7 +207,7 @@ interface SettingsPageConfig {
         setTimeout(() => { alertDiv.remove(); }, 5000);
     }
 
-    async function refreshAvatar(): Promise<void> {
+    async function refreshAvatar(forceGenerated = false): Promise<void> {
         const avatarPreview = document.getElementById('avatar-preview') as HTMLImageElement | null;
         if (!avatarPreview || !userId) return;
         try {
@@ -214,15 +215,23 @@ interface SettingsPageConfig {
             if (response.ok) {
                 const data = await response.json();
                 const timestamp = new Date().getTime();
-                const newSrc = data.avatarUrl
+                const navSrc = data.avatarUrl
                     ? data.avatarUrl + '?t=' + timestamp
                     : avatarPreview.dataset.generatedUrl || '';
 
-                avatarPreview.src = newSrc;
+                // Only update the preview if we got a real URL, or the caller explicitly
+                // wants the generated avatar shown (e.g. after deleting the custom one).
+                // Without this guard, a stale API response returning avatarUrl=null after
+                // upload would overwrite the preview with the generated avatar.
+                if (data.avatarUrl) {
+                    avatarPreview.src = navSrc;
+                } else if (forceGenerated) {
+                    avatarPreview.src = avatarPreview.dataset.generatedUrl || '';
+                }
 
                 document.querySelectorAll<HTMLImageElement>(
                     '#auth-nav .avatar-sm img, #auth-nav .sn-user-menu-card-avatar, .sn-tabbar .avatar-sm img, .sn-tabbar .sn-user-menu-card-avatar'
-                ).forEach(img => { img.src = newSrc; });
+                ).forEach(img => { img.src = navSrc; });
             }
         } catch { /* ignore */ }
     }
@@ -315,8 +324,9 @@ interface SettingsPageConfig {
 
             if (result.ok) {
                 finishUploadProgress(true);
-                showStatus('Avatar uploaded successfully!');
-                refreshAvatar();
+                // Await so the blob stays visible during the API round-trip.
+                // revokeObjectURL runs only after the new URL is set (or confirmed absent).
+                await refreshAvatar();
                 pendingAvatarFile = null;
                 if (avatarBlobUrl) { URL.revokeObjectURL(avatarBlobUrl); avatarBlobUrl = null; }
                 resetDropZone();
@@ -326,12 +336,12 @@ interface SettingsPageConfig {
             } else {
                 finishUploadProgress(false);
                 showStatus(result.data?.error || result.error || 'Failed to upload avatar.', true);
-                refreshAvatar();
+                await refreshAvatar();
             }
         } catch (error) {
             finishUploadProgress(false);
             showStatus('Network error. Please try again.', true);
-            refreshAvatar();
+            await refreshAvatar();
         } finally {
             uploadBtn.disabled = !pendingAvatarFile;
         }
@@ -353,8 +363,7 @@ interface SettingsPageConfig {
             });
 
             if (response.ok) {
-                showStatus('Now using generated avatar.');
-                refreshAvatar();
+                refreshAvatar(true);
                 deleteBtn.disabled = true;
                 deleteBtn.textContent = 'Use Generated';
             } else {
@@ -410,7 +419,6 @@ interface SettingsPageConfig {
                 if (currentEl) currentEl.textContent = displayName;
                 const snakkModal = (window as any).snakkModal as { close: (id: string) => void } | undefined;
                 snakkModal?.close('modal-display-name');
-                showMessage('Display name updated successfully');
             } else if (response.status === 403) {
                 invalidateSudo();
                 showModalStatus('display-name-modal-status', 'Session expired. Please re-authenticate.', true);
@@ -810,23 +818,9 @@ interface SettingsPageConfig {
         return ua.substring(0, 50);
     }
 
-    function formatRelativeDate(dateStr: string): string {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        const now = new Date();
-        const diffMs = now.getTime() - date.getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        if (diffDays === 0) return 'today';
-        if (diffDays === 1) return 'yesterday';
-        if (diffDays < 30) return `${diffDays} days ago`;
-        return date.toLocaleDateString();
-    }
+    const formatRelativeDate = (dateStr: string): string => (window as any).SnakkUtils.formatRelativeDate(dateStr);
 
-    function escapeHtml(text: string): string {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+    const escapeHtml = (text: string): string => (window as any).SnakkUtils.escapeHtml(text);
 
     function initEmbedPreferences(): void {
         const container = document.getElementById('embed-providers');
@@ -895,7 +889,8 @@ interface SettingsPageConfig {
         const listLayoutSelect = document.getElementById('pref-discussion-list-layout') as HTMLSelectElement | null;
         const animationsToggle = document.getElementById('pref-animations') as HTMLInputElement | null;
         const linkPreviewToggle = document.getElementById('pref-link-preview-large') as HTMLInputElement | null;
-        if (!listLayoutSelect && !animationsToggle && !linkPreviewToggle) return;
+        const hoverPopupToggle = document.getElementById('pref-hover-popup') as HTMLInputElement | null;
+        if (!listLayoutSelect && !animationsToggle && !linkPreviewToggle && !hoverPopupToggle) return;
 
         try {
             if (listLayoutSelect) {
@@ -933,6 +928,16 @@ interface SettingsPageConfig {
                     } else {
                         localStorage.removeItem('snakk:link-preview-compact');
                         document.documentElement.classList.remove('link-preview-compact');
+                    }
+                });
+            }
+            if (hoverPopupToggle) {
+                hoverPopupToggle.checked = localStorage.getItem('snakk:disable-hover-popup') !== 'true';
+                hoverPopupToggle.addEventListener('change', () => {
+                    if (!hoverPopupToggle.checked) {
+                        localStorage.setItem('snakk:disable-hover-popup', 'true');
+                    } else {
+                        localStorage.removeItem('snakk:disable-hover-popup');
                     }
                 });
             }
@@ -1243,11 +1248,15 @@ interface SettingsPageConfig {
     function setSudoExpiry(expiresInSeconds: number): void {
         sudoExpiresAt = Date.now() + expiresInSeconds * 1000;
         try { sessionStorage.setItem(SUDO_EXPIRES_KEY, String(sudoExpiresAt)); } catch { /* ignore */ }
+        updateSudoLockIcons();
+        startSudoIconTimer();
     }
 
     function invalidateSudo(): void {
         sudoExpiresAt = 0;
         try { sessionStorage.removeItem(SUDO_EXPIRES_KEY); } catch { /* ignore */ }
+        stopSudoIconTimer();
+        updateSudoLockIcons();
     }
 
     function restoreSudoExpiry(): void {
@@ -1255,6 +1264,56 @@ interface SettingsPageConfig {
             const stored = sessionStorage.getItem(SUDO_EXPIRES_KEY);
             if (stored) sudoExpiresAt = parseInt(stored, 10) || 0;
         } catch { /* ignore */ }
+        if (isSudoValid()) {
+            requestAnimationFrame(() => { updateSudoLockIcons(); startSudoIconTimer(); });
+        }
+    }
+
+    function updateSudoLockIcons(): void {
+        const valid = isSudoValid();
+        const icons = document.querySelectorAll<HTMLElement>('.sn-settings-section-title .icon-lock-closed');
+        icons.forEach(icon => {
+            const existingGroup = icon.closest<HTMLElement>('.sn-sudo-verified-group');
+            if (valid) {
+                const mins = Math.max(1, Math.ceil((sudoExpiresAt - Date.now()) / 60_000));
+                const tip = `Verified — active for ~${mins} min`;
+                icon.style.color = 'var(--accent-success,#10b981)';
+                icon.title = tip;
+                if (!existingGroup) {
+                    if (!icon.dataset.origTitle) icon.dataset.origTitle = icon.getAttribute('title') ?? '';
+                    const group = document.createElement('span');
+                    group.className = 'sn-sudo-verified-group';
+                    group.style.cssText = 'display:inline-flex;align-items:center;gap:0.1875rem;flex-shrink:0';
+                    icon.parentNode!.insertBefore(group, icon);
+                    group.appendChild(icon);
+                    const check = document.createElement('span');
+                    check.className = 'sn-sudo-check';
+                    check.textContent = '✓';
+                    check.setAttribute('aria-hidden', 'true');
+                    check.style.cssText = 'font-size:0.6rem;font-weight:700;color:var(--accent-success,#10b981);line-height:1';
+                    group.appendChild(check);
+                }
+            } else {
+                icon.style.color = 'var(--text-tertiary)';
+                if (icon.dataset.origTitle !== undefined) icon.title = icon.dataset.origTitle;
+                if (existingGroup) {
+                    existingGroup.parentNode?.insertBefore(icon, existingGroup);
+                    existingGroup.remove();
+                }
+            }
+        });
+    }
+
+    function startSudoIconTimer(): void {
+        stopSudoIconTimer();
+        sudoIconTimer = setInterval(() => {
+            updateSudoLockIcons();
+            if (!isSudoValid()) stopSudoIconTimer();
+        }, 60_000);
+    }
+
+    function stopSudoIconTimer(): void {
+        if (sudoIconTimer !== null) { clearInterval(sudoIconTimer); sudoIconTimer = null; }
     }
 
     function isSudoValid(): boolean {
@@ -1323,21 +1382,8 @@ interface SettingsPageConfig {
         if (!settings?.hasPasskeys) setTimeout(() => pwdInput?.focus(), 50);
     }
 
-    function base64urlToBuffer(base64url: string): ArrayBuffer {
-        const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
-        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
-        const binary = atob(padded);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i) & 0xff;
-        return bytes.buffer;
-    }
-
-    function bufferToBase64url(buffer: ArrayBuffer): string {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i] ?? 0);
-        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    }
+    const base64urlToBuffer = (base64url: string): ArrayBuffer => (window as any).SnakkWebAuthn.base64urlToBuffer(base64url) as ArrayBuffer;
+    const bufferToBase64url = (buffer: ArrayBuffer): string => (window as any).SnakkWebAuthn.bufferToBase64url(buffer) as string;
 
     function serializeAssertion(cred: PublicKeyCredential): string {
         const resp = cred.response as AuthenticatorAssertionResponse;
@@ -2672,6 +2718,8 @@ interface SettingsPageConfig {
     // ─── Boot ─────────────────────────────────────────────────────────────────
 
     function boot(): void {
+        const userId = document.querySelector('meta[name="current-user-id"]')?.getAttribute('content') ?? '';
+        if (userId) SUDO_EXPIRES_KEY = `snakk:sudo-expires:${userId}`;
         restoreSudoExpiry();
         const isAuthenticated = !!document.querySelector('meta[name="current-user-id"]');
         if (isAuthenticated) {
@@ -2696,5 +2744,88 @@ interface SettingsPageConfig {
         if (document.getElementById('avatar-upload-form')) {
             boot();
         }
+    });
+})();
+
+// ===== Delete Account =====
+(function () {
+    'use strict';
+
+    const openBtn = document.getElementById('delete-account-btn') as HTMLButtonElement | null;
+    if (!openBtn) return;
+
+    const MODAL_ID = 'modal-delete-account';
+
+    function modal() {
+        return (window as any).snakkModal as { open: (id: string) => void; close: (id: string) => void } | undefined;
+    }
+
+    function showStatus(msg: string, isError: boolean): void {
+        const el = document.getElementById('delete-account-modal-status');
+        if (!el) return;
+        el.textContent = msg;
+        el.className = 'text-sm mt-2 ' + (isError ? 'text-error' : 'text-success');
+        el.classList.remove('hidden');
+    }
+
+    function clearStatus(): void {
+        const el = document.getElementById('delete-account-modal-status');
+        if (el) { el.textContent = ''; el.classList.add('hidden'); }
+    }
+
+    openBtn.addEventListener('click', () => {
+        const snakkSudo = (window as any).snakkSudo as { ensure: (cb: () => void) => void } | undefined;
+        snakkSudo?.ensure(() => {
+            const input = document.getElementById('delete-account-confirm-input') as HTMLInputElement | null;
+            if (input) input.value = '';
+            const submitBtn = document.getElementById('delete-account-modal-submit') as HTMLButtonElement | null;
+            if (submitBtn) submitBtn.disabled = true;
+            clearStatus();
+            modal()?.open(MODAL_ID);
+            input?.focus();
+        });
+    });
+
+    // Enable submit only when something is typed
+    document.getElementById('delete-account-confirm-input')?.addEventListener('input', function (this: HTMLInputElement) {
+        const submitBtn = document.getElementById('delete-account-modal-submit') as HTMLButtonElement | null;
+        if (submitBtn) submitBtn.disabled = this.value.trim().length === 0;
+    });
+
+    document.getElementById('delete-account-modal-submit')?.addEventListener('click', async () => {
+        const submitBtn = document.getElementById('delete-account-modal-submit') as HTMLButtonElement | null;
+        const input = document.getElementById('delete-account-confirm-input') as HTMLInputElement | null;
+        const typedEmail = input?.value.trim() ?? '';
+        if (!typedEmail) return;
+        if (submitBtn) submitBtn.disabled = true;
+        clearStatus();
+        try {
+            const res = await fetch('/bff/me/account', {
+                method: 'DELETE',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ confirmation: typedEmail })
+            });
+            if (res.ok) { window.location.href = '/'; return; }
+            if (res.status === 403) { showStatus('Session expired. Please re-authenticate.', true); return; }
+            let errorMsg = 'Failed to delete account. Please try again.';
+            try { const d = await res.json(); if (d?.error) errorMsg = d.error; } catch { /* ignore */ }
+            showStatus(errorMsg, true);
+        } catch {
+            showStatus('Network error. Please try again.', true);
+        } finally {
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    });
+
+    document.getElementById('delete-account-modal-cancel')?.addEventListener('click', () => modal()?.close(MODAL_ID));
+    document.getElementById('delete-account-modal-cancel-x')?.addEventListener('click', () => modal()?.close(MODAL_ID));
+    document.getElementById(MODAL_ID)?.addEventListener('mousedown', (e) => {
+        if (e.target === e.currentTarget) modal()?.close(MODAL_ID);
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const el = document.getElementById(MODAL_ID);
+        if (el && el.style.display !== 'none') modal()?.close(MODAL_ID);
     });
 })();

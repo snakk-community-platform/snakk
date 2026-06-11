@@ -59,7 +59,7 @@ public class SpaceManagementService(
 
         var moderatorsTask = ReadAsync(db => db.UserRoles
             .Where(ur => ur.RoleId == (int)UserRoleTypeEnum.SpaceMod && ur.SpaceId == spaceDbId && ur.RevokedAt == null)
-            .Select(ur => new SpaceModeratorDto
+            .Select(ur => new ScopeModeratorDto
             {
                 UserId = ur.User.PublicId,
                 DisplayName = ur.User.DisplayName ?? "",
@@ -156,6 +156,7 @@ public class SpaceManagementService(
             AutoParagraphEnabled = space.AutoParagraphEnabled,
             IsAdultOnly = space.IsAdultOnly,
             AllowsAdultContent = space.AllowsAdultContent,
+            Require2FA = space.Require2FA,
             AllowedDiscussionTypes = allowedTypes,
             ModeratorUserIds = modUserIds
         };
@@ -180,6 +181,7 @@ public class SpaceManagementService(
         space.IsAdultOnly = request.IsAdultOnly;
         // Adult-only implies allows-adult is irrelevant; force false for clarity.
         space.AllowsAdultContent = !request.IsAdultOnly && request.AllowsAdultContent;
+        space.Require2FA = request.Require2FA;
 
         if (request.LanguageCode is not null || space.LanguageCode is not null)
         {

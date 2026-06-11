@@ -3,6 +3,7 @@ namespace Snakk.Infrastructure.Database.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
+using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Shared.Enums;
 using Snakk.Shared.Models;
 
@@ -25,11 +26,9 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
         int pageSize,
         CancellationToken ct = default)
     {
-        var items = await _dbSet
+        return await _dbSet
             .Where(c => c.VisibilityId == (int)CommunityVisibilityEnum.PublicListed)
             .OrderBy(c => c.Name)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(c => new CommunityListDto(
                 c.PublicId,
                 c.Name,
@@ -39,22 +38,7 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
                 c.ExposeToPlatformFeed,
                 c.CreatedAt,
                 c.AvatarFileName))
-            .ToListAsync(ct);
-
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems
-            ? items
-                .Take(pageSize)
-                .ToList()
-            : items;
-
-        return new PagedResult<CommunityListDto>
-        {
-            Items = resultItems,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 
     public async Task<PagedResult<CommunityListDto>> GetForPlatformFeedAsync(
@@ -62,11 +46,9 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
         int pageSize,
         CancellationToken ct = default)
     {
-        var items = await _dbSet
+        return await _dbSet
             .Where(c => c.ExposeToPlatformFeed)
             .OrderBy(c => c.Name)
-            .Skip(offset)
-            .Take(pageSize + 1)
             .Select(c => new CommunityListDto(
                 c.PublicId,
                 c.Name,
@@ -76,21 +58,6 @@ public class CommunityDatabaseRepository(SnakkDbContext context)
                 c.ExposeToPlatformFeed,
                 c.CreatedAt,
                 c.AvatarFileName))
-            .ToListAsync(ct);
-
-        var hasMoreItems = items.Count > pageSize;
-        var resultItems = hasMoreItems
-            ? items
-                .Take(pageSize)
-                .ToList()
-            : items;
-
-        return new PagedResult<CommunityListDto>
-        {
-            Items = resultItems,
-            Offset = offset,
-            PageSize = pageSize,
-            HasMoreItems = hasMoreItems
-        };
+            .ToPagedResultAsync(offset, pageSize, ct);
     }
 }

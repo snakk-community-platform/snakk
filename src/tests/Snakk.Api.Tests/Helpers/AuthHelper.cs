@@ -35,16 +35,25 @@ public static class AuthHelper
     /// <param name="email">The user's email claim (optional).</param>
     /// <param name="emailVerified">Whether the email is verified.</param>
     /// <param name="role">The user's role claim (optional, e.g. "GlobalAdmin").</param>
+    /// <param name="sessionId">Session public ID (sid claim). Set this to exercise the
+    /// session-revocation check in JwtBearerEvents.OnTokenValidated.</param>
+    /// <param name="authVersion">User AuthVersion (ver claim). Set to a value &gt; 0 to
+    /// exercise the AuthVersion check in JwtBearerEvents.OnTokenValidated.</param>
+    /// <param name="jti">Optional explicit jti (defaults to a fresh GUID per token).</param>
     /// <returns>A signed JWT token string.</returns>
     public static string GenerateTestToken(
         string userId = "test-user-id",
         string displayName = "Test User",
         string? email = "test@example.com",
         bool emailVerified = true,
-        string? role = null)
+        string? role = null,
+        string? sessionId = null,
+        long authVersion = 0,
+        string? jti = null)
     {
         var claims = new List<Claim>
         {
+            new(JwtRegisteredClaimNames.Jti, jti ?? Guid.NewGuid().ToString("N")),
             new(ClaimTypes.NameIdentifier, userId),
             new(ClaimTypes.Name, displayName),
             new("EmailVerified", emailVerified.ToString())
@@ -55,6 +64,12 @@ public static class AuthHelper
 
         if (!string.IsNullOrEmpty(role))
             claims.Add(new Claim(ClaimTypes.Role, role));
+
+        if (!string.IsNullOrEmpty(sessionId))
+            claims.Add(new Claim(Snakk.Application.Auth.CustomClaimTypes.SessionId, sessionId));
+
+        if (authVersion > 0)
+            claims.Add(new Claim(Snakk.Application.Auth.CustomClaimTypes.AuthVersion, authVersion.ToString()));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(TestJwtSecret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

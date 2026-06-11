@@ -59,17 +59,17 @@ public class Require2FAAuthorizationHandler(
             return;
         }
 
-        // Check if 2FA was verified in this session (claim added during login)
-        var twoFactorVerified = context.User.FindFirst("2fa_verified")?.Value == "true";
+        // Check that the JWT token carries the tfa=1 claim (emitted when 2FA was used at login)
+        var twoFactorVerified = context.User.FindFirst(Snakk.Application.Auth.CustomClaimTypes.TwoFactorEnabled)?.Value == "1";
 
         if (!twoFactorVerified)
         {
-            // 2FA enabled but not verified in this session
+            // 2FA enabled on the account but token was issued without 2FA — re-authentication required
             httpContext.Response.StatusCode = 403;
             await httpContext.Response.WriteAsJsonAsync(new
             {
                 error = "2FA_NOT_VERIFIED",
-                message = "Please verify your 2FA code",
+                message = "Please sign in with two-factor authentication to access this resource",
                 verifyUrl = "/api/auth/2fa/verify"
             });
             context.Fail();

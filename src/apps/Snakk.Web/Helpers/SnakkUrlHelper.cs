@@ -85,8 +85,11 @@ public static class SnakkUrlHelper
 
     // ===== User URLs =====
 
+    // Use TryEncode so a malformed user publicId (e.g. a bad seed/import that isn't a
+    // valid 26-char Crockford ULID) degrades to a non-resolving link instead of throwing
+    // and 500-ing the whole page this link is rendered on (home, /latest, _AuthNav, …).
     public static string UserProfile(string publicId)
-        => $"/u/{UlidBase62.Encode(publicId)}";
+        => $"/u/{(UlidBase62.TryEncode(publicId, out var encoded) ? encoded : publicId)}";
 
     // ===== Avatar & Asset URLs =====
 

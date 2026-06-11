@@ -16,7 +16,8 @@ public interface IJwtTokenService
         string? avatarThumbnailFileName = null,
         string? avatarMicroFileName = null,
         long authVersion = 0,
-        string? sessionId = null);
+        string? sessionId = null,
+        bool twoFactorEnabled = false);
 
     string GenerateToken(User user, string? sessionId = null);
 
@@ -33,6 +34,14 @@ public interface IJwtTokenService
     /// Marks a session as revoked. Any access token carrying this session ID is rejected until the cache entry expires.
     /// </summary>
     void RevokeSession(string sessionPublicId);
+
+    /// <summary>
+    /// Returns true if the given session public ID has been revoked via
+    /// <see cref="RevokeSession"/>. Used by <c>JwtBearerEvents.OnTokenValidated</c>
+    /// so REST endpoints honor session revocation — previously the cache entry
+    /// was written but no validation path checked it.
+    /// </summary>
+    bool IsSessionRevoked(string sessionPublicId);
 
     /// <summary>
     /// Issues a short-lived (5 min) token that proves the bearer has already cleared

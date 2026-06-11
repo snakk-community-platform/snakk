@@ -12,6 +12,7 @@ public class Community
     public string? LanguageCode { get; private set; }
     public CommunityVisibility Visibility { get; private set; }
     public bool ExposeToPlatformFeed { get; private set; }
+    public bool Require2FA { get; private set; }
     public string? AvatarFileName { get; private set; }
     public string? AvatarThumbnailFileName { get; private set; }
     public string? AvatarMicroFileName { get; private set; }
@@ -44,7 +45,8 @@ public class Community
         string? avatarThumbnailFileName = null,
         string? avatarMicroFileName = null,
         int avatarRevision = 0,
-        string? languageCode = null)
+        string? languageCode = null,
+        bool require2FA = false)
     {
         PublicId = publicId;
         Name = name;
@@ -54,6 +56,7 @@ public class Community
         LanguageCode = languageCode;
         Visibility = visibility;
         ExposeToPlatformFeed = exposeToPlatformFeed;
+        Require2FA = require2FA;
         AvatarFileName = avatarFileName;
         AvatarThumbnailFileName = avatarThumbnailFileName;
         AvatarMicroFileName = avatarMicroFileName;
@@ -101,7 +104,8 @@ public class Community
         string? avatarThumbnailFileName = null,
         string? avatarMicroFileName = null,
         int avatarRevision = 0,
-        string? languageCode = null) =>
+        string? languageCode = null,
+        bool require2FA = false) =>
         new Community(
             publicId,
             name,
@@ -117,7 +121,8 @@ public class Community
             avatarThumbnailFileName,
             avatarMicroFileName,
             avatarRevision,
-            languageCode);
+            languageCode,
+            require2FA);
 
     public static Community RehydrateForList(
         CommunityId publicId,
@@ -199,6 +204,12 @@ public class Community
         AvatarThumbnailFileName = null;
         AvatarMicroFileName = null;
         AvatarRevision++;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetRequire2FA(bool require)
+    {
+        Require2FA = require;
         LastModifiedAt = DateTime.UtcNow;
     }
 }

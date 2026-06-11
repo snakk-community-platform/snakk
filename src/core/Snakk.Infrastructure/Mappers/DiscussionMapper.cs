@@ -11,7 +11,7 @@ public static class DiscussionMapper
         Discussion.Rehydrate(
             DiscussionId.From(entity.PublicId),
             SpaceId.From(entity.Space.PublicId),
-            UserId.From(entity.CreatedByUser.PublicId),
+            UserId.FromNullable(entity.CreatedByUser?.PublicId),
             entity.Title,
             entity.Slug,
             (DiscussionTypeEnum)entity.Type,

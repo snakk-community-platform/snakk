@@ -24,7 +24,8 @@ else
 
                     <MudText Typo="Typo.h6" GutterBottom="true" Class="mt-2">Access</MudText>
                     <MudCheckBox @bind-Value="_allowAnon" Label="Allow anonymous reading" Class="mb-1" />
-                    <MudCheckBox @bind-Value="_requireEmail" Label="Require email confirmation" />
+                    <MudCheckBox @bind-Value="_requireEmail" Label="Require email confirmation" Class="mb-1" />
+                    <MudCheckBox @bind-Value="_require2FA" Label="Require 2FA to access" />
 
                     <MudText Typo="Typo.h6" GutterBottom="true" Class="mt-2">Content</MudText>
                     <MudCheckBox @bind-Value="_isAdultOnly" Label="Adult-only space" Class="mb-1" />
@@ -48,7 +49,7 @@ else
 
     private bool _loading = true; private bool _saving;
     private string _name = ""; private string _description = ""; private string _languageCode = "";
-    private bool _allowAnon; private bool _requireEmail; private bool _isAdultOnly; private bool _allowsAdult; private bool _autoParagraph;
+    private bool _allowAnon; private bool _requireEmail; private bool _require2FA; private bool _isAdultOnly; private bool _allowsAdult; private bool _autoParagraph;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -58,7 +59,7 @@ else
         {
             var s = await ManageClient.GetSpaceSettingsAsync(new Snakk.Protos.Manage.GetSpaceSettingsRequest { SpacePublicId = Scope.ScopePublicId });
             _name = s.Name; _description = s.Description; _languageCode = s.HasLanguageCode ? s.LanguageCode : "";
-            _allowAnon = s.AllowAnonymous; _requireEmail = s.RequireApproval;
+            _allowAnon = s.AllowAnonymous; _requireEmail = s.RequireApproval; _require2FA = s.Require2Fa;
             _isAdultOnly = s.IsAdultOnly; _allowsAdult = s.AllowsAdultContent; _autoParagraph = s.AutoParagraphEnabled;
         }
         catch (Exception ex) { Snackbar.Add($"Failed to load: {ex.Message}", Severity.Error); }
@@ -73,7 +74,7 @@ else
             await ManageClient.UpdateSpaceSettingsAsync(new Snakk.Protos.Manage.UpdateSpaceSettingsRequest
             {
                 SpacePublicId = Scope!.ScopePublicId, Name = _name, Description = _description, LanguageCode = _languageCode,
-                AllowAnonymous = _allowAnon, RequireApproval = _requireEmail,
+                AllowAnonymous = _allowAnon, RequireApproval = _requireEmail, Require2Fa = _require2FA,
                 IsAdultOnly = _isAdultOnly, AllowsAdultContent = _allowsAdult, AutoParagraphEnabled = _autoParagraph
             });
             Snackbar.Add("Settings saved.", Severity.Success);

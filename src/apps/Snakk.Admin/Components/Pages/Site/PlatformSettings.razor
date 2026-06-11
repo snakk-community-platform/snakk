@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "GlobalAdmin")]
 @layout Layout.MainLayout
 @inject ManageService.ManageServiceClient ManageClient
+@inject FeatureFlagService FeatureFlags
 @inject ISnackbar Snackbar
 
 <PageTitle>Platform Settings — Snakk Admin</PageTitle>
@@ -67,6 +68,19 @@ else
                 <MudText Class="mud-text-secondary">Script configuration coming soon.</MudText>
             </MudPaper>
         </MudTabPanel>
+        <MudTabPanel Text="Features">
+            <MudPaper Class="pa-6 mt-4">
+                <MudText Typo="Typo.h6" GutterBottom="true">Features</MudText>
+                <MudText Class="mud-text-secondary mb-4">Enable or disable platform features. Changes take effect immediately across all services.</MudText>
+                <MudSwitch @bind-Value="_privateMessagingEnabled" Label="Private Messaging" Color="Color.Primary" />
+                <MudText Class="mud-text-secondary mb-6" Style="font-size:0.875rem;margin-left:3.5rem">
+                    Allow users to send direct messages to each other.
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@SaveFeatures" Disabled="@_saving">
+                    @(_saving ? "Saving..." : "Save")
+                </MudButton>
+            </MudPaper>
+        </MudTabPanel>
     </MudTabs>
 }
 
@@ -78,6 +92,7 @@ else
     private string _timezone = "";
     private string _registrationMode = "open";
     private string _inviteCode = "";
+    private bool _privateMessagingEnabled = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -92,6 +107,8 @@ else
                 new Snakk.Protos.Manage.GetRegistrationSettingsRequest());
             _registrationMode = regSettings.Mode.ToLowerInvariant();
             _inviteCode = !string.IsNullOrEmpty(regSettings.InviteCode) ? regSettings.InviteCode : "";
+
+            _privateMessagingEnabled = FeatureFlags.PrivateMessagingEnabled;
         }
         catch (Exception ex)
         {
@@ -140,6 +157,24 @@ else
 
             await ManageClient.UpdateRegistrationSettingsAsync(req);
             Snackbar.Add("Registration settings saved.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to save: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task SaveFeatures()
+    {
+        _saving = true;
+        try
+        {
+            await FeatureFlags.SetPrivateMessagingEnabledAsync(_privateMessagingEnabled);
+            Snackbar.Add("Features saved.", Severity.Success);
         }
         catch (Exception ex)
         {

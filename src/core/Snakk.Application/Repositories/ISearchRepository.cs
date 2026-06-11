@@ -4,7 +4,7 @@ using Snakk.Shared.Models;
 
 public interface ISearchRepository
 {
-    Task<PagedResult<DiscussionSearchResultDto>> SearchDiscussionsAsync(
+    Task<PagedResult<RecentDiscussionDto>> SearchDiscussionsAsync(
         string query,
         string? authorPublicId = null,
         string? spacePublicId = null,
@@ -13,6 +13,8 @@ public interface ISearchRepository
         int pageSize = 20,
         string? userId = null,
         bool viewerAllowsAdult = false,
+        string? sortBy = null,
+        string? dateRange = null,
         CancellationToken ct = default);
 
     Task<PagedResult<PostSearchResultDto>> SearchPostsAsync(
@@ -23,6 +25,8 @@ public interface ISearchRepository
         int offset = 0,
         int pageSize = 20,
         string? userId = null,
+        string? sortBy = null,
+        string? dateRange = null,
         CancellationToken ct = default);
 
     Task<int> GetDiscussionCountByAuthorAsync(string authorPublicId, CancellationToken ct = default);

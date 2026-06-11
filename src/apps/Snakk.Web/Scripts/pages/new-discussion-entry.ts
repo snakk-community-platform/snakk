@@ -130,11 +130,7 @@
     updatePlaceholder();
     createScopeLabel();
 
-    function escapeHtml(text: string): string {
-        const el = document.createElement('span');
-        el.textContent = text;
-        return el.innerHTML;
-    }
+    const escapeHtml = (text: string): string => (window as any).SnakkUtils.escapeHtml(text);
 
     async function fetchSpaces(query?: string): Promise<SpaceResult[]> {
         const params = new URLSearchParams();

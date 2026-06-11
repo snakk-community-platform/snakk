@@ -10,10 +10,6 @@
     ViewData["Description"] = "Browse the newest discussions on Snakk — ordered by when they were created, not when they last got a reply.";
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion-list")" asp-append-version="true" />
-}
-
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }
@@ -28,9 +24,7 @@
 
         @if (Model.LatestDiscussions?.Items == null || !Model.LatestDiscussions.Items.Any())
         {
-            <div class="py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <p>@T.Pages.LatestEmpty</p>
-            </div>
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.LatestEmpty)" />
         }
         else
         {

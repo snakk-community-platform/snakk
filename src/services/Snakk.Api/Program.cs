@@ -11,7 +11,8 @@ using Serilog;
 using Snakk.ServiceDefaults;
 
 ThreadPool.SetMinThreads(50, 50);
-DotNetRuntimeStatsBuilder.Default().StartCollecting();
+try { DotNetRuntimeStatsBuilder.Default().StartCollecting(); }
+catch (InvalidOperationException) { /* already collecting — second startup in test host */ }
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -148,7 +149,7 @@ app.UseCors();
 
 app.UseAuthentication();
 app.UseAuthorization();
-if (!app.Configuration.GetValue<bool>("DisableRateLimiting")) app.UseRateLimiter();
+if (app.Configuration.GetValue<bool>("EnableRateLimiting")) app.UseRateLimiter();
 
 // Health check endpoint (checks DB connectivity)
 app.MapHealthChecks("/health");
@@ -195,6 +196,7 @@ app.MapGrpcService<Snakk.Api.GrpcServices.TwoFactorGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.ConsentGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.SaveGrpcService>();
 app.MapGrpcService<Snakk.Api.GrpcServices.PasskeyGrpcService>();
+app.MapGrpcService<Snakk.Api.GrpcServices.DmGrpcService>();
 
 // Map REST endpoint groups (kept alongside gRPC during incremental migration)
 app.MapCommunityEndpoints();

@@ -27,9 +27,16 @@ using System.Text;
 // Allow gRPC (HTTP/2) over plain HTTP — needed in Docker where services communicate without TLS
 AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 ThreadPool.SetMinThreads(50, 50);
-DotNetRuntimeStatsBuilder.Default().StartCollecting();
+try { DotNetRuntimeStatsBuilder.Default().StartCollecting(); }
+catch (InvalidOperationException) { /* already collecting — second startup in test host */ }
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Auth/session cookies set Secure=true; over plain HTTP (dev/test) clients drop them,
+// breaking every authenticated flow. Default secure, but disable in Development so
+// local and load testing can authenticate. Override with Cookies:RequireSecure.
+Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure =
+    builder.Configuration.GetValue<bool?>("Cookies:RequireSecure") ?? !builder.Environment.IsDevelopment();
 
 // Load shared config (written by setup wizard)
 var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/storage";
@@ -184,6 +191,9 @@ builder.Services.AddSingleton<IPrefetchCacheService, PrefetchCacheService>();
 // Per-user cache for followed space IDs (2-min TTL, invalidated on follow toggle)
 builder.Services.AddSingleton<IFollowedSpacesCacheService, FollowedSpacesCacheService>();
 
+// FIDO AAGUID → authenticator name + icon lookup (loaded once from wwwroot/data/aaguid.json)
+builder.Services.AddSingleton<AaguidLookupService>();
+
 // WebOptimizer for CSS minification only (JS minification breaks TypeScript output)
 builder.Services.AddWebOptimizer(pipeline =>
 {
@@ -263,6 +273,7 @@ AddGrpcClient<Snakk.Protos.Consent.ConsentService.ConsentServiceClient>(builder.
 AddGrpcClient<Snakk.Protos.Save.SaveService.SaveServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.Passkey.PasskeyService.PasskeyServiceClient>(builder.Services);
 AddGrpcClient<Snakk.Protos.TwoFactor.TwoFactorService.TwoFactorServiceClient>(builder.Services);
+AddGrpcClient<Snakk.Protos.Dm.DmService.DmServiceClient>(builder.Services);
 
 // Register SnakkApiClient (DI resolves all gRPC clients automatically)
 builder.Services.AddSingleton<SnakkApiClient>();
@@ -324,7 +335,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-var disableRateLimiting = builder.Configuration.GetValue<bool>("DisableRateLimiting");
+var enableRateLimiting = builder.Configuration.GetValue<bool>("EnableRateLimiting");
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -667,7 +678,7 @@ app.UseRouting();
 app.UseMiddleware<TokenRefreshMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
-if (!disableRateLimiting) app.UseRateLimiter();
+if (enableRateLimiting) app.UseRateLimiter();
 
 // SameSite=Strict mutation guard: BFF state-changing requests (POST/PUT/DELETE) require
 // the Strict auth cookie, not just the Lax session cookie. This prevents CSRF attacks
@@ -773,7 +784,7 @@ app.MapPost("/bff/adult-confirm", (HttpContext ctx) =>
     ctx.Response.Cookies.Append("snakk.adult-confirmed", "1", new CookieOptions
     {
         HttpOnly = true,
-        Secure = true,
+        Secure = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
         SameSite = SameSiteMode.Strict,
         Path = "/",
         IsEssential = true

@@ -113,21 +113,11 @@
     const list: HTMLElement = listEl;
 
     const addArea = document.getElementById('passkey-add-area') as HTMLElement | null;
-    const statusEl = document.getElementById('passkey-status');
     const snakkModal = (window as any).snakkModal as { open: (id: string) => void; close: (id: string) => void } | undefined;
     const ADD_MODAL_ID = 'modal-passkey';
     const DEL_MODAL_ID = 'modal-passkey-delete';
 
     let currentDeleteId: number | null = null;
-
-    function showStatus(msg: string, isError: boolean): void {
-        if (!statusEl) return;
-        statusEl.textContent = msg;
-        statusEl.className = 'text-sm mt-2 ' + (isError ? 'text-error' : 'text-success');
-        statusEl.classList.remove('hidden');
-        const el = statusEl;
-        setTimeout(() => el.classList.add('hidden'), 4000);
-    }
 
     function showAddModalStatus(msg: string, isError: boolean): void {
         const el = document.getElementById('passkey-modal-status');
@@ -155,21 +145,8 @@
         if (el) { el.textContent = ''; el.classList.add('hidden'); }
     }
 
-    function base64urlToBuffer(base64url: string): ArrayBuffer {
-        const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
-        const padded = base64.padEnd(base64.length + (4 - base64.length % 4) % 4, '=');
-        const binary = atob(padded);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i) & 0xff;
-        return bytes.buffer;
-    }
-
-    function bufferToBase64url(buffer: ArrayBuffer): string {
-        const bytes = new Uint8Array(buffer);
-        let binary = '';
-        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i] ?? 0);
-        return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-    }
+    const base64urlToBuffer = (base64url: string): ArrayBuffer => (window as any).SnakkWebAuthn.base64urlToBuffer(base64url) as ArrayBuffer;
+    const bufferToBase64url = (buffer: ArrayBuffer): string => (window as any).SnakkWebAuthn.bufferToBase64url(buffer) as string;
 
     interface AttestationJSON {
         id: string;
@@ -202,6 +179,8 @@
         friendlyName: string | null;
         createdAt: string | null;
         lastUsedAt: string | null;
+        authenticatorName: string | null;
+        authenticatorIcon: string | null;
     }
 
     function renderPasskeys(passkeys: PasskeyItem[]): void {
@@ -213,14 +192,18 @@
 
         list.style.display = '';
         list.innerHTML = passkeys.map(p => {
-            const name = p.friendlyName ?? 'Passkey';
+            const name = p.friendlyName ?? p.authenticatorName ?? 'Passkey';
             const escapedName = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            const iconHtml = p.authenticatorIcon && p.authenticatorIcon.startsWith('data:image/')
+                ? `<img src="${p.authenticatorIcon}" class="sn-device-icon" aria-hidden="true" width="24" height="24" alt="">`
+                : `<span class="icon icon-lock-closed sn-device-icon" aria-hidden="true"></span>`;
             const metaParts: string[] = [];
+            if (p.authenticatorName) metaParts.push(p.authenticatorName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
             if (p.createdAt) metaParts.push('Added ' + new Date(p.createdAt).toLocaleDateString());
             metaParts.push('Last used ' + (p.lastUsedAt ? new Date(p.lastUsedAt).toLocaleDateString() : '—'));
             return `
                 <div class="sn-device-item">
-                    <span class="icon icon-lock-closed sn-device-icon" aria-hidden="true"></span>
+                    ${iconHtml}
                     <div class="sn-device-info">
                         <div class="sn-device-name">${escapedName}</div>
                         <div class="sn-device-meta">${metaParts.join(' · ')}</div>
@@ -404,7 +387,6 @@
 
             if (res.ok) {
                 snakkModal?.close(DEL_MODAL_ID);
-                showStatus('Passkey removed', false);
                 loadPasskeys();
             } else if (res.status === 403) {
                 showDelModalStatus('Session expired. Please re-authenticate.', true);
@@ -417,5 +399,67 @@
         } finally {
             confirmDeleteBtn.disabled = false;
         }
+    });
+})();
+
+// ===== Download My Data =====
+(function () {
+    'use strict';
+
+    const downloadBtn = document.getElementById('download-data-btn') as HTMLButtonElement | null;
+    if (!downloadBtn) return;
+
+    const statusEl = document.getElementById('download-data-status') as HTMLElement | null;
+
+    function setStatus(msg: string, isError: boolean): void {
+        if (!statusEl) return;
+        statusEl.textContent = msg;
+        statusEl.className = 'text-sm mt-2 ' + (isError ? 'text-error' : 'text-success');
+        statusEl.classList.remove('hidden');
+    }
+
+    function clearStatus(): void {
+        if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+    }
+
+    downloadBtn.addEventListener('click', () => {
+        const snakkSudo = (window as any).snakkSudo as { ensure: (cb: () => void) => void } | undefined;
+        snakkSudo?.ensure(async () => {
+            downloadBtn.disabled = true;
+            clearStatus();
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Preparing export...';
+
+            try {
+                const res = await fetch('/bff/me/data-export', { credentials: 'include' });
+                if (res.status === 403) { setStatus('Session expired. Please re-authenticate.', true); return; }
+                if (!res.ok) {
+                    let errorMsg = 'Export failed. Please try again.';
+                    try {
+                        const data = await res.json();
+                        if (data?.error) errorMsg = data.error;
+                    } catch { /* ignore */ }
+                    setStatus(errorMsg, true);
+                    return;
+                }
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const filename = `snakk-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch {
+                setStatus('Network error. Please try again.', true);
+            } finally {
+                downloadBtn.disabled = false;
+                downloadBtn.innerHTML = originalText;
+            }
+        });
     });
 })();

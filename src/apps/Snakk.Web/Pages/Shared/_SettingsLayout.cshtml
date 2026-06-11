@@ -1,0 +1,46 @@
+@{
+    Layout = "_Layout";
+    var icon = ViewData["Settings.Icon"] as string ?? "icon-cog-6-tooth";
+    var heading = ViewData["Settings.Heading"] as string ?? "";
+    var useRegistrationNudge = ViewData["Settings.UseRegistrationNudge"] as bool? ?? false;
+    var skipAuthGuard = ViewData["Settings.SkipAuthGuard"] as bool? ?? false;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("settings")" asp-append-version="true" />
+    @RenderSection("ExtraStyles", required: false)
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<div class="sn-center">
+    <div class="sn-center-inner">
+        @if (!skipAuthGuard && User.Identity?.IsAuthenticated != true)
+        {
+            @if (useRegistrationNudge)
+            {
+                <partial name="Shared/_RegistrationNudge" />
+            }
+            else
+            {
+                <partial name="Shared/_AuthPrompt" />
+            }
+        }
+        else
+        {
+            <h2 class="sn-section-title">
+                <span class="icon @icon" aria-hidden="true"></span>
+                @heading
+            </h2>
+            <div class="sn-settings-content">
+                @RenderBody()
+            </div>
+        }
+    </div>
+</div>
+
+<aside class="sn-right">
+<partial name="Shared/_SettingsRightNav" />
+</aside>

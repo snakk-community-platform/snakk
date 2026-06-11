@@ -50,6 +50,13 @@ if (!setupComplete)
     var watcher = new FileSystemWatcher(confDir, "snakk-config.json");
     watcher.Created += (_, _) => setupComplete = true;
     watcher.EnableRaisingEvents = true;
+
+    // Application services aren't running during setup — suppress health check noise
+    foreach (var cluster in new[] { "web-cluster", "auth-cluster", "admin-cluster", "realtime-cluster", "public-api-cluster" })
+    {
+        builder.Configuration[$"ReverseProxy:Clusters:{cluster}:HealthCheck:Active:Enabled"] = "false";
+        builder.Configuration[$"ReverseProxy:Clusters:{cluster}:HealthCheck:Passive:Enabled"] = "false";
+    }
 }
 
 // Setup cluster is only used during first-run — no need to health-check it
@@ -85,8 +92,9 @@ builder.Services.AddResponseCompression(options =>
 builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
 builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
 
-// Gateway-level rate limiting (per real client IP)
-var disableRateLimiting = builder.Configuration.GetValue<bool>("DisableRateLimiting");
+// Gateway-level rate limiting (per real client IP). Opt-in: disabled unless
+// EnableRateLimiting=true, so local/dev and load tests aren't throttled by default.
+var enableRateLimiting = builder.Configuration.GetValue<bool>("EnableRateLimiting");
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = 429;
@@ -209,7 +217,7 @@ if (!app.Environment.IsProduction())
 // Middleware pipeline (order matters)
 app.UseResponseCompression();
 app.UseRouting();
-if (!disableRateLimiting)
+if (enableRateLimiting)
     app.UseRateLimiter();
 app.UseRequestTimeouts();
 

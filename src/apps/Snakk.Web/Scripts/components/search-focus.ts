@@ -7,13 +7,11 @@
 // Type Definitions
 // ============================================================================
 
-type SearchType = 'post' | 'discussion' | 'space' | 'user';
+type SearchType = 'post' | 'discussion';
 
 interface SearchTypeTextMap {
     post: string;
     discussion: string;
-    space: string;
-    user: string;
 }
 
 // ============================================================================
@@ -47,9 +45,7 @@ interface SearchTypeTextMap {
     // Placeholder text mapping (base text for each type)
     const searchTypeText: SearchTypeTextMap = {
         post: 'post bodies',
-        discussion: 'discussion titles',
-        space: 'space names',
-        user: 'user names'
+        discussion: 'discussion titles'
     };
 
     /**
@@ -69,13 +65,7 @@ interface SearchTypeTextMap {
                 return;
             }
 
-            // For user and space searches (no date range)
-            if (type === 'user' || type === 'space') {
-                searchInput.placeholder = `Search ${typeText}...`;
-                return;
-            }
-
-            // For post and discussion searches (with date range)
+            // With date range
             const selectedDateRange = document.querySelector('input[name="date-range"]:checked') as HTMLInputElement | null;
             if (selectedDateRange) {
                 const dateRange = selectedDateRange.getAttribute('aria-label')?.toLowerCase();
@@ -94,43 +84,11 @@ interface SearchTypeTextMap {
         }
     }
 
-    /**
-     * Enable/disable date range based on search type
-     */
-    function updateDateRangeState(): void {
-        const selectedType = document.querySelector('input[name="search-type"]:checked') as HTMLInputElement | null;
-        const type = selectedType?.getAttribute('aria-label')?.toLowerCase() as SearchType | undefined;
-        const dateRangeButtons = document.querySelectorAll('input[name="date-range"]') as NodeListOf<HTMLInputElement>;
-
-        // Disable date range for user and space searches
-        const shouldDisable = type === 'user' || type === 'space';
-
-        dateRangeButtons.forEach((button, index) => {
-            button.disabled = shouldDisable;
-
-            const parentElement = button.parentElement;
-            if (!parentElement) return;
-
-            if (shouldDisable) {
-                // Deselect all date range buttons when disabled
-                button.checked = false;
-                parentElement.classList.add('btn-disabled', 'opacity-50', 'cursor-not-allowed');
-            } else {
-                parentElement.classList.remove('btn-disabled', 'opacity-50', 'cursor-not-allowed');
-                // Auto-select first option (Today) when enabled
-                if (index === 0) {
-                    button.checked = true;
-                }
-            }
-        });
-    }
-
     // Show pane and update placeholder when input is focused
     searchInput.addEventListener('focus', function() {
         if (!searchPane) return;
         searchPane.classList.remove('hidden');
         updatePlaceholder();
-        updateDateRangeState();
     });
 
     // Reset placeholder when input loses focus
@@ -153,7 +111,6 @@ interface SearchTypeTextMap {
         const target = e.target as HTMLInputElement;
         if (target.name === 'search-type') {
             updatePlaceholder();
-            updateDateRangeState();
         } else if (target.name === 'date-range') {
             updatePlaceholder();
         }
@@ -199,7 +156,7 @@ interface SearchTypeTextMap {
 
                 // Build URL
                 let url = `/search?searchType=${searchType}&q=${encodeURIComponent(query)}`;
-                if (dateRange && searchType !== 'user' && searchType !== 'space') {
+                if (dateRange) {
                     url += `&dateRange=${encodeURIComponent(dateRange)}`;
                 }
 

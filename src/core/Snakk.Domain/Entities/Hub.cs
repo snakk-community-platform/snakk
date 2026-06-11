@@ -11,6 +11,7 @@ public class Hub
     public string Slug { get; private set; }
     public bool AllowAnonymousReading { get; private set; }
     public bool RequireEmailConfirmation { get; private set; }
+    public bool Require2FA { get; private set; }
     public string? LanguageCode { get; private set; }
     public string? CommunityLanguageCode { get; private set; }
     public string? AvatarFileName { get; private set; }
@@ -46,7 +47,8 @@ public class Hub
         string? avatarMicroFileName = null,
         int avatarRevision = 0,
         string? languageCode = null,
-        string? communityLanguageCode = null)
+        string? communityLanguageCode = null,
+        bool require2FA = false)
     {
         PublicId = publicId;
         CommunityId = communityId;
@@ -55,6 +57,7 @@ public class Hub
         Description = description;
         AllowAnonymousReading = allowAnonymousReading;
         RequireEmailConfirmation = requireEmailConfirmation;
+        Require2FA = require2FA;
         LanguageCode = languageCode;
         CommunityLanguageCode = communityLanguageCode;
         AvatarFileName = avatarFileName;
@@ -107,7 +110,8 @@ public class Hub
         string? avatarMicroFileName = null,
         int avatarRevision = 0,
         string? languageCode = null,
-        string? communityLanguageCode = null) =>
+        string? communityLanguageCode = null,
+        bool require2FA = false) =>
         new Hub(
             publicId,
             communityId,
@@ -124,7 +128,8 @@ public class Hub
             avatarMicroFileName,
             avatarRevision,
             languageCode,
-            communityLanguageCode);
+            communityLanguageCode,
+            require2FA);
 
     public static Hub RehydrateForList(
         HubId publicId,
@@ -201,6 +206,12 @@ public class Hub
         AvatarThumbnailFileName = null;
         AvatarMicroFileName = null;
         AvatarRevision++;
+        LastModifiedAt = DateTime.UtcNow;
+    }
+
+    public void SetRequire2FA(bool require)
+    {
+        Require2FA = require;
         LastModifiedAt = DateTime.UtcNow;
     }
 }
