@@ -40,17 +40,17 @@
     "@types/dompurify": "^3.2.0",
     "@types/node": "^25.9.1",
     "bootstrap-icons": "^1.13.1",
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.3",
     "daisyui": "^5.5.20",
-    "dompurify": "^3.4.7",
+    "dompurify": "^3.4.8",
     "esbuild": "^0.28.0",
     "htmx.org": "^2.0.10",
     "sass": "^1.100.0",
-    "simple-icons": "^16.21.0",
+    "simple-icons": "^16.22.0",
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@milkdown/kit": "^7.21.1",
+    "@milkdown/kit": "^7.21.2",
     "chart.js": "^4.4.9",
     "prismjs": "^1.30.0"
   }
