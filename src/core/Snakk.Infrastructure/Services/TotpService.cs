@@ -22,8 +22,12 @@ public class TotpService(IPasswordHasher passwordHasher) : ITotpService
         return $"otpauth://totp/{encodedIssuer}:{encodedAccount}?secret={secret}&issuer={encodedIssuer}";
     }
 
-    public bool VerifyCode(string secret, string code, int window = 1)
+    public bool VerifyCode(string secret, string code, int window = 1) =>
+        TryVerifyCode(secret, code, out _, window);
+
+    public bool TryVerifyCode(string secret, string code, out long matchedStep, int window = 1)
     {
+        matchedStep = -1;
         try
         {
             var secretBytes = Base32Encoding.ToBytes(secret);
@@ -38,7 +42,11 @@ public class TotpService(IPasswordHasher passwordHasher) : ITotpService
                 var expectedCode = totp.ComputeTotp(testTime);
 
                 if (expectedCode == code)
+                {
+                    // Unix time-step (30s slots since epoch) — uniquely identifies this code.
+                    matchedStep = new DateTimeOffset(testTime, TimeSpan.Zero).ToUnixTimeSeconds() / 30;
                     return true;
+                }
             }
 
             return false;

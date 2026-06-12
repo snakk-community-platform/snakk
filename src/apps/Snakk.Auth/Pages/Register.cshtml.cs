@@ -6,6 +6,7 @@ using Snakk.Protos.Auth;
 
 namespace Snakk.Auth.Pages;
 
+[Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
 public class RegisterModel(
     AuthService.AuthServiceClient authClient,
     Snakk.Protos.Consent.ConsentService.ConsentServiceClient consentClient,

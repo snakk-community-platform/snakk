@@ -57,7 +57,7 @@
     @if (!string.IsNullOrEmpty(Model.ContentExcerpt))
     {
         <div class="sn-card-excerpt">
-            <div class="sn-post-preview prose prose-sm">@Html.Raw(Model.ContentExcerpt)</div>
+            <div class="sn-post-preview prose prose-sm">@Html.SanitizedRaw(Model.ContentExcerpt)</div>
         </div>
     }
 </article>

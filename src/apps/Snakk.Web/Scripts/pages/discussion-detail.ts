@@ -543,7 +543,7 @@ async function submitEdit(postId: string): Promise<void> {
         const renderedHtml = await response.text();
         editor.destroy();
         activeEditEditors.delete(postId);
-        contentDiv.innerHTML = renderedHtml;
+        contentDiv.innerHTML = sanitizeHtml(renderedHtml);
         (contentDiv as HTMLElement).dataset.rawContent = content;
     } catch {
         if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }

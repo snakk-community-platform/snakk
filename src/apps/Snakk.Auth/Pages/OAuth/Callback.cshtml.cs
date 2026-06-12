@@ -210,7 +210,9 @@ public class CallbackModel(
                     twoFactorReturnUrl = "/";
                 // Use DB email when the provider (e.g. Steam) doesn't supply one
                 var twoFactorEmail = !string.IsNullOrEmpty(email) ? email : response.User.Email;
-                return Redirect($"/auth/twofactorverify?email={Uri.EscapeDataString(twoFactorEmail)}&returnUrl={Uri.EscapeDataString(twoFactorReturnUrl)}");
+                // Bind the 2FA step to this session — OAuth identity was just verified here (S3).
+                Snakk.Auth.Services.TwoFactorLoginSession.Begin(HttpContext.Session, twoFactorEmail);
+                return Redirect($"/auth/twofactorverify?email={Uri.EscapeDataString(twoFactorEmail)}&returnUrl={Uri.EscapeDataString(twoFactorReturnUrl)}&provider={Uri.EscapeDataString(Provider)}");
             }
 
             if (string.IsNullOrEmpty(response.AccessToken))
@@ -265,7 +267,7 @@ public class CallbackModel(
                 returnUrl = "/";
             }
 
-            return Redirect(returnUrl);
+            return Redirect($"/post-login?provider={Uri.EscapeDataString(Provider)}&to={Uri.EscapeDataString(returnUrl)}");
         }
         catch (RpcException ex)
         {

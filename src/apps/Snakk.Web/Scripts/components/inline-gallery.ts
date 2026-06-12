@@ -79,11 +79,17 @@
         // Use data-blur (actual DB blur URI) when available, else derive _thumb as LQIP
         const lqipUrls = urls.map((u, i) =>
             items[i]?.dataset.blur ?? (isSnakkMediaUrl(u) ? deriveVariants(u).thumb : null));
+        const dimsList = items.map(el => {
+            const img = el.querySelector<HTMLImageElement>('img');
+            const w = parseInt(img?.getAttribute('width') ?? '0', 10);
+            const h = parseInt(img?.getAttribute('height') ?? '0', 10);
+            return (w > 0 && h > 0) ? { w, h } : null;
+        });
 
         items.forEach((item, idx) => {
             item.addEventListener('click', () => {
                 const lb = (window as any).SnakkLightbox;
-                if (lb?.open) lb.open(urls, idx, lqipUrls);
+                if (lb?.open) lb.open(urls, idx, lqipUrls, dimsList);
             });
             item.style.cursor = 'pointer';
         });
@@ -107,6 +113,12 @@
         const urls = slides.map(s => s.dataset.full ?? '').filter(Boolean);
         const lqipUrls = urls.map((u, i) =>
             slides[i]?.dataset.blur ?? (isSnakkMediaUrl(u) ? deriveVariants(u).thumb : null));
+        const dimsList = slides.map(s => {
+            const img = s.querySelector<HTMLImageElement>('img');
+            const w = parseInt(img?.getAttribute('width') ?? '0', 10);
+            const h = parseInt(img?.getAttribute('height') ?? '0', 10);
+            return (w > 0 && h > 0) ? { w, h } : null;
+        });
         let current = 0;
 
         function goTo(idx: number): void {
@@ -130,7 +142,7 @@
             slide.style.cursor = 'zoom-in';
             slide.addEventListener('click', () => {
                 const lb = (window as any).SnakkLightbox;
-                if (lb?.open) lb.open(urls, idx, lqipUrls);
+                if (lb?.open) lb.open(urls, idx, lqipUrls, dimsList);
             });
         });
     }
@@ -176,9 +188,12 @@
 
             const lightboxUrl = img.dataset.full ?? fullUrl;
             const lqip = img.dataset.blur ?? thumb;
+            const imgW = parseInt(img.getAttribute('width') ?? '0', 10);
+            const imgH = parseInt(img.getAttribute('height') ?? '0', 10);
+            const dim = (imgW > 0 && imgH > 0) ? { w: imgW, h: imgH } : null;
             wrapper.addEventListener('click', () => {
                 const lb = (window as any).SnakkLightbox;
-                if (lb?.open) lb.open([lightboxUrl], 0, [lqip]);
+                if (lb?.open) lb.open([lightboxUrl], 0, [lqip], [dim]);
             });
             wrapper.style.cursor = 'pointer';
         });
@@ -190,10 +205,13 @@
         const img = el.querySelector<HTMLImageElement>('img');
         if (img && isSnakkMediaUrl(fullUrl)) upgradeImg(img, fullUrl);
         const lqip = el.dataset.blur ?? (isSnakkMediaUrl(fullUrl) ? deriveVariants(fullUrl).thumb : null);
+        const imgW = parseInt(img?.getAttribute('width') ?? '0', 10);
+        const imgH = parseInt(img?.getAttribute('height') ?? '0', 10);
+        const dim = (imgW > 0 && imgH > 0) ? { w: imgW, h: imgH } : null;
         el.style.cursor = 'pointer';
         el.addEventListener('click', () => {
             const lb = (window as any).SnakkLightbox;
-            if (lb?.open) lb.open([fullUrl], 0, [lqip]);
+            if (lb?.open) lb.open([fullUrl], 0, [lqip], [dim]);
         });
     }
 

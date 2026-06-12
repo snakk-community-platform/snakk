@@ -787,31 +787,59 @@ document.addEventListener('pointerdown', (e: Event) => {
     }
 });
 
-// --- Registration nudge: last-used OAuth badge ---
+// --- Registration nudge: last-used OAuth badge + collapse/expand ---
 function initNudgeOAuthLastUsed(): void {
     const STORAGE_KEY = 'snakk:lastOAuthProvider';
-    const buttons = document.querySelectorAll<HTMLAnchorElement>('.sn-nudge-oauth-btn[data-provider]');
-    if (!buttons.length) return;
-
-    buttons.forEach(btn => {
-        if (btn.dataset['providerClickInit']) return;
-        btn.dataset['providerClickInit'] = '1';
-        btn.addEventListener('click', () => {
-            try { localStorage.setItem(STORAGE_KEY, btn.dataset['provider']!); } catch {}
-        });
-    });
-
     let last: string | null = null;
     try { last = localStorage.getItem(STORAGE_KEY); } catch {}
     if (!last) return;
 
-    buttons.forEach(btn => {
-        if (btn.dataset['provider'] === last && !btn.querySelector('.sn-badge-last-used')) {
+    // Process each oauth container independently so the nudge card and the
+    // modal (both rendered in the same page HTML) behave separately.
+    document.querySelectorAll<HTMLElement>('.sn-nudge-oauth').forEach(container => {
+        if (container.dataset['lastUsedInit']) return;
+        container.dataset['lastUsedInit'] = '1';
+
+        const allBtns = Array.from(container.querySelectorAll<HTMLElement>('.sn-nudge-oauth-btn[data-provider]'));
+        if (!allBtns.length) return;
+
+        const lastBtn = allBtns.find(b => b.dataset['provider'] === last);
+        if (!lastBtn) return;
+
+        // When the last-used provider is passkey, only proceed if the button is
+        // already visible — initNudgePasskey runs first and keeps it hidden when
+        // WebAuthn is unavailable.
+        if (last === 'passkey' && lastBtn.style.display === 'none') return;
+
+        // Add "Last used" badge
+        if (!lastBtn.querySelector('.sn-badge-last-used')) {
             const badge = document.createElement('span');
             badge.className = 'sn-badge-last-used';
             badge.textContent = 'Last used';
-            btn.appendChild(badge);
+            lastBtn.appendChild(badge);
         }
+
+        // When last-used is OAuth: hide other OAuth buttons but leave passkey alone.
+        // When last-used is passkey: hide all OAuth buttons.
+        const oauthBtns = allBtns.filter(b => b.dataset['provider'] !== 'passkey');
+        const toHide = last === 'passkey' ? oauthBtns : oauthBtns.filter(b => b !== lastBtn);
+        if (!toHide.length) return;
+
+        const hadGrid = container.classList.contains('sn-nudge-oauth--grid');
+        if (hadGrid) container.classList.remove('sn-nudge-oauth--grid');
+        toHide.forEach(b => { b.style.display = 'none'; });
+
+        const moreBtn = document.createElement('button');
+        moreBtn.type = 'button';
+        moreBtn.className = 'w-full text-center text-sm text-base-content/40 hover:text-base-content/70 py-1.5 transition-colors cursor-pointer';
+        moreBtn.textContent = 'More sign-in options';
+        container.appendChild(moreBtn);
+
+        moreBtn.addEventListener('click', () => {
+            toHide.forEach(b => { b.style.display = ''; });
+            if (hadGrid) container.classList.add('sn-nudge-oauth--grid');
+            moreBtn.remove();
+        });
     });
 }
 
@@ -917,9 +945,11 @@ function initNudgePasskey(): void {
             if (data.twoFactorRequired) {
                 window.location.href = '/auth/twofactorverify?email='
                     + encodeURIComponent(data.email || '')
-                    + '&returnUrl=' + encodeURIComponent(returnUrl);
+                    + '&returnUrl=' + encodeURIComponent(returnUrl)
+                    + '&provider=passkey';
                 return;
             }
+            try { localStorage.setItem('snakk:lastOAuthProvider', 'passkey'); } catch {}
             window.location.href = data.redirectUrl || returnUrl;
         })
         .catch((err: unknown) => {

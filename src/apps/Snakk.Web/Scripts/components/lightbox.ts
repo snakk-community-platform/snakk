@@ -45,11 +45,13 @@
     }
 
     let overlay: HTMLElement | null = null;
+    let contentEl: HTMLElement | null = null;
     let imgEl: HTMLImageElement | null = null;
     let lqipEl: HTMLImageElement | null = null;
     let imgWrap: HTMLElement | null = null;
     let images: string[] = [];
     let blurs: (string | null)[] = [];
+    let dims: ({ w: number; h: number } | null)[] = [];
     let currentIdx = 0;
     let savedScrollY = 0;
     let isZoomed = false;
@@ -68,6 +70,7 @@
     let lastPinchMidY = 0;
     let isPinching = false;
     let wasPinching = false;
+    let wasDragging = false;
 
     function touchDist(a: Touch, b: Touch): number {
         const dx = a.clientX - b.clientX, dy = a.clientY - b.clientY;
@@ -86,9 +89,10 @@
         if (imgWrap) imgWrap.style.transform = '';
     }
 
-    function open(urls: string[], startIdx: number, blurUrls?: (string | null)[]): void {
+    function open(urls: string[], startIdx: number, blurUrls?: (string | null)[], dimsList?: ({ w: number; h: number } | null)[]): void {
         images = urls;
         blurs = blurUrls || [];
+        dims = dimsList || [];
         currentIdx = startIdx;
 
         if (!overlay) create();
@@ -163,15 +167,26 @@
 
         // Step 2: set src to the medium-tier URL right away (much faster to
         // decode than full-res; bridges the blur→sharp gap on slow connections).
+        // Pre-apply the full-res dimensions so the medium renders at the same
+        // visual size the full-res will occupy — no layout shift on swap.
         if (isSnakkMediaUrl(fullUrl)) {
             const medUrl = deriveMedUrl(fullUrl);
+            const dim = dims[idx] ?? null;
+            if (dim) {
+                imgEl.style.width = dim.w + 'px';
+                imgEl.style.height = dim.h + 'px';
+            } else {
+                imgEl.style.width = '';
+                imgEl.style.height = '';
+            }
             imgEl.src = medUrl;
 
             // If the medium file doesn't exist (images ≤900px wide have no
             // _med variant) the browser fires onerror — fall back to full URL.
             imgEl.onerror = () => {
                 imgEl!.onerror = null;
-                // Only replace if we're still on the same slide.
+                imgEl!.style.width = '';
+                imgEl!.style.height = '';
                 if (navToken === token) imgEl!.src = fullUrl;
             };
 
@@ -181,12 +196,16 @@
             fullImg.onload = () => {
                 if (navToken !== token) return; // user moved on — discard
                 imgEl!.onerror = null;
+                imgEl!.style.width = '';
+                imgEl!.style.height = '';
                 imgEl!.src = fullUrl;
             };
             fullImg.onerror = () => { /* full-res unavailable — medium is fine */ };
             fullImg.src = fullUrl;
         } else {
             // Non-CDN URL (e.g. external image): load directly as before.
+            imgEl.style.width = '';
+            imgEl.style.height = '';
             imgEl.onerror = null;
             imgEl.src = fullUrl;
         }
@@ -218,11 +237,18 @@
     function zoomIn(): void {
         isZoomed = true;
         overlay?.classList.add('lightbox-zoomed');
+        requestAnimationFrame(() => {
+            if (!contentEl) return;
+            contentEl.scrollLeft = (contentEl.scrollWidth - contentEl.clientWidth) / 2;
+            contentEl.scrollTop = (contentEl.scrollHeight - contentEl.clientHeight) / 2;
+        });
     }
 
     function zoomOut(): void {
         isZoomed = false;
         overlay?.classList.remove('lightbox-zoomed');
+        resetPinchTransform();
+        if (contentEl) { contentEl.scrollLeft = 0; contentEl.scrollTop = 0; }
     }
 
     function prev(): void {
@@ -258,14 +284,26 @@
         imgWrap = overlay.querySelector('.lightbox-img-wrap') as HTMLElement;
         imgEl.addEventListener('load', () => imgEl!.classList.add('lightbox-loaded'));
         imgEl.addEventListener('click', (e) => {
-            if (wasPinching) return;
+            if (wasPinching || wasDragging) {
+                wasDragging = false;
+                return;
+            }
             e.stopPropagation();
             isZoomed ? zoomOut() : zoomIn();
         });
 
         // Close on overlay click (not on image)
         overlay.addEventListener('click', (e) => {
+            // Synthesized click after a pan — pointer capture retargets it to
+            // .lightbox-content, bypassing the image's wasDragging guard.
+            if (wasDragging) { wasDragging = false; return; }
             const t = e.target as HTMLElement;
+            // While zoomed, capture retargets every click on the image to the
+            // content element — a plain click there means zoom out, not close.
+            if (isZoomed && (t === contentEl || t.classList.contains('lightbox-img-wrap') || t === imgEl)) {
+                zoomOut();
+                return;
+            }
             if (t === overlay ||
                 t.classList.contains('lightbox-content') ||
                 t.classList.contains('lightbox-img-wrap')) close();
@@ -279,10 +317,12 @@
         // applying a CSS transform to imgWrap so chrome (arrows, close, counter)
         // is unaffected. touch-action: none in SCSS prevents browser-level zoom.
         const content = overlay.querySelector('.lightbox-content') as HTMLElement;
+        contentEl = content;
 
         content.addEventListener('touchstart', (e: TouchEvent) => {
             if (e.touches.length === 2) {
                 isPinching = true;
+                dragActive = false; // second finger cancels any in-progress drag
                 lastPinchDist = touchDist(e.touches[0]!, e.touches[1]!);
                 lastPinchMidX = (e.touches[0]!.clientX + e.touches[1]!.clientX) / 2;
                 lastPinchMidY = (e.touches[0]!.clientY + e.touches[1]!.clientY) / 2;
@@ -318,6 +358,42 @@
         };
         content.addEventListener('touchend', onPinchEnd);
         content.addEventListener('touchcancel', onPinchEnd);
+
+        // Drag-to-pan when click-zoomed. Works for both mouse and touch
+        // (pointer events fire even when touch-action: none is set in CSS).
+        let dragActive = false;
+        let dragPointerStartX = 0;
+        let dragPointerStartY = 0;
+        let dragScrollStartX = 0;
+        let dragScrollStartY = 0;
+
+        content.addEventListener('pointerdown', (e: PointerEvent) => {
+            if (!isZoomed || !e.isPrimary) return;
+            dragActive = true;
+            wasDragging = false;
+            dragPointerStartX = e.clientX;
+            dragPointerStartY = e.clientY;
+            dragScrollStartX = content.scrollLeft;
+            dragScrollStartY = content.scrollTop;
+            content.setPointerCapture(e.pointerId);
+        }, { passive: true });
+
+        content.addEventListener('pointermove', (e: PointerEvent) => {
+            if (!dragActive || !e.isPrimary) return;
+            const dx = e.clientX - dragPointerStartX;
+            const dy = e.clientY - dragPointerStartY;
+            if (Math.abs(dx) > 4 || Math.abs(dy) > 4) wasDragging = true;
+            content.scrollLeft = dragScrollStartX - dx;
+            content.scrollTop = dragScrollStartY - dy;
+        });
+
+        const onDragEnd = () => { dragActive = false; };
+        content.addEventListener('pointerup', onDragEnd);
+        content.addEventListener('pointercancel', onDragEnd);
+
+        // Native image drag-and-drop kicks in after a few pixels of mouse
+        // movement and fires pointercancel, killing the pan. Suppress it.
+        content.addEventListener('dragstart', (e) => e.preventDefault());
 
         document.body.appendChild(overlay);
     }

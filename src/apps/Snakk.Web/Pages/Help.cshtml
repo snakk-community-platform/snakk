@@ -26,7 +26,7 @@
             }
             <h1>@Model.ArticleTitle</h1>
             <div class="prose">
-                @Html.Raw(Model.RenderedHtml)
+                @Html.SanitizedRaw(Model.RenderedHtml)
             </div>
         </article>
         @if (Model.PrevArticle is not null || Model.NextArticle is not null)

@@ -108,25 +108,44 @@
                 showSlide(0);
             }
 
+            function openLightboxAt(index: number): void {
+                const lightbox = (window as any).SnakkLightbox;
+                if (!lightbox) return;
+
+                const fullUrls: string[] = [];
+                const blurUrls: (string | null)[] = [];
+                const dimsList: ({ w: number; h: number } | null)[] = [];
+                slides.forEach(function(s) {
+                    fullUrls.push(s.dataset.full || s.dataset.src || s.src);
+                    blurUrls.push(extractBlurUrl(s.parentElement));
+                    const w = parseInt(s.getAttribute('width') || '0', 10);
+                    const h = parseInt(s.getAttribute('height') || '0', 10);
+                    dimsList.push((w > 0 && h > 0) ? { w, h } : null);
+                });
+                lightbox.open(fullUrls, index, blurUrls, dimsList);
+            }
+
             // Expand button opens lightbox at current slide
             const expandBtn = el.querySelector('.sn-images-expand-btn');
             if (expandBtn) {
                 expandBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-
-                    const lightbox = (window as any).SnakkLightbox;
-                    if (!lightbox) return;
-
-                    const fullUrls: string[] = [];
-                    const blurUrls: (string | null)[] = [];
-                    slides.forEach(function(s) {
-                        fullUrls.push(s.dataset.full || s.dataset.src || s.src);
-                        blurUrls.push(extractBlurUrl(s.parentElement));
-                    });
-                    lightbox.open(fullUrls, current, blurUrls);
+                    openLightboxAt(current);
                 });
             }
+
+            // Clicking the image itself also opens the lightbox. Bound to the
+            // track, not the slides: addCarouselSwipe pointer-captures the
+            // track, so the post-release click is retargeted to it and a
+            // slide-level handler would never fire. Clicks synthesized after
+            // a swipe drag are already suppressed by a capture-phase
+            // stopPropagation on the track.
+            track.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                openLightboxAt(current);
+            });
         });
     }
 
@@ -229,7 +248,12 @@
                     const imgs = el.querySelectorAll<HTMLImageElement>('img');
                     const urls = Array.from(imgs).map(i => i.dataset.full || i.src);
                     const blurs = Array.from(imgs).map(i => extractBlurUrl(i.parentElement));
-                    lightbox.open(urls, 0, blurs);
+                    const dims = Array.from(imgs).map(i => {
+                        const w = parseInt(i.getAttribute('width') || '0', 10);
+                        const h = parseInt(i.getAttribute('height') || '0', 10);
+                        return (w > 0 && h > 0) ? { w, h } : null;
+                    });
+                    lightbox.open(urls, 0, blurs, dims);
                 });
             }
         });

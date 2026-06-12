@@ -93,7 +93,7 @@
             try {
                 @if (isAuth) {
                 <text>
-                var p = '@Html.Raw(themeCookie ?? "")';
+                var p = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(themeCookie ?? ""));
                 var isDark = p === 'dark' || (p === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
                 if (isDark) {
                     document.documentElement.setAttribute('data-theme', 'dark');

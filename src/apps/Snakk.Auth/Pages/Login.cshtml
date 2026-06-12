@@ -103,7 +103,7 @@
             {
             <!-- Passkey button (hidden by JS if WebAuthn unavailable) -->
             <div class="flex flex-col gap-2.5 @(Model.HasAnyOAuth ? "mt-2.5" : "")">
-                <button id="passkey-btn" type="button" class="auth-btn-oauth" style="display:none">
+                <button id="passkey-btn" type="button" class="auth-btn-oauth" data-provider="passkey" style="display:none">
                     <img src="/icons/passkey.svg" class="w-5 h-5 shrink-0" aria-hidden="true" alt="">
                     Sign in with passkey
                 </button>
@@ -177,23 +177,53 @@
     </script>
     <script>
     (function () {
+        'use strict';
         var STORAGE_KEY = 'snakk:lastOAuthProvider';
-        var buttons = document.querySelectorAll('.auth-btn-oauth[data-provider]');
-        buttons.forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                try { localStorage.setItem(STORAGE_KEY, btn.dataset.provider); } catch (e) {}
-            });
-        });
+        var allBtns = Array.from(document.querySelectorAll('.auth-btn-oauth[data-provider]'));
+
         var last;
         try { last = localStorage.getItem(STORAGE_KEY); } catch (e) {}
         if (!last) return;
-        buttons.forEach(function (btn) {
-            if (btn.dataset.provider === last) {
-                var badge = document.createElement('span');
-                badge.className = 'auth-badge-last-used';
-                badge.textContent = 'Last used';
-                btn.appendChild(badge);
+
+        var lastUsedBtn = allBtns.find(function (b) { return b.dataset.provider === last; });
+        if (!lastUsedBtn) return;
+
+        var badge = document.createElement('span');
+        badge.className = 'auth-badge-last-used';
+        badge.textContent = 'Last used';
+        lastUsedBtn.appendChild(badge);
+
+        var oauthBtns = allBtns.filter(function (b) { return b.dataset.provider !== 'passkey'; });
+        var toHide = last === 'passkey'
+            ? oauthBtns
+            : oauthBtns.filter(function (b) { return b !== lastUsedBtn; });
+
+        if (toHide.length === 0) return;
+
+        var oauthGrid = lastUsedBtn.closest('.auth-oauth-grid');
+        if (oauthGrid) {
+            oauthGrid.classList.remove('auth-oauth-grid');
+            oauthGrid.classList.add('flex', 'flex-col', 'gap-2.5');
+        }
+
+        toHide.forEach(function (b) { b.style.display = 'none'; });
+
+        var divider = document.querySelector('.auth-divider');
+        if (!divider) return;
+
+        var moreBtn = document.createElement('button');
+        moreBtn.type = 'button';
+        moreBtn.className = 'w-full text-center text-sm text-base-content/40 hover:text-base-content/70 py-1.5 transition-colors cursor-pointer';
+        moreBtn.textContent = 'More sign-in options';
+        divider.insertAdjacentElement('beforebegin', moreBtn);
+
+        moreBtn.addEventListener('click', function () {
+            toHide.forEach(function (b) { b.style.display = ''; });
+            if (oauthGrid) {
+                oauthGrid.classList.remove('flex', 'flex-col', 'gap-2.5');
+                oauthGrid.classList.add('auth-oauth-grid');
             }
+            moreBtn.remove();
         });
     }());
     </script>
@@ -298,9 +328,11 @@
                 if (data.twoFactorRequired) {
                     window.location.href = '/auth/twofactorverify?email='
                         + encodeURIComponent(data.email)
-                        + '&returnUrl=' + encodeURIComponent(returnUrl);
+                        + '&returnUrl=' + encodeURIComponent(returnUrl)
+                        + '&provider=passkey';
                     return;
                 }
+                try { localStorage.setItem('snakk:lastOAuthProvider', 'passkey'); } catch (e) {}
                 window.location.href = data.redirectUrl || '/';
             })
             .catch(function (err) {

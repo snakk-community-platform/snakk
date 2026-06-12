@@ -432,6 +432,8 @@
                     var linkImageSrc = Model.LinkInfo.HasImagePathUrl ? Model.LinkInfo.ImagePathUrl
                                      : Model.LinkInfo.HasImageUrl ? Model.LinkInfo.ImageUrl
                                      : null;
+                    var linkTarget = Model.LinkInfo.IsInternal ? null : "_blank";
+                    var linkRel = Model.LinkInfo.IsInternal ? null : "nofollow noopener noreferrer";
                     <div class="type-widget-container" id="link-preview-container"
                          data-oembed-html="@Model.LinkInfo.OembedHtml"
                          data-domain="@linkDomain"
@@ -450,17 +452,27 @@
                                     ? $"aspect-ratio: {Model.LinkInfo.ImageWidth} / {Model.LinkInfo.ImageHeight}; max-width: {Model.LinkInfo.ImageWidth}px;"
                                     : "";
                                 var blurBgVal = linkBlur != null ? $"url({linkBlur})" : $"url({linkImageSrc})";
-                                <div class="sn-images-preview link-preview-banner" style="--blur-bg:@blurBgVal">
-                                    <div class="sn-images-frame"@(frameStyle != "" ? $" style=\"{frameStyle}\"" : "")>
-                                        <div class="sn-images-slide-wrapper"@(linkBlur != null ? $" style=\"--blur:url({linkBlur})\"" : "")>
-                                            @if (linkBlur != null && hasSize)
-                                            {
-                                                <div class="sn-images-lqip" style="aspect-ratio: @Model.LinkInfo.ImageWidth / @Model.LinkInfo.ImageHeight"></div>
-                                            }
-                                            <img src="@linkImageSrc" alt="" class="sn-images-slide" loading="lazy" decoding="async" data-blur-up />
+                                <a href="@Model.LinkInfo.Url" target="@linkTarget" rel="@linkRel" class="link-preview-banner-link" tabindex="-1" aria-hidden="true">
+                                    <div class="sn-images-preview link-preview-banner" style="--blur-bg:@blurBgVal">
+                                        <div class="sn-images-frame"@(frameStyle != "" ? $" style=\"{frameStyle}\"" : "")>
+                                            <div class="sn-images-slide-wrapper"@(linkBlur != null ? $" style=\"--blur:url({linkBlur})\"" : "")>
+                                                @if (linkBlur != null && hasSize)
+                                                {
+                                                    <div class="sn-images-lqip" style="aspect-ratio: @Model.LinkInfo.ImageWidth / @Model.LinkInfo.ImageHeight"></div>
+                                                }
+                                                <img src="@linkImageSrc" alt="" class="sn-images-slide" loading="lazy" decoding="async" data-blur-up />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </a>
+                            }
+                            else
+                            {
+                                <a href="@Model.LinkInfo.Url" target="@linkTarget" rel="@linkRel" class="link-preview-banner-link" tabindex="-1" aria-hidden="true">
+                                    <div class="link-preview-banner link-preview-banner--empty">
+                                        <span class="icon icon-link-chain"></span>
+                                    </div>
+                                </a>
                             }
                             <div class="link-preview-content">
                                 @if (Model.LinkInfo.IsInternal)
@@ -633,7 +645,7 @@
                                 <span class="sn-iama-verification-label">@T.Iama.Verification</span>
                                 @if (iama.HasVerificationNoteHtml)
                                 {
-                                    <div class="sn-iama-verification-text prose prose-sm max-w-none">@Html.Raw(iama.VerificationNoteHtml)</div>
+                                    <div class="sn-iama-verification-text prose prose-sm max-w-none">@Html.SanitizedRaw(iama.VerificationNoteHtml)</div>
                                 }
                                 else
                                 {

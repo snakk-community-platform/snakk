@@ -31,6 +31,7 @@
             <form method="post" id="totp-form" class="space-y-4">
                 <input type="hidden" name="Email" value="@Model.Email" />
                 <input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl" />
+                <input type="hidden" name="Provider" value="@Model.Provider" />
                 <input type="hidden" asp-for="Input.Code" id="totp-code-hidden" />
 
                 <div id="totp-digit-section">

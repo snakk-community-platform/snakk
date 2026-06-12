@@ -30,6 +30,17 @@ public static class OEmbedEndpoints
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             return Results.NotFound();
 
+        // SSRF / host-injection guard: only embed our own canonical host over http(s).
+        // Without this, an arbitrary URL (internal services, cloud metadata, file://, etc.)
+        // would be parsed and echoed back into the oEmbed response.
+        var expectedHost = httpContext.Request.Host.Host;
+        if (!string.IsNullOrEmpty(configuration["WebBaseUrl"])
+            && Uri.TryCreate(configuration["WebBaseUrl"], UriKind.Absolute, out var baseUri))
+            expectedHost = baseUri.Host;
+        if ((uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || !string.Equals(uri.Host, expectedHost, StringComparison.OrdinalIgnoreCase))
+            return Results.NotFound();
+
         var path = uri.AbsolutePath.TrimEnd('/');
         var providerUrl = configuration["WebBaseUrl"]?.TrimEnd('/') ?? $"{httpContext.Request.Scheme}://{httpContext.Request.Host}";
         var defaultCommunitySlug = configuration["Snakk:DefaultCommunitySlug"] ?? "main";

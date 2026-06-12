@@ -642,7 +642,10 @@ app.Use(async (context, next) =>
             Path        = "/",
             MaxAge      = TimeSpan.FromMinutes(5),
             SameSite    = SameSiteMode.Lax,
-            HttpOnly    = false,
+            // HttpOnly: the hint (email/name/avatar) is read server-side in _ReloginModal.cshtml
+            // and cleared server-side on successful relogin (ReloginAsync). Keeping it out of
+            // JS reach avoids exposing the user's email to any XSS on the page.
+            HttpOnly    = true,
             IsEssential = true
         });
 
