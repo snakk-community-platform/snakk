@@ -119,7 +119,10 @@ public static class ServiceCollectionExtensions
                 ValidateAudience = true,
                 ValidAudience = configuration["Jwt:Audience"] ?? "Snakk",
                 ValidateLifetime = true,
-                ClockSkew = TimeSpan.FromSeconds(30)
+                ClockSkew = TimeSpan.FromSeconds(30),
+                // Pin the signing algorithm to prevent alg-confusion / alg=none downgrade
+                // attacks, matching the JwtCookieValidator in Snakk.Auth.
+                ValidAlgorithms = [Microsoft.IdentityModel.Tokens.SecurityAlgorithms.HmacSha256]
             };
             options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
             {

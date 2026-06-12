@@ -43,7 +43,7 @@
             });
 
             if (res.ok) {
-                document.cookie = '.Snakk.ReloginHint=; path=/; max-age=0';
+                // The hint cookie is HttpOnly and cleared server-side by the relogin handler.
                 window.location.href = modal.getAttribute('data-return-path') || '/';
                 return;
             }

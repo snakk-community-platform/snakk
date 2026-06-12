@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using Snakk.Application.DTOs.Auth;
 using Snakk.Application.Services;
@@ -14,6 +15,7 @@ public class TwoFactorAuthService(
     IPasswordHasher passwordHasher,
     ITrustedDeviceService trustedDeviceService,
     ITwoFactorSecretProtector secretProtector,
+    IDistributedCache cache,
     ILogger<TwoFactorAuthService> logger) : ITwoFactorAuthService
 {
     public async Task<TwoFactorSetupDto> SetupTwoFactorAsync(string userId, CancellationToken ct = default)
@@ -205,7 +207,23 @@ public class TwoFactorAuthService(
             try
             {
                 var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
-                isValid = totpService.VerifyCode(decryptedSecret, code);
+                if (totpService.TryVerifyCode(decryptedSecret, code, out var matchedStep))
+                {
+                    // Replay prevention: a TOTP code stays valid across the ±1 window (~90s).
+                    // Reject re-use of a code that already succeeded for this user + time-step (S9).
+                    var replayKey = $"2fa:totp-used:{user.PublicId}:{matchedStep}";
+                    if (await cache.GetAsync(replayKey, ct) is not null)
+                    {
+                        logger.LogWarning("Rejected replayed TOTP code for user {UserId}", userId);
+                    }
+                    else
+                    {
+                        await cache.SetAsync(replayKey, "1"u8.ToArray(),
+                            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(120) },
+                            ct);
+                        isValid = true;
+                    }
+                }
             }
             catch (Exception ex)
             {

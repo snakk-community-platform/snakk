@@ -6,6 +6,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Snakk.Auth.Pages;
 
+[Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
 public class ResetPasswordModel(
     AuthService.AuthServiceClient authClient,
     ILogger<ResetPasswordModel> logger) : PageModel

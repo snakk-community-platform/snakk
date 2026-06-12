@@ -6,6 +6,7 @@ using Snakk.Protos.TwoFactor;
 
 namespace Snakk.Auth.Pages;
 
+[Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth-2fa")]
 public class TwoFactorVerifyModel(
     TwoFactorService.TwoFactorServiceClient twoFactorClient,
     ILogger<TwoFactorVerifyModel> logger) : PageModel
@@ -18,6 +19,9 @@ public class TwoFactorVerifyModel(
 
     [BindProperty(SupportsGet = true)]
     public string? Email { get; set; }
+
+    [BindProperty(SupportsGet = true)]
+    public string? Provider { get; set; }
 
     public string? ErrorMessage { get; set; }
 
@@ -34,15 +38,26 @@ public class TwoFactorVerifyModel(
 
     public IActionResult OnGet()
     {
-        if (string.IsNullOrEmpty(Email))
+        // Authoritative email comes from the server session set after first-factor auth,
+        // never from the query string (S3). No session → the password step never happened.
+        var pendingEmail = Snakk.Auth.Services.TwoFactorLoginSession.GetEmail(HttpContext.Session);
+        if (string.IsNullOrEmpty(pendingEmail))
             return RedirectToPage("/Login");
 
+        Email = pendingEmail;
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!ModelState.IsValid || string.IsNullOrEmpty(Email))
+        // Re-read the pending email from the session, ignoring any client-supplied value.
+        var pendingEmail = Snakk.Auth.Services.TwoFactorLoginSession.GetEmail(HttpContext.Session);
+        if (string.IsNullOrEmpty(pendingEmail))
+            return RedirectToPage("/Login");
+
+        Email = pendingEmail;
+
+        if (!ModelState.IsValid)
             return Page();
 
         try
@@ -50,7 +65,7 @@ public class TwoFactorVerifyModel(
             var response = await twoFactorClient.VerifyTwoFactorLoginAsync(
                 new VerifyTwoFactorLoginRequest
                 {
-                    Email = Email,
+                    Email = pendingEmail,
                     Code = Input.Code.Trim().Replace(" ", ""),
                     TrustDevice = Input.TrustDevice,
                     IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "",
@@ -62,6 +77,9 @@ public class TwoFactorVerifyModel(
                 ErrorMessage = response.Error is { Length: > 0 } ? response.Error : "Verification failed. Please try again.";
                 return Page();
             }
+
+            // First factor + second factor both satisfied — clear the pending marker.
+            Snakk.Auth.Services.TwoFactorLoginSession.Clear(HttpContext.Session);
 
             var rememberMe = Request.Cookies[".Snakk.Pref.RememberMe"] == "1";
             var expiry = rememberMe
@@ -85,7 +103,10 @@ public class TwoFactorVerifyModel(
             if (!Url.IsLocalUrl(returnUrl))
                 returnUrl = "/";
 
-            return Redirect(returnUrl);
+            var destination = !string.IsNullOrEmpty(Provider)
+                ? $"/post-login?provider={Uri.EscapeDataString(Provider)}&to={Uri.EscapeDataString(returnUrl)}"
+                : returnUrl;
+            return Redirect(destination);
         }
         catch (RpcException ex)
         {

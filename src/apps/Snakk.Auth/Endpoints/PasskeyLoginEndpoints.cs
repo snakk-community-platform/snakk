@@ -7,7 +7,8 @@ public static class PasskeyLoginEndpoints
 {
     public static void MapPasskeyLoginEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/passkey");
+        // Passkey login performs credential verification — rate-limit it like the other auth flows.
+        var group = app.MapGroup("/passkey").RequireRateLimiting("auth");
 
         group.MapPost("/begin-login", async (
             BeginLoginBody? body,
@@ -51,7 +52,11 @@ public static class PasskeyLoginEndpoints
                 var response = await passkeyClient.CompletePasskeyLoginAsync(grpcRequest, cancellationToken: ct);
 
                 if (response.TwoFactorRequired)
+                {
+                    // Bind the 2FA step to this session — passkey identity was just verified here (S3).
+                    Snakk.Auth.Services.TwoFactorLoginSession.Begin(ctx.Session, response.Email);
                     return Results.Ok(new { twoFactorRequired = true, email = response.Email });
+                }
 
                 var expiry = DateTimeOffset.UtcNow.AddHours(8);
                 var strictOptions = new CookieOptions

@@ -6,6 +6,7 @@ using Snakk.Protos.Auth;
 
 namespace Snakk.Auth.Pages;
 
+[Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("auth")]
 public class LoginModel(
     AuthService.AuthServiceClient authClient,
     IConfiguration configuration,
@@ -88,7 +89,10 @@ public class LoginModel(
                 "facebook_email_required"  => "Your Facebook account doesn't have a verified email address. Please add and verify an email on Facebook, then try again.",
                 "google_email_required"    => "Your Google account doesn't have an email address associated with it. Please use a different sign-in method.",
                 "microsoft_email_required" => "Your Microsoft account didn't provide an email address. Please ensure your Microsoft account has an email address and try again.",
-                _ => Uri.UnescapeDataString(error)
+                "oauth_remote_failed"      => "Authentication with the external provider failed. Please try again.",
+                // Never reflect arbitrary query text back to the page — an attacker could
+                // craft a link that renders attacker-controlled messaging (phishing).
+                _ => "Login failed. Please try again."
             };
         }
 
@@ -119,6 +123,8 @@ public class LoginModel(
             // Check if 2FA is required
             if (response.TwoFactorRequired)
             {
+                // Bind the 2FA step to this session — the password was just verified here (S3).
+                Snakk.Auth.Services.TwoFactorLoginSession.Begin(HttpContext.Session, Input.Email);
                 var encodedEmail = Uri.EscapeDataString(Input.Email);
                 var encodedReturn = Uri.EscapeDataString(Input.ReturnUrl ?? ReturnUrl ?? "/");
                 return Redirect($"/auth/twofactorverify?email={encodedEmail}&returnUrl={encodedReturn}");

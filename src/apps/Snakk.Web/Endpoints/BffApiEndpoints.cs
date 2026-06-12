@@ -1221,11 +1221,23 @@ public static class BffApiEndpoints
         return Results.Redirect(SafeReturnUrl(returnUrl));
     }
 
-    private static string SafeReturnUrl(string? returnUrl) =>
-        !string.IsNullOrWhiteSpace(returnUrl) && returnUrl.StartsWith('/')
-            && !returnUrl.StartsWith("//") && !returnUrl.StartsWith("/\\")
+    private static string SafeReturnUrl(string? returnUrl)
+    {
+        if (string.IsNullOrWhiteSpace(returnUrl))
+            return "/";
+
+        // Percent-decode first so encoded payloads like "/%2f/evil.com" (which the browser
+        // normalizes to a protocol-relative "//evil.com") can't slip past the slash checks.
+        string decoded;
+        try { decoded = Uri.UnescapeDataString(returnUrl); }
+        catch { return "/"; }
+
+        return decoded.StartsWith('/')
+            && !decoded.StartsWith("//") && !decoded.StartsWith("/\\")
+            && !decoded.StartsWith("/%2f", StringComparison.OrdinalIgnoreCase)
             ? returnUrl
             : "/";
+    }
 
     // User endpoints
     private static async Task<IResult> GetUserStatsAsync(
@@ -1964,6 +1976,41 @@ public static class BffApiEndpoints
         { "image/jpeg", "image/png", "image/webp", "image/gif" };
     private const long MaxUploadBytes = 5 * 1024 * 1024; // 5 MB
 
+    // Image container signatures. Validates the actual bytes rather than trusting the
+    // client-declared Content-Type before proxying an upload to the internal API
+    // (S13 defense-in-depth; the API also re-validates + re-encodes via ImageSharp).
+    private static readonly byte[][] _imageMagicSignatures =
+    [
+        [0xFF, 0xD8, 0xFF],                               // JPEG
+        [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], // PNG
+        [0x47, 0x49, 0x46, 0x38],                         // GIF87a / GIF89a
+    ];
+
+    private static bool IsValidImageMagic(ReadOnlySpan<byte> bytes)
+    {
+        if (bytes.Length < 4) return false;
+        foreach (var sig in _imageMagicSignatures)
+            if (bytes.Length >= sig.Length && bytes[..sig.Length].SequenceEqual(sig))
+                return true;
+        // WebP: "RIFF" <4-byte size> "WEBP"
+        return bytes.Length >= 12
+            && bytes[..4].SequenceEqual("RIFF"u8)
+            && bytes.Slice(8, 4).SequenceEqual("WEBP"u8);
+    }
+
+    /// <summary>
+    /// Buffers the uploaded file (capped at <see cref="MaxUploadBytes"/> by the callers) so the
+    /// multipart content sent upstream is replayable across Polly retries. An IFormFile's
+    /// ReferenceReadStream cannot be re-read or rewound once the first send attempt consumes it.
+    /// </summary>
+    private static async Task<byte[]> ReadFileBytesAsync(IFormFile file, CancellationToken ct)
+    {
+        await using var stream = file.OpenReadStream();
+        using var buffer = new MemoryStream((int)file.Length);
+        await stream.CopyToAsync(buffer, ct);
+        return buffer.ToArray();
+    }
+
     private static async Task<IResult> UploadAvatarBffAsync(
         IFormFile avatar,
         IHttpClientFactory httpClientFactory,
@@ -1987,11 +2034,14 @@ public static class BffApiEndpoints
 
         var safeFileName = Path.GetFileName(avatar.FileName);
 
+        var fileBytes = await ReadFileBytesAsync(avatar, ct);
+        if (!IsValidImageMagic(fileBytes))
+            return Results.BadRequest(new { error = "File content is not a valid image." });
+
         using var content = new MultipartFormDataContent();
-        using var fileStream = avatar.OpenReadStream();
-        using var streamContent = new StreamContent(fileStream);
-        streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(avatar.ContentType);
-        content.Add(streamContent, "avatar", safeFileName);
+        using var fileContent = new ByteArrayContent(fileBytes);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(avatar.ContentType);
+        content.Add(fileContent, "avatar", safeFileName);
 
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, "/avatars/upload");
@@ -2067,11 +2117,14 @@ public static class BffApiEndpoints
 
         var safeFileName = Path.GetFileName(avatar.FileName);
 
+        var fileBytes = await ReadFileBytesAsync(avatar, ct);
+        if (!IsValidImageMagic(fileBytes))
+            return Results.BadRequest(new { error = "File content is not a valid image." });
+
         using var content = new MultipartFormDataContent();
-        using var fileStream = avatar.OpenReadStream();
-        using var streamContent = new StreamContent(fileStream);
-        streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(avatar.ContentType);
-        content.Add(streamContent, "avatar", safeFileName);
+        using var fileContent = new ByteArrayContent(fileBytes);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(avatar.ContentType);
+        content.Add(fileContent, "avatar", safeFileName);
 
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/avatars/upload/{entityType}/{entityId}");
@@ -2127,11 +2180,14 @@ public static class BffApiEndpoints
 
         var safeFileName = Path.GetFileName(file.FileName);
 
+        var fileBytes = await ReadFileBytesAsync(file, ct);
+        if (!IsValidImageMagic(fileBytes))
+            return Results.BadRequest(new { error = "File content is not a valid image." });
+
         using var content = new MultipartFormDataContent();
-        using var fileStream = file.OpenReadStream();
-        using var streamContent = new StreamContent(fileStream);
-        streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
-        content.Add(streamContent, "file", safeFileName);
+        using var fileContent = new ByteArrayContent(fileBytes);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+        content.Add(fileContent, "file", safeFileName);
 
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Post, "/media/upload");
@@ -2351,8 +2407,9 @@ public static class BffApiEndpoints
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName]
-            ?? httpContext.Request.Cookies[AuthCookieHelper.SessionCookieName];
+        // Strict cookie only — do NOT fall back to the Lax session cookie. This 2FA status
+        // read must not be reachable via a cross-site top-level navigation (S4).
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
 
         var client = httpClientFactory.CreateClient("InternalApi");
@@ -2559,8 +2616,9 @@ public static class BffApiEndpoints
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
-        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName]
-            ?? httpContext.Request.Cookies[AuthCookieHelper.SessionCookieName];
+        // Strict cookie only — backup codes are highly sensitive and must never be reachable
+        // via a cross-site top-level navigation carrying the Lax session cookie (S4).
+        var accessToken = httpContext.Request.Cookies[AuthCookieHelper.AccessCookieName];
         if (string.IsNullOrEmpty(accessToken)) return Results.Unauthorized();
 
         var client = httpClientFactory.CreateClient("InternalApi");
