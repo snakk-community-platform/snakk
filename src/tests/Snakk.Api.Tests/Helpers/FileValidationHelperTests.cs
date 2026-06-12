@@ -94,7 +94,13 @@ public class FileValidationHelperTests
     [Test]
     public async Task ValidWebp_ReturnsTrue()
     {
-        var bytes = CreateFileBytes(0x52, 0x49, 0x46, 0x46);
+        // A real WebP header is RIFF + 4 little-endian size bytes + "WEBP" at
+        // offset 8 — the validator requires the offset-8 marker (RIFF alone is
+        // shared with WAV/AVI), so the fixture must carry all 12 bytes.
+        var bytes = CreateFileBytes(
+            0x52, 0x49, 0x46, 0x46,  // "RIFF"
+            0x24, 0x00, 0x00, 0x00,  // chunk size (arbitrary)
+            0x57, 0x45, 0x42, 0x50); // "WEBP"
         var file = CreateFormFile(bytes, "image.webp");
 
         var result = await FileValidationHelper.IsValidImageFileAsync(file, ".webp");
