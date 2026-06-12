@@ -65,7 +65,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "title": "Transport-level RST rate (gateway bug — informational)",
       "description": "Share of k6 requests that saw a TCP reset / status=0. The snakk gateway sends Connection: close + RST after every full response, so this stays near 100% until that's fixed. Use the Application failure rate panel for the real success signal.",
-      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 31 },
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 38 },
       "id": 11,
       "fieldConfig": {
         "defaults": {
@@ -94,7 +94,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "title": "App failures by status (Counter)",
       "description": "Count of checkOk() failures broken down by reported HTTP status. status=0 means the app body sentinel didn't match (often gateway RST swallowing the response — but only counts if `ok()` failed).",
-      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 31 },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 38 },
       "id": 12,
       "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
       "options": { "legend": { "displayMode": "table", "placement": "right" } },
@@ -181,6 +181,24 @@
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "title": "p99 latency by endpoint",
+      "description": "99th percentile request duration by `name` tag (set in lib/endpoints.js). Pairs with the p95 panel above — a p99 diverging hard from p95 on one endpoint means a bimodal tail (cache miss path, lock contention, heavy-term queries), not general slowness. Values are interpolated from OTLP histogram buckets, so exact tails come from the k6 end-of-run summary; trust this panel for shape and relative comparison.",
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 16 },
+      "id": 13,
+      "fieldConfig": { "defaults": { "unit": "ms", "color": { "mode": "palette-classic" } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right" } },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "histogram_quantile(0.99, sum by (name, le) (rate(k6_http_req_duration_milliseconds_bucket[$__rate_interval])))",
+          "legendFormat": "{{name}} p99",
+          "refId": "A"
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "title": "Application failure rate by endpoint",
       "description": "App-level failure share per `name` tag. Driven by checkOk()'s `app_ok` Rate metric — captures real protocol/content failures, not the gateway RST bug. Sustained nonzero on any endpoint = investigate.",
       "gridPos": { "h": 7, "w": 12, "x": 0, "y": 16 },
@@ -200,8 +218,8 @@
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "title": "p99 latency (all endpoints)",
-      "description": "99th percentile across the whole test. Useful tail-latency view.",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 16 },
+      "description": "p50/p95/p99 across the whole test — the overall tail-latency shape. Per-endpoint tails live in the panels above.",
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 23 },
       "id": 8,
       "fieldConfig": { "defaults": { "unit": "ms", "color": { "mode": "palette-classic" } } },
       "targets": [
@@ -230,14 +248,14 @@
       "type": "row",
       "id": 102,
       "title": "Iteration metrics",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 30 },
       "collapsed": false
     },
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "title": "Iteration rate by scenario",
       "description": "Iterations/sec per scenario (`mixed.js` uses 4 sub-scenarios).",
-      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 24 },
+      "gridPos": { "h": 7, "w": 12, "x": 0, "y": 31 },
       "id": 9,
       "fieldConfig": { "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } } },
       "targets": [
@@ -254,7 +272,7 @@
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "title": "VUs over time",
       "description": "Concurrent virtual users by scenario. Confirms ramp/hold/drain shape.",
-      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 24 },
+      "gridPos": { "h": 7, "w": 12, "x": 12, "y": 31 },
       "id": 10,
       "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" } } },
       "targets": [
