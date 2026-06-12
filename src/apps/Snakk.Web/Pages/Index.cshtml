@@ -31,10 +31,11 @@
         else
         {
             <div id="discussions-container" class="h-feed">
+                @{ var indexCardIndex = 0; }
                 @foreach (var discussion in Model.RecentDiscussions.Items)
                 {
                     @await Html.PartialAsync("Shared/_DiscussionCard",
-                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community))
+                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community, IsFirst: indexCardIndex++ == 0))
                 }
 
                 @if (Model.RecentDiscussions.HasMoreItems && Model.RecentDiscussions.HasNextCursor)

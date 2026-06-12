@@ -100,8 +100,9 @@ public class SaveGrpcService(
                 HubSlug = p.HubSlug,
                 HubName = p.HubName,
                 CommunitySlug = p.CommunitySlug,
-                AuthorPublicId = p.AuthorPublicId,
-                AuthorDisplayName = p.AuthorDisplayName,
+                // Coalesce: GDPR-anonymized authors have null ids; proto setters throw on null
+                AuthorPublicId = p.AuthorPublicId ?? "",
+                AuthorDisplayName = p.AuthorDisplayName ?? "",
                 SavedAt = ToTimestamp(p.SavedAt)
             };
 

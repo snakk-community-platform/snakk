@@ -8,7 +8,6 @@ public interface IPostRepository : IGenericDatabaseRepository<PostDatabaseEntity
     Task<PostDatabaseEntity?> GetForUpdateAsync(string publicId, CancellationToken ct = default);
     Task<PostDetailDto?> GetForDisplayAsync(string publicId, CancellationToken ct = default);
     Task<PostDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default);
-    Task<IEnumerable<PostDatabaseEntity>> GetByDiscussionIdAsync(int discussionId, CancellationToken ct = default);
     Task<PagedResult<PostListDto>> GetPagedByDiscussionIdAsync(int discussionId, int offset, int pageSize, CancellationToken ct = default);
 
 }

@@ -1,4 +1,4 @@
-﻿@page "/help/{slug?}"
+@page "/help/{slug?}"
 @model HelpModel
 @{
     ViewData["Title"] = Model.ArticleTitle + T.Pages.HelpTitleSuffix;
@@ -20,11 +20,52 @@
             @T.Pages.HelpHeading
         </h2>
         <article class="help-content">
+            @if (!string.IsNullOrEmpty(Model.SectionTitle))
+            {
+                <div class="help-article-category">@Model.SectionTitle</div>
+            }
             <h1>@Model.ArticleTitle</h1>
             <div class="prose">
                 @Html.Raw(Model.RenderedHtml)
             </div>
         </article>
+        @if (Model.PrevArticle is not null || Model.NextArticle is not null)
+        {
+            <nav class="help-article-nav" aria-label="@T.Pages.HelpArticleNav">
+                <div>
+                    @if (Model.PrevArticle is not null)
+                    {
+                        <a href="/help/@Model.PrevArticle.Slug"
+                           hx-get="/help/@Model.PrevArticle.Slug"
+                           hx-target="#help-main"
+                           hx-select="#help-main"
+                           hx-select-oob="#help-sidebar-nav"
+                           hx-swap="outerHTML"
+                           hx-push-url="true"
+                           class="help-article-nav-link">
+                            <span class="help-article-nav-label">← @T.Pages.HelpPrev</span>
+                            <span class="help-article-nav-title">@Model.PrevArticle.Title</span>
+                        </a>
+                    }
+                </div>
+                <div>
+                    @if (Model.NextArticle is not null)
+                    {
+                        <a href="/help/@Model.NextArticle.Slug"
+                           hx-get="/help/@Model.NextArticle.Slug"
+                           hx-target="#help-main"
+                           hx-select="#help-main"
+                           hx-select-oob="#help-sidebar-nav"
+                           hx-swap="outerHTML"
+                           hx-push-url="true"
+                           class="help-article-nav-link help-article-nav-link--next">
+                            <span class="help-article-nav-label">@T.Pages.HelpNext →</span>
+                            <span class="help-article-nav-title">@Model.NextArticle.Title</span>
+                        </a>
+                    }
+                </div>
+            </nav>
+        }
     </div>
 </div>
 
@@ -36,6 +77,18 @@
 <div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
     <div class="sn-right-body">
+    @if (Model.TableOfContents.Count > 1)
+    {
+        <div class="sn-right-section">
+            <div class="sn-right-title">@T.Pages.HelpInThisArticle</div>
+            <nav class="help-toc">
+                @foreach (var (id, text) in Model.TableOfContents)
+                {
+                    <a href="#@id" class="help-toc-item">@text</a>
+                }
+            </nav>
+        </div>
+    }
     <div class="sn-right-section">
         <div class="sn-right-title">@T.Pages.HelpCenterTitle</div>
         <nav id="help-sidebar-nav" class="help-sidebar">

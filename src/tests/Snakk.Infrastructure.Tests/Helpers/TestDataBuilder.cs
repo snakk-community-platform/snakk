@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
@@ -13,6 +15,13 @@ public class TestDataBuilder
 
     private string NextId() => $"{++_counter}_{Guid.NewGuid():N}";
 
+    // Matches EmailProtector.ComputeHash: SHA256(UTF8(email.Trim().ToLowerInvariant())) → hex lower
+    private static string ComputeEmailHash(string email)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
+        return Convert.ToHexStringLower(bytes);
+    }
+
     public async Task<UserDatabaseEntity> CreateUserAsync(string? displayName = null, string? email = null)
     {
         var id = NextId();
@@ -22,7 +31,7 @@ public class TestDataBuilder
             PublicId = $"u_{id}",
             DisplayName = displayName ?? $"User {id}",
             Email = resolvedEmail,
-            EmailHash = resolvedEmail.Trim().ToLowerInvariant(),
+            EmailHash = ComputeEmailHash(resolvedEmail),
             CreatedAt = DateTime.UtcNow
         };
         _context.Users.Add(user);

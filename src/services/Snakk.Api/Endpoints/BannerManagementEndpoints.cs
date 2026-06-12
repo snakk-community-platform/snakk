@@ -1,6 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
 using System.Security.Claims;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Api.Models;
 using Snakk.Application.DTOs.Responses;
 using Snakk.Application.UseCases;
@@ -39,7 +40,8 @@ public static class BannerManagementEndpoints
     private static async Task<IResult> CreateBannerAsync(
         CreateBannerRequest request,
         ClaimsPrincipal user,
-        BannerUseCase bannerUseCase)
+        BannerUseCase bannerUseCase,
+        HybridCache cache)
     {
         var userId = user.FindFirstValue("sub") ?? user.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -68,6 +70,7 @@ public static class BannerManagementEndpoints
             return Results.BadRequest(new { error = result.Error });
 
         var a = result.Value!;
+        await cache.RemoveAsync(BannerCacheKey(a.Scope, a.ScopeEntityId));
 
         return Results.Created($"/announcements/{a.PublicId.Value}", ToResponse(a));
     }
@@ -100,7 +103,8 @@ public static class BannerManagementEndpoints
     private static async Task<IResult> UpdateBannerAsync(
         string publicId,
         UpdateBannerRequest request,
-        BannerUseCase bannerUseCase)
+        BannerUseCase bannerUseCase,
+        HybridCache cache)
     {
         if (!Enum.TryParse<BannerTypeEnum>(request.Type, true, out var type))
             return Results.BadRequest(new { error = $"Invalid type: {request.Type}" });
@@ -118,17 +122,29 @@ public static class BannerManagementEndpoints
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
 
-        return Results.Ok(ToResponse(result.Value!));
+        var a = result.Value!;
+        await cache.RemoveAsync(BannerCacheKey(a.Scope, a.ScopeEntityId));
+
+        return Results.Ok(ToResponse(a));
     }
 
     private static async Task<IResult> DeleteBannerAsync(
         string publicId,
-        BannerUseCase bannerUseCase)
+        BannerUseCase bannerUseCase,
+        HybridCache cache)
     {
+        // Look up before deletion to capture scope for cache invalidation
+        var existing = await bannerUseCase.GetByIdAsync(BannerId.From(publicId));
+        if (!existing.IsSuccess)
+            return Results.NotFound(new { error = existing.Error });
+
+        var a = existing.Value!;
         var result = await bannerUseCase.DeleteAsync(BannerId.From(publicId));
 
         if (!result.IsSuccess)
             return Results.NotFound(new { error = result.Error });
+
+        await cache.RemoveAsync(BannerCacheKey(a.Scope, a.ScopeEntityId));
 
         return Results.NoContent();
     }
@@ -149,4 +165,13 @@ public static class BannerManagementEndpoints
             a.CreatedAt,
             a.LastModifiedAt,
             a.CreatedByUserId.Value);
+
+    private static string BannerCacheKey(BannerScopeEnum scope, string entityId) =>
+        scope switch
+        {
+            BannerScopeEnum.Community => $"banners:community:{entityId}",
+            BannerScopeEnum.Hub      => $"banners:hub:{entityId}",
+            BannerScopeEnum.Space    => $"banners:space:{entityId}",
+            _                        => $"banners:community:{entityId}"
+        };
 }

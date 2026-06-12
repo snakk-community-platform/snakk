@@ -179,6 +179,7 @@
     }
 
     .auth-btn-oauth {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 0.625rem;
@@ -214,6 +215,23 @@
         width: 1.125rem;
         height: 1.125rem;
         flex-shrink: 0;
+    }
+
+    .auth-badge-last-used {
+        position: absolute;
+        top: -0.45rem;
+        right: 0.5rem;
+        background: #4CAF7D;
+        color: #fff;
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.1rem 0.35rem;
+        border-radius: 9999px;
+        line-height: 1.4;
+        white-space: nowrap;
+        pointer-events: none;
     }
 
     .oauth-text-short { display: none; }

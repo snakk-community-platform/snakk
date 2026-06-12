@@ -185,7 +185,7 @@ else
     ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.Slug}/feed";
     ViewData["RightPane.ShareTitle"] = Model.Hub?.Name ?? T.Pages.HubDetailFallbackTitle;
     ViewData["RightPane.ShareIsPublic"] = Model.Hub is not { IsRestricted: true };
-    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageHub(Model.Community, Model.Hub.Slug);
+    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageHub(Model.Community, Model.Hub!.Slug);
 }
 <div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />

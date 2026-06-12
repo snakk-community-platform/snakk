@@ -203,7 +203,7 @@ public class UserTests
         user.Anonymize();
 
         // Assert
-        await Assert.That(user.DisplayName).IsEqualTo("Anonymous User");
+        await Assert.That(user.DisplayName).IsEqualTo("Deleted User");
         await Assert.That(user.Email).IsNull();
         await Assert.That(user.LastModifiedAt!.Value).IsEqualTo(DateTime.UtcNow).Within(TimeSpan.FromSeconds(1));
     }

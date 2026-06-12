@@ -361,7 +361,7 @@
                                              data-loaded="1"
                                              data-blur-up
                                              width="@imgW" height="@imgH"
-                                             alt="" decoding="async" loading="lazy" />
+                                             alt="" decoding="async" loading="@(Model.IsFirst ? "eager" : "lazy")"@(Model.IsFirst ? " fetchpriority=\"high\"" : "") />
                                     }
                                     else
                                     {
@@ -463,9 +463,9 @@
                         <div class="sn-link-card-thumb@(blurAdultImages ? " sn-link-card-thumb-adult-blur" : "")"@(linkBlur != null ? $" style=\"--blur:url({linkBlur})\"" : "") data-discussion-id="@discussion.PublicId">
                             @if (linkBlur != null)
                             {
-                                <img src="@linkBlur" alt="" aria-hidden="true" class="sn-link-card-lqip" />
+                                <img src="@linkBlur" alt="" aria-hidden="true" class="sn-link-card-lqip" width="64" height="64" />
                             }
-                            <img src="@linkThumbSrc" alt="" class="sn-link-card-img@(blurAdultImages ? " sn-link-card-img-adult-blur" : "")" loading="lazy" decoding="async" data-blur-up />
+                            <img src="@linkThumbSrc" alt="" class="sn-link-card-img@(blurAdultImages ? " sn-link-card-img-adult-blur" : "")" width="64" height="64" loading="lazy" decoding="async" data-blur-up />
                             @if (blurAdultImages)
                             {
                                 <div class="sn-link-card-adult-overlay" data-discussion-id="@discussion.PublicId">

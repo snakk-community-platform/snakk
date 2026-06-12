@@ -41,94 +41,50 @@ public class UserBanRepository(SnakkDbContext context)
     {
         var now = DateTime.UtcNow;
 
-        // Build query for active bans
-        var query = _dbSet.Where(ub =>
-            ub.UserId == userId
-            && ub.UnbannedAt == null
-            && (ub.ExpiresAt == null || ub.ExpiresAt > now));
-
-        // Check for platform-wide ban first (all scope fields null)
-        var platformBan = await query
-            .FirstOrDefaultAsync(ub =>
-                ub.CommunityId == null
-                && ub.HubId == null
-                && ub.SpaceId == null, ct);
-
-        if (platformBan is not null)
-            return platformBan;
-
-        // Check community-level ban if communityId provided
-        if (communityId.HasValue)
+        // Resolve the full hierarchy ids in one query when a space is given
+        // but hub/community are not yet known.
+        if (spaceId.HasValue && !hubId.HasValue)
         {
-            var communityBan = await query
-                .FirstOrDefaultAsync(ub => ub.CommunityId == communityId, ct);
+            var hierarchy = await _context.Spaces
+                .Where(s => s.Id == spaceId)
+                .Select(s => new { s.HubId, CommunityId = s.Hub.CommunityId })
+                .FirstOrDefaultAsync(ct);
 
-            if (communityBan is not null)
-                return communityBan;
-        }
-
-        // Check hub-level ban if hubId provided
-        if (hubId.HasValue)
-        {
-            var hubBan = await query
-                .FirstOrDefaultAsync(ub => ub.HubId == hubId, ct);
-
-            if (hubBan is not null)
-                return hubBan;
-
-            // Also check if hub's community has a ban
-            if (!communityId.HasValue)
+            if (hierarchy is not null)
             {
-                var hub = await _context.Hubs
-                    .FirstOrDefaultAsync(h => h.Id == hubId, ct);
-
-                if (hub is not null)
-                {
-                    var hubCommunityBan = await query
-                        .FirstOrDefaultAsync(ub => ub.CommunityId == hub.CommunityId, ct);
-
-                    if (hubCommunityBan is not null)
-                        return hubCommunityBan;
-                }
+                hubId ??= hierarchy.HubId;
+                communityId ??= hierarchy.CommunityId;
             }
         }
-
-        // Check space-level ban if spaceId provided
-        if (spaceId.HasValue)
+        else if (hubId.HasValue && !communityId.HasValue)
         {
-            var spaceBan = await query
-                .FirstOrDefaultAsync(ub => ub.SpaceId == spaceId, ct);
-
-            if (spaceBan is not null)
-                return spaceBan;
-
-            // Also check hub and community bans for the space
-            if (!hubId.HasValue)
-            {
-                var space = await _context.Spaces
-                    .Include(s => s.Hub)
-                    .FirstOrDefaultAsync(s => s.Id == spaceId, ct);
-
-                if (space is not null)
-                {
-                    // Check hub-level ban
-                    var spaceHubBan = await query
-                        .FirstOrDefaultAsync(ub => ub.HubId == space.HubId, ct);
-
-                    if (spaceHubBan is not null)
-                        return spaceHubBan;
-
-                    // Check community-level ban
-                    var spaceCommunityBan = await query
-                        .FirstOrDefaultAsync(ub => ub.CommunityId == space.Hub.CommunityId, ct);
-
-                    if (spaceCommunityBan is not null)
-                        return spaceCommunityBan;
-                }
-            }
+            communityId = await _context.Hubs
+                .Where(h => h.Id == hubId)
+                .Select(h => (int?)h.CommunityId)
+                .FirstOrDefaultAsync(ct);
         }
 
-        return null;
+        // Single query: fetch all active bans that match any of the relevant scopes,
+        // ordered most-specific-first (platform > community > hub > space) so the
+        // caller gets the highest-priority ban — matching the original precedence:
+        //   platform-wide (0) > community (1) > hub (2) > space (3)
+        return await _dbSet
+            .Where(ub =>
+                ub.UserId == userId
+                && ub.UnbannedAt == null
+                && (ub.ExpiresAt == null || ub.ExpiresAt > now)
+                && (
+                    (ub.CommunityId == null && ub.HubId == null && ub.SpaceId == null) // platform-wide
+                    || (communityId.HasValue && ub.CommunityId == communityId && ub.HubId == null && ub.SpaceId == null)
+                    || (hubId.HasValue && ub.HubId == hubId && ub.SpaceId == null)
+                    || (spaceId.HasValue && ub.SpaceId == spaceId)
+                ))
+            .OrderBy(ub =>
+                ub.CommunityId == null && ub.HubId == null && ub.SpaceId == null ? 0
+                : ub.CommunityId != null ? 1
+                : ub.HubId != null ? 2
+                : 3)
+            .FirstOrDefaultAsync(ct);
     }
 
     public async Task<bool> IsUserBannedAsync(

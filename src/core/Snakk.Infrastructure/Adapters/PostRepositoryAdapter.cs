@@ -81,46 +81,14 @@ public class PostRepositoryAdapter(
         return projections.Select(p => p.ToDomain());
     }
 
-    public async Task<IEnumerable<Post>> GetByDiscussionIdAsync(DiscussionId discussionId, CancellationToken ct = default)
-    {
-        var dbId = await context.Discussions.Where(d => d.PublicId == discussionId.Value).Select(d => d.Id).FirstOrDefaultAsync(ct);
-        var projections = await context.Posts
-            .Where(p => p.DiscussionId == dbId)
-            .OrderBy(p => p.CreatedAt)
-            .Select(p => new PostProjection(
-                p.PublicId, p.DiscussionPublicId, p.CreatedByUserPublicId,
-                p.Content, p.RenderedContent, p.CreatedAt, p.LastModifiedAt, p.EditedAt, p.IsFirstPost,
-                p.ReplyToPost != null ? p.ReplyToPost.PublicId : null,
-                p.IsDeleted, p.HasCodeBlock,
-                p.IsUsersFirstPostInDiscussion, p.IsUsersFirstPostInSpace, p.IsOp, p.IsNecro, p.IsMilestone,
-                p.RevisionCount, p.WasNormalized))
-            .ToListAsync(ct);
-
-        return projections.Select(p => p.ToDomain());
-    }
-
     public async Task<PagedResult<Post>> GetPagedByDiscussionIdAsync(
         DiscussionId discussionId,
         int offset,
         int pageSize,
         CancellationToken ct = default)
     {
-        var discussionDbId = await context.Discussions
-            .Where(d => d.PublicId == discussionId.Value)
-            .Select(d => d.Id)
-            .FirstOrDefaultAsync(ct);
-
-        if (discussionDbId == 0)
-            return new PagedResult<Post>
-            {
-                Items = [],
-                Offset = offset,
-                PageSize = pageSize,
-                HasMoreItems = false
-            };
-
         var result = await context.Posts
-            .Where(p => p.DiscussionId == discussionDbId)
+            .Where(p => p.Discussion.PublicId == discussionId.Value)
             .OrderBy(p => p.CreatedAt)
             .Select(p => new PostProjection(
                 p.PublicId,

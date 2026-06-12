@@ -20,6 +20,7 @@ public record PostListItemVM
     public required string CommunitySlug { get; init; }
     public string HubName { get; init; } = "";
     public string SpaceName { get; init; } = "";
+    public string SpacePublicId { get; init; } = "";
 
     public static PostListItemVM FromSavedPost(SavedPostInfo p) => new()
     {
@@ -58,5 +59,6 @@ public record PostListItemVM
         CommunitySlug = p.CommunitySlug,
         HubName = p.Hub?.Name ?? "",
         SpaceName = p.Space?.Name ?? "",
+        SpacePublicId = p.Space?.PublicId ?? "",
     };
 }

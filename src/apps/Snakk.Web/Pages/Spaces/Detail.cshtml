@@ -154,7 +154,7 @@ else
     ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.HubSlug}/{Model.Slug}/feed";
     ViewData["RightPane.ShareTitle"] = Model.Space?.Name ?? T.Pages.SpaceDetailFallbackTitle;
     ViewData["RightPane.ShareIsPublic"] = Model.Space is not { IsRestricted: true };
-    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageSpace(Model.Community, Model.Hub?.Slug ?? "", Model.Space.Slug);
+    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageSpace(Model.Community, Model.Hub?.Slug ?? "", Model.Space!.Slug);
     ViewData["RightPane.SubscribeAction"] = "toggle-follow-space";
 }
 <div class="sn-right-sticky">
@@ -226,7 +226,7 @@ else
             <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                              model="Model.InlineSpaceRules"
                              htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
-                <div class="flex flex-col gap-2">
+                <div class="flex flex-col gap-2" style="min-height:3.5rem">
                     <div class="skeleton h-3 w-3/4"></div>
                     <div class="skeleton h-3 w-2/3"></div>
                     <div class="skeleton h-3 w-1/2"></div>
@@ -248,7 +248,7 @@ else
         <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                          model="Model.InlineModerators"
                          htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Slug))/moderators&rev=@Model.Space.TeamRevision">
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2" style="min-height:4rem">
                 <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
                 <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
             </div>
@@ -326,7 +326,6 @@ else
 
 @section Scripts {
     <script type="application/json" id="space-page-config">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { communityPrefix = SnakkUrlHelper.CommunityPrefix(Model.Community), space = new { publicId = Model.Space!.PublicId, hubSlug = Model.HubSlug, slug = Model.Slug } }))</script>
-    <script src="@SnakkUrlHelper.Js("core/utils")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("pages/space-detail")" asp-append-version="true" defer></script>
 }

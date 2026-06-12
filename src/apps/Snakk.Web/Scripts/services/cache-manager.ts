@@ -52,9 +52,10 @@ class CacheManager<T = any> {
             return null;
         }
 
-        // Update access time for LRU
-        item.lastAccessedAt = Date.now();
-        this._saveCache(cache);
+        // Do NOT update lastAccessedAt or write back on read — avoids a full
+        // JSON.stringify + localStorage.setItem on every cache hit.
+        // Eviction order is now insertion/update order (lastAccessedAt is set
+        // only on set()), which is perfectly acceptable for these small caches.
 
         return item.data;
     }

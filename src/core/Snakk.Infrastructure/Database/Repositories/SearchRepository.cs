@@ -9,9 +9,10 @@ using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Database.Extensions;
 using Snakk.Shared.Models;
 
-public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService grantsCache, IFileStorage fileStorage, HybridCache cache) : ISearchRepository
+public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbContext> dbContextFactory, IUserGrantsCacheService grantsCache, IFileStorage fileStorage, HybridCache cache) : ISearchRepository
 {
     private readonly SnakkDbContext _context = context;
+    private readonly IDbContextFactory<SnakkDbContext> _dbContextFactory = dbContextFactory;
 
     private bool IsPostgres => _context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL";
 
@@ -70,16 +71,10 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             baseQuery = baseQuery.Where(d => d.CreatedByUserPublicId == authorPublicId);
 
         if (!string.IsNullOrEmpty(spacePublicId))
-        {
-            var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => s.Id).FirstOrDefaultAsync(ct);
-            baseQuery = baseQuery.Where(d => d.SpaceId == spaceDbId);
-        }
+            baseQuery = baseQuery.Where(d => d.Space.PublicId == spacePublicId);
 
         if (!string.IsNullOrEmpty(hubPublicId))
-        {
-            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync(ct);
-            baseQuery = baseQuery.Where(d => d.HubId == hubDbId);
-        }
+            baseQuery = baseQuery.Where(d => d.Space.Hub.PublicId == hubPublicId);
 
         // Date-range filter — applied on CreatedAt regardless of sort order.
         // IX_Discussion_PostCount_IsDeleted / IX_Discussion_ReactionCount_IsDeleted handle the
@@ -228,10 +223,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             baseQuery = baseQuery.Where(p => p.DiscussionPublicId == discussionPublicId);
 
         if (!string.IsNullOrEmpty(spacePublicId))
-        {
-            var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => s.Id).FirstOrDefaultAsync(ct);
-            baseQuery = baseQuery.Where(p => p.SpaceId == spaceDbId);
-        }
+            baseQuery = baseQuery.Where(p => p.Discussion.Space.PublicId == spacePublicId);
 
         // Date-range filter on CreatedAt. IX_Post_ReactionCount_IsDeleted handles the
         // no-FTS popular/reactions path; GIN handles the FTS path.
@@ -300,9 +292,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         bool viewerAllowsAdult = false,
         CancellationToken ct = default)
     {
-        var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => s.Id).FirstOrDefaultAsync(ct);
         var baseQuery = _context.Discussions
-            .Where(d => d.SpaceId == spaceDbId && !d.IsDeleted);
+            .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted);
 
         baseQuery = await WithAccessFilterAsync(baseQuery, userId, ct);
         baseQuery = await WithAdultFilterAsync(baseQuery, viewerAllowsAdult, ct);
@@ -425,10 +416,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         baseQuery = await WithSpaceAccessFilterAsync(baseQuery, userId, ct);
 
         if (!string.IsNullOrEmpty(hubPublicId))
-        {
-            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync(ct);
-            baseQuery = baseQuery.Where(s => s.HubId == hubDbId);
-        }
+            baseQuery = baseQuery.Where(s => s.Hub.PublicId == hubPublicId);
         else if (!string.IsNullOrEmpty(communityPublicId))
             baseQuery = baseQuery.Where(s => s.CommunityPublicId == communityPublicId);
 
@@ -470,9 +458,8 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         CancellationToken ct = default)
     {
         // Use denormalized counts + fetch one extra row to check HasMoreItems (avoids separate COUNT query)
-        var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync(ct);
         var baseSpaceQuery = _context.Spaces
-            .Where(s => s.HubId == hubDbId);
+            .Where(s => s.Hub.PublicId == hubPublicId);
         baseSpaceQuery = await WithSpaceAccessFilterAsync(baseSpaceQuery, userId, ct);
         var spaces = await baseSpaceQuery
             .OrderBy(s => s.Name)
@@ -648,11 +635,12 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
     // Latest-discussion-per-space drives the hub/community space listings and was ~85% of DB
     // time under load (the DISTINCT-ON re-ran on every render across hubs/pages/users). It's
     // viewer-agnostic — space-level access is already filtered upstream — so cache it per space,
-    // single-flight, with a short TTL. Collapses thousands of DB calls to one per space per TTL.
+    // single-flight. Invalidated by SpaceLatestDiscussionCacheInvalidationHandler on
+    // DiscussionCreatedEvent and PostCreatedEvent; 24 h TTL is a safety net only.
     private static readonly HybridCacheEntryOptions LatestPerSpaceCacheOptions = new()
     {
-        Expiration = TimeSpan.FromSeconds(30),
-        LocalCacheExpiration = TimeSpan.FromSeconds(30),
+        Expiration = TimeSpan.FromHours(24),
+        LocalCacheExpiration = TimeSpan.FromHours(24),
     };
 
     // Preview data is immutable for links/images and only changes on explicit user actions for
@@ -675,22 +663,29 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
     {
         if (spaceIds.Length == 0) return [];
 
+        var tasks = spaceIds.Select(spaceId => cache.GetOrCreateAsync<SpaceLatestDiscussion?>(
+            $"space-latest-discussion:{spaceId}",
+            async c =>
+            {
+                await using var db = await _dbContextFactory.CreateDbContextAsync(c);
+                return await QueryLatestDiscussionForSpaceAsync(spaceId, db, c);
+            },
+            LatestPerSpaceCacheOptions,
+            cancellationToken: ct).AsTask());
+
+        var results = await Task.WhenAll(tasks);
+
         var result = new Dictionary<int, SpaceLatestDiscussion>(spaceIds.Length);
-        foreach (var spaceId in spaceIds)
+        for (var i = 0; i < spaceIds.Length; i++)
         {
-            var latest = await cache.GetOrCreateAsync<SpaceLatestDiscussion?>(
-                $"space-latest-discussion:{spaceId}",
-                async c => await QueryLatestDiscussionForSpaceAsync(spaceId, c),
-                LatestPerSpaceCacheOptions,
-                cancellationToken: ct);
-            if (latest is not null)
-                result[spaceId] = latest;
+            if (results[i] is not null)
+                result[spaceIds[i]] = results[i]!;
         }
         return result;
     }
 
-    private async Task<SpaceLatestDiscussion?> QueryLatestDiscussionForSpaceAsync(int spaceId, CancellationToken ct) =>
-        await _context.Database
+    private static async Task<SpaceLatestDiscussion?> QueryLatestDiscussionForSpaceAsync(int spaceId, SnakkDbContext db, CancellationToken ct) =>
+        await db.Database
             .SqlQuery<SpaceLatestDiscussion>($"""
                 SELECT
                     d."SpaceId",
@@ -733,20 +728,28 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
     {
         var ids = spaceIds.Distinct().ToList();
         if (ids.Count == 0) return [];
+
+        var tasks = ids.Select(id => cache.GetOrCreateAsync<SpaceDisplay?>(
+            $"space-display:{id}",
+            async ct2 =>
+            {
+                await using var db = await _dbContextFactory.CreateDbContextAsync(ct2);
+                return await FetchSingleSpaceDisplayAsync(id, db, ct2);
+            },
+            _spaceDisplayCacheOptions, cancellationToken: ct).AsTask());
+
+        var results = await Task.WhenAll(tasks);
+
         var result = new Dictionary<int, SpaceDisplay>(ids.Count);
-        foreach (var id in ids)
+        for (var i = 0; i < ids.Count; i++)
         {
-            var display = await cache.GetOrCreateAsync<SpaceDisplay?>(
-                $"space-display:{id}",
-                ct2 => FetchSingleSpaceDisplayAsync(id, ct2),
-                _spaceDisplayCacheOptions, cancellationToken: ct);
-            if (display is not null) result[id] = display;
+            if (results[i] is not null) result[ids[i]] = results[i]!;
         }
         return result;
     }
 
-    private async ValueTask<SpaceDisplay?> FetchSingleSpaceDisplayAsync(int spaceId, CancellationToken ct) =>
-        await _context.Spaces
+    private static async ValueTask<SpaceDisplay?> FetchSingleSpaceDisplayAsync(int spaceId, SnakkDbContext db, CancellationToken ct) =>
+        await db.Spaces
             .Where(s => s.Id == spaceId)
             .Select(s => new SpaceDisplay(s.Slug, s.Name, s.Description, s.AvatarFileName, s.AvatarThumbnailFileName, s.HubSlug, s.HubName, s.CommunitySlug, s.CommunityName))
             .FirstOrDefaultAsync(ct);
@@ -802,30 +805,23 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             query = query.Where(d => d.CreatedByUserPublicId == authorId);
         }
 
+        // Scope filters go through the Space navigation rather than the denormalized
+        // public-id columns: the parents' PublicId columns are uniquely indexed and the
+        // join lets the planner use Discussion's int FK indexes (the denormalized string
+        // columns are unindexed). It also preserves the parents' soft-delete query
+        // filters, matching the old resolve-then-filter behavior.
         // Filter by multiple spaces (e.g. My Feed)
         if (spaceIds is { Count: > 0 })
-        {
-            var dbIds = await _context.Spaces.Where(s => spaceIds.Contains(s.PublicId)).Select(s => s.Id).ToListAsync(ct);
-            query = query.Where(d => dbIds.Contains(d.SpaceId));
-        }
+            query = query.Where(d => spaceIds.Contains(d.Space.PublicId));
         // Filter by single space (most specific)
         else if (!string.IsNullOrEmpty(spaceId))
-        {
-            var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spaceId).Select(s => s.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.SpaceId == spaceDbId);
-        }
+            query = query.Where(d => d.Space.PublicId == spaceId);
         // Filter by hub if specified (more specific than community)
         else if (!string.IsNullOrEmpty(hubId))
-        {
-            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.HubId == hubDbId);
-        }
+            query = query.Where(d => d.Space.Hub.PublicId == hubId);
         // Filter by community if specified
         else if (!string.IsNullOrEmpty(communityId))
-        {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.CommunityId == communityDbId);
-        }
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
 
         // Apply keyset pagination if cursor provided
         var cursorData = Cursor.Decode(cursor);
@@ -1061,59 +1057,48 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         List<(int Id, string PublicId, int Type)> discussions,
         CancellationToken ct = default)
     {
+        (string key, Func<SnakkDbContext, CancellationToken, ValueTask<Application.Repositories.DiscussionPreviewDto?>>) GetFetcher(
+            (int Id, string PublicId, int Type) d) => d.Type switch
+        {
+            2 => ($"preview:poll:{d.PublicId}",    (db, c) => FetchPollPreviewAsync(d.Id, db, c)),
+            7 => ($"preview:debate:{d.PublicId}",  (db, c) => FetchDebatePreviewAsync(d.Id, db, c)),
+            4 => ($"preview:link:{d.PublicId}",    (db, c) => FetchLinkPreviewAsync(d.Id, db, c)),
+            5 => ($"preview:images:{d.PublicId}",  (db, c) => FetchImagesPreviewAsync(d.Id, db, c)),
+            9 => ($"preview:iama:{d.PublicId}",    (db, c) => FetchIamaPreviewAsync(d.Id, db, c)),
+            _ => default
+        };
+
+        var eligible = discussions
+            .Where(d => d.Type is 2 or 7 or 4 or 5 or 9)
+            .ToList();
+
+        var tasks = eligible.Select(d =>
+        {
+            var (key, fetcher) = GetFetcher(d);
+            return (d.PublicId, Task: cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
+                key,
+                async ct2 =>
+                {
+                    await using var db = await _dbContextFactory.CreateDbContextAsync(ct2);
+                    return await fetcher(db, ct2);
+                },
+                _previewCacheOptions, cancellationToken: ct).AsTask());
+        }).ToList();
+
+        await Task.WhenAll(tasks.Select(t => t.Task));
+
         var result = new Dictionary<string, Application.Repositories.DiscussionPreviewDto>();
-
-        foreach (var d in discussions.Where(d => d.Type == 2))
+        foreach (var (publicId, task) in tasks)
         {
-            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
-                $"preview:poll:{d.PublicId}",
-                ct2 => FetchPollPreviewAsync(d.Id, ct2),
-                _previewCacheOptions, cancellationToken: ct);
-            if (preview is not null) result[d.PublicId] = preview;
+            var preview = await task;
+            if (preview is not null) result[publicId] = preview;
         }
-
-        foreach (var d in discussions.Where(d => d.Type == 7))
-        {
-            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
-                $"preview:debate:{d.PublicId}",
-                ct2 => FetchDebatePreviewAsync(d.Id, ct2),
-                _previewCacheOptions, cancellationToken: ct);
-            if (preview is not null) result[d.PublicId] = preview;
-        }
-
-        foreach (var d in discussions.Where(d => d.Type == 4))
-        {
-            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
-                $"preview:link:{d.PublicId}",
-                ct2 => FetchLinkPreviewAsync(d.Id, ct2),
-                _previewCacheOptions, cancellationToken: ct);
-            if (preview is not null) result[d.PublicId] = preview;
-        }
-
-        foreach (var d in discussions.Where(d => d.Type == 5))
-        {
-            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
-                $"preview:images:{d.PublicId}",
-                ct2 => FetchImagesPreviewAsync(d.Id, ct2),
-                _previewCacheOptions, cancellationToken: ct);
-            if (preview is not null) result[d.PublicId] = preview;
-        }
-
-        foreach (var d in discussions.Where(d => d.Type == 9))
-        {
-            var preview = await cache.GetOrCreateAsync<Application.Repositories.DiscussionPreviewDto?>(
-                $"preview:iama:{d.PublicId}",
-                ct2 => FetchIamaPreviewAsync(d.Id, ct2),
-                _previewCacheOptions, cancellationToken: ct);
-            if (preview is not null) result[d.PublicId] = preview;
-        }
-
         return result;
     }
 
-    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchPollPreviewAsync(int discussionId, CancellationToken ct)
+    private static async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchPollPreviewAsync(int discussionId, SnakkDbContext db, CancellationToken ct)
     {
-        var poll = await _context.DiscussionPolls
+        var poll = await db.DiscussionPolls
             .Where(p => p.DiscussionId == discussionId)
             .Select(p => new
             {
@@ -1135,13 +1120,13 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         return new(Poll: new(options, totalVotes, IsSecret: isSecret, ClosesAt: poll.ClosesAt));
     }
 
-    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchDebatePreviewAsync(int discussionId, CancellationToken ct)
+    private static async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchDebatePreviewAsync(int discussionId, SnakkDbContext db, CancellationToken ct)
     {
-        var debate = await _context.DiscussionDebates
-            .Where(db => db.DiscussionId == discussionId)
-            .Select(db => new
+        var debate = await db.DiscussionDebates
+            .Where(d => d.DiscussionId == discussionId)
+            .Select(d => new
             {
-                Positions = db.Positions.OrderBy(p => p.Index).Select(p => new { p.Id, p.Label, p.Index }).ToList()
+                Positions = d.Positions.OrderBy(p => p.Index).Select(p => new { p.Id, p.Label, p.Index }).ToList()
             })
             .FirstOrDefaultAsync(ct);
 
@@ -1151,7 +1136,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         var positionCounts = new Dictionary<int, int>();
         if (positionIds.Count > 0)
         {
-            var postPositions = await _context.DiscussionDebatePostPositions
+            var postPositions = await db.DiscussionDebatePostPositions
                 .Where(pdp => positionIds.Contains(pdp.PositionId))
                 .Select(pdp => new { pdp.PositionId, pdp.Post.CreatedByUserId, pdp.Post.CreatedAt })
                 .ToListAsync(ct);
@@ -1171,9 +1156,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         return new(Debate: new(positions));
     }
 
-    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchLinkPreviewAsync(int discussionId, CancellationToken ct)
+    private static async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchLinkPreviewAsync(int discussionId, SnakkDbContext db, CancellationToken ct)
     {
-        var link = await _context.DiscussionLinks
+        var link = await db.DiscussionLinks
             .Where(l => l.DiscussionId == discussionId)
             .Select(l => new
             {
@@ -1191,9 +1176,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
             link.ImageBlurDataUri, link.ImageWidth, link.ImageHeight));
     }
 
-    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchImagesPreviewAsync(int discussionId, CancellationToken ct)
+    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchImagesPreviewAsync(int discussionId, SnakkDbContext db, CancellationToken ct)
     {
-        var img = await _context.DiscussionImages
+        var img = await db.DiscussionImages
             .Where(g => g.DiscussionId == discussionId)
             .Select(g => new
             {
@@ -1233,9 +1218,9 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         return new(Images: new(items.Count, items, img.IsSpoiler, img.Layout));
     }
 
-    private async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchIamaPreviewAsync(int discussionId, CancellationToken ct)
+    private static async ValueTask<Application.Repositories.DiscussionPreviewDto?> FetchIamaPreviewAsync(int discussionId, SnakkDbContext db, CancellationToken ct)
     {
-        var iama = await _context.DiscussionIamas
+        var iama = await db.DiscussionIamas
             .Where(i => i.DiscussionId == discussionId)
             .Select(i => new
             {
@@ -1274,10 +1259,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
 
         if (!string.IsNullOrEmpty(communityId))
-        {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.CommunityId == communityDbId);
-        }
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
 
         // Only show discussions with recent activity (TrendScore > 0)
         query = query.Where(d => d.TrendScore > 0);
@@ -1397,10 +1379,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
 
         if (!string.IsNullOrEmpty(communityId))
-        {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.CommunityId == communityDbId);
-        }
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
 
         // Apply time window filter on CreatedAt
         DateTime? cutoff = timePeriod switch
@@ -1530,10 +1509,7 @@ public class SearchRepository(SnakkDbContext context, IUserGrantsCacheService gr
         query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
 
         if (!string.IsNullOrEmpty(communityId))
-        {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.CommunityId == communityDbId);
-        }
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
 
         var cursorData = Cursor.Decode(cursor);
 

@@ -11,7 +11,8 @@ public record DiscussionListItemVM(
     bool ShowSpace = true,
     bool ShowUser = true,
     bool ShowPath = true,
-    string? UnfollowId = null);
+    string? UnfollowId = null,
+    bool IsFirst = false);
 
 public record SpaceDiscussionListItemVM(
     DiscussionBySpaceInfo Discussion,

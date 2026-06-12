@@ -1,4 +1,4 @@
-namespace Snakk.Web.Endpoints;
+﻿namespace Snakk.Web.Endpoints;
 
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -20,7 +20,7 @@ public static class BffApiEndpoints
         var group = app.MapGroup("/bff")
             .WithTags("BFF");
 
-        // Authenticated-only sub-group — eliminates per-handler IsAuthenticated preambles
+        // Authenticated-only sub-group â€” eliminates per-handler IsAuthenticated preambles
         var authGroup = group.MapGroup("").RequireAuthorization();
 
         // Homepage aggregated data
@@ -198,7 +198,7 @@ public static class BffApiEndpoints
             .WithName("BffVerifyCredential")
             .RequireAuthorization();
 
-        // Adult-content interstitial — anonymous & authed
+        // Adult-content interstitial â€” anonymous & authed
         group.MapPost("/adult-consent", AdultConsentAsync)
             .WithName("BffAdultConsent")
             .AllowAnonymous();
@@ -438,6 +438,39 @@ public static class BffApiEndpoints
     private static bool IsAuthenticated(HttpContext httpContext)
         => httpContext.User.Identity?.IsAuthenticated == true;
 
+    // -- Streaming proxy helpers ------------------------------------------------
+
+    /// <summary>
+    /// Sends <paramref name="request"/> with ResponseHeadersRead so the upstream body is
+    /// never buffered in the BFF process, then streams it directly into the client response.
+    /// The <paramref name="response"/> is disposed only after the copy completes.
+    /// </summary>
+    private static async Task StreamProxyResponseAsync(
+        HttpClient client,
+        HttpRequestMessage request,
+        HttpContext httpContext,
+        string contentType,
+        CancellationToken ct)
+    {
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        httpContext.Response.StatusCode = (int)response.StatusCode;
+        httpContext.Response.ContentType = contentType;
+        try
+        {
+            await response.Content.CopyToAsync(httpContext.Response.Body, ct);
+        }
+        finally
+        {
+            response.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Sets a Cache-Control header on the response before returning a result.
+    /// </summary>
+    private static void SetCacheControl(HttpContext httpContext, string value)
+        => httpContext.Response.Headers.CacheControl = value;
+
     private static async Task<IResult> GetHomepageDataAsync(
         [FromQuery] string? communityId,
         [FromQuery] int offset,
@@ -455,6 +488,9 @@ public static class BffApiEndpoints
         var topContributorsTask = apiClient.GetTopContributorsAsync(communityId, ct);
 
         await Task.WhenAll(recentTask, topActiveTask, topSpacesTask, topContributorsTask);
+
+        // Varies by viewer (adult-content filtering) — safe for browser cache only
+        SetCacheControl(httpContext, "private, max-age=30");
 
         return Results.Ok(new
         {
@@ -482,7 +518,7 @@ public static class BffApiEndpoints
             });
         }
 
-        // Map API DTOs → BFF DTOs
+        // Map API DTOs â†’ BFF DTOs
         var bffResponse = new Models.Bff.BffNotificationsResponse
         {
             Items = apiResult.Items.Select(n => new Models.Bff.BffNotificationResponse
@@ -507,7 +543,7 @@ public static class BffApiEndpoints
 
         var apiResult = await apiClient.GetUnreadNotificationCountAsync(ct);
 
-        // Map API DTO → BFF DTO
+        // Map API DTO â†’ BFF DTO
         var bffResponse = new Models.Bff.BffNotificationCountResponse
         {
             Count = apiResult?.Count ?? 0
@@ -570,7 +606,7 @@ public static class BffApiEndpoints
             return MapGrpcError(result.Status, result.Error);
 
         var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (userId is not null) followedSpacesCache.Invalidate(userId);
+        if (userId is not null) await followedSpacesCache.InvalidateAsync(userId, ct);
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
         {
@@ -749,6 +785,8 @@ public static class BffApiEndpoints
             return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
         var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
         var result = await apiClient.GetRecentDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, cursor: cursor, viewerAllowsAdult: viewerAllowsAdult, ct: ct);
+        // Varies by viewer (adult-content filtering) — safe for browser cache only
+        SetCacheControl(httpContext, "private, max-age=30");
         return Results.Ok(result);
     }
 
@@ -765,6 +803,8 @@ public static class BffApiEndpoints
             return Results.BadRequest(new { error = "offset exceeds maximum pagination depth" });
         var viewerAllowsAdult = await Services.AdultContentGate.ViewerAllowsAdultAsync(httpContext, apiClient);
         var result = await apiClient.GetTrendingDiscussionsAsync(offset, Math.Min(pageSize, MaxPageSize), communityId, viewerAllowsAdult: viewerAllowsAdult, ct: ct);
+        // Varies by viewer (adult-content filtering) — safe for browser cache only
+        SetCacheControl(httpContext, "private, max-age=30");
         return Results.Ok(result);
     }
 
@@ -865,7 +905,7 @@ public static class BffApiEndpoints
         var apiResult = await apiClient.GetAuthStatusAsync(ct);
         if (apiResult is null) return Results.Unauthorized();
 
-        // Map API DTO → BFF DTO (decouples frontend from API structure)
+        // Map API DTO â†’ BFF DTO (decouples frontend from API structure)
         var bffResponse = new Models.Bff.BffAuthStatusResponse
         {
             IsAuthenticated = apiResult.IsAuthenticated,
@@ -943,7 +983,7 @@ public static class BffApiEndpoints
 
             if (string.IsNullOrEmpty(response.AccessToken) || string.IsNullOrEmpty(response.RefreshToken))
             {
-                // Token was rejected by the server — clear all auth cookies so the browser
+                // Token was rejected by the server â€” clear all auth cookies so the browser
                 // is not stuck with a permanently revoked refresh token.
                 AuthCookieHelper.DeleteAuthCookies(httpContext);
                 return Results.Unauthorized();
@@ -956,13 +996,13 @@ public static class BffApiEndpoints
         catch (RpcException ex) when (ex.StatusCode is StatusCode.Unauthenticated
                                           or StatusCode.NotFound or StatusCode.PermissionDenied)
         {
-            // Explicit rejection — refresh token is invalid, force re-login.
+            // Explicit rejection â€” refresh token is invalid, force re-login.
             AuthCookieHelper.DeleteAuthCookies(httpContext);
             return Results.Unauthorized();
         }
         catch
         {
-            // Transient failure (API restart, timeout, network blip) — preserve cookies
+            // Transient failure (API restart, timeout, network blip) â€” preserve cookies
             // so the user isn't logged out just because the API was momentarily unavailable.
             return Results.StatusCode(503);
         }
@@ -989,7 +1029,7 @@ public static class BffApiEndpoints
             if (!string.IsNullOrEmpty(response.AccessToken) && !string.IsNullOrEmpty(response.RefreshToken))
                 AuthCookieHelper.SetAuthCookies(httpContext, response.AccessToken, response.RefreshToken);
         }
-        catch { /* best-effort — avatar was saved, cookie refresh is non-critical */ }
+        catch { /* best-effort â€” avatar was saved, cookie refresh is non-critical */ }
     }
 
     // Current user (me) endpoints
@@ -1118,9 +1158,8 @@ public static class BffApiEndpoints
             System.Text.Json.JsonSerializer.Serialize(merged),
             System.Text.Encoding.UTF8, "application/json");
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> AdultConsentAsync(
@@ -1341,40 +1380,51 @@ public static class BffApiEndpoints
         [FromQuery] int offset = 0)
     {
         ct.ThrowIfCancellationRequested();
-        var result = await apiClient.SearchPostsAsync(
-            query: q,
-            authorPublicId: authorPublicId,
-            discussionPublicId: null,
-            spacePublicId: null,
-            offset: offset,
-            pageSize: Math.Min(pageSize, MaxPageSize),
-            ct: ct);
-
-        if (result is null)
-            return Results.Ok(new BffSearchResponse<BffPostSearchItem> { Items = [], Offset = 0, PageSize = pageSize, HasMoreItems = false });
-
-        var items = result.Items.Select(p =>
+        var empty = new BffSearchResponse<BffPostSearchItem> { Items = [], Offset = 0, PageSize = pageSize, HasMoreItems = false };
+        try
         {
-            var slugId = SnakkUrlHelper.DiscussionSlugId(p.DiscussionSlug, p.DiscussionPublicId);
-            var url = SnakkUrlHelper.Discussion(p.CommunitySlug, communityContext, p.Hub.Slug, p.Space.Slug, slugId);
-            return new BffPostSearchItem
+            var result = await apiClient.SearchPostsAsync(
+                query: q,
+                authorPublicId: authorPublicId,
+                discussionPublicId: null,
+                spacePublicId: null,
+                offset: offset,
+                pageSize: Math.Min(pageSize, MaxPageSize),
+                ct: ct);
+
+            if (result is null) return Results.Ok(empty);
+
+            var items = result.Items.Select(p =>
             {
-                Url = url,
-                DiscussionTitle = p.DiscussionTitle,
-                HubName = p.Hub.Name,
-                SpaceName = p.Space.Name,
-                ContentPreview = p.ContentHighlight,
-                CreatedAt = p.CreatedAt?.ToDateTime().ToString("o") ?? ""
-            };
-        }).ToList();
+                var slugId = SnakkUrlHelper.DiscussionSlugId(p.DiscussionSlug, p.DiscussionPublicId);
+                var url = SnakkUrlHelper.Discussion(p.CommunitySlug, communityContext, p.Hub.Slug, p.Space.Slug, slugId);
+                return new BffPostSearchItem
+                {
+                    Url = url,
+                    DiscussionTitle = p.DiscussionTitle,
+                    HubName = p.Hub.Name,
+                    SpaceName = p.Space.Name,
+                    SpaceGradientCss = GradientHelper.SpaceGradient(p.Space.PublicId),
+                    ContentPreview = p.ContentHighlight,
+                    CreatedAt = p.CreatedAt?.ToDateTime().ToString("o") ?? "",
+                    AuthorPublicId = p.Author.PublicId,
+                    AuthorDisplayName = p.Author.DisplayName,
+                    AuthorAvatarUrl = p.Author.HasAvatarUrl
+                        ? p.Author.AvatarUrl
+                        : SnakkUrlHelper.UserAvatar(p.Author.PublicId),
+                    PostPublicId = p.PublicId,
+                };
+            }).ToList();
 
-        return Results.Ok(new BffSearchResponse<BffPostSearchItem>
-        {
-            Items = items,
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
-        });
+            return Results.Ok(new BffSearchResponse<BffPostSearchItem>
+            {
+                Items = items,
+                Offset = result.Offset,
+                PageSize = result.PageSize,
+                HasMoreItems = result.HasMoreItems
+            });
+        }
+        catch { return Results.Ok(empty); }
     }
 
     private static async Task<IResult> GetSpaceAllowedTypesAsync(
@@ -1412,7 +1462,7 @@ public static class BffApiEndpoints
         var space = await apiClient.GetSpaceAsync(spaceId, ct);
         if (space is null) return Results.NotFound();
 
-        // Fetch hub + community once — reused for both access check and response payload
+        // Fetch hub + community once â€” reused for both access check and response payload
         var hub = !string.IsNullOrEmpty(space.HubSlug)
             ? await apiClient.GetHubBySlugResultAsync(space.HubSlug, space.CommunitySlug, ct)
             : null;
@@ -1420,7 +1470,7 @@ public static class BffApiEndpoints
             ? await apiClient.GetCommunityBySlugAsync(space.CommunitySlug, ct)
             : null;
 
-        // Access check — verify user can see this space (restricted spaces/hubs/communities)
+        // Access check â€” verify user can see this space (restricted spaces/hubs/communities)
         if (space.IsRestricted)
         {
             var access = await apiClient.CheckGroupAccessAsync(
@@ -1618,10 +1668,8 @@ public static class BffApiEndpoints
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/posts/{postId}/history");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-
-        return Results.Content(body, "text/html", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "text/html", ct);
+        return Results.Empty;
     }
 
     // Discussion preview endpoint
@@ -1646,13 +1694,14 @@ public static class BffApiEndpoints
     private static async Task<IResult> GetHubStatsForPopupAsync(
         string publicId,
         SnakkApiClient apiClient,
+        HttpContext httpContext,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         var apiResult = await apiClient.GetHubStatsAsync(publicId, ct);
         if (apiResult is null) return Results.NotFound();
 
-        // Map API DTO → BFF DTO
+        // Map API DTO â†’ BFF DTO
         var bffResponse = new Models.Bff.BffHubStatsResponse
         {
             PublicId = apiResult.PublicId,
@@ -1665,19 +1714,22 @@ public static class BffApiEndpoints
             GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"hub:{publicId}")
         };
 
+        // Public entity stats — identical for all viewers
+        SetCacheControl(httpContext, "public, max-age=60, s-maxage=60");
         return Results.Ok(bffResponse);
     }
 
     private static async Task<IResult> GetSpaceStatsForPopupAsync(
         string publicId,
         SnakkApiClient apiClient,
+        HttpContext httpContext,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         var apiResult = await apiClient.GetSpaceStatsAsync(publicId, ct);
         if (apiResult is null) return Results.NotFound();
 
-        // Map API DTO → BFF DTO
+        // Map API DTO â†’ BFF DTO
         var bffResponse = new Models.Bff.BffSpaceStatsResponse
         {
             PublicId = apiResult.PublicId,
@@ -1690,19 +1742,22 @@ public static class BffApiEndpoints
             GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"space:{publicId}")
         };
 
+        // Public entity stats — identical for all viewers
+        SetCacheControl(httpContext, "public, max-age=60, s-maxage=60");
         return Results.Ok(bffResponse);
     }
 
     private static async Task<IResult> GetCommunityStatsForPopupAsync(
         string publicId,
         SnakkApiClient apiClient,
+        HttpContext httpContext,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         var apiResult = await apiClient.GetCommunityStatsAsync(publicId, ct);
         if (apiResult is null) return Results.NotFound();
 
-        // Map API DTO → BFF DTO
+        // Map API DTO â†’ BFF DTO
         var bffResponse = new Models.Bff.BffCommunityStatsResponse
         {
             PublicId = apiResult.PublicId,
@@ -1716,12 +1771,15 @@ public static class BffApiEndpoints
             GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"community:{publicId}")
         };
 
+        // Public entity stats — identical for all viewers
+        SetCacheControl(httpContext, "public, max-age=60, s-maxage=60");
         return Results.Ok(bffResponse);
     }
 
     private static async Task<IResult> GetUserStatsForPopupAsync(
         string publicId,
         SnakkApiClient apiClient,
+        HttpContext httpContext,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
@@ -1742,6 +1800,8 @@ public static class BffApiEndpoints
             GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"user:{apiResult.PublicId}")
         };
 
+        // Public user profile stats — identical for all viewers
+        SetCacheControl(httpContext, "public, max-age=60, s-maxage=60");
         return Results.Ok(bffResponse);
     }
 
@@ -1896,7 +1956,7 @@ public static class BffApiEndpoints
     private const int MaxPageSize = 100;
 
     // Hard cap on discussion-list pagination depth, aligned with the
-    // EndlessScroll UI cap (MaxPages × default pageSize = 10 × 20). Blocks
+    // EndlessScroll UI cap (MaxPages Ã— default pageSize = 10 Ã— 20). Blocks
     // trivial scraping of deep history via the public BFF surface.
     private const int MaxDiscussionListOffset = 200;
 
@@ -1938,14 +1998,17 @@ public static class BffApiEndpoints
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         request.Content = content;
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
-        // Refresh JWT so the AvatarFileName claim updates in the cookie
+        // Refresh JWT so the AvatarFileName claim updates in the cookie (check status from headers, before streaming body)
         if (response.IsSuccessStatusCode)
             await RefreshAuthCookiesAsync(httpContext, authClient, ct);
 
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        httpContext.Response.StatusCode = (int)response.StatusCode;
+        httpContext.Response.ContentType = "application/json";
+        try { await response.Content.CopyToAsync(httpContext.Response.Body, ct); }
+        finally { response.Dispose(); }
+        return Results.Empty;
     }
 
     // --- Avatar delete proxy ---
@@ -1965,14 +2028,17 @@ public static class BffApiEndpoints
         using var request = new HttpRequestMessage(HttpMethod.Delete, "/avatars");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
-        // Refresh JWT so the AvatarFileName claim is cleared from the cookie
+        // Refresh JWT so the AvatarFileName claim is cleared from the cookie (check status from headers, before streaming body)
         if (response.IsSuccessStatusCode)
             await RefreshAuthCookiesAsync(httpContext, authClient, ct);
 
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        httpContext.Response.StatusCode = (int)response.StatusCode;
+        httpContext.Response.ContentType = "application/json";
+        try { await response.Content.CopyToAsync(httpContext.Response.Body, ct); }
+        finally { response.Dispose(); }
+        return Results.Empty;
     }
 
     // --- Entity avatar upload proxy ---
@@ -2012,10 +2078,8 @@ public static class BffApiEndpoints
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         request.Content = content;
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     // --- Entity avatar delete proxy ---
@@ -2036,10 +2100,8 @@ public static class BffApiEndpoints
         using var request = new HttpRequestMessage(HttpMethod.Delete, $"/avatars/{entityType}/{entityId}");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     // Media upload — proxies multipart to internal API
@@ -2076,10 +2138,8 @@ public static class BffApiEndpoints
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
         request.Content = content;
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     // Helper: map GrpcStatus to HTTP result
@@ -2299,9 +2359,8 @@ public static class BffApiEndpoints
         using var request = new HttpRequestMessage(HttpMethod.Get, "/auth/2fa/status");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> Setup2FABffAsync(
@@ -2324,9 +2383,8 @@ public static class BffApiEndpoints
             System.Text.Json.JsonSerializer.Serialize(new { sudoToken }),
             System.Text.Encoding.UTF8, "application/json");
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> VerifyCredentialBffAsync(
@@ -2344,9 +2402,8 @@ public static class BffApiEndpoints
         request.Content = new StreamContent(httpContext.Request.Body);
         request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<bool> IsSudoValidBffAsync(
@@ -2417,9 +2474,8 @@ public static class BffApiEndpoints
         request.Content = new StreamContent(httpContext.Request.Body);
         request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> CompleteSudoPasskeyBffAsync(
@@ -2469,9 +2525,8 @@ public static class BffApiEndpoints
         request.Content = new StreamContent(httpContext.Request.Body);
         request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> Disable2FABffAsync(
@@ -2494,9 +2549,8 @@ public static class BffApiEndpoints
             System.Text.Json.JsonSerializer.Serialize(new { sudoToken }),
             System.Text.Encoding.UTF8, "application/json");
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> GetBackupCodesBffAsync(
@@ -2513,9 +2567,8 @@ public static class BffApiEndpoints
         using var request = new HttpRequestMessage(HttpMethod.Get, "/auth/2fa/backup-codes");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> RegenerateBackupCodesBffAsync(
@@ -2538,9 +2591,8 @@ public static class BffApiEndpoints
             System.Text.Json.JsonSerializer.Serialize(new { sudoToken }),
             System.Text.Encoding.UTF8, "application/json");
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     // --- Device Management ---
@@ -2707,9 +2759,8 @@ public static class BffApiEndpoints
             req.Headers.TryAddWithoutValidation("X-Current-Refresh-Token-Hash", hash);
         }
 
-        var response = await client.SendAsync(req, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, req, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> RevokeMySessionBffAsync(
@@ -2731,9 +2782,8 @@ public static class BffApiEndpoints
             System.Text.Json.JsonSerializer.Serialize(new { sudoToken }),
             System.Text.Encoding.UTF8, "application/json");
 
-        var response = await client.SendAsync(req, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, req, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> RevokeAllOtherSessionsBffAsync(
@@ -2755,9 +2805,8 @@ public static class BffApiEndpoints
             System.Text.Json.JsonSerializer.Serialize(new { sudoToken, excludeSessionId = request.ExcludeSessionId }),
             System.Text.Encoding.UTF8, "application/json");
 
-        var response = await client.SendAsync(req, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, req, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> GetMyLoginHistoryBffAsync(
@@ -2772,9 +2821,8 @@ public static class BffApiEndpoints
         using var req = new HttpRequestMessage(HttpMethod.Get, "/sessions/login-history");
         req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await client.SendAsync(req, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, req, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> ToggleSaveDiscussionAsync(string discussionId,
@@ -2857,9 +2905,8 @@ public static class BffApiEndpoints
         using var request = new HttpRequestMessage(HttpMethod.Get, "/me/social");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> UpdateMySocialLinksBffAsync(IHttpClientFactory httpClientFactory, HttpContext httpContext, CancellationToken ct)
@@ -2874,9 +2921,8 @@ public static class BffApiEndpoints
         request.Content = new StreamContent(httpContext.Request.Body);
         request.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> GetUserSocialLinksBffAsync(string publicId, IHttpClientFactory httpClientFactory, HttpContext httpContext, CancellationToken ct)
@@ -2885,9 +2931,8 @@ public static class BffApiEndpoints
         var client = httpClientFactory.CreateClient("InternalApi");
         using var request = new HttpRequestMessage(HttpMethod.Get, $"/users/{Uri.EscapeDataString(publicId)}/social");
 
-        var response = await client.SendAsync(request, ct);
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        await StreamProxyResponseAsync(client, request, httpContext, "application/json", ct);
+        return Results.Empty;
     }
 
     private static async Task<IResult> GetActivitySparklineAsync(
@@ -2915,7 +2960,7 @@ public static class BffApiEndpoints
         }));
     }
 
-    // ── Direct Messages ────────────────────────────────────────────────────
+    // â”€â”€ Direct Messages â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private static bool IsDmEnabled(IConfiguration cfg)
         => cfg.GetValue<bool>("Features:PrivateMessagingEnabled");
@@ -3084,16 +3129,20 @@ public static class BffApiEndpoints
             System.Text.Json.JsonSerializer.Serialize(merged),
             System.Text.Encoding.UTF8, "application/json");
 
-        var response = await client.SendAsync(request, ct);
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
 
+        // Delete cookies based on response status headers — before streaming body
         if (response.IsSuccessStatusCode)
         {
             AuthCookieHelper.DeleteAuthCookies(httpContext);
             AuthCookieHelper.DeleteSudoCookie(httpContext);
         }
 
-        var body = await response.Content.ReadAsStringAsync(ct);
-        return Results.Content(body, "application/json", statusCode: (int)response.StatusCode);
+        httpContext.Response.StatusCode = (int)response.StatusCode;
+        httpContext.Response.ContentType = "application/json";
+        try { await response.Content.CopyToAsync(httpContext.Response.Body, ct); }
+        finally { response.Dispose(); }
+        return Results.Empty;
     }
 
     private static async Task<IResult> ExportMyDataBffAsync(
@@ -3109,13 +3158,26 @@ public static class BffApiEndpoints
         using var request = new HttpRequestMessage(HttpMethod.Get, "/me/data-export");
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
 
-        var response = await client.SendAsync(request, ct);
+        // Send with ResponseHeadersRead so the export is never buffered in the BFF process.
+        // Results.Stream owns the copy delegate; the response must stay alive until the delegate
+        // completes — we dispose it inside the callback via a captured local.
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
         if (!response.IsSuccessStatusCode)
-            return Results.StatusCode((int)response.StatusCode);
+        {
+            var statusCode = (int)response.StatusCode;
+            response.Dispose();
+            return Results.StatusCode(statusCode);
+        }
 
-        var bytes = await response.Content.ReadAsByteArrayAsync(ct);
         var fileName = $"snakk-data-export-{DateTime.UtcNow:yyyy-MM-dd}.json";
-        return Results.File(bytes, "application/json", fileName);
+        return Results.Stream(
+            async body =>
+            {
+                using var r = response;
+                await r.Content.CopyToAsync(body, ct);
+            },
+            contentType: "application/json",
+            fileDownloadName: fileName);
     }
 
     private static Models.Bff.BffDmConversationResponse MapConversation(Snakk.Protos.Dm.ConversationInfo c) =>
@@ -3142,3 +3204,4 @@ public record ValidateHistoryIdsRequest(IReadOnlyList<string>? Ids);
 public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null, bool ClearAllowAdultContent = false, int? AdultPreviewImageMode = null, bool? HidePresence = null);
 public record ReloginRequest(string Email, string Password);
 public record RevokeAllOtherBffRequest(string ExcludeSessionId);
+

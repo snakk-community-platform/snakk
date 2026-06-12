@@ -32,6 +32,33 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env file}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # Conservative tuning for this minimal quick-start (sized for the 1g limit above).
+    # Inline flags keep this compose file standalone. For host-sized tuning, use the
+    # snakk-installer (https://github.com/snakk-community-platform/snakk-installer),
+    # which generates postgresql.conf scaled to your machine.
+    command: >
+      postgres
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c maintenance_work_mem=128MB
+      -c work_mem=8MB
+      -c wal_buffers=8MB
+      -c max_wal_size=1GB
+      -c checkpoint_completion_target=0.9
+      -c wal_compression=on
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c jit=off
+      -c max_connections=150
+      -c track_io_timing=on
+      -c log_min_duration_statement=500
+      -c log_lock_waits=on
+      -c idle_in_transaction_session_timeout=60000
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: "3"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U snakk -d snakk"]
       interval: 10s
@@ -41,12 +68,37 @@ services:
     expose:
       - "5432"
 
+  valkey:
+    image: valkey/valkey:8-alpine
+    restart: unless-stopped
+    # noeviction is REQUIRED: Valkey stores JWT/session revocations alongside cache
+    # entries — evicting a revocation would un-revoke a token. maxmemory is a hard
+    # cap; alert on high watermark rather than allowing eviction.
+    command: valkey-server --save 60 1 --loglevel warning --maxmemory 256mb --maxmemory-policy noeviction
+    volumes:
+      - valkey-data:/data
+    deploy:
+      resources:
+        limits:
+          memory: 384m
+        reservations:
+          memory: 64m
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: "3"
+    expose:
+      - "6379"
+
   snakk:
     image: ghcr.io/snakk-community-platform/snakk:${SNAKK_VERSION:-latest}
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
+      valkey:
+        condition: service_started
     ports:
       - "${SNAKK_PORT:-17000}:17000"
     volumes:
@@ -57,14 +109,22 @@ services:
           memory: 2g
         reservations:
           memory: 512m
+    logging:
+      driver: json-file
+      options:
+        max-size: 50m
+        max-file: "3"
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
-      ConnectionStrings__DbConnection: "Host=postgres;Port=5432;Database=snakk;Username=snakk;Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__DbConnection: "Host=postgres;Port=5432;Database=snakk;Username=snakk;Password=${POSTGRES_PASSWORD};Max Auto Prepare=20;Auto Prepare Min Usages=2"
+      Valkey__ConnectionString: valkey:6379
       Gateway__DisableHealthChecks: "true"
 
 volumes:
   pgdata:
     driver: local
   snakk-storage:
+    driver: local
+  valkey-data:
     driver: local

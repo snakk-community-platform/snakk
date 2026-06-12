@@ -2,6 +2,6 @@ namespace Snakk.Application.Services;
 
 public interface IRevocationCache
 {
-    void RevokeUser(string userId);
-    bool IsUserRevoked(string userId);
+    Task RevokeUserAsync(string userId, CancellationToken cancellationToken = default);
+    Task<bool> IsUserRevokedAsync(string userId, CancellationToken cancellationToken = default);
 }

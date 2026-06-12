@@ -153,7 +153,7 @@ public class PostMapperTests
         await Assert.That(post.PublicId.Value).IsEqualTo(entity.PublicId);
         await Assert.That(post.Content).IsEqualTo("Test content");
         await Assert.That(post.DiscussionId.Value).IsEqualTo(discussionPublicId);
-        await Assert.That(post.CreatedByUserId.Value).IsEqualTo(userPublicId);
+        await Assert.That(post!.CreatedByUserId!.Value).IsEqualTo(userPublicId);
         await Assert.That(post.CreatedAt).IsEqualTo(entity.CreatedAt);
         await Assert.That(post.LastModifiedAt).IsEqualTo(entity.LastModifiedAt);
         await Assert.That(post.EditedAt).IsNull();

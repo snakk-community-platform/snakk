@@ -19,6 +19,10 @@ Snakk supports signing in with:
 
 Click the provider you want, authorize the connection, and your account is created automatically. If it's your first time, you'll be prompted to choose a display name.
 
+::: callout-tip
+OAuth is the fastest way to get started — no email verification required, and you can always connect additional providers later from your profile settings.
+:::
+
 ## Profile setup
 
 After creating your account, visit your profile settings to:

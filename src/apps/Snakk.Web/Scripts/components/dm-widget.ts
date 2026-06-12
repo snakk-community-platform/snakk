@@ -179,6 +179,15 @@
     function createWidget(): void {
         widgetEl = document.createElement('div');
         widgetEl.id = 'dm-widget';
+        // dm-widget.css loads async (non-render-blocking). Pin the shell out of the
+        // document flow inline so it never renders as an in-flow block before the
+        // stylesheet arrives — that would grow the page height and shift scroll.
+        // Values mirror #dm-widget in _dm-widget.scss.
+        widgetEl.style.position = 'fixed';
+        widgetEl.style.bottom = '1.25rem';
+        widgetEl.style.right = '1.25rem';
+        widgetEl.style.zIndex = '900';
+        widgetEl.style.pointerEvents = 'none';
 
         // Conversation panel (shows recent conversations)
         panelEl = document.createElement('div');

@@ -43,31 +43,7 @@ public class DiscussionRepositoryAdapterTests : IDisposable
         await Assert.That(result.Title).IsEqualTo(discussion.Title);
         await Assert.That(result.Slug).IsEqualTo(discussion.Slug);
         await Assert.That(result.SpaceId.Value).IsEqualTo(space.PublicId);
-        await Assert.That(result.CreatedByUserId.Value).IsEqualTo(user.PublicId);
-    }
-
-    #endregion
-
-    #region GetBySpaceIdAsync Tests
-
-    [Test]
-    public async Task GetBySpaceIdAsync_ExistingSpace_ResolvesPublicIdAndReturnsDiscussions()
-    {
-        var (user, community, hub, space, discussion, _) = await _builder.CreateFullHierarchyAsync();
-        // Create a second discussion in the same space
-        await _builder.CreateDiscussionAsync(space.Id, user.Id, "Second Discussion", "second-discussion");
-
-        var result = (await _adapter.GetBySpaceIdAsync(SpaceId.From(space.PublicId))).ToList();
-
-        await Assert.That(result).Count().IsEqualTo(2);
-    }
-
-    [Test]
-    public async Task GetBySpaceIdAsync_NonExistentSpace_ReturnsEmpty()
-    {
-        var result = (await _adapter.GetBySpaceIdAsync(SpaceId.From("nonexistent_space_id"))).ToList();
-
-        await Assert.That(result).Count().IsEqualTo(0);
+        await Assert.That(result!.CreatedByUserId!.Value).IsEqualTo(user.PublicId);
     }
 
     #endregion

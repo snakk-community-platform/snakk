@@ -44,33 +44,8 @@ public class PostRepositoryAdapterTests : IDisposable
         await Assert.That(result!.PublicId.Value).IsEqualTo(post.PublicId);
         await Assert.That(result.Content).IsEqualTo(post.Content);
         await Assert.That(result.DiscussionId.Value).IsEqualTo(discussion.PublicId);
-        await Assert.That(result.CreatedByUserId.Value).IsEqualTo(user.PublicId);
+        await Assert.That(result!.CreatedByUserId!.Value).IsEqualTo(user.PublicId);
         await Assert.That(result.IsFirstPost).IsTrue();
-    }
-
-    #endregion
-
-    #region GetByDiscussionIdAsync Tests
-
-    [Test]
-    public async Task GetByDiscussionIdAsync_ExistingDiscussion_ResolvesPublicIdAndReturnsPosts()
-    {
-        var (user, _, _, _, discussion, _) = await _builder.CreateFullHierarchyAsync();
-        // Create additional posts in the same discussion
-        await _builder.CreatePostAsync(discussion.Id, user.Id, "Second post");
-        await _builder.CreatePostAsync(discussion.Id, user.Id, "Third post");
-
-        var result = (await _adapter.GetByDiscussionIdAsync(DiscussionId.From(discussion.PublicId))).ToList();
-
-        await Assert.That(result).Count().IsEqualTo(3);
-    }
-
-    [Test]
-    public async Task GetByDiscussionIdAsync_NonExistentDiscussion_ReturnsEmpty()
-    {
-        var result = (await _adapter.GetByDiscussionIdAsync(DiscussionId.From("nonexistent_discussion_id"))).ToList();
-
-        await Assert.That(result).Count().IsEqualTo(0);
     }
 
     #endregion
@@ -167,7 +142,7 @@ public class PostRepositoryAdapterTests : IDisposable
 
     #endregion
 
-    #region GetByDiscussionIdAsync returns empty for nonexistent
+    #region GetPagedByDiscussionIdAsync returns empty for nonexistent
 
     [Test]
     public async Task GetPagedByDiscussionIdAsync_NonExistentDiscussion_ReturnsEmptyPagedResult()

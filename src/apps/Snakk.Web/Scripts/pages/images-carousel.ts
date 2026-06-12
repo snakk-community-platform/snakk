@@ -21,6 +21,13 @@
     // that follows pointerup fires in the same tick.
     let compareDragEndTimestamp = 0;
 
+    // Module-level active drag state for the compare widget.
+    // A single pair of document-level pointermove/pointerup listeners delegate
+    // to this so we never accumulate listeners across multiple initAll() calls.
+    // rect is captured once on pointerdown to avoid getBoundingClientRect per move.
+    let activeDrag: { setPos: (x: number, rect: DOMRect) => void; rect: DOMRect } | null = null;
+    let docCompareListenersAttached = false;
+
     // Canonical implementation lives in core/utils.ts as
     // window.SnakkUtils.extractBlurUrl. Keep a local fallback in case
     // utils.ts hasn't loaded yet (load-order edge case when this script
@@ -144,8 +151,7 @@
             afterEl.style.clipPath = '';
             slider.style.right = '';
 
-            function setPos(x: number): void {
-                const rect = el.getBoundingClientRect();
+            function setPos(x: number, rect: DOMRect): void {
                 const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
                 const rightPct = (1 - pct) * 100;
                 const leftPct = pct * 100;
@@ -162,12 +168,12 @@
             const afterLabel = afterEl.querySelector('.gup-compare-label-after') as HTMLElement | null;
 
             function computeInitialPosition(): void {
+                const elRect = el.getBoundingClientRect();
                 if (afterLabel) {
                     const labelRect = afterLabel.getBoundingClientRect();
-                    setPos(labelRect.left - 12);
+                    setPos(labelRect.left - 12, elRect);
                 } else {
-                    const rect = el.getBoundingClientRect();
-                    setPos(rect.left + rect.width * 0.5);
+                    setPos(elRect.left + elRect.width * 0.5, elRect);
                 }
             }
 
@@ -183,11 +189,34 @@
                 ro.observe(el);
             }
 
-            let dragging = false;
-            slider.addEventListener('pointerdown', (e) => { dragging = true; slider!.setPointerCapture(e.pointerId); e.preventDefault(); });
+            // Attach document-level pointermove/pointerup exactly once for all
+            // compare widgets. They delegate to the module-level activeDrag so
+            // no listeners accumulate across htmx:afterSettle re-runs.
+            if (!docCompareListenersAttached) {
+                docCompareListenersAttached = true;
+                document.addEventListener('pointermove', (e) => {
+                    if (activeDrag) activeDrag.setPos(e.clientX, activeDrag.rect);
+                });
+                document.addEventListener('pointerup', () => {
+                    if (activeDrag) {
+                        // Mark when the drag ended so initPreviewNavigation can
+                        // suppress the synthesized click that follows. Without
+                        // this, releasing the mouse after dragging the slider
+                        // would fire a click on .sn-card-preview and navigate
+                        // to the discussion — clearly wrong.
+                        compareDragEndTimestamp = Date.now();
+                        activeDrag = null;
+                    }
+                });
+            }
+
+            slider.addEventListener('pointerdown', (e) => { activeDrag = { setPos, rect: el.getBoundingClientRect() }; slider!.setPointerCapture(e.pointerId); e.preventDefault(); });
             el.addEventListener('pointerdown', (e) => {
                 if ((e.target as HTMLElement).closest('.gup-compare-handle, .sn-images-expand-btn')) return;
-                dragging = true; setPos(e.clientX); e.preventDefault();
+                const rect = el.getBoundingClientRect();
+                activeDrag = { setPos, rect };
+                setPos(e.clientX, rect);
+                e.preventDefault();
             });
 
             // Expand button opens lightbox with both images
@@ -203,18 +232,6 @@
                     lightbox.open(urls, 0, blurs);
                 });
             }
-            document.addEventListener('pointermove', (e) => { if (dragging) setPos(e.clientX); });
-            document.addEventListener('pointerup', () => {
-                if (dragging) {
-                    // Mark when the drag ended so initPreviewNavigation can
-                    // suppress the synthesized click that follows. Without
-                    // this, releasing the mouse after dragging the slider
-                    // would fire a click on .sn-card-preview and navigate to
-                    // the discussion — clearly wrong.
-                    compareDragEndTimestamp = Date.now();
-                }
-                dragging = false;
-            });
         });
     }
 

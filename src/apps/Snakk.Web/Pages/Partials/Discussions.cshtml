@@ -5,10 +5,11 @@
     Layout = null;
 }
 
+@{ var partialCardIndex = 0; }
 @foreach (var discussion in Model.Items)
 {
     @await Html.PartialAsync("Shared/_DiscussionCard",
-        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, Model.ShowHub, Model.ShowSpace, ShowPath: Model.ShowPath))
+        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, Model.ShowHub, Model.ShowSpace, ShowPath: Model.ShowPath, IsFirst: Model.Offset == 0 && partialCardIndex++ == 0))
 }
 
 @if (Model.HasMoreItems

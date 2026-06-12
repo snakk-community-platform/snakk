@@ -37,8 +37,17 @@ public class UserRepository(SnakkDbContext context)
             .ToListAsync(ct);
     }
 
-    public async Task<UserDatabaseEntity?> GetByEmailAsync(string email, CancellationToken ct = default) =>
-        await _dbSet.FirstOrDefaultAsync(u => u.Email == email, ct);
+    public async Task<UserDatabaseEntity?> GetByEmailAsync(string email, CancellationToken ct = default)
+    {
+        // Hash must match the write path in EmailProtector.ComputeHash:
+        //   SHA256(UTF8(email.Trim().ToLowerInvariant())) → Convert.ToHexStringLower(bytes)
+        // Filtering on EmailHash uses the unique partial index IX_User_EmailHash instead of
+        // scanning the encrypted Email column which cannot be indexed for equality.
+        var hash = System.Security.Cryptography.SHA256
+            .HashData(System.Text.Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
+        var emailHash = Convert.ToHexStringLower(hash);
+        return await _dbSet.FirstOrDefaultAsync(u => u.EmailHash == emailHash, ct);
+    }
 
     public async Task<UserDatabaseEntity?> GetByDisplayNameAsync(string displayName, CancellationToken ct = default) =>
         _context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL"

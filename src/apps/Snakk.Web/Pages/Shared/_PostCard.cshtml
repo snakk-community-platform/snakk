@@ -1,0 +1,63 @@
+@model Snakk.Web.Pages.ViewModels.PostListItemVM
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@inject ICommunityContext CommunityContext
+@{
+    var discussionUrl = SnakkUrlHelper.Discussion(
+        Model.CommunitySlug, CommunityContext,
+        Model.HubSlug, Model.SpaceSlug,
+        SnakkUrlHelper.DiscussionSlugId(Model.DiscussionSlug, Model.DiscussionPublicId));
+    var postUrl = $"{discussionUrl}#post-{Model.PublicId}";
+    var hubLabel = !string.IsNullOrEmpty(Model.HubName) ? Model.HubName : Model.HubSlug;
+    var spaceLabel = !string.IsNullOrEmpty(Model.SpaceName) ? Model.SpaceName : Model.SpaceSlug;
+    var spaceGradSeed = !string.IsNullOrEmpty(Model.SpacePublicId) ? Model.SpacePublicId : Model.SpaceSlug;
+}
+<article class="sn-card">
+    <div class="sn-card-header">
+        <img src="@Model.AuthorAvatarUrl" alt="" class="sn-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
+        @if (string.IsNullOrEmpty(Model.AuthorPublicId))
+        {
+            <span class="sn-card-author">@T.Card.DeletedUser</span>
+        }
+        else
+        {
+            <a href="@SnakkUrlHelper.UserProfile(Model.AuthorPublicId)"
+               class="sn-card-author p-author h-card"
+               data-popup-type="user"
+               data-popup-id="@Model.AuthorPublicId"
+               data-popup-name="@Model.AuthorDisplayName">@Model.AuthorDisplayName</a>
+        }
+        <span class="sn-card-dot">&middot;</span>
+        <div class="tooltip tooltip-bottom" data-tip="@T.Card.CreatedAt @FormatFullDateTime(Model.CreatedAt)">
+            <time class="sn-card-time" datetime="@Model.CreatedAt.ToString("o")">@FormatRelativeTime(Model.CreatedAt)</time>
+        </div>
+        @if (!string.IsNullOrEmpty(hubLabel) || !string.IsNullOrEmpty(spaceLabel))
+        {
+            <span class="sn-card-path">
+                @if (!string.IsNullOrEmpty(hubLabel))
+                {
+                    <span class="sn-card-path-link">@hubLabel</span>
+                    <span class="sn-card-path-sep">&rsaquo;</span>
+                }
+                @if (!string.IsNullOrEmpty(spaceLabel))
+                {
+                    <span class="sn-card-tag sn-card-tag--space"
+                          style="--space-grad: @SpaceGradient(spaceGradSeed)">@spaceLabel</span>
+                }
+            </span>
+        }
+    </div>
+
+    <div class="sn-card-title-row">
+        <div class="sn-card-title">
+            <a href="@postUrl">@Model.DiscussionTitle</a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ContentExcerpt))
+    {
+        <div class="sn-card-excerpt">
+            <div class="sn-post-preview prose prose-sm">@Html.Raw(Model.ContentExcerpt)</div>
+        </div>
+    }
+</article>

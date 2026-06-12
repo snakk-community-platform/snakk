@@ -1,7 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Snakk.Application.Services;
+using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Repositories;
 using Snakk.Infrastructure.Tests.Helpers;
 
@@ -33,7 +35,15 @@ public class SearchRepositoryIntegrationTests : IDisposable
         var cacheServices = new ServiceCollection();
         cacheServices.AddHybridCache();
         var cache = cacheServices.BuildServiceProvider().GetRequiredService<HybridCache>();
-        _repository = new SearchRepository(_db.Context, mockGrants, mockFileStorage, cache);
+        // Hand-rolled fake: NSubstitute cannot intercept CreateDbContextAsync, a default
+        // interface method on IDbContextFactory<T> — it wraps CreateDbContext() instead.
+        var dbFactory = new TestDbContextFactory(() => _db.CreateSeparateContext());
+        _repository = new SearchRepository(_db.Context, dbFactory, mockGrants, mockFileStorage, cache);
+    }
+
+    private sealed class TestDbContextFactory(Func<SnakkDbContext> create) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => create();
     }
 
     public void Dispose() => _db.Dispose();

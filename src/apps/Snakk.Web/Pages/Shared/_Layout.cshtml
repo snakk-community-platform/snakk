@@ -77,7 +77,7 @@
 
     <link rel="preload" href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" as="style" asp-append-version="true" fetchpriority="high" />
     <link rel="preload" href="@SnakkUrlHelper.Css("site")" as="style" asp-append-version="true" fetchpriority="high" />
-    <link rel="preload" href="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" as="script" asp-append-version="true" />
+    <link rel="preload" href="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" as="script" asp-append-version="true" fetchpriority="high" />
 
     @{
         var darkThemeCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Css("dark-theme", isVendor: true));
@@ -113,26 +113,37 @@
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
     @if (isAuth && isMessagingEnabled)
     {
-        <link rel="stylesheet" href="@SnakkUrlHelper.Css("dm-widget")" asp-append-version="true" />
+        var dmWidgetCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Css("dm-widget"));
+        @* Non-blocking: DM widget only appears on user action, so late CSS is fine.
+           Inline onload is blocked by CSP (no unsafe-inline), so inject via nonce'd script. *@
+        <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='@Html.Raw(dmWidgetCssUrl)';document.head.appendChild(l);})();</script>
+        <noscript><link rel="stylesheet" href="@SnakkUrlHelper.Css("dm-widget")" asp-append-version="true" /></noscript>
     }
     @await RenderSectionAsync("Styles", required: false)
 
-    <script id="js-dompurify"    hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true" defer></script>
     <script id="js-htmx"         hx-preserve src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
     <script id="js-htmx-head"    hx-preserve src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
-    <script id="js-loading-bar"  hx-preserve src="@SnakkUrlHelper.Js("core/loading-bar")" asp-append-version="true" defer></script>
-    <script id="js-actions"      hx-preserve src="@SnakkUrlHelper.Js("core/actions")" asp-append-version="true" defer></script>
     @if (!string.IsNullOrEmpty(Context.Request.Cookies[".Snakk.ReloginHint"]))
     {
-        <script>window.snakkReloginStrings={wrongPassword:@Json.Serialize(T.Relogin.ErrorWrongPassword),generic:@Json.Serialize(T.Relogin.ErrorGeneric)};</script>
+        <script nonce="@(Context.Items["csp-nonce"] as string)">window.snakkReloginStrings={wrongPassword:@Json.Serialize(T.Relogin.ErrorWrongPassword),generic:@Json.Serialize(T.Relogin.ErrorGeneric)};</script>
+        @* relogin-modal only functions when the modal DOM exists, which _ReloginModal
+           renders only when this hint cookie is present — gate the script the same way.
+           (Not isAuth: an expired session means the user is no longer authenticated.) *@
+        <script src="@SnakkUrlHelper.Js("core/relogin-modal")" asp-append-version="true" defer></script>
     }
-    <script id="js-relogin"      hx-preserve src="@SnakkUrlHelper.Js("core/relogin-modal")" asp-append-version="true" defer></script>
-    <script id="js-auth"         hx-preserve src="@SnakkUrlHelper.Js("core/auth")" asp-append-version="true" defer></script>
-    <script id="js-theme"        hx-preserve src="@SnakkUrlHelper.Js("core/theme")" asp-append-version="true" defer></script>
-    <script id="js-scroll-nav"   hx-preserve src="@SnakkUrlHelper.Js("core/scroll-nav")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("core/prefs")" asp-append-version="true"></script>
+    <script id="js-head-bundle"  hx-preserve src="@SnakkUrlHelper.Js("bundles/head-bundle")" asp-append-version="true" defer></script>
+
+    @* INLINE REASON: Reads localStorage synchronously before first paint to apply
+       layout/animation preferences without a flash. Replaces core/prefs.js external file. *@
+    <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){try{var l=localStorage.getItem('snakk:discussion-list-layout');if(l==='none'){document.documentElement.classList.add('no-discussion-previews');}else if(l!=='full'){document.documentElement.classList.add('discussion-list-compact');}if(localStorage.getItem('snakk:disable-animations')==='true'){document.documentElement.classList.add('no-animations');}if(localStorage.getItem('snakk:link-preview-compact')==='true'){document.documentElement.classList.add('link-preview-compact');}var s=localStorage.getItem('snakk:sidebar-sticky');if(s==='none'){document.documentElement.classList.add('sticky-none');}else if(s!=='both'){document.documentElement.classList.add('sticky-left-only');}var cw=localStorage.getItem('snakk:content-width');if(cw){document.documentElement.style.setProperty('--content-width',cw+'rem');}}catch(e){}})();</script>
 
     <meta name="realtime-service-url" content="@(Configuration["RealtimeServiceUrl"] ?? "/realtime")" />
+    @{
+        var socialIconsUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("data/social-icons"));
+        var langIconsUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("data/lang-icons"));
+    }
+    <meta name="social-icons-src" content="@socialIconsUrl" />
+    <meta name="lang-icons-src" content="@langIconsUrl" />
 </head>
 @* GOTCHA: hx-target on <body> inherits to ALL descendants. Any element with hx-get
    inside the body MUST set hx-target="this" (or its own target), otherwise its response
@@ -149,13 +160,11 @@
     {
         <meta name="current-user-id" content="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" />
     }
-    <script src="@SnakkUrlHelper.Js("components/auth-navbar")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("components/breadcrumb-title")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("components/left-sidebar")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("components/mobile-nav")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("components/lightbox")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("services/cache-manager")" asp-append-version="true" defer></script>
+    <script id="js-app-bundle"   hx-preserve src="@SnakkUrlHelper.Js("bundles/app-bundle")" asp-append-version="true" defer></script>
     @if (isAuth) {
+        @* auth-bundle (auth-navbar, cache-manager) must precede save-cache below,
+           which subclasses CacheManager. Defer scripts execute in document order. *@
+        <script id="js-auth-bundle" hx-preserve src="@SnakkUrlHelper.Js("bundles/auth-bundle")" asp-append-version="true" defer></script>
         <script src="@SnakkUrlHelper.Js("core/upload")" asp-append-version="true" defer></script>
         <script src="@SnakkUrlHelper.Js("services/save-cache")" asp-append-version="true" defer></script>
         <script src="@SnakkUrlHelper.Js("components/save")" asp-append-version="true" defer></script>
@@ -164,27 +173,9 @@
             <script src="@SnakkUrlHelper.Js("components/dm-widget")" asp-append-version="true" defer></script>
         }
     }
-    <script src="@SnakkUrlHelper.Js("components/share")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("components/sparkline")" asp-append-version="true" defer></script>
-    <script id="js-social-icons" hx-preserve src="@SnakkUrlHelper.Js("data/social-icons")" asp-append-version="true" defer></script>
-    <script id="js-lang-icons" hx-preserve src="@SnakkUrlHelper.Js("data/lang-icons")" asp-append-version="true" defer></script>
-    <script nonce="@(Context.Items["csp-nonce"] as string)">(function () {
-        function hydrateSocialIcons() {
-            var icons = window.snakkSocialIcons;
-            if (!icons) return;
-            document.querySelectorAll('[data-platform] .sn-social-icon-box:not([data-si])').forEach(function (box) {
-                var el = box.closest('[data-platform]');
-                if (!el) return;
-                var icon = icons[el.dataset.platform];
-                if (!icon) return;
-                box.style.background = '#' + icon.hex;
-                box.innerHTML = '<svg viewBox="' + icon.viewBox + '" fill="white" style="width:13px;height:13px;display:block">' + icon.inner + '</svg>';
-                box.dataset.si = '1';
-            });
-        }
-        document.addEventListener('DOMContentLoaded', hydrateSocialIcons);
-        document.addEventListener('htmx:afterSettle', hydrateSocialIcons);
-    }());</script>
+    @* Lazy social icons: injected only when [data-platform] elements are present.
+       lang-icons-src meta tag consumed by syntax-highlight (another agent wires it). *@
+    <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){function hydrateSocialIcons(){var icons=window.snakkSocialIcons;if(!icons)return;document.querySelectorAll('[data-platform] .sn-social-icon-box:not([data-si])').forEach(function(box){var el=box.closest('[data-platform]');if(!el)return;var icon=icons[el.dataset.platform];if(!icon)return;box.style.background='#'+icon.hex;box.innerHTML='<svg viewBox="'+icon.viewBox+'" fill="white" style="width:13px;height:13px;display:block">'+icon.inner+'</svg>';box.dataset.si='1';});}function loadAndHydrate(){var meta=document.querySelector('meta[name="social-icons-src"]');if(!meta||!meta.content)return;if(window.snakkSocialIcons){hydrateSocialIcons();return;}var s=document.createElement('script');s.src=meta.content;s.onload=hydrateSocialIcons;document.body.appendChild(s);}function checkAndLoad(){if(document.querySelector('[data-platform]'))loadAndHydrate();}document.addEventListener('DOMContentLoaded',checkAndLoad);document.addEventListener('htmx:afterSettle',checkAndLoad);}());</script>
 
     @{
         var siteName = CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null
@@ -332,23 +323,30 @@
         @await RenderSectionAsync("LeftColumn", required: false)
         <div id="main-content" class="sn-main-body">
             @RenderBody()
-            @* Synchronous (non-deferred) spoiler-reveal restore. Runs after the main
-               content is parsed but before first paint so the spoiler overlay
-               doesn't flash on revisit. HTMX re-executes it on swap. *@
-            <script src="@SnakkUrlHelper.Js("core/spoiler-restore")" asp-append-version="true"></script>
+            @* INLINE REASON: Synchronous restore of spoiler/adult-content reveal state
+               from sessionStorage before first paint on cold loads. HTMX swaps are
+               handled by components/spoiler-restore.ts (app-bundle, htmx:afterSettle) —
+               keep the logic in sync with that file. *@
+            <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){'use strict';var kp='snakk:spoiler-revealed:';var sel='.sn-images-spoiler[data-discussion-id],.images-display.images-spoiler[data-discussion-id]';document.querySelectorAll(sel).forEach(function(el){var id=el.dataset.discussionId;if(id&&sessionStorage.getItem(kp+id)==='1')el.classList.add('revealed');});var akp='snakk:adult-revealed:';document.querySelectorAll('.sn-link-card-thumb-adult-blur[data-discussion-id]').forEach(function(el){var id=el.dataset.discussionId;if(!id)return;if(sessionStorage.getItem(akp+id)==='1'){el.classList.add('revealed');var img=el.querySelector('.sn-link-card-img-adult-blur');if(img)img.classList.add('revealed');}});})();</script>
         </div>
     </div>
 
     <meta name="signalr-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("signalr.min", isVendor: true))" />
     <meta name="realtime-worker-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("services/realtime-worker"))" />
-    <script src="@SnakkUrlHelper.Js("services/realtime")" asp-append-version="true" defer></script>
+    @* DOMPurify is scoped to the flows that insert HTML via JS: realtime (auth users,
+       here) plus the discussion-detail and profile pages (loaded there for anonymous
+       visitors). SnakkUtils.sanitizeHtml FAILS CLOSED (escapes to plain text) when
+       DOMPurify is absent, so a missed load degrades rendering, never safety. *@
+    @if (isAuth)
+    {
+        <script id="js-dompurify" hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true" defer></script>
+        <script src="@SnakkUrlHelper.Js("services/realtime")" asp-append-version="true" defer></script>
+    }
 
     <meta name="lazy-site-js" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("components/site"))" />
     <script src="@SnakkUrlHelper.Js("core/script-loader")" asp-append-version="true" defer></script>
 
     <partial name="Shared/_MobileTabBar" />
-
-    <script src="@SnakkUrlHelper.Js("components/search-bar")" asp-append-version="true" defer></script>
 
     <!-- External Link Warning Modal -->
     <dialog id="external-link-modal" class="modal">
@@ -371,32 +369,8 @@
         </div>
     </dialog>
     <partial name="Shared/_ReloginModal" />
-    <script src="@SnakkUrlHelper.Js("components/external-link-guard")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("components/syntax-highlight")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("components/chart-renderer")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("components/inline-gallery")" asp-append-version="true" defer></script>
+    <script src="@SnakkUrlHelper.Js("core/web-vitals")" asp-append-version="true" defer hx-preserve></script>
 
     @await RenderSectionAsync("Scripts", required: false)
-    <script>
-    (function () {
-        function dbg() {
-            var layout = document.querySelector('.sn-layout');
-            var left   = document.querySelector('.sn-left');
-            var center = document.querySelector('.sn-center, .sn-center-wide');
-            var right  = document.querySelector('.sn-right');
-            console.log('[layout]',
-                'innerWidth=' + window.innerWidth,
-                'clientWidth=' + document.documentElement.clientWidth,
-                'body=' + document.body.getBoundingClientRect().width.toFixed(2),
-                'left=' + (left   ? left.getBoundingClientRect().width.toFixed(2)   : '-'),
-                'center=' + (center ? center.getBoundingClientRect().width.toFixed(2) : '-'),
-                'right=' + (right  ? right.getBoundingClientRect().width.toFixed(2)  : '-')
-            );
-        }
-        window.addEventListener('resize', dbg);
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', dbg);
-        else dbg();
-    })();
-    </script>
 </body>
 </html>

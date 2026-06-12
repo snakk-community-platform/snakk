@@ -1,28 +1,4 @@
 services:
-  frontend-watcher:
-    image: node:22-alpine
-    working_dir: /app
-    volumes:
-      - ../src/apps/Snakk.Web:/app
-      - snakk-web-modules:/app/node_modules
-      - snakk-web-wwwroot:/app/wwwroot
-    command: >
-      sh -c "npm install --prefer-offline --no-audit --no-fund &&
-             npm run build:custom &&
-             npx concurrently 'npm run watch:ts' 'npm run watch:custom'"
-
   snakk:
-    depends_on:
-      - frontend-watcher
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-    volumes:
-      - snakk-web-wwwroot:/app/web/wwwroot
-      - ../src/apps/Snakk.Web/wwwroot/svg:/app/web/wwwroot/svg
-      - ../src/apps/Snakk.Web/wwwroot/img:/app/web/wwwroot/img
-      - ../src/apps/Snakk.Web/wwwroot/icons:/app/web/wwwroot/icons
-      - ../src/apps/Snakk.Web/wwwroot/data:/app/web/wwwroot/data
-
-volumes:
-  snakk-web-modules:
-  snakk-web-wwwroot:

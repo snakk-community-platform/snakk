@@ -106,3 +106,6 @@ nul
 # Local MCP server config — contains secrets (Grafana service-account token, etc.)
 /.mcp.json
 
+# Editor backup files
+*.backup
+*.bak

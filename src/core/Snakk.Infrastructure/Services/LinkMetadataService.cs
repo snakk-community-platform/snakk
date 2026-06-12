@@ -279,11 +279,23 @@ public partial class LinkMetadataService(
             var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
             if (!contentType.Contains("html", StringComparison.OrdinalIgnoreCase)) return null;
 
-            // Read limited body
-            var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            var buffer = new byte[MaxBodyBytes];
-            var bytesRead = await stream.ReadAtLeastAsync(buffer, MaxBodyBytes, false, cancellationToken);
-            return System.Text.Encoding.UTF8.GetString(buffer, 0, bytesRead);
+            // Read limited body — chunked to avoid a 5 MB LOH allocation per fetch
+            using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var memoryStream = new MemoryStream();
+            var buffer = new byte[8192];
+            int totalRead = 0;
+            int bytesRead;
+
+            while ((bytesRead = await stream.ReadAsync(buffer, cancellationToken)) > 0)
+            {
+                totalRead += bytesRead;
+                if (totalRead > MaxBodyBytes)
+                    break;
+
+                memoryStream.Write(buffer, 0, bytesRead);
+            }
+
+            return System.Text.Encoding.UTF8.GetString(memoryStream.GetBuffer(), 0, (int)memoryStream.Length);
         }
         catch (Exception ex)
         {

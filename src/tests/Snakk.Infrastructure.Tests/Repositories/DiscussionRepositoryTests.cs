@@ -171,48 +171,6 @@ public class DiscussionRepositoryTests : IDisposable
 
     #endregion
 
-    #region GetBySpaceIdAsync Tests
-
-    [Test]
-    public async Task GetBySpaceIdAsync_MultipleDiscussions_ReturnsOnlyForSpace()
-    {
-        var (user, community, hub, space, _, _) = await _builder.CreateFullHierarchyAsync();
-        var otherSpace = await _builder.CreateSpaceAsync(hub.Id, "Other Space");
-        await _builder.CreateDiscussionAsync(space.Id, user.Id, "Discussion In Space");
-        await _builder.CreateDiscussionAsync(otherSpace.Id, user.Id, "Discussion In Other Space");
-
-        var result = (await _repository.GetBySpaceIdAsync(space.Id)).ToList();
-
-        // The original hierarchy creates one discussion + one more = 2 for this space
-        await Assert.That(result.Count).IsEqualTo(2);
-        await Assert.That(result.All(d => d.SpaceId == space.Id)).IsTrue();
-    }
-
-    [Test]
-    public async Task GetBySpaceIdAsync_PinnedDiscussionAppearsFirst()
-    {
-        var (user, _, _, space, _, _) = await _builder.CreateFullHierarchyAsync();
-
-        // Create an older unpinned discussion
-        var unpinned = await _builder.CreateDiscussionAsync(space.Id, user.Id, "Unpinned Discussion");
-        unpinned.LastActivityAt = DateTime.UtcNow.AddHours(1);
-        await _db.Context.SaveChangesAsync();
-
-        // Create a pinned discussion with older activity
-        var pinned = await _builder.CreateDiscussionAsync(space.Id, user.Id, "Pinned Discussion");
-        pinned.IsPinned = true;
-        pinned.LastActivityAt = DateTime.UtcNow.AddHours(-1);
-        await _db.Context.SaveChangesAsync();
-
-        var result = (await _repository.GetBySpaceIdAsync(space.Id)).ToList();
-
-        // Pinned should be first regardless of LastActivityAt
-        await Assert.That(result[0].IsPinned).IsTrue();
-        await Assert.That(result[0].Title).IsEqualTo("Pinned Discussion");
-    }
-
-    #endregion
-
     #region GetPagedBySpaceIdAsync Tests
 
     [Test]

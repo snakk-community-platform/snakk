@@ -1,5 +1,6 @@
 // ── Discussion Card ───────────────────────────
-#discussions-container {
+#discussions-container,
+.sn-card-list {
     display: flex;
     flex-direction: column;
     gap: 2.5rem;
@@ -175,6 +176,20 @@
     z-index: 2;
     margin: 0.35rem 0;
     cursor: pointer;
+}
+
+.sn-card-excerpt {
+    padding: 0.125rem 0 0.5rem;
+
+    .sn-post-preview {
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
 }
 
 .sn-card-type-meta {

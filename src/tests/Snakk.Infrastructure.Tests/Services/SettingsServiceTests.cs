@@ -14,6 +14,7 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class SettingsServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
+    private readonly DbContextOptions<SnakkDbContext> _options;
     private readonly ServiceProvider _cacheServiceProvider;
     private readonly IConfiguration _configuration;
     private readonly ISecurityService _securityService;
@@ -21,10 +22,10 @@ public class SettingsServiceTests : IDisposable
 
     public SettingsServiceTests()
     {
-        var options = new DbContextOptionsBuilder<SnakkDbContext>()
+        _options = new DbContextOptionsBuilder<SnakkDbContext>()
             .UseInMemoryDatabase(databaseName: $"SettingsTests_{Guid.NewGuid()}")
             .Options;
-        _context = new SnakkDbContext(options);
+        _context = new SnakkDbContext(_options);
         var services = new ServiceCollection();
         services.AddHybridCache();
         _cacheServiceProvider = services.BuildServiceProvider();
@@ -43,8 +44,7 @@ public class SettingsServiceTests : IDisposable
 
         _securityService = Substitute.For<ISecurityService>();
 
-        var dbContextFactory = Substitute.For<IDbContextFactory<SnakkDbContext>>();
-        dbContextFactory.CreateDbContextAsync(Arg.Any<CancellationToken>()).Returns(_context);
+        var dbContextFactory = new TestDbContextFactory(_options);
 
         // Use EphemeralDataProtectionProvider for testing
         var dataProtectionProvider = new EphemeralDataProtectionProvider();
@@ -267,4 +267,10 @@ public class SettingsServiceTests : IDisposable
     }
 
     #endregion
+
+    private sealed class TestDbContextFactory(DbContextOptions<SnakkDbContext> options) : IDbContextFactory<SnakkDbContext>
+    {
+        public SnakkDbContext CreateDbContext() => new SnakkDbContext(options);
+        public Task<SnakkDbContext> CreateDbContextAsync(CancellationToken ct = default) => Task.FromResult(new SnakkDbContext(options));
+    }
 }

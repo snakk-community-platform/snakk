@@ -45,6 +45,7 @@
     "wwwroot",
     "bin",
     "obj",
-    "Scripts/components/markdown-editor.ts"
+    "Scripts/components/markdown-editor.ts",
+    "Scripts/bundles"
   ]
 }

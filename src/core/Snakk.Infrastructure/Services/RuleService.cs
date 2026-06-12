@@ -11,7 +11,10 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
 {
     private const string SiteRulesRevisionCacheKey = "site-rules-revision";
     private const string HasSiteRulesCacheKey = "has-site-rules";
-    private static readonly HybridCacheEntryOptions RulesCacheOptions = new() { Expiration = TimeSpan.FromHours(1) };
+    // All UpdateXxxRulesAsync paths call cache.RemoveAsync for their respective keys before
+    // SaveChanges, so the TTL is a safety net only. UpdateRulesAsync re-fetches via GetRulesAsync
+    // after the mutation, which repopulates the cache with fresh data immediately.
+    private static readonly HybridCacheEntryOptions RulesCacheOptions = new() { Expiration = TimeSpan.FromHours(24) };
 
     private static string RulesCacheKey(string scopeType, string? scopePublicId) =>
         $"rules:{scopeType}:{scopePublicId ?? "site"}";
@@ -204,10 +207,12 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
         community.RulesRevision = Guid.NewGuid().ToString("N")[..8];
 
         // Cascade: update ParentCommunityHasRules on all child hubs
-        var hubIds = await context.Hubs
+        var hubPublicIds = await context.Hubs
             .Where(h => h.CommunityId == community.Id)
-            .Select(h => h.Id)
+            .Select(h => new { h.Id, h.PublicId })
             .ToListAsync(cancellationToken);
+
+        var hubIds = hubPublicIds.Select(h => h.Id).ToList();
 
         await context.Hubs
             .Where(h => h.CommunityId == community.Id)
@@ -216,6 +221,11 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
                 cancellationToken);
 
         // Cascade: update ParentCommunityHasRules on all child spaces (through hubs)
+        var spacePublicIds = await context.Spaces
+            .Where(s => hubIds.Contains(s.HubId))
+            .Select(s => s.PublicId)
+            .ToListAsync(cancellationToken);
+
         await context.Spaces
             .Where(s => hubIds.Contains(s.HubId))
             .ExecuteUpdateAsync(
@@ -224,6 +234,14 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
 
         await context.SaveChangesAsync(cancellationToken);
         await cache.RemoveAsync(RulesCacheKey("Community", communityPublicId), cancellationToken);
+
+        // Invalidate hub-meta and space-meta for all affected child entities since
+        // ParentCommunityHasRules (and for community itself, HasRules/RulesRevision) are cached.
+        await cache.RemoveAsync($"community-meta:{communityPublicId}", cancellationToken);
+        foreach (var hub in hubPublicIds)
+            await cache.RemoveAsync($"hub-meta:{hub.PublicId}", cancellationToken);
+        foreach (var spacePublicId in spacePublicIds)
+            await cache.RemoveAsync($"space-meta:{spacePublicId}", cancellationToken);
     }
 
     private async Task UpdateHubRulesAsync(
@@ -262,6 +280,11 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
         hub.RulesRevision = Guid.NewGuid().ToString("N")[..8];
 
         // Cascade: update ParentHubHasRules on all child spaces
+        var childSpacePublicIds = await context.Spaces
+            .Where(s => s.HubId == hub.Id)
+            .Select(s => s.PublicId)
+            .ToListAsync(cancellationToken);
+
         await context.Spaces
             .Where(s => s.HubId == hub.Id)
             .ExecuteUpdateAsync(
@@ -270,6 +293,12 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
 
         await context.SaveChangesAsync(cancellationToken);
         await cache.RemoveAsync(RulesCacheKey("Hub", hubPublicId), cancellationToken);
+
+        // Invalidate hub-meta (HasRules/RulesRevision changed) and space-meta for each
+        // child space (ParentHubHasRules changed).
+        await cache.RemoveAsync($"hub-meta:{hubPublicId}", cancellationToken);
+        foreach (var spacePublicId in childSpacePublicIds)
+            await cache.RemoveAsync($"space-meta:{spacePublicId}", cancellationToken);
     }
 
     private async Task UpdateSpaceRulesAsync(
@@ -309,5 +338,8 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
 
         await context.SaveChangesAsync(cancellationToken);
         await cache.RemoveAsync(RulesCacheKey("Space", spacePublicId), cancellationToken);
+
+        // Invalidate space-meta: HasRules and RulesRevision are cached there.
+        await cache.RemoveAsync($"space-meta:{spacePublicId}", cancellationToken);
     }
 }

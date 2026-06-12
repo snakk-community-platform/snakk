@@ -25,13 +25,11 @@
         }, { passive: true, capture: true });
     }
 
-    // Sidebar scrollbar + breadcrumb title: load when browser is idle
+    // Sidebar scrollbar: load when browser is idle (breadcrumb-title is in app-bundle)
     const sidebarMeta = document.querySelector<HTMLMetaElement>('meta[name="lazy-sidebar-js"]');
-    const breadcrumbMeta = document.querySelector<HTMLMetaElement>('meta[name="lazy-breadcrumb-js"]');
 
     function loadIdleScripts(): void {
         if (sidebarMeta?.content) loadScript(sidebarMeta.content);
-        if (breadcrumbMeta?.content) loadScript(breadcrumbMeta.content);
     }
 
     if ('requestIdleCallback' in window) {

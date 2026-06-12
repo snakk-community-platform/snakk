@@ -55,6 +55,7 @@
 }
 
 .sn-nudge-oauth-btn {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -71,6 +72,23 @@
     transition: background 0.15s;
 
     &:hover { background: var(--bg-secondary); }
+}
+
+.sn-badge-last-used {
+    position: absolute;
+    top: -0.45rem;
+    right: 0.5rem;
+    background: #4CAF7D;
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.1rem 0.35rem;
+    border-radius: 9999px;
+    line-height: 1.4;
+    white-space: nowrap;
+    pointer-events: none;
 }
 
 .sn-nudge-divider {

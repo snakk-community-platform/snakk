@@ -59,28 +59,6 @@ public class DiscussionRepositoryAdapter(
         return projection?.ToDomain();
     }
 
-    public async Task<IEnumerable<Discussion>> GetBySpaceIdAsync(SpaceId spaceId, CancellationToken ct = default)
-    {
-        var spaceDbId = await context.Spaces
-            .Where(s => s.PublicId == spaceId.Value)
-            .Select(s => (int?)s.Id)
-            .FirstOrDefaultAsync(ct);
-
-        if (spaceDbId is null) return [];
-
-        var projections = await context.Discussions
-            .Where(d => d.SpaceId == spaceDbId.Value)
-            .OrderByDescending(d => d.IsPinned)
-            .ThenByDescending(d => d.LastActivityAt)
-            .Select(d => new DiscussionProjection(
-                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
-                d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
-                d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
-            .ToListAsync(ct);
-
-        return projections.Select(p => p.ToDomain());
-    }
-
     public async Task<PagedResult<Discussion>> GetBySpaceIdAsync(
         SpaceId spaceId,
         int offset,

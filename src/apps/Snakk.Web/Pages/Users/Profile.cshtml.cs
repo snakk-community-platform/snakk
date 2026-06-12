@@ -26,6 +26,7 @@ public class ProfileModel(
     public List<RecentDiscussionInfo> TopDiscussionsFull { get; set; } = [];
     public List<ProfileSocialLink>? SocialLinks { get; set; }
     public bool IsMessagingEnabled { get; private set; }
+    public string ActiveTab { get; set; } = "discussions";
 
     public string FormatDate(DateTimeOffset? dateTime)
     {
@@ -33,7 +34,7 @@ public class ProfileModel(
         return FormatRelativeTime(dateTime.Value);
     }
 
-    public async Task<IActionResult> OnGetAsync(string publicId, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnGetAsync(string publicId, string? tab, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         string decodedPublicId;
@@ -46,13 +47,14 @@ public class ProfileModel(
             return profileResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
 
         Profile = profileResult.Value;
+        ActiveTab = tab is "top" or "posts" ? tab : "discussions";
         IsMessagingEnabled = Configuration.GetValue<bool>("Features:PrivateMessagingEnabled");
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
 
         // Fetch recent discussions, top discussions, and social links in parallel
         var discussionsTask = FetchDiscussionsAsync(decodedPublicId, viewerAllowsAdult);
-        var topDiscussionsTask = FetchTopDiscussionsFullAsync(Profile);
+        var topDiscussionsTask = FetchTopDiscussionsFullAsync(Profile!);
         var socialLinksTask = FetchSocialLinksAsync(decodedPublicId);
 
         await Task.WhenAll(discussionsTask, topDiscussionsTask, socialLinksTask);

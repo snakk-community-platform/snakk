@@ -18,8 +18,13 @@ public record BffPostSearchItem
     public required string DiscussionTitle { get; init; }
     public required string HubName { get; init; }
     public required string SpaceName { get; init; }
+    public required string SpaceGradientCss { get; init; }
     public required string ContentPreview { get; init; }
     public required string CreatedAt { get; init; }
+    public required string AuthorPublicId { get; init; }
+    public required string AuthorDisplayName { get; init; }
+    public required string AuthorAvatarUrl { get; init; }
+    public required string PostPublicId { get; init; }
 }
 
 public record BffSearchResponse<T>

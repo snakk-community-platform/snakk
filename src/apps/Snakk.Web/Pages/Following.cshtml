@@ -1,4 +1,4 @@
-﻿@page "/following"
+﻿@page "/following/{tab?}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
@@ -29,15 +29,15 @@
 
         <!-- Tabs -->
         <div class="sn-tabs mb-4">
-            <a href="/following?tab=discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "active" : "")">
+            <a href="/following/discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "active" : "")">
                 @T.Pages.FollowingTabDiscussions
                 @if (Model.DiscussionCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.DiscussionCount</span> }
             </a>
-            <a href="/following?tab=spaces" class="sn-tab @(Model.ActiveTab == "spaces" ? "active" : "")">
+            <a href="/following/spaces" class="sn-tab @(Model.ActiveTab == "spaces" ? "active" : "")">
                 @T.Pages.FollowingTabSpaces
                 @if (Model.SpaceCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.SpaceCount</span> }
             </a>
-            <a href="/following?tab=users" class="sn-tab @(Model.ActiveTab == "users" ? "active" : "")">
+            <a href="/following/users" class="sn-tab @(Model.ActiveTab == "users" ? "active" : "")">
                 @T.Pages.FollowingTabPeople
                 @if (Model.UserCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.UserCount</span> }
             </a>

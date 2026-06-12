@@ -29,3 +29,7 @@ The specific reasons available may vary by community.
 ## Reporting in good faith
 
 Reports should be made in good faith. Misusing the report system (e.g., mass-reporting someone you disagree with) may result in moderation action against the reporter.
+
+::: callout-warning
+Reporting is for rule violations — not for content you simply disagree with. If you have a dispute with another user, reach out to a moderator directly instead.
+:::

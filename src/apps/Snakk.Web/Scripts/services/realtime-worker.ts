@@ -10,6 +10,7 @@
  *   { type: 'init', realtimeUrl: string, signalrSrc: string }
  *   { type: 'subscribe', group: string }
  *   { type: 'unsubscribe', group: string }
+ *   { type: 'unregister' }             — sent on pagehide; cleans up tab entry and group subscriptions
  *   { type: 'invoke', method: string, args: any[] }
  *
  * Protocol (worker → tab):
@@ -44,6 +45,27 @@ let cachedToken: string | null = null;
 let tokenExpiry = 0;
 
 // ============================================================================
+// Tab cleanup helper
+// ============================================================================
+
+function removeTab(tabId: number): void {
+    const tab = tabs.get(tabId);
+    if (!tab) return;
+    // Remove this tab from every group it was subscribed to
+    for (const group of tab.subscriptions) {
+        const subs = groupSubscribers.get(group);
+        if (subs) {
+            subs.delete(tabId);
+            if (subs.size === 0) {
+                groupSubscribers.delete(group);
+                invokeUnsubscribe(group).catch(() => {});
+            }
+        }
+    }
+    tabs.delete(tabId);
+}
+
+// ============================================================================
 // SharedWorker entry point
 // ============================================================================
 
@@ -54,6 +76,13 @@ let tokenExpiry = 0;
 
     port.onmessage = (event: MessageEvent) => handleMessage(tabId, port, event.data);
     port.start();
+
+    // Modern browsers expose a 'close' event on MessagePort inside a SharedWorker
+    // when the connecting browsing context is destroyed. Use it as the primary
+    // mechanism for dead-port detection; the explicit 'unregister' message from
+    // the page's pagehide handler serves as belt-and-braces for browsers that
+    // don't fire this event.
+    (port as any).addEventListener('close', () => { removeTab(tabId); });
 
     port.postMessage({ type: 'tab-id', tabId });
 
@@ -93,6 +122,10 @@ async function handleMessage(tabId: number, _port: MessagePort, data: any): Prom
             if (connection?.state === 'Connected') {
                 connection.invoke(data.method, ...data.args).catch(() => {});
             }
+            break;
+
+        case 'unregister':
+            removeTab(tabId);
             break;
 
         case 'reconnect':

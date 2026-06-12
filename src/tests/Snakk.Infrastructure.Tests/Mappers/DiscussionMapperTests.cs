@@ -60,7 +60,7 @@ public class DiscussionMapperTests
         await Assert.That(discussion).IsNotNull();
         await Assert.That(discussion.PublicId.Value).IsEqualTo("disc_abc123");
         await Assert.That(discussion.SpaceId.Value).IsEqualTo(spacePublicId);
-        await Assert.That(discussion.CreatedByUserId.Value).IsEqualTo(userPublicId);
+        await Assert.That(discussion!.CreatedByUserId!.Value).IsEqualTo(userPublicId);
         await Assert.That(discussion.Title).IsEqualTo("Test Discussion");
         await Assert.That(discussion.Slug).IsEqualTo("test-discussion");
         await Assert.That(discussion.CreatedAt).IsEqualTo(createdAt);

@@ -6,9 +6,79 @@ using Snakk.Infrastructure.Database.Entities;
 
 namespace Snakk.Infrastructure.Services;
 
+// User-independent poll snapshot — safe to share across all viewers.
+// User vote state is fetched separately and overlaid on top.
+internal sealed record CachedPollData(
+    bool AllowMultipleChoices,
+    bool AllowChangeVote,
+    DateTime? ClosesAt,
+    bool IsClosed,
+    bool IsSecret,
+    bool IsSegmented,
+    string? SegmentLabel,
+    string? SegmentOptionA,
+    string? SegmentOptionB,
+    int TotalVotes,
+    List<PollOptionData> Options,
+    List<int> OptionIds,
+    List<PollOptionSegmentData>? SegmentVotes);
+
 public class PollService(SnakkDbContext context, HybridCache cache) : IPollService
 {
+    private static readonly HybridCacheEntryOptions PollCacheOptions = new() { Expiration = TimeSpan.FromSeconds(15) };
+
     public async Task<PollData?> GetPollAsync(string discussionPublicId, string? userPublicId = null, CancellationToken ct = default)
+    {
+        // Fetch user-independent poll data from cache (or DB on miss)
+        var cached = await cache.GetOrCreateAsync(
+            $"poll:{discussionPublicId}",
+            async innerCt => await FetchCachedPollDataAsync(discussionPublicId, innerCt),
+            PollCacheOptions,
+            cancellationToken: ct);
+
+        if (cached is null) return null;
+
+        // Overlay the requesting user's own votes (not cached — always fresh)
+        int? userSegmentIndex = null;
+        var userVotedIds = new List<int>();
+        if (!string.IsNullOrEmpty(userPublicId))
+        {
+            var userId = await context.Users
+                .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (userId > 0)
+            {
+                var userVotes = await context.DiscussionPollVotes
+                    .Where(v => cached.OptionIds.Contains(v.OptionId) && v.UserId == userId)
+                    .Select(v => new { v.OptionId, v.SegmentIndex })
+                    .ToListAsync(ct);
+
+                userVotedIds = userVotes.Select(v => v.OptionId).ToList();
+                if (cached.IsSegmented)
+                    userSegmentIndex = userVotes.FirstOrDefault()?.SegmentIndex;
+            }
+        }
+
+        return new PollData(
+            cached.Options,
+            cached.AllowMultipleChoices,
+            cached.AllowChangeVote,
+            cached.ClosesAt,
+            cached.IsClosed,
+            cached.IsSecret,
+            cached.TotalVotes,
+            userVotedIds,
+            IsSegmented: cached.IsSegmented,
+            SegmentLabel: cached.SegmentLabel,
+            SegmentOptionA: cached.SegmentOptionA,
+            SegmentOptionB: cached.SegmentOptionB,
+            SegmentVotes: cached.SegmentVotes,
+            UserSegmentIndex: userSegmentIndex);
+    }
+
+    private async Task<CachedPollData?> FetchCachedPollDataAsync(string discussionPublicId, CancellationToken ct)
     {
         var poll = await context.DiscussionPolls
             .Where(p => p.Discussion.PublicId == discussionPublicId && !p.Discussion.IsDeleted)
@@ -34,30 +104,6 @@ public class PollService(SnakkDbContext context, HybridCache cache) : IPollServi
         var isClosed = poll.ClosesAt.HasValue && poll.ClosesAt.Value <= DateTime.UtcNow;
         var isSecret = !poll.VotesVisible;
         var totalVotes = poll.Options.Sum(o => o.VoteCount);
-
-        // Get user's votes if authenticated
-        int? userSegmentIndex = null;
-        var userVotedIds = new List<int>();
-        if (!string.IsNullOrEmpty(userPublicId))
-        {
-            var userId = await context.Users
-                .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
-                .Select(u => u.Id)
-                .FirstOrDefaultAsync(ct);
-
-            if (userId > 0)
-            {
-                var optionIds = poll.Options.Select(o => o.Id).ToList();
-                var userVotes = await context.DiscussionPollVotes
-                    .Where(v => optionIds.Contains(v.OptionId) && v.UserId == userId)
-                    .Select(v => new { v.OptionId, v.SegmentIndex })
-                    .ToListAsync(ct);
-
-                userVotedIds = userVotes.Select(v => v.OptionId).ToList();
-                if (poll.IsSegmented)
-                    userSegmentIndex = userVotes.FirstOrDefault()?.SegmentIndex;
-            }
-        }
 
         // Get segment vote counts if segmented
         List<PollOptionSegmentData>? segmentVotes = null;
@@ -89,21 +135,20 @@ public class PollService(SnakkDbContext context, HybridCache cache) : IPollServi
         if (isSecret && !isClosed)
             totalVotes = 0;
 
-        return new PollData(
-            options,
+        return new CachedPollData(
             poll.AllowMultipleChoices,
             poll.AllowChangeVote,
             poll.ClosesAt,
             isClosed,
             isSecret,
+            poll.IsSegmented,
+            poll.SegmentLabel,
+            poll.SegmentOptionA,
+            poll.SegmentOptionB,
             totalVotes,
-            userVotedIds,
-            IsSegmented: poll.IsSegmented,
-            SegmentLabel: poll.SegmentLabel,
-            SegmentOptionA: poll.SegmentOptionA,
-            SegmentOptionB: poll.SegmentOptionB,
-            SegmentVotes: segmentVotes,
-            UserSegmentIndex: userSegmentIndex);
+            options,
+            poll.Options.Select(o => o.Id).ToList(),
+            segmentVotes);
     }
 
     public async Task<(bool Success, string? Error)> VoteAsync(
@@ -189,6 +234,7 @@ public class PollService(SnakkDbContext context, HybridCache cache) : IPollServi
             .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount + 1), ct);
 
         await cache.RemoveAsync($"preview:poll:{discussionPublicId}", ct);
+        await cache.RemoveAsync($"poll:{discussionPublicId}", ct);
         return (true, null);
     }
 
@@ -232,6 +278,7 @@ public class PollService(SnakkDbContext context, HybridCache cache) : IPollServi
             .ExecuteUpdateAsync(o => o.SetProperty(x => x.VoteCount, x => x.VoteCount - 1), ct);
 
         await cache.RemoveAsync($"preview:poll:{discussionPublicId}", ct);
+        await cache.RemoveAsync($"poll:{discussionPublicId}", ct);
         return (true, null);
     }
 }

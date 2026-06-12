@@ -9,7 +9,6 @@ public interface IDiscussionRepository
     Task<Discussion?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<Discussion?> GetByPublicIdAsync(DiscussionId publicId, CancellationToken ct = default);
     Task<Discussion?> GetBySlugAsync(string slug, CancellationToken ct = default);
-    Task<IEnumerable<Discussion>> GetBySpaceIdAsync(SpaceId spaceId, CancellationToken ct = default);
     Task<PagedResult<Discussion>> GetBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize, CancellationToken ct = default);
     Task<PagedResult<Discussion>> GetPagedBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize, CancellationToken ct = default);
     Task<IEnumerable<Discussion>> GetRecentAsync(int count = 10, CancellationToken ct = default);

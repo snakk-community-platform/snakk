@@ -1,4 +1,4 @@
-import { readdir, readFile, writeFile } from 'fs/promises';
+import { readdir, readFile, writeFile, rm } from 'fs/promises';
 import { join } from 'path';
 import { transform } from 'esbuild';
 
@@ -19,3 +19,9 @@ async function minifyDir(dir) {
 }
 
 await minifyDir(distDir);
+
+// Remove the dead t.g.js artifact emitted by tsc — no classic (non-bundled) script
+// loads it at runtime; esbuild bundles that need it inline the content directly.
+for (const f of ['t.g.js', 't.g.js.map']) {
+    await rm(join(distDir, 'locales', f), { force: true });
+}

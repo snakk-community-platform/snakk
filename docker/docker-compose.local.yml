@@ -1,0 +1,6 @@
+# Override for running .NET services locally (outside Docker).
+# Exposes infrastructure ports to the host so local dotnet processes can connect.
+services:
+  valkey:
+    ports:
+      - "6379:6379"

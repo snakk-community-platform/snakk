@@ -123,7 +123,7 @@ public class ModerationUseCase(
             // For global bans, immediately revoke all active sessions
             if (communityPublicId is null && hubPublicId is null && spacePublicId is null)
             {
-                revocationCache.RevokeUser(targetUserPublicId);
+                await revocationCache.RevokeUserAsync(targetUserPublicId);
 
                 var user = await userRepository.GetByPublicIdAsync(Domain.ValueObjects.UserId.From(targetUserPublicId));
                 if (user is not null)
