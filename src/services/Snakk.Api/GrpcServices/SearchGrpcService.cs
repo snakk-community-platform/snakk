@@ -204,9 +204,12 @@ public class SearchGrpcService(
             response.Items.Add(new PostSearchResult
             {
                 PublicId = p.PublicId,
-                // Despite the legacy `content_highlight` proto name, this carries
-                // the rendered HTML preview (no search-term highlighting). Renaming
-                // would be a breaking proto change, so the misnomer stays.
+                // Despite the proto name (`content_highlight`) and the DTO field
+                // name (`RenderedContent`), this carries the post's PLAIN-TEXT
+                // excerpt — SearchRepository.SearchPostsAsync projects
+                // `PlainTextExcerpt ?? ""` into the DTO. It is NOT HTML and NOT
+                // highlighted; consumers must HTML-encode it on render. Renaming
+                // the proto field would be a breaking change, so the misnomer stays.
                 ContentHighlight = p.RenderedContent,
                 CreatedAt = ToTimestamp(p.CreatedAt),
                 DiscussionPublicId = p.DiscussionPublicId,

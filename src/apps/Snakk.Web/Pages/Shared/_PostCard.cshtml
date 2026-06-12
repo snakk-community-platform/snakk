@@ -57,7 +57,12 @@
     @if (!string.IsNullOrEmpty(Model.ContentExcerpt))
     {
         <div class="sn-card-excerpt">
-            <div class="sn-post-preview prose prose-sm">@Html.Raw(Model.ContentExcerpt)</div>
+            @* ContentExcerpt is USER-SUPPLIED text (PlainTextExcerpt, or a raw
+               markdown substring for legacy rows) on every feeder path — search,
+               saved, reactions, my-posts. It must be auto-encoded; Html.Raw here
+               is a stored XSS (a post body containing <script> executes on every
+               viewer's feed). *@
+            <div class="sn-post-preview prose prose-sm">@Model.ContentExcerpt</div>
         </div>
     }
 </article>
