@@ -20,6 +20,9 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
     // Connection → discussion mapping for viewer cleanup on disconnect
     private static readonly ConcurrentDictionary<string, string> ConnectionDiscussions = new();
 
+    // Reverse index: discussion → set of connectionIds (ConcurrentDictionary used as a set via byte values)
+    internal static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, byte>> DiscussionConnections = new();
+
     // Connection → discussionId for typing cleanup on disconnect
     private static readonly ConcurrentDictionary<string, string> TypingConnections = new();
 
@@ -27,18 +30,43 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
     public static int ActiveConnectionCount => ConnectionDiscussions.Count;
 
     /// <summary>
-    /// Periodic cleanup: removes ConnectionViewers entries whose connection is no longer
-    /// in any discussion. Called by ViewerCountCleanupService to prevent unbounded growth
-    /// from connections that disconnected without triggering OnDisconnectedAsync.
+    /// Periodic cleanup: removes ConnectionViewers and TypingConnections entries whose
+    /// connection is no longer tracked in ConnectionDiscussions. Also removes stale
+    /// connectionIds from the DiscussionConnections reverse index and drops empty sets.
+    /// Called by ViewerCountCleanupService to prevent unbounded growth from connections
+    /// that dropped without triggering OnDisconnectedAsync (network failures, process kills).
     /// </summary>
     public static int CleanupStaleEntries()
     {
         var removed = 0;
+
+        // Prune ConnectionViewers entries with no corresponding ConnectionDiscussions entry
         foreach (var connId in ConnectionViewers.Keys)
         {
             if (!ConnectionDiscussions.ContainsKey(connId) && ConnectionViewers.TryRemove(connId, out _))
                 removed++;
         }
+
+        // Prune TypingConnections entries with no corresponding ConnectionDiscussions entry
+        foreach (var connId in TypingConnections.Keys)
+        {
+            if (!ConnectionDiscussions.ContainsKey(connId))
+                TypingConnections.TryRemove(connId, out _);
+        }
+
+        // Prune reverse index: remove stale connectionIds from all discussion sets
+        foreach (var (discussionId, connSet) in DiscussionConnections)
+        {
+            foreach (var connId in connSet.Keys)
+            {
+                if (!ConnectionDiscussions.ContainsKey(connId))
+                    connSet.TryRemove(connId, out _);
+            }
+            // Drop empty sets from the index (tolerate benign race: another thread may re-add)
+            if (connSet.IsEmpty)
+                DiscussionConnections.TryRemove(discussionId, out _);
+        }
+
         return removed;
     }
 
@@ -59,6 +87,7 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
         if (ConnectionDiscussions.TryRemove(Context.ConnectionId, out var discussionId))
         {
             ConnectionViewers.TryRemove(Context.ConnectionId, out _);
+            RemoveFromDiscussionIndex(discussionId, Context.ConnectionId);
             await BroadcastViewers(discussionId);
         }
 
@@ -110,12 +139,15 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"discussion:{previousId}");
             ConnectionViewers.TryRemove(Context.ConnectionId, out _);
+            RemoveFromDiscussionIndex(previousId, Context.ConnectionId);
             await BroadcastViewers(previousId);
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, $"discussion:{discussionId}");
         ConnectionDiscussions[Context.ConnectionId] = discussionId;
         ConnectionViewers[Context.ConnectionId] = (userId, displayName, isAnon, avatarUrl);
+        DiscussionConnections.GetOrAdd(discussionId, _ => new ConcurrentDictionary<string, byte>())
+            .TryAdd(Context.ConnectionId, 0);
 
         await BroadcastViewers(discussionId);
 
@@ -130,6 +162,7 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"discussion:{discussionId}");
         ConnectionDiscussions.TryRemove(Context.ConnectionId, out _);
         ConnectionViewers.TryRemove(Context.ConnectionId, out _);
+        RemoveFromDiscussionIndex(discussionId, Context.ConnectionId);
 
         await BroadcastViewers(discussionId);
 
@@ -266,10 +299,12 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
 
     private async Task BroadcastViewers(string discussionId)
     {
+        // Use reverse index for O(viewers-in-discussion) lookup instead of O(all connections)
+        var connSet = DiscussionConnections.GetValueOrDefault(discussionId);
+
         // Collect distinct users (deduplicate by userId — multiple tabs = one entry)
-        var viewers = ConnectionDiscussions
-            .Where(kvp => kvp.Value == discussionId)
-            .Select(kvp => ConnectionViewers.TryGetValue(kvp.Key, out var v) ? ((string UserId, string DisplayName, bool IsAnon, string AvatarUrl)?)v : null)
+        var viewers = (connSet?.Keys ?? Enumerable.Empty<string>())
+            .Select(connId => ConnectionViewers.TryGetValue(connId, out var v) ? ((string UserId, string DisplayName, bool IsAnon, string AvatarUrl)?)v : null)
             .Where(v => v.HasValue)
             .GroupBy(v => v!.Value.UserId)
             .Select(g => new {
@@ -281,5 +316,21 @@ public class RealtimeHub(IAccessVerifier accessVerifier, ILogger<RealtimeHub> lo
 
         await Clients.Group($"discussion:{discussionId}")
             .SendAsync("ReceiveViewerCount", new { count = viewers.Count, viewers, group = $"discussion:{discussionId}" });
+    }
+
+    /// <summary>
+    /// Removes a connectionId from the reverse index for a discussion.
+    /// Drops the discussion's set entirely when it becomes empty to prevent unbounded growth.
+    /// Tolerates benign races: another thread may re-add an entry between the IsEmpty check
+    /// and TryRemove, which is safe — the set will simply remain in the index.
+    /// </summary>
+    private static void RemoveFromDiscussionIndex(string discussionId, string connectionId)
+    {
+        if (DiscussionConnections.TryGetValue(discussionId, out var connSet))
+        {
+            connSet.TryRemove(connectionId, out _);
+            if (connSet.IsEmpty)
+                DiscussionConnections.TryRemove(discussionId, out _);
+        }
     }
 }

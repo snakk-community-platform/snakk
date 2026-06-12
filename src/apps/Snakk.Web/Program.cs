@@ -143,7 +143,7 @@ builder.Services.AddOutputCache(options =>
         .Expire(TimeSpan.FromSeconds(30))
         .SetLocking(false)
         .SetVaryByHeader("HX-Request")
-        .SetVaryByQuery("cursor", "offset", "pageSize", "typeFilter")
+        .SetVaryByQuery("cursor", "offset", "pageSize", "typeFilter", "sort")
         .SetVaryByRouteValue("communitySlug", "hubSlug", "spaceSlug", "discussionSlugId", "publicId"));
 
     // HTMX partials: 10s cache for anonymous visitors
@@ -155,7 +155,7 @@ builder.Services.AddOutputCache(options =>
         .Expire(TimeSpan.FromSeconds(10))
         .SetLocking(false)
         .SetVaryByHeader("HX-Request")
-        .SetVaryByQuery("cursor", "offset", "pageSize", "communityId", "hubId", "spaceId", "typeFilter", "hideCommunity", "hideHub"));
+        .SetVaryByQuery("cursor", "offset", "pageSize", "communityId", "hubId", "spaceId", "typeFilter", "hideCommunity", "hideHub", "sort"));
 
     // User profiles: 60s cache for anonymous visitors
     options.AddPolicy("AnonymousProfile", builder => builder
@@ -190,15 +190,12 @@ builder.Services.AddSingleton<IPrefetchCacheService, PrefetchCacheService>();
 // Per-user cache for followed space IDs (2-min TTL, invalidated on follow toggle)
 builder.Services.AddSingleton<IFollowedSpacesCacheService, FollowedSpacesCacheService>();
 
+// Bounded cache for partial-render results (DiscussionItem, Post) — isolated from
+// the shared IMemoryCache so a SizeLimit can be applied independently.
+builder.Services.AddSingleton<PartialRenderCache>();
+
 // FIDO AAGUID → authenticator name + icon lookup (loaded once from wwwroot/data/aaguid.json)
 builder.Services.AddSingleton<AaguidLookupService>();
-
-// WebOptimizer for CSS minification only (JS minification breaks TypeScript output)
-builder.Services.AddWebOptimizer(pipeline =>
-{
-    // Minify all CSS files on-the-fly
-    pipeline.MinifyCssFiles();
-});
 
 // Configure HttpClient for Internal API (for avatar proxy and other BFF endpoints)
 // In Docker, REST uses a separate port (HTTP/1.1) from gRPC (HTTP/2)
@@ -520,21 +517,21 @@ app.Use(async (context, next) =>
 
         var tailwindUrl = fvp.AddFileVersionToPath(basePath, "/css/vendor/tailwind.css");
         var siteUrl = fvp.AddFileVersionToPath(basePath, "/css/dist/site.css");
+        var htmxUrl = fvp.AddFileVersionToPath(basePath, "/js/vendor/htmx.min.js");
 
         context.Response.Headers.Append("Link",
-            $"<{tailwindUrl}>; rel=preload; as=style, <{siteUrl}>; rel=preload; as=style");
+            $"<{tailwindUrl}>; rel=preload; as=style, <{siteUrl}>; rel=preload; as=style, <{htmxUrl}>; rel=preload; as=script");
     }
 
     await next();
 });
 
-// Enable response compression and WebOptimizer (skip for partials — small HTML fragments)
+// Enable response compression (skip for partials — small HTML fragments)
 app.UseWhen(
     context => !context.Request.Path.StartsWithSegments("/partials"),
     appBuilder =>
     {
         appBuilder.UseResponseCompression();
-        appBuilder.UseWebOptimizer();
     }
 );
 
@@ -681,9 +678,12 @@ if (enableRateLimiting) app.UseRateLimiter();
 // SameSite=Strict mutation guard: BFF state-changing requests (POST/PUT/DELETE) require
 // the Strict auth cookie, not just the Lax session cookie. This prevents CSRF attacks
 // where the Lax cookie is sent on cross-site navigations but can't perform mutations.
+// /bff/rum is exempt: it is pure telemetry, AllowAnonymous, and navigator.sendBeacon
+// cannot set custom headers — the Strict cookie is not relevant for a write-nothing endpoint.
 app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/bff")
+        && !context.Request.Path.StartsWithSegments("/bff/rum")
         && context.Request.Method is not "GET" and not "HEAD" and not "OPTIONS"
         && context.User.Identity?.IsAuthenticated == true
         && !AuthCookieHelper.HasStrictAuthCookie(context))
@@ -768,6 +768,7 @@ app.MapRazorPages();
 app.MapBffApiEndpoints();
 app.MapPasskeyBffEndpoints();
 app.MapOAuthConnectionBffEndpoints();
+app.MapRumEndpoints();
 
 app.MapRealtimeTokenEndpoints();
 

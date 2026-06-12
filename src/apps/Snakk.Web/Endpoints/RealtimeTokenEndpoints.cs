@@ -8,6 +8,8 @@ using Snakk.Web.Services;
 
 public static class RealtimeTokenEndpoints
 {
+    private static readonly JwtSecurityTokenHandler _jwtHandler = new();
+
     public static void MapRealtimeTokenEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapGet("/bff/realtime-token", GetRealtimeToken)
@@ -53,7 +55,7 @@ public static class RealtimeTokenEndpoints
             expires: DateTime.UtcNow.AddSeconds(expiresInSeconds),
             signingCredentials: credentials);
 
-        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+        var tokenString = _jwtHandler.WriteToken(token);
 
         return Results.Ok(new { token = tokenString, expiresInSeconds });
     }

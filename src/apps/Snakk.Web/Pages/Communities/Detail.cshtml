@@ -59,7 +59,7 @@
             <div class="sn-community-card-banner" style="background-image: @CommunityGradient(Model.CommunityDetail.PublicId)">
                 <img src="@SnakkUrlHelper.CommunityAvatar(Model.CommunityDetail.PublicId, avatarFileName: Model.CommunityDetail.HasAvatarFileName ? Model.CommunityDetail.AvatarFileName : null)"
                      alt="" width="56" height="56"
-                     class="sn-community-avatar" decoding="async" />
+                     class="sn-community-avatar" decoding="async" fetchpriority="high" />
                 <h1 class="sn-community-name">@Model.CommunityDetail.Name</h1>
             </div>
         </div>
@@ -266,7 +266,7 @@
             <inline-or-htmx partial="Shared/Sidebar/_CommunityRules"
                              model="Model.InlineCommunityRules"
                              htmx-url="/partials/community-rules?communityId=@Model.CommunityDetail.PublicId&rev=@Model.CommunityDetail.RulesRevision">
-                <div class="flex flex-col gap-2">
+                <div class="flex flex-col gap-2" style="min-height:3.5rem">
                     <div class="skeleton h-3 w-3/4"></div>
                     <div class="skeleton h-3 w-2/3"></div>
                     <div class="skeleton h-3 w-1/2"></div>
@@ -288,7 +288,7 @@
         <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                          model="Model.InlineModerators"
                          htmx-url="/partials/moderators?scopeType=Community&scopeId=@Model.CommunityDetail?.PublicId&moderatorsUrl=@(SnakkUrlHelper.Community(Model.CommunityDetail!.Slug, Model.Community))/moderators&rev=@Model.CommunityDetail?.TeamRevision">
-            <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2" style="min-height:4rem">
                 <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
                 <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
             </div>

@@ -24,6 +24,7 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
     private const string TwoFactorPendingPurpose = "2fa-pending";
     private const int TwoFactorPendingExpirationMinutes = 5;
 
+    private static readonly JwtSecurityTokenHandler _jwtHandler = new();
     private static readonly byte[] Sentinel = [1];
 
     public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null, bool twoFactorEnabled = false)
@@ -76,7 +77,7 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
             expires: DateTime.UtcNow.AddMinutes(_expirationMinutes),
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return _jwtHandler.WriteToken(token);
     }
 
     public string GenerateToken(User user, string? sessionId = null) =>
@@ -139,8 +140,7 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
     {
         try
         {
-            var handler = new JwtSecurityTokenHandler();
-            if (handler.ReadToken(token) is not JwtSecurityToken jwt) return;
+            if (_jwtHandler.ReadToken(token) is not JwtSecurityToken jwt) return;
 
             var jti = jwt.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Jti)?.Value;
             if (jti is null) return;
@@ -188,7 +188,7 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
             expires: DateTime.UtcNow.AddMinutes(TwoFactorPendingExpirationMinutes),
             signingCredentials: credentials);
 
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        return _jwtHandler.WriteToken(token);
     }
 
     public string? ValidateTwoFactorPendingToken(string token)

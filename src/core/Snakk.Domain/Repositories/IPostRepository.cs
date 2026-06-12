@@ -9,7 +9,6 @@ public interface IPostRepository
     Task<Post?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<Post?> GetByPublicIdAsync(PostId publicId, CancellationToken ct = default);
     Task<IEnumerable<Post>> GetByPublicIdsAsync(IEnumerable<PostId> publicIds, CancellationToken ct = default);
-    Task<IEnumerable<Post>> GetByDiscussionIdAsync(DiscussionId discussionId, CancellationToken ct = default);
     Task<PagedResult<Post>> GetPagedByDiscussionIdAsync(DiscussionId discussionId, int offset, int pageSize, CancellationToken ct = default);
 
     Task AddAsync(Post post, CancellationToken ct = default);

@@ -787,6 +787,34 @@ document.addEventListener('pointerdown', (e: Event) => {
     }
 });
 
+// --- Registration nudge: last-used OAuth badge ---
+function initNudgeOAuthLastUsed(): void {
+    const STORAGE_KEY = 'snakk:lastOAuthProvider';
+    const buttons = document.querySelectorAll<HTMLAnchorElement>('.sn-nudge-oauth-btn[data-provider]');
+    if (!buttons.length) return;
+
+    buttons.forEach(btn => {
+        if (btn.dataset['providerClickInit']) return;
+        btn.dataset['providerClickInit'] = '1';
+        btn.addEventListener('click', () => {
+            try { localStorage.setItem(STORAGE_KEY, btn.dataset['provider']!); } catch {}
+        });
+    });
+
+    let last: string | null = null;
+    try { last = localStorage.getItem(STORAGE_KEY); } catch {}
+    if (!last) return;
+
+    buttons.forEach(btn => {
+        if (btn.dataset['provider'] === last && !btn.querySelector('.sn-badge-last-used')) {
+            const badge = document.createElement('span');
+            badge.className = 'sn-badge-last-used';
+            badge.textContent = 'Last used';
+            btn.appendChild(badge);
+        }
+    });
+}
+
 // --- Registration nudge: passkey login ---
 function initNudgePasskey(): void {
     const btn = document.querySelector<HTMLButtonElement>('[data-nudge-passkey]');
@@ -907,6 +935,7 @@ function initNudgePasskey(): void {
 }
 
 initNudgePasskey();
-document.addEventListener('htmx:afterSettle', () => initNudgePasskey());
+initNudgeOAuthLastUsed();
+document.addEventListener('htmx:afterSettle', () => { initNudgePasskey(); initNudgeOAuthLastUsed(); });
 
 })();

@@ -359,8 +359,7 @@
             const beforeEl = compare.querySelector('.gup-compare-before') as HTMLElement | null;
             const afterEl = compare.querySelector('.gup-compare-after') as HTMLElement | null;
             if (beforeEl && afterEl) {
-                function setPosition(x: number): void {
-                    const rect = compare!.getBoundingClientRect();
+                function setPosition(x: number, rect: DOMRect): void {
                     const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
                     const rightPct = (1 - pct) * 100;
                     const leftPct = pct * 100;
@@ -371,22 +370,24 @@
 
                 initCompareSliderPosition = (): void => {
                     const afterLabel = afterEl!.querySelector('.gup-compare-label-after') as HTMLElement | null;
+                    const cRect = compare!.getBoundingClientRect();
                     if (afterLabel) {
                         const labelRect = afterLabel.getBoundingClientRect();
                         const labelInset = 12; // 0.75rem
-                        setPosition(labelRect.left - labelInset);
+                        setPosition(labelRect.left - labelInset, cRect);
                     } else {
-                        const cRect = compare!.getBoundingClientRect();
-                        setPosition(cRect.left + cRect.width * 0.5);
+                        setPosition(cRect.left + cRect.width * 0.5, cRect);
                     }
                 };
 
                 initCompareSliderPosition();
 
                 let dragging = false;
+                let dragRect: DOMRect | null = null;
 
                 compareSlider.addEventListener('pointerdown', (e) => {
                     dragging = true;
+                    dragRect = compare!.getBoundingClientRect();
                     compareSlider!.setPointerCapture(e.pointerId);
                     e.preventDefault();
                 });
@@ -394,16 +395,17 @@
                 compare.addEventListener('pointerdown', (e) => {
                     if ((e.target as HTMLElement).closest('.gup-compare-handle, .gup-compare-expand')) return;
                     dragging = true;
-                    setPosition(e.clientX);
+                    dragRect = compare!.getBoundingClientRect();
+                    setPosition(e.clientX, dragRect);
                     e.preventDefault();
                 });
 
                 document.addEventListener('pointermove', (e) => {
-                    if (!dragging) return;
-                    setPosition(e.clientX);
+                    if (!dragging || !dragRect) return;
+                    setPosition(e.clientX, dragRect);
                 });
 
-                document.addEventListener('pointerup', () => { dragging = false; });
+                document.addEventListener('pointerup', () => { dragging = false; dragRect = null; });
 
                 // Fullscreen compare
                 const expandBtn = document.getElementById('images-compare-expand');
@@ -539,8 +541,7 @@
         const fsAfter = fsWidget.querySelector('.gup-compare-after') as HTMLElement;
         const fsSlider = fsWidget.querySelector('.gup-compare-slider') as HTMLElement;
 
-        function setFsPosition(x: number): void {
-            const rect = fsWidget.getBoundingClientRect();
+        function setFsPosition(x: number, rect: DOMRect): void {
             const pct = Math.max(0, Math.min(1, (x - rect.left) / rect.width));
             const rPct = (1 - pct) * 100;
             const lPct = pct * 100;
@@ -556,13 +557,17 @@
         }
 
         let fsDragging = false;
-        fsSlider.addEventListener('pointerdown', (e) => { fsDragging = true; fsSlider.setPointerCapture(e.pointerId); e.preventDefault(); });
+        let fsDragRect: DOMRect | null = null;
+        fsSlider.addEventListener('pointerdown', (e) => { fsDragging = true; fsDragRect = fsWidget.getBoundingClientRect(); fsSlider.setPointerCapture(e.pointerId); e.preventDefault(); });
         fsWidget.addEventListener('pointerdown', (e) => {
             if ((e.target as HTMLElement).closest('.gup-compare-handle')) return;
-            fsDragging = true; setFsPosition(e.clientX); e.preventDefault();
+            fsDragging = true;
+            fsDragRect = fsWidget.getBoundingClientRect();
+            setFsPosition(e.clientX, fsDragRect);
+            e.preventDefault();
         });
-        document.addEventListener('pointermove', (e) => { if (fsDragging) setFsPosition(e.clientX); });
-        document.addEventListener('pointerup', () => { fsDragging = false; });
+        document.addEventListener('pointermove', (e) => { if (fsDragging && fsDragRect) setFsPosition(e.clientX, fsDragRect); });
+        document.addEventListener('pointerup', () => { fsDragging = false; fsDragRect = null; });
 
         function closeFs(): void {
             overlay.classList.remove('compare-fs-open');

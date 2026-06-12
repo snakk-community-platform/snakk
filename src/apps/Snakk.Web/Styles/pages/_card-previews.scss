@@ -574,9 +574,11 @@
     gap: 0.5rem;
     padding: 0.625rem 0.75rem;
     border-radius: 0.375rem;
-    background: color-mix(in srgb, var(--sidebar-bg) 40%, transparent);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    // Replaced backdrop-filter: blur(10px) with a solid semi-opaque fill.
+    // backdrop-filter triggers GPU compositing layers on every card in the feed,
+    // hurting scroll performance. A 60% sidebar-bg mix over the bg-secondary
+    // baseline gives equivalent visual separation without the compositor cost.
+    background: color-mix(in srgb, var(--sidebar-bg) 60%, var(--bg-secondary));
 
     &.sn-iama-phase--announced {
         background: color-mix(in srgb, var(--accent-warning-strong) 18%, transparent);

@@ -105,8 +105,9 @@ public class SpaceGrpcService(
                     Title = ld.Title,
                     Slug = ld.Slug,
                     LastActivityAt = Timestamp.FromDateTime(DateTime.SpecifyKind(ld.LastActivityAt, DateTimeKind.Utc)),
-                    AuthorPublicId = ld.AuthorPublicId,
-                    AuthorDisplayName = ld.AuthorDisplayName,
+                    // Coalesce: GDPR-anonymized authors have null ids; proto setters throw on null
+                    AuthorPublicId = ld.AuthorPublicId ?? "",
+                    AuthorDisplayName = ld.AuthorDisplayName ?? "",
                     AuthorAvatarFileName = ld.AuthorAvatarFileName ?? "",
                     PostCount = ld.PostCount
                 };
@@ -301,8 +302,9 @@ public class SpaceGrpcService(
                     Title = ld.Title,
                     Slug = ld.Slug,
                     LastActivityAt = Timestamp.FromDateTime(DateTime.SpecifyKind(ld.LastActivityAt, DateTimeKind.Utc)),
-                    AuthorPublicId = ld.AuthorPublicId,
-                    AuthorDisplayName = ld.AuthorDisplayName,
+                    // Coalesce: GDPR-anonymized authors have null ids; proto setters throw on null
+                    AuthorPublicId = ld.AuthorPublicId ?? "",
+                    AuthorDisplayName = ld.AuthorDisplayName ?? "",
                     PostCount = ld.PostCount
                 };
                 if (ld.AuthorAvatarFileName is not null)

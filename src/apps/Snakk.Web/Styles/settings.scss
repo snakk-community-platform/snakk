@@ -1,7 +1,7 @@
 // Settings page CSS — lazy-loaded on all Settings/* pages.
 // Extracted from site.scss to reduce critical CSS on non-settings pages.
+// Note: base/variables is NOT @used here — site.css emits the :root custom properties.
 
-@use 'base/variables';
 @use 'components/callout';
 @use 'pages/settings';
 @use 'pages/scrollspy';

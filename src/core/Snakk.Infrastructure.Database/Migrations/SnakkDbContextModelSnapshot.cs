@@ -21,6 +21,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                 .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.AchievementDatabaseEntity", b =>
@@ -2887,6 +2888,37 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.ToTable("Space");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.StatsRollupDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ComputedAt")
+                        .HasColumnType("timestamptz");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StatKind")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StatKind", "Rank")
+                        .HasDatabaseName("IX_StatsRollup_StatKind_Rank");
+
+                    b.ToTable("StatsRollup");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SystemSettingDatabaseEntity", b =>
                 {
                     b.Property<int>("Id")
@@ -3460,7 +3492,10 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasFilter("\"IsDeleted\" = FALSE");
 
                     b.HasIndex("DisplayName")
-                        .HasDatabaseName("IX_User_DisplayName");
+                        .HasDatabaseName("IX_User_DisplayName_Trgm");
+
+                    NpgsqlIndexBuilderExtensions.HasMethod(b.HasIndex("DisplayName"), "gin");
+                    NpgsqlIndexBuilderExtensions.HasOperators(b.HasIndex("DisplayName"), new[] { "gin_trgm_ops" });
 
                     b.HasIndex("Email")
                         .HasDatabaseName("IX_User_Email")

@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
@@ -32,7 +33,8 @@ public class ManageGrpcService(
     IGroupAccessService groupAccessService,
     IHubManagementService hubManagementService,
     IAllowedTypesService allowedTypesService,
-    DiscussionUseCase discussionUseCase) : ManageService.ManageServiceBase
+    DiscussionUseCase discussionUseCase,
+    HybridCache cache) : ManageService.ManageServiceBase
 {
     public override async Task<ResolveScopeResponse> ResolveScope(
         ResolveScopeRequest request,
@@ -1581,6 +1583,7 @@ public class ManageGrpcService(
             return new CreateBannerResponse { Success = false, ErrorMessage = result.Error };
 
         await realtimeNotifier.NotifyBannerUpdatedAsync(request.ScopeType, request.ScopePublicId);
+        await cache.RemoveAsync(BannerCacheKey(scope, request.ScopePublicId));
 
         return new CreateBannerResponse { Success = true, PublicId = result.Value!.PublicId.Value };
     }
@@ -1620,6 +1623,7 @@ public class ManageGrpcService(
             return new UpdateBannerResponse { Success = false, ErrorMessage = result.Error };
 
         await realtimeNotifier.NotifyBannerUpdatedAsync(a.Scope.ToString(), a.ScopeEntityId);
+        await cache.RemoveAsync(BannerCacheKey(a.Scope, a.ScopeEntityId));
 
         return new UpdateBannerResponse { Success = true };
     }
@@ -1647,6 +1651,7 @@ public class ManageGrpcService(
             return new DeleteBannerResponse { Success = false, ErrorMessage = result.Error };
 
         await realtimeNotifier.NotifyBannerUpdatedAsync(a.Scope.ToString(), a.ScopeEntityId);
+        await cache.RemoveAsync(BannerCacheKey(a.Scope, a.ScopeEntityId));
 
         return new DeleteBannerResponse { Success = true };
     }
@@ -1707,6 +1712,15 @@ public class ManageGrpcService(
         return httpContext.User.FindFirstValue("sub")
             ?? httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
     }
+
+    private static string BannerCacheKey(BannerScopeEnum scope, string entityId) =>
+        scope switch
+        {
+            BannerScopeEnum.Community => $"banners:community:{entityId}",
+            BannerScopeEnum.Hub      => $"banners:hub:{entityId}",
+            BannerScopeEnum.Space    => $"banners:space:{entityId}",
+            _                        => $"banners:community:{entityId}"
+        };
 
     private static bool IsValidDiscordWebhookUrl(string url) =>
         Uri.TryCreate(url, UriKind.Absolute, out var uri)

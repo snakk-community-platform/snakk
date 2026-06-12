@@ -89,8 +89,11 @@ public static class ServiceCollectionExtensions
         else
             services.AddDistributedMemoryCache();
 
-        // HybridCache uses IDistributedCache above as L2 backing store
-        services.AddHybridCache();
+        // HybridCache uses IDistributedCache above as L2 backing store.
+        // Protobuf messages need a binary serializer — the default System.Text.Json
+        // serializer cannot rehydrate their get-only repeated fields from L2.
+        services.AddHybridCache()
+            .AddSerializerFactory<Services.ProtobufHybridCacheSerializerFactory>();
 
         // JWT Service (IDistributedCache used for token revocation, shared across Api + PublicApi)
         services.AddSingleton<IJwtTokenService, JwtTokenService>();
@@ -158,7 +161,7 @@ public static class ServiceCollectionExtensions
                     // separate finding to make it distributed); single-replica
                     // deployments now get the same behavior REST and gRPC.
                     var revocationCache = services.GetRequiredService<Application.Services.IRevocationCache>();
-                    if (revocationCache.IsUserRevoked(userId))
+                    if (await revocationCache.IsUserRevokedAsync(userId, context.HttpContext.RequestAborted))
                     {
                         context.Fail("User has been revoked");
                         return;
@@ -264,6 +267,9 @@ public static class ServiceCollectionExtensions
         // Activity snapshot repository
         services.AddScoped<Application.Repositories.IActivitySnapshotRepository, Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
         services.AddScoped<Application.Repositories.IDiscussionViewRepository, Infrastructure.Database.Repositories.DiscussionViewRepository>();
+
+        // Stats Rollup Repository
+        services.AddScoped<Application.Repositories.IStatsRollupRepository, Infrastructure.Database.Repositories.StatsRollupRepository>();
 
         // Dashboard Chart Repository (Application layer interface, Infrastructure implementation)
         services.AddScoped<Application.Repositories.IDashboardChartRepository, Infrastructure.Database.Repositories.DashboardChartRepository>();
@@ -399,6 +405,12 @@ public static class ServiceCollectionExtensions
         // Cache Warming Event Handlers
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.DiscussionCreatedEvent>,
             Infrastructure.EventHandlers.Cache.DiscussionCreatedPreviewCacheHandler>();
+
+        // Cache Invalidation Event Handlers
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.DiscussionCreatedEvent>,
+            Infrastructure.EventHandlers.Cache.DiscussionCreatedSpaceLatestCacheHandler>();
+        services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.PostCreatedEvent>,
+            Infrastructure.EventHandlers.Cache.PostCreatedSpaceLatestCacheHandler>();
 
         // Discord Webhook Notification Event Handlers
         services.AddScoped<Application.Events.IDomainEventHandler<Domain.Events.DiscussionCreatedEvent>,

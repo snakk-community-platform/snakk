@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using NSubstitute;
 using Snakk.Application.Services;
@@ -24,7 +26,13 @@ public class UserRepositoryAdapterTests : IDisposable
         var mockEmailProtector = Substitute.For<IEmailProtector>();
         mockEmailProtector.Protect(Arg.Any<string>()).Returns(callInfo => callInfo.ArgAt<string>(0));
         mockEmailProtector.Unprotect(Arg.Any<string>()).Returns(callInfo => callInfo.ArgAt<string>(0));
-        mockEmailProtector.ComputeHash(Arg.Any<string>()).Returns(callInfo => callInfo.ArgAt<string>(0).Trim().ToLowerInvariant());
+        // Match EmailProtector.ComputeHash: SHA256(UTF8(email.Trim().ToLowerInvariant())) → hex lower
+        mockEmailProtector.ComputeHash(Arg.Any<string>()).Returns(callInfo =>
+        {
+            var email = callInfo.ArgAt<string>(0);
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
+            return Convert.ToHexStringLower(bytes);
+        });
 
         _adapter = new UserRepositoryAdapter(databaseRepo, _db.Context, mockEmailProtector, Substitute.For<IMemoryCache>());
     }

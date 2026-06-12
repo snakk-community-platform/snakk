@@ -1,6 +1,6 @@
 // Editor CSS — lazy-loaded on discussion detail (on first Reply/Edit interaction)
 // and loaded eagerly on all New*.cshtml creation pages.
-@use 'base/variables';
+// Note: base/variables is NOT @used here — site.css emits the :root custom properties.
 @use 'components/callout';
 @use 'features/milkdown';
 @use 'components/mentions';

@@ -990,4 +990,13 @@ interface Subscriptions {
         if (worker) updateWorkerSubscriptions();
         else if (connection) updateDirectSubscriptions();
     });
+
+    // Notify the SharedWorker when this tab is closing so it can immediately
+    // remove the tab entry and clean up group subscriptions, rather than
+    // leaking them until the next naturally-triggered sweep.
+    // Skip when the page enters bfcache (persisted=true): it may be restored
+    // and must keep its worker registration alive.
+    window.addEventListener('pagehide', (event) => {
+        if (!event.persisted && worker) worker.port.postMessage({ type: 'unregister' });
+    });
 })();

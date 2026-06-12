@@ -58,7 +58,7 @@ public class AuthValidationInterceptor(
         var userId = currentUser.GetCurrentUserId();
         if (userId is null) return;
 
-        if (revocationCache.IsUserRevoked(userId))
+        if (await revocationCache.IsUserRevokedAsync(userId, context.CancellationToken))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "USER_REVOKED"));
 
         var httpContext = httpContextAccessor.HttpContext;

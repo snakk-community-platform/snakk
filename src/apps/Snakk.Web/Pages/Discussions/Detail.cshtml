@@ -55,6 +55,15 @@
         var authorName = firstPost?.Author?.DisplayName ?? T.Pages.DiscAnonymous;
         ViewData["CanonicalUrl"] = url;
 
+        // For Images-type discussions use the first image's medium URL as og:image
+        var firstImg = Model.Discussion.Type == "Images" && Model.ImagesItems.Count > 0 ? Model.ImagesItems[0] : null;
+        var ogImageUrl = firstImg != null
+            ? (firstImg.HasMediumThumbnailUrl ? firstImg.MediumThumbnailUrl : firstImg.Url)
+            : (string.IsNullOrEmpty(authorAvatar) ? null : $"{siteBase}{authorAvatar}");
+        var ogImageW = firstImg != null && firstImg.HasMediumThumbnailWidth ? firstImg.MediumThumbnailWidth : (firstImg?.Width ?? 0);
+        var ogImageH = firstImg != null && firstImg.HasMediumThumbnailHeight ? firstImg.MediumThumbnailHeight : (firstImg?.Height ?? 0);
+        var ogImageAlt = firstImg != null ? Model.Discussion!.Title : authorName;
+
         <meta name="description" content="@description" />
 
         <!-- Open Graph -->
@@ -62,10 +71,15 @@
         <meta property="og:description" content="@description" />
         <meta property="og:type" content="article" />
         <meta property="og:url" content="@url" />
-        @if (!contentIsAdult && !string.IsNullOrEmpty(authorAvatar))
+        @if (!contentIsAdult && ogImageUrl != null)
         {
-            <meta property="og:image" content="@($"{siteBase}{authorAvatar}")" />
-            <meta property="og:image:alt" content="@authorName" />
+            <meta property="og:image" content="@ogImageUrl" />
+            <meta property="og:image:alt" content="@ogImageAlt" />
+            @if (ogImageW > 0 && ogImageH > 0)
+            {
+                <meta property="og:image:width" content="@ogImageW" />
+                <meta property="og:image:height" content="@ogImageH" />
+            }
         }
         <meta property="article:published_time" content="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")" />
         <meta property="article:author" content="@authorName" />
@@ -75,12 +89,12 @@
         }
 
         <!-- Twitter Card -->
-        <meta name="twitter:card" content="summary" />
+        <meta name="twitter:card" content="@(firstImg != null ? "summary_large_image" : "summary")" />
         <meta name="twitter:title" content="@Model.Discussion!.Title" />
         <meta name="twitter:description" content="@description" />
-        @if (!contentIsAdult && !string.IsNullOrEmpty(authorAvatar))
+        @if (!contentIsAdult && ogImageUrl != null)
         {
-            <meta name="twitter:image" content="@($"{siteBase}{authorAvatar}")" />
+            <meta name="twitter:image" content="@ogImageUrl" />
         }
 
         <!-- JSON-LD Structured Data -->
@@ -706,7 +720,7 @@
                                                     {
                                                         <text>srcset="@carouselSrcset" sizes="@SnakkImageHelper.DefaultSizes"</text>
                                                     }
-                                                         data-full="@img.Url" width="@w" height="@h" alt="" loading="@(isFirst ? "eager" : "lazy")"
+                                                         data-full="@img.Url" width="@w" height="@h" alt="" loading="@(isFirst ? "eager" : "lazy")"@(isFirst ? " fetchpriority=\"high\"" : "")
                                                          decoding="async" class="images-blur-up" data-blur-up />
                                                 }
                                             </div>
@@ -1634,7 +1648,7 @@
                     <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                                     model="Model.InlineSpaceRules"
                                     htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
-                        <div class="flex flex-col gap-2">
+                        <div class="flex flex-col gap-2" style="min-height:4rem">
                             <div class="skeleton h-4 w-full"></div>
                             <div class="skeleton h-4 w-5/6"></div>
                             <div class="skeleton h-4 w-4/6"></div>
@@ -1660,7 +1674,7 @@
                     <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                                     model="Model.InlineModerators"
                                     htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
-                        <div class="flex flex-col gap-2">
+                        <div class="flex flex-col gap-2" style="min-height:6rem">
                             <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
                             <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
                             <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-28"></div></div>
@@ -1761,11 +1775,23 @@
 </div>
 
 <!-- Utility Scripts -->
-<script src="@SnakkUrlHelper.Js("services/cache-manager")"></script>
-<script src="@SnakkUrlHelper.Js("services/read-history")"></script>
-<script src="@SnakkUrlHelper.Js("services/follow-cache")"></script>
-<script src="@SnakkUrlHelper.Js("services/draft-manager")"></script>
-<script src="@SnakkUrlHelper.Js("services/read-state-batcher")"></script>
+@if (User.Identity?.IsAuthenticated != true)
+{
+    @* DOMPurify for SnakkUtils.sanitizeHtml on rendered post content. The layout
+       already loads it for authenticated users (alongside realtime). *@
+    <script id="js-dompurify" hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true" defer></script>
+}
+<script src="@SnakkUrlHelper.Js("services/read-history")" defer></script>
+@if (User.Identity?.IsAuthenticated == true)
+{
+    @* Auth-only features: follows/mutes, reply drafts, server-side read state.
+       discussion-detail.ts existence-checks all three globals, so omitting the
+       scripts for anonymous visitors is safe. CacheManager (follow-cache's base
+       class) ships in the layout's auth-bundle, which loads earlier in the DOM. *@
+    <script src="@SnakkUrlHelper.Js("services/follow-cache")" defer></script>
+    <script src="@SnakkUrlHelper.Js("services/draft-manager")" defer></script>
+    <script src="@SnakkUrlHelper.Js("services/read-state-batcher")" defer></script>
+}
 
 @if (Model.Discussion?.Type == "Poll")
 {
@@ -1776,18 +1802,15 @@
     <script src="@SnakkUrlHelper.Js("components/iama-countdown")" asp-append-version="true" defer></script>
     <script src="@SnakkUrlHelper.Js("components/iama-widget")" asp-append-version="true" defer></script>
 }
-@if (Model.Discussion?.Type == "Images")
-{
-    <script src="@SnakkUrlHelper.Js("components/lightbox")" asp-append-version="true"></script>
-}
+@* lightbox ships in the layout's app-bundle on every page *@
 @if (Model.Discussion?.Type is not "Standard" and not "Poll")
 {
-    <script src="@SnakkUrlHelper.Js("components/discussion-type-widgets")" asp-append-version="true"></script>
+    <script src="@SnakkUrlHelper.Js("components/discussion-type-widgets")" asp-append-version="true" defer></script>
 }
 @* Markdown editor (488KB) — lazy-loaded when reply form enters viewport or user clicks reply/edit *@
 <script id="editor-loader-config" type="application/json">{"editorSrc":"@SnakkUrlHelper.Js("components/markdown-editor")"}</script>
 <script src="@SnakkUrlHelper.Js("core/editor-loader")" asp-append-version="true" defer></script>
-<script src="@SnakkUrlHelper.Js("pages/discussion-detail")" asp-append-version="true"></script>
+<script src="@SnakkUrlHelper.Js("pages/discussion-detail")" asp-append-version="true" defer></script>
 @* Discussion config — parsed by discussion-detail.ts (CSP-safe: type=application/json is not executed) *@
 <script type="application/json" id="discussion-page-config">
     @Html.Raw(System.Text.Json.JsonSerializer.Serialize(new

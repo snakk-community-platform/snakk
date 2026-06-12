@@ -438,7 +438,7 @@ public class AuthEndpointTests : IAsyncDisposable
         using (var scope = _server.Services.CreateScope())
         {
             var revocation = scope.ServiceProvider.GetRequiredService<Snakk.Application.Services.IRevocationCache>();
-            revocation.RevokeUser(userId);
+            await revocation.RevokeUserAsync(userId);
         }
 
         var token = AuthHelper.GenerateTestToken(userId: userId);

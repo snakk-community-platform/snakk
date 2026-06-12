@@ -38,7 +38,7 @@
                      alt="@Model.Profile.DisplayName"
                      width="80" height="80"
                      class="sn-profile-avatar"
-                     decoding="async" />
+                     decoding="async" fetchpriority="high" />
                 <div class="sn-profile-info">
                     <div class="sn-profile-name-row">
                         <h1 class="sn-profile-name">@Model.Profile.DisplayName</h1>
@@ -350,4 +350,10 @@
 }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
     </script>
 }
-<script src="@SnakkUrlHelper.Js("pages/profile")" asp-append-version="true"></script>
+@if (User.Identity?.IsAuthenticated != true)
+{
+    @* DOMPurify for SnakkUtils.sanitizeHtml on activity content previews. The layout
+       already loads it for authenticated users (alongside realtime). *@
+    <script id="js-dompurify" hx-preserve src="@SnakkUrlHelper.Js("dompurify.min", isVendor: true)" asp-append-version="true" defer></script>
+}
+<script src="@SnakkUrlHelper.Js("pages/profile")" asp-append-version="true" defer></script>

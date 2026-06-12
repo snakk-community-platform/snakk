@@ -8,5 +8,6 @@
     @await RenderSectionAsync("Styles", required: false)
     @RenderBody()
     @await RenderSectionAsync("Scripts", required: false)
-    <script src="@SnakkUrlHelper.Js("core/spoiler-restore")" asp-append-version="true"></script>
+    @* Spoiler/adult reveal state is restored by components/spoiler-restore (app-bundle)
+       via htmx:afterSettle — fires in the same task as the swap, before paint. *@
 </div>

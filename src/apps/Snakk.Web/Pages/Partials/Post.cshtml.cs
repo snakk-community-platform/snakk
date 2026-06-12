@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Caching.Memory;
 using Snakk.Protos.Post;
 using Snakk.Web.Services;
 
@@ -10,7 +9,7 @@ public class PostModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    IMemoryCache cache) : BasePageModel(configuration, communityContext)
+    PartialRenderCache cache) : BasePageModel(configuration, communityContext)
 {
     public EnrichedPostInfo? Post { get; set; }
     public bool IsAuthenticated { get; set; }
@@ -29,7 +28,7 @@ public class PostModel(
         CurrentUserId = user?.PublicId;
 
         var cacheKey = $"partial:post:{postId}:{(IsAuthenticated ? "auth" : "anon")}";
-        Post = await cache.GetOrCreateAsync(cacheKey, async entry =>
+        Post = await cache.GetOrCreateAsync<EnrichedPostInfo>(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10);
             var postNumber = await apiClient.GetPostNumberAsync(discussionId, postId);

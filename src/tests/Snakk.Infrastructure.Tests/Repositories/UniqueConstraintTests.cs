@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Infrastructure.Tests.Helpers;
@@ -43,13 +45,16 @@ public class UniqueConstraintTests : IDisposable
         await _builder.CreateUserAsync(email: "same@test.com");
 
         // Use a separate context to avoid change tracker conflicts
+        // EmailHash must match the write-path: SHA256(UTF8(email.Trim().ToLowerInvariant())) → hex lower
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes("same@test.com"));
+        var duplicateHash = Convert.ToHexStringLower(hashBytes);
         using var insertContext = _db.CreateSeparateContext();
         insertContext.Users.Add(new UserDatabaseEntity
         {
             PublicId = $"u_{Guid.NewGuid():N}",
             DisplayName = "Another User",
             Email = "same@test.com",
-            EmailHash = "same@test.com",
+            EmailHash = duplicateHash,
             CreatedAt = DateTime.UtcNow
         });
 

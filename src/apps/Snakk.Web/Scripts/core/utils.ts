@@ -118,8 +118,10 @@ interface SnakkUtilsAPI {
 
     /**
      * Sanitize HTML to prevent XSS while preserving safe markup.
-     * Strips script/iframe/object tags, event handler attributes, and javascript: URLs.
-     * Use for server-rendered HTML content (e.g., rendered markdown from BFF).
+     * Requires DOMPurify (loaded by the pages/flows that insert HTML via JS:
+     * discussion detail, profile, realtime). FAILS CLOSED: if DOMPurify is not
+     * loaded, the content is HTML-escaped and renders as plain text — never
+     * pass HTML through a weaker sanitizer.
      */
     function sanitizeHtml(html: string): string {
         if (!html) return '';
@@ -127,23 +129,7 @@ interface SnakkUtilsAPI {
         if (purify) {
             return purify.sanitize(html, { USE_PROFILES: { html: true } });
         }
-        // Fallback if DOMPurify not available (should not occur in normal page flow)
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(html, 'text/html');
-        doc.querySelectorAll('script,iframe,object,embed,form,base,meta,link,style').forEach(el => el.remove());
-        doc.body.querySelectorAll('*').forEach(el => {
-            Array.from(el.attributes).forEach(attr => {
-                if (attr.name.startsWith('on')) el.removeAttribute(attr.name);
-            });
-            ['href', 'src', 'action', 'formaction', 'xlink:href'].forEach(attrName => {
-                const value = el.getAttribute(attrName);
-                if (!value) return;
-                const trimmed = value.trim().toLowerCase();
-                if (trimmed.startsWith('javascript:')) el.removeAttribute(attrName);
-                if (attrName === 'src' && trimmed.startsWith('data:') && !trimmed.startsWith('data:image/')) el.removeAttribute(attrName);
-            });
-        });
-        return doc.body.innerHTML;
+        return escapeHtml(html);
     }
 
     /**

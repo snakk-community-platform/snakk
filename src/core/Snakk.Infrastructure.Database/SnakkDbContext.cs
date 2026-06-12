@@ -86,6 +86,9 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Discussion view counts (hourly, by country)
     public DbSet<DiscussionViewSnapshotDatabaseEntity> DiscussionViewSnapshots { get; set; } = null!;
 
+    // Stats rollup (pre-computed global stats for frontpage sidebars)
+    public DbSet<StatsRollupDatabaseEntity> StatsRollups { get; set; } = null!;
+
     // Direct Messages
     public DbSet<DmConversationDatabaseEntity> DmConversations { get; set; } = null!;
     public DbSet<DmMessageDatabaseEntity> DmMessages { get; set; } = null!;
@@ -1389,6 +1392,21 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .IsDescending(false, true)
             .HasDatabaseName("IX_Discussion_SpaceId_CreatedAt_Desc");
 
+        // === Trigram Full-Text Search (pg_trgm GIN index on DisplayName for ILIKE '%x%') ===
+        // pg_trgm is PostgreSQL-specific; ignore for other providers (SQLite, InMemory)
+        if (Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+        {
+            modelBuilder.HasPostgresExtension("pg_trgm");
+
+            // GIN trigram index on DisplayName — lets PostgreSQL use an index scan for
+            // ILIKE '%query%' (SearchByDisplayNameAsync) instead of a full sequential scan.
+            modelBuilder.Entity<UserDatabaseEntity>()
+                .HasIndex(u => u.DisplayName)
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops")
+                .HasDatabaseName("IX_User_DisplayName_Trgm");
+        }
+
         // === Full-Text Search (tsvector stored generated columns + GIN indexes) ===
         // NpgsqlTsVector is PostgreSQL-specific; ignore for other providers (SQLite, InMemory)
         if (Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
@@ -1997,5 +2015,19 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
 
         modelBuilder.Entity<DmConversationDatabaseEntity>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<DmMessageDatabaseEntity>().HasQueryFilter(e => !e.IsDeleted);
+
+        // === StatsRollup Configuration ===
+
+        // StatsRollup: primary query is (StatKind, Rank) for ordered reads
+        modelBuilder.Entity<StatsRollupDatabaseEntity>()
+            .HasIndex(r => new { r.StatKind, r.Rank })
+            .HasDatabaseName("IX_StatsRollup_StatKind_Rank");
+
+        modelBuilder.Entity<StatsRollupDatabaseEntity>(entity =>
+        {
+            entity.Property(r => r.StatKind).HasMaxLength(100).IsRequired();
+            entity.Property(r => r.PayloadJson).IsRequired();
+            entity.Property(r => r.ComputedAt).HasColumnType("timestamptz");
+        });
     }
 }

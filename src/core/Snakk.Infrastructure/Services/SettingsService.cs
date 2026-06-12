@@ -19,8 +19,11 @@ public class SettingsService : ISettingsService
     private readonly IDataProtector _dataProtector;
     private readonly IConfiguration _configuration;
     private readonly ISecurityService _securityService;
-    private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
-    private static readonly HybridCacheEntryOptions LongCacheOptions = new() { Expiration = TimeSpan.FromHours(1) };
+    // All category mutations (UpdateSettingAsync, UpdateAllowedDisplayNameScriptsAsync) call
+    // cache.RemoveAsync for the affected category key, so the TTL is a safety net only.
+    private static readonly HybridCacheEntryOptions CacheOptions = new() { Expiration = TimeSpan.FromHours(24) };
+    // site-info is invalidated explicitly by UpdateSiteInfoAsync; 24 h TTL is a safety net.
+    private static readonly HybridCacheEntryOptions LongCacheOptions = new() { Expiration = TimeSpan.FromHours(24) };
     private const string SiteInfoCacheKey = "site-info";
 
     public SettingsService(
@@ -81,43 +84,22 @@ public class SettingsService : ISettingsService
 
     public async Task<SettingDto?> GetSettingAsync(string category, string key, CancellationToken ct = default)
     {
-        var setting = await _context.SystemSettings
-            .Include(s => s.UpdatedBy)
-            .FirstOrDefaultAsync(s =>
-                s.Category == category
-                && s.Key == key, ct);
-
-        if (setting is null)
-            return null;
-
-        return new SettingDto
-        {
-            Id = setting.PublicId,
-            Category = setting.Category,
-            Key = setting.Key,
-            Value = setting.IsEncrypted ? DecryptValue(setting.Value) : setting.Value,
-            ValueType = setting.ValueType,
-            IsEncrypted = setting.IsEncrypted,
-            Description = setting.Description,
-            UpdatedAt = setting.UpdatedAt,
-            UpdatedByUsername = setting.UpdatedBy is not null ? setting.UpdatedBy.DisplayName : null
-        };
+        // Route through the category cache so this call benefits from the same cached set
+        // as GetSettingsByCategoryAsync and is invalidated together with it on writes.
+        var categoryResponse = await GetSettingsByCategoryAsync(category, ct);
+        return categoryResponse.Settings.FirstOrDefault(s => s.Key == key);
     }
 
     public async Task<T?> GetSettingValueAsync<T>(string category, string key, CancellationToken ct = default)
     {
         try
         {
-            var setting = await _context.SystemSettings
-                .FirstOrDefaultAsync(s =>
-                    s.Category == category
-                    && s.Key == key, ct);
-
-            if (setting is null)
-                return default;
-
-            var value = setting.IsEncrypted ? DecryptValue(setting.Value) : setting.Value;
-            return DeserializeValue<T>(value, setting.ValueType);
+            // Route through the category cache so this call benefits from the same cached set
+            // as GetSettingsByCategoryAsync and is invalidated together with it on writes.
+            var categoryResponse = await GetSettingsByCategoryAsync(category, ct);
+            var setting = categoryResponse.Settings.FirstOrDefault(s => s.Key == key);
+            if (setting is null) return default;
+            return DeserializeValue<T>(setting.Value, setting.ValueType);
         }
         catch (Npgsql.PostgresException)
         {

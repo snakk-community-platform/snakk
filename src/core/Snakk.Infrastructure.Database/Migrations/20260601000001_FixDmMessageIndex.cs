@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -5,6 +6,11 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Snakk.Infrastructure.Database.Migrations
 {
     /// <inheritdoc />
+    // Raw-SQL migration with no Designer file: the [DbContext]/[Migration] attributes
+    // (normally generated in the Designer) are REQUIRED for EF to discover and apply
+    // a migration - without them it is silently skipped.
+    [DbContext(typeof(SnakkDbContext))]
+    [Migration("20260601000001_FixDmMessageIndex")]
     public partial class FixDmMessageIndex : Migration
     {
         /// <inheritdoc />

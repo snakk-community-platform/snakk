@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Grpc.Core;
 using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Services;
@@ -97,11 +99,14 @@ public class TwoFactorGrpcService(
         // persists — the SnakkDbContext default is NoTrackingWithIdentityResolution,
         // which silently no-ops EF change-detection on Include()d collections. CR-22
         // in docs/SECURITY-AUDIT-2026-05-23.md: backup codes were infinitely reusable.
+        // Hash matches EmailProtector.ComputeHash: SHA256(UTF8(email.Trim().ToLowerInvariant())) → hex lower
+        var emailHashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(request.Email.Trim().ToLowerInvariant()));
+        var emailHash = Convert.ToHexStringLower(emailHashBytes);
         var user = await context.Users
             .AsTracking()
             .Include(u => u.TwoFactorBackupCodes)
             .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
+            .FirstOrDefaultAsync(u => u.EmailHash == emailHash, ct);
 
         if (user is null || !user.TwoFactorEnabled)
         {

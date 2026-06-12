@@ -47,13 +47,6 @@ public class DiscussionRepository(SnakkDbContext context)
     public async Task<DiscussionDatabaseEntity?> GetBySlugAsync(string slug, CancellationToken ct = default) =>
         await _dbSet.FirstOrDefaultAsync(d => d.Slug == slug, ct);
 
-    public async Task<IEnumerable<DiscussionDatabaseEntity>> GetBySpaceIdAsync(int spaceId, CancellationToken ct = default) => await _dbSet
-        .AsNoTracking()
-        .Where(d => d.SpaceId == spaceId)
-        .OrderByDescending(d => d.IsPinned)
-        .ThenByDescending(d => d.LastActivityAt)
-        .ToListAsync(ct);
-
     public async Task<PagedResult<DiscussionListDto>> GetPagedBySpaceIdAsync(
         int spaceId,
         int offset,

@@ -40,31 +40,35 @@ internal static class PagedDiscussionListMapper
                 PostCount = d.PostCount,
                 ReactionCount = d.ReactionCount,
 
+                // Proto string setters throw ArgumentNullException on null — coalesce
+                // every possibly-null source (GDPR-anonymized authors have a null
+                // CreatedByUserPublicId; space-display cache misses leave hub/community
+                // fields null). One null here would otherwise fail the WHOLE response.
                 Space = new EntityRef
                 {
-                    PublicId = d.SpacePublicId,
-                    Slug = d.SpaceSlug,
-                    Name = d.SpaceName
+                    PublicId = d.SpacePublicId ?? "",
+                    Slug = d.SpaceSlug ?? "",
+                    Name = d.SpaceName ?? ""
                 },
                 Hub = new EntityRef
                 {
-                    PublicId = d.HubPublicId,
-                    Slug = d.HubSlug,
-                    Name = d.HubName
+                    PublicId = d.HubPublicId ?? "",
+                    Slug = d.HubSlug ?? "",
+                    Name = d.HubName ?? ""
                 },
                 Community = new EntityRef
                 {
-                    PublicId = d.CommunityPublicId,
-                    Slug = d.CommunitySlug,
-                    Name = d.CommunityName
+                    PublicId = d.CommunityPublicId ?? "",
+                    Slug = d.CommunitySlug ?? "",
+                    Name = d.CommunityName ?? ""
                 },
                 Author = new AuthorRef
                 {
-                    PublicId = d.CreatedByUserPublicId,
-                    DisplayName = d.CreatedByUserDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
+                    PublicId = d.CreatedByUserPublicId ?? "",
+                    DisplayName = d.CreatedByUserDisplayName ?? "",
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
+                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
+                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
                 }
             };
 

@@ -143,7 +143,7 @@
                 @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
                 {
                     <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor">
-                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" />
+                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
                         <span class="sn-trending-contributor-name">@c.DisplayName</span>
                         <span class="sn-card-tag sn-card-tag-light sn-tag-sm">@c.PostCountToday</span>
                     </a>

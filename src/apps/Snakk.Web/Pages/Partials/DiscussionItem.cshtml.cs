@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Microsoft.Extensions.Caching.Memory;
 using Snakk.Protos.Discussion;
 using Snakk.Web.Services;
 
@@ -10,7 +9,7 @@ public class DiscussionItemModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    IMemoryCache cache) : BasePageModel(configuration, communityContext)
+    PartialRenderCache cache) : BasePageModel(configuration, communityContext)
 {
     public DiscussionInfo? Discussion { get; set; }
     public string HubSlug { get; set; } = string.Empty;
@@ -34,7 +33,7 @@ public class DiscussionItemModel(
 
         // No per-user variation in discussion item rendering — fully shared cache
         var cacheKey = $"partial:discussion-item:{discussionId}";
-        Discussion = await cache.GetOrCreateAsync(cacheKey, async entry =>
+        Discussion = await cache.GetOrCreateAsync<DiscussionInfo>(cacheKey, async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(10);
             return await apiClient.GetDiscussionAsync(discussionId);

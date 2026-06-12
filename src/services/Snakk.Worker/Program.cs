@@ -105,6 +105,17 @@ builder.Services.AddHttpClient("WebhookService", client =>
 builder.Services.AddScoped<Snakk.Application.Repositories.IActivitySnapshotRepository, Snakk.Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
 builder.Services.AddScoped<Snakk.Application.Repositories.IDiscussionViewRepository, Snakk.Infrastructure.Database.Repositories.DiscussionViewRepository>();
 
+// Stats rollup repository
+builder.Services.AddScoped<Snakk.Application.Repositories.IStatsRollupRepository, Snakk.Infrastructure.Database.Repositories.StatsRollupRepository>();
+
+// Repositories required by StatisticsUseCase
+builder.Services.AddScoped<Snakk.Domain.Repositories.IPostRepository, Snakk.Infrastructure.Adapters.PostRepositoryAdapter>();
+builder.Services.AddScoped<Snakk.Domain.Repositories.IDiscussionRepository, Snakk.Infrastructure.Adapters.DiscussionRepositoryAdapter>();
+builder.Services.AddScoped<Snakk.Infrastructure.Database.Repositories.IPostRepository, Snakk.Infrastructure.Database.Repositories.PostRepository>();
+builder.Services.AddScoped<Snakk.Infrastructure.Database.Repositories.IDiscussionRepository, Snakk.Infrastructure.Database.Repositories.DiscussionRepository>();
+builder.Services.AddScoped<Snakk.Application.Repositories.IStatsRepository, Snakk.Infrastructure.Database.Repositories.StatsRepository>();
+builder.Services.AddScoped<Snakk.Application.UseCases.StatisticsUseCase>();
+
 // Background workers
 // AchievementCheckerWorker disabled — will be rewritten as event-driven
 // builder.Services.AddHostedService<AchievementCheckerWorker>();
@@ -113,6 +124,7 @@ builder.Services.AddHostedService<TemporaryRoleExpirationWorker>();
 builder.Services.AddHostedService<AvatarGenerationHostedService>();
 builder.Services.AddHostedService<OrphanMediaCleanupWorker>();
 builder.Services.AddHostedService<ActivitySnapshotWorker>();
+builder.Services.AddHostedService<StatsRollupWorker>();
 
 var host = builder.Build();
 

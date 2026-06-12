@@ -700,11 +700,12 @@ public class DiscussionGrpcService(
 
                 Author = new AuthorRef
                 {
-                    PublicId = d.AuthorPublicId,
-                    DisplayName = d.AuthorDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName, d.AuthorAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.AuthorPublicId, AvatarEntityType.User, 0, d.AuthorAvatarFileName)
+                    // Coalesce: GDPR-anonymized authors have null ids; proto setters throw on null
+                    PublicId = d.AuthorPublicId ?? "",
+                    DisplayName = d.AuthorDisplayName ?? "",
+                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId ?? "", AvatarEntityType.User, 0, d.AuthorAvatarFileName),
+                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.AuthorPublicId ?? "", AvatarEntityType.User, 0, d.AuthorAvatarFileName, d.AuthorAvatarThumbnailFileName),
+                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.AuthorPublicId ?? "", AvatarEntityType.User, 0, d.AuthorAvatarFileName)
                 }
             };
 

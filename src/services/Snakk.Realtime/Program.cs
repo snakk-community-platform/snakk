@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
@@ -18,14 +19,16 @@ builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "conf", "snakk-c
 
 //builder.AddSnakkDefaults();
 
-// Add SignalR with tuned limits
+// Add SignalR with tuned limits; register MessagePack alongside the default JSON protocol.
+// Clients that negotiate MessagePack get binary framing; JSON-only clients continue working unchanged.
 builder.Services.AddSignalR(options =>
 {
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(60);
     options.KeepAliveInterval = TimeSpan.FromSeconds(30);
     options.MaximumReceiveMessageSize = 32 * 1024; // 32 KB
     options.StreamBufferCapacity = 20;
-});
+})
+.AddMessagePackProtocol();
 
 // Fail-fast: reject placeholder secrets in production
 if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName != "Testing")

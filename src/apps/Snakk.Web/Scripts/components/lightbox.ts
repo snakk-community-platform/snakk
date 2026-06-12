@@ -1,6 +1,19 @@
 /**
  * Lightbox — full-screen image viewer with prev/next navigation.
  * Opens when clicking images that have a data-full attribute.
+ *
+ * Progressive loading sequence per slide:
+ *   1. Blur LQIP shown immediately (existing behaviour).
+ *   2. Medium-tier image (_med.webp, ~900px) set as src right away.
+ *   3. Full-resolution image loaded in a detached Image(); once complete
+ *      the src is swapped to full — guarded by a navigation token so a
+ *      stale full-res load that finishes after the user moved on is ignored.
+ *   4. Adjacent preloads use the medium variant instead of full.
+ *
+ * URL derivation: strip ".webp" from the full URL and append "_med.webp".
+ * Only applied to Snakk CDN post-image URLs (matching SNAKK_MEDIA_RE).
+ * If the medium variant 404s (images ≤900px wide have no _med file) the
+ * img onerror handler falls back to the full URL transparently.
  */
 
 (function() {
@@ -18,6 +31,19 @@
         document.head.appendChild(link);
     })();
 
+    // Matches full-resolution Snakk CDN post image URLs (no _thumb/_med suffix).
+    // Same pattern used by inline-gallery.ts.
+    const SNAKK_MEDIA_RE = /\/media\/posts\/\d{4}\/\d{2}\/\d{2}\/[^/._]+\.webp$/;
+
+    function isSnakkMediaUrl(url: string): boolean {
+        return SNAKK_MEDIA_RE.test(url);
+    }
+
+    /** Derive the medium-tier URL from a full-resolution URL. */
+    function deriveMedUrl(fullUrl: string): string {
+        return fullUrl.slice(0, -5) + '_med.webp'; // strip ".webp", append "_med.webp"
+    }
+
     let overlay: HTMLElement | null = null;
     let imgEl: HTMLImageElement | null = null;
     let lqipEl: HTMLImageElement | null = null;
@@ -27,6 +53,12 @@
     let currentIdx = 0;
     let savedScrollY = 0;
     let isZoomed = false;
+
+    // Navigation token: incremented on every show() call.  A full-res load
+    // closure captures the token at its creation time and checks it on
+    // completion; if they differ the user has already navigated and the swap
+    // is skipped.
+    let navToken = 0;
 
     let pinchScale = 1;
     let pinchTx = 0;
@@ -104,13 +136,14 @@
         currentIdx = idx;
         if (!imgEl) return;
 
-        imgEl.classList.remove('lightbox-loaded');
-        imgEl.src = images[idx]!;
+        // Bump the token so any in-flight full-res load for the previous slide
+        // will see a mismatch and skip the src swap.
+        const token = ++navToken;
 
-        // Apply the blur-data-uri for this slide as both an ambient backdrop
-        // (fullscreen blur via ::before) and a sized LQIP overlay rendered at
-        // the image's true aspect ratio, sitting in exactly the same area the
-        // real image will occupy until it loads.
+        imgEl.classList.remove('lightbox-loaded');
+
+        // --- Progressive loading ---
+        // Step 1: show the blur LQIP immediately (existing behaviour).
         const blur = blurs[idx] || null;
         if (lqipEl) {
             if (blur) lqipEl.src = blur;
@@ -126,6 +159,38 @@
             }
         }
 
+        const fullUrl = images[idx]!;
+
+        // Step 2: set src to the medium-tier URL right away (much faster to
+        // decode than full-res; bridges the blur→sharp gap on slow connections).
+        if (isSnakkMediaUrl(fullUrl)) {
+            const medUrl = deriveMedUrl(fullUrl);
+            imgEl.src = medUrl;
+
+            // If the medium file doesn't exist (images ≤900px wide have no
+            // _med variant) the browser fires onerror — fall back to full URL.
+            imgEl.onerror = () => {
+                imgEl!.onerror = null;
+                // Only replace if we're still on the same slide.
+                if (navToken === token) imgEl!.src = fullUrl;
+            };
+
+            // Step 3: start loading the full-res image in the background.
+            // When it completes, swap only if the user hasn't navigated away.
+            const fullImg = new window.Image();
+            fullImg.onload = () => {
+                if (navToken !== token) return; // user moved on — discard
+                imgEl!.onerror = null;
+                imgEl!.src = fullUrl;
+            };
+            fullImg.onerror = () => { /* full-res unavailable — medium is fine */ };
+            fullImg.src = fullUrl;
+        } else {
+            // Non-CDN URL (e.g. external image): load directly as before.
+            imgEl.onerror = null;
+            imgEl.src = fullUrl;
+        }
+
         // Update arrow visibility
         const prev = overlay?.querySelector('.lightbox-prev') as HTMLElement | null;
         const next = overlay?.querySelector('.lightbox-next') as HTMLElement | null;
@@ -136,15 +201,18 @@
         const counter = overlay?.querySelector('.lightbox-counter');
         if (counter) counter.textContent = `${idx + 1} / ${images.length}`;
 
-        // Preload adjacent images
+        // Preload adjacent images using their medium variant (not full-res),
+        // keeping bandwidth cost low while still giving an instant next-slide feel.
         preload(idx - 1);
         preload(idx + 1);
     }
 
+    /** Preload the medium variant of an adjacent slide (falls back to full for non-CDN). */
     function preload(idx: number): void {
         if (idx < 0 || idx >= images.length) return;
+        const fullUrl = images[idx]!;
         const p = new window.Image();
-        p.src = images[idx]!;
+        p.src = isSnakkMediaUrl(fullUrl) ? deriveMedUrl(fullUrl) : fullUrl;
     }
 
     function zoomIn(): void {
@@ -262,11 +330,12 @@
         else if (e.key === 'ArrowRight') next();
     });
 
-    // Preload a full image on hover (before the user clicks)
+    // Preload a medium-tier image on hover (before the user clicks).
+    // Falls back to full URL for non-CDN images.
     function preloadUrl(url: string): void {
         if (!url) return;
         const p = new window.Image();
-        p.src = url;
+        p.src = isSnakkMediaUrl(url) ? deriveMedUrl(url) : url;
     }
 
     // Expose for use by images code

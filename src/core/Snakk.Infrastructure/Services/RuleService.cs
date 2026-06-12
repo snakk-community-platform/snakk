@@ -11,7 +11,10 @@ public class RuleService(SnakkDbContext context, HybridCache cache) : IRuleServi
 {
     private const string SiteRulesRevisionCacheKey = "site-rules-revision";
     private const string HasSiteRulesCacheKey = "has-site-rules";
-    private static readonly HybridCacheEntryOptions RulesCacheOptions = new() { Expiration = TimeSpan.FromHours(1) };
+    // All UpdateXxxRulesAsync paths call cache.RemoveAsync for their respective keys before
+    // SaveChanges, so the TTL is a safety net only. UpdateRulesAsync re-fetches via GetRulesAsync
+    // after the mutation, which repopulates the cache with fresh data immediately.
+    private static readonly HybridCacheEntryOptions RulesCacheOptions = new() { Expiration = TimeSpan.FromHours(24) };
 
     private static string RulesCacheKey(string scopeType, string? scopePublicId) =>
         $"rules:{scopeType}:{scopePublicId ?? "site"}";

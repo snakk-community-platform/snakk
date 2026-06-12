@@ -17,6 +17,7 @@ public class GrpcAuthInterceptor : Interceptor
     private readonly ILogger<GrpcAuthInterceptor> _logger;
     private readonly Lazy<AuthService.AuthServiceClient> _authClientFactory;
 
+    private static readonly JwtSecurityTokenHandler _jwtHandler = new();
     private static readonly ConcurrentDictionary<string, Lazy<Task<RefreshResult?>>> _refreshTasks = new();
 
     public GrpcAuthInterceptor(
@@ -84,8 +85,7 @@ public class GrpcAuthInterceptor : Interceptor
 
         try
         {
-            var handler = new JwtSecurityTokenHandler();
-            var jwt = handler.ReadJwtToken(token);
+            var jwt = _jwtHandler.ReadJwtToken(token);
 
             return jwt.ValidTo <= DateTime.UtcNow.AddSeconds(30);
         }

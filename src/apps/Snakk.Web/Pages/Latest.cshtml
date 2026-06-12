@@ -145,7 +145,7 @@
                     var contribLastPostAt = DateTime.TryParse(c.LastPostAt, out var contribParsed) ? contribParsed.ToString("MMM d") : "";
                     <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor"
                        data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
-                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" />
+                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
                         <span class="sn-trending-contributor-name">@c.DisplayName</span>
                         <time class="sn-card-tag sn-card-tag-light sn-tag-sm" datetime="@c.LastPostAt" data-relative="true">@contribLastPostAt</time>
                     </a>

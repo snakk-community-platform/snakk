@@ -81,30 +81,37 @@ public class PrefetchCacheService(
             return;
 
         var gate = _keyLocks.GetOrAdd(key, static _ => new object());
-        lock (gate)
+        try
         {
-            if (_cache.TryGetValue(key, out existing) && existing is { IsFaulted: false })
-                return;
-
-            // Log prefetch initiation to Server-Timing (HttpContext is available here, on the request thread)
-            var collector = _httpContextAccessor.HttpContext?.Items["ServerTiming"] as ServerTimingCollector;
-            var offsetMs = collector?.GetOffsetMs();
-            collector?.Add("prefetch", 0, $"prefetch {cacheKey}", offsetMs);
-
-            var task = Task.Run(async () =>
+            lock (gate)
             {
-                try
-                {
-                    return await factory();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Prefetch failed for {CacheKey}", cacheKey);
-                    throw;
-                }
-            });
+                if (_cache.TryGetValue(key, out existing) && existing is { IsFaulted: false })
+                    return;
 
-            _cache.Set(key, task, ttl ?? _defaultPrefetchTtl);
+                // Log prefetch initiation to Server-Timing (HttpContext is available here, on the request thread)
+                var collector = _httpContextAccessor.HttpContext?.Items["ServerTiming"] as ServerTimingCollector;
+                var offsetMs = collector?.GetOffsetMs();
+                collector?.Add("prefetch", 0, $"prefetch {cacheKey}", offsetMs);
+
+                var task = Task.Run(async () =>
+                {
+                    try
+                    {
+                        return await factory();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Prefetch failed for {CacheKey}", cacheKey);
+                        throw;
+                    }
+                });
+
+                _cache.Set(key, task, ttl ?? _defaultPrefetchTtl);
+            }
+        }
+        finally
+        {
+            _keyLocks.TryRemove(key, out _);
         }
     }
 
@@ -174,13 +181,20 @@ public class PrefetchCacheService(
         if (!_cache.TryGetValue<Lazy<Task<T?>>>(sharedKey, out var lazy) || lazy is null)
         {
             var gate = _keyLocks.GetOrAdd(sharedKey, static _ => new object());
-            lock (gate)
+            try
             {
-                if (!_cache.TryGetValue(sharedKey, out lazy) || lazy is null)
+                lock (gate)
                 {
-                    lazy = new Lazy<Task<T?>>(factory, LazyThreadSafetyMode.ExecutionAndPublication);
-                    _cache.Set(sharedKey, lazy, effectiveTtl);
+                    if (!_cache.TryGetValue(sharedKey, out lazy) || lazy is null)
+                    {
+                        lazy = new Lazy<Task<T?>>(factory, LazyThreadSafetyMode.ExecutionAndPublication);
+                        _cache.Set(sharedKey, lazy, effectiveTtl);
+                    }
                 }
+            }
+            finally
+            {
+                _keyLocks.TryRemove(sharedKey, out _);
             }
         }
 

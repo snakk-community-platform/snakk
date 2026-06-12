@@ -1,11 +1,16 @@
 // ============================================
-// Forest Light Theme — Component Overrides
+// Light Theme — Component Overrides
 // ============================================
-// These are the default (light) theme styles.
-// Scoped to :root so they apply by default.
+// These are the default (light / lofi) theme styles.
+// Scoped to :root so they apply whenever data-theme is "lofi" or absent.
+//
+// HISTORY: Previously named _forest.scss and dual-scoped to
+// `:root, [data-theme="forest"]`. The "forest" theme name was an
+// implementation detail from early development; the app only ever sets
+// data-theme to "lofi" or "dark" (see _Layout.cshtml). Renamed to
+// _light.scss and simplified to :root only so intent is clear.
 
-:root,
-[data-theme="forest"] {
+:root {
     // Navbar — strong primary green with white text
     .minimal-nav {
         .brand-text {

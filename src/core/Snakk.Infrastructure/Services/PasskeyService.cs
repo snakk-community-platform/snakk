@@ -1,5 +1,6 @@
 namespace Snakk.Infrastructure.Services;
 
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -127,8 +128,11 @@ public class PasskeyService(
 
         if (!string.IsNullOrWhiteSpace(email))
         {
+            // Hash matches EmailProtector.ComputeHash: SHA256(UTF8(email.Trim().ToLowerInvariant())) → hex lower
+            var emailHashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()));
+            var emailHash = Convert.ToHexStringLower(emailHashBytes);
             var user = await context.Users
-                .Where(u => u.Email == email && !u.IsDeleted)
+                .Where(u => u.EmailHash == emailHash && !u.IsDeleted)
                 .Select(u => new { u.Id })
                 .FirstOrDefaultAsync(ct);
 

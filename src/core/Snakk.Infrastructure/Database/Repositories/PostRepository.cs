@@ -44,12 +44,6 @@ public class PostRepository(SnakkDbContext context)
     public async Task<PostDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>
         await _dbSet.FirstOrDefaultAsync(p => p.PublicId == publicId, ct);
 
-    public async Task<IEnumerable<PostDatabaseEntity>> GetByDiscussionIdAsync(int discussionId, CancellationToken ct = default) => await _dbSet
-        .AsNoTracking()
-        .Where(p => p.DiscussionId == discussionId)
-        .OrderBy(p => p.CreatedAt)
-        .ToListAsync(ct);
-
     public async Task<PagedResult<PostListDto>> GetPagedByDiscussionIdAsync(
         int discussionId,
         int offset,

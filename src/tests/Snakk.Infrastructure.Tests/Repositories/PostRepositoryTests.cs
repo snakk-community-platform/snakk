@@ -208,59 +208,6 @@ public class PostRepositoryIntegrationTests : IDisposable
 
     #endregion
 
-    #region GetByDiscussionIdAsync Tests
-
-    [Test]
-    public async Task GetByDiscussionIdAsync_MultiplePosts_ReturnsAllOrderedByCreatedAtAsc()
-    {
-        var (user, _, _, _, discussion, _) = await _builder.CreateFullHierarchyAsync();
-
-        // Create additional posts with staggered times
-        var post2 = new PostDatabaseEntity
-        {
-            PublicId = $"post_2_{Guid.NewGuid():N}",
-            DiscussionId = discussion.Id,
-            CreatedByUserId = user.Id,
-            Content = "Second post",
-            CreatedAt = DateTime.UtcNow.AddMinutes(1),
-            IsFirstPost = false
-        };
-        var post3 = new PostDatabaseEntity
-        {
-            PublicId = $"post_3_{Guid.NewGuid():N}",
-            DiscussionId = discussion.Id,
-            CreatedByUserId = user.Id,
-            Content = "Third post",
-            CreatedAt = DateTime.UtcNow.AddMinutes(2),
-            IsFirstPost = false
-        };
-        _db.Context.Posts.AddRange(post2, post3);
-        await _db.Context.SaveChangesAsync();
-
-        var result = (await _repository.GetByDiscussionIdAsync(discussion.Id)).ToList();
-
-        await Assert.That(result.Count).IsEqualTo(3);
-        // Verify ascending order by CreatedAt
-        await Assert.That(result[0].CreatedAt <= result[1].CreatedAt).IsTrue();
-        await Assert.That(result[1].CreatedAt <= result[2].CreatedAt).IsTrue();
-    }
-
-    [Test]
-    public async Task GetByDiscussionIdAsync_EmptyDiscussion_ReturnsEmpty()
-    {
-        var user = await _builder.CreateUserAsync();
-        var community = await _builder.CreateCommunityAsync();
-        var hub = await _builder.CreateHubAsync(community.Id);
-        var space = await _builder.CreateSpaceAsync(hub.Id);
-        var discussion = await _builder.CreateDiscussionAsync(space.Id, user.Id);
-
-        var result = (await _repository.GetByDiscussionIdAsync(discussion.Id)).ToList();
-
-        await Assert.That(result.Count).IsEqualTo(0);
-    }
-
-    #endregion
-
     #region GetPagedByDiscussionIdAsync Tests
 
     [Test]
