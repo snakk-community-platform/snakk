@@ -20,7 +20,12 @@ public class DmConversationDatabaseEntity
     public required DateTime CreatedAt { get; set; }
     public DateTime? LastMessageAt { get; set; }
 
-    [MaxLength(200)]
+    // Stores CIPHERTEXT (DmRepository encrypts the excerpt via IDataProtector
+    // before persisting). Protect() adds ~80 bytes of header/IV/HMAC and then
+    // base64url-expands, so the old [MaxLength(200)] overflowed (22001) for any
+    // plaintext excerpt past roughly 70 chars and the whole send failed. The
+    // 200-char cap belongs to the PLAINTEXT and lives in DmUseCase; the column
+    // must hold whatever Protect() emits.
     public string? LastMessageExcerpt { get; set; }
 
     public bool HiddenFromInitiator { get; set; }
