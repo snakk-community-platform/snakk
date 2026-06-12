@@ -117,7 +117,7 @@ services:
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
-      ConnectionStrings__DbConnection: "Host=postgres;Port=5432;Database=snakk;Username=snakk;Password=${POSTGRES_PASSWORD};Maximum Auto Prepare=20;Auto Prepare Min Usages=2"
+      ConnectionStrings__DbConnection: "Host=postgres;Port=5432;Database=snakk;Username=snakk;Password=${POSTGRES_PASSWORD};Max Auto Prepare=20;Auto Prepare Min Usages=2"
       Valkey__ConnectionString: valkey:6379
       Gateway__DisableHealthChecks: "true"
 
