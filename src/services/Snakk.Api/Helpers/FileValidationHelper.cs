@@ -51,9 +51,17 @@ public static class FileValidationHelper
             return false;
 
         // Read 12 bytes so WebP's format marker at offset 8 can be checked.
+        // ReadAtLeastAsync loops over short reads (a single ReadAsync may return
+        // fewer bytes than available); throwOnEndOfStream:false returns what EOF
+        // allowed so truncated files are detected by count, not by exception.
         using var stream = file.OpenReadStream();
         var headerBytes = new byte[12];
-        var bytesRead = await stream.ReadAsync(headerBytes.AsMemory(0, headerBytes.Length));
+        var bytesRead = await stream.ReadAtLeastAsync(headerBytes, headerBytes.Length, throwOnEndOfStream: false);
+
+        // No real image in the accepted set is shorter than 8 bytes — anything
+        // smaller is truncated garbage even when the magic-byte prefix matches.
+        if (bytesRead < 8)
+            return false;
 
         var prefixMatches = signatures.Any(signature =>
             bytesRead >= signature.Length
