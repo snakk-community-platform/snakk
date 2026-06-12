@@ -16,6 +16,21 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
 
     private bool IsPostgres => _context.Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL";
 
+    // FTS relevance ordering computes ts_rank() per MATCHING row before LIMIT can
+    // apply — Postgres must fetch and detoast every matching tsvector from the
+    // heap, so a term hitting ~half the corpus costs 500ms+ regardless of page
+    // size (auto_explain: 99% of time in the Bitmap Heap Scan feeding the sort;
+    // the GIN probe and top-N heapsort are both sub-10ms). Bounding the ranked
+    // set to the newest N matches caps that work: rare terms (< N matches) rank
+    // the exact same rows as before, while pathologically-frequent terms rank
+    // "most relevant of the N newest" — a better forum default than global rank
+    // over tens of thousands of hits, and 6-9x faster (dolor-class term on the
+    // 253k-post dev corpus: 499ms -> 57ms; the planner walks a CreatedAt index
+    // and filter-matches instead of bitmap-scanning the GIN when the term is
+    // frequent enough). N is far above the deepest reachable page
+    // (EndlessScroll:MaxPages caps offset at ~200).
+    private const int RankCandidateCap = 2000;
+
     /// <summary>Escapes LIKE/ILIKE metacharacters so user input is treated as literal text.</summary>
     private static string EscapeLikePattern(string input) => input
         .Replace("\\", "\\\\")
@@ -91,9 +106,13 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
             "oldest"    => baseQuery.OrderBy(d => d.CreatedAt).ThenBy(d => d.Id),
             "popular"   => baseQuery.OrderByDescending(d => d.PostCount).ThenByDescending(d => d.Id),
             "reactions" => baseQuery.OrderByDescending(d => d.ReactionCount).ThenByDescending(d => d.Id),
-            // "newest" or default: relevance when FTS is active, activity otherwise
+            // "newest" or default: relevance when FTS is active, activity otherwise.
+            // Relevance ranks within the RankCandidateCap newest matches — see the
+            // constant for why ranking the full match set is a per-row cost bomb.
             _ => !string.IsNullOrWhiteSpace(trimmedQuery) && IsPostgres
                 ? baseQuery
+                    .OrderByDescending(d => d.CreatedAt).ThenByDescending(d => d.Id)
+                    .Take(RankCandidateCap)
                     .OrderByDescending(d => d.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", trimmedQuery)))
                     .ThenByDescending(d => d.LastActivityAt ?? d.CreatedAt)
                 : baseQuery
@@ -237,8 +256,12 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         {
             "oldest"               => baseQuery.OrderBy(p => p.CreatedAt).ThenBy(p => p.Id),
             "popular" or "reactions" => baseQuery.OrderByDescending(p => p.ReactionCount).ThenByDescending(p => p.Id),
+            // Relevance ranks within the RankCandidateCap newest matches — see the
+            // constant for why ranking the full match set is a per-row cost bomb.
             _ => !string.IsNullOrWhiteSpace(trimmedQuery) && IsPostgres
                 ? baseQuery
+                    .OrderByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+                    .Take(RankCandidateCap)
                     .OrderByDescending(p => p.SearchVector.Rank(EF.Functions.WebSearchToTsQuery("english", trimmedQuery)))
                     .ThenByDescending(p => p.CreatedAt)
                 : baseQuery
