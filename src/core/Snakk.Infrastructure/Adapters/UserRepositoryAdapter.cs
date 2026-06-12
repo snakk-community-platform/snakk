@@ -1,7 +1,7 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Domain.Entities;
@@ -15,7 +15,7 @@ public class UserRepositoryAdapter(
     Infrastructure.Database.Repositories.IUserRepository databaseRepository,
     SnakkDbContext context,
     IEmailProtector emailProtector,
-    IMemoryCache cache) : Domain.Repositories.IUserRepository
+    HybridCache cache) : Domain.Repositories.IUserRepository
 {
     public async Task<User?> GetByIdAsync(int id, CancellationToken ct = default)
     {
@@ -90,34 +90,41 @@ public class UserRepositoryAdapter(
             .FirstOrDefaultAsync(ct);
     }
 
+    // Aggregate/TTL-only: caches mutable user state (display name, avatar, preferences)
+    // with no write-path invalidation hooks. 30s staleness is the accepted design for
+    // the hot current-user resolution path. HybridCache provides stampede protection.
+    private static readonly HybridCacheEntryOptions CurrentUserCacheOptions =
+        new() { Expiration = TimeSpan.FromSeconds(30) };
+
     public async Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId, CancellationToken ct = default)
     {
         var cacheKey = $"current-user:{publicId.Value}";
-        if (cache.TryGetValue(cacheKey, out CurrentUserSlim? cached) && cached is not null)
-            return cached;
+        return await cache.GetOrCreateAsync<CurrentUserSlim?>(
+            cacheKey,
+            async cancel =>
+            {
+                var raw = await context.Users
+                    .Where(u => u.PublicId == publicId.Value)
+                    .Select(u => new CurrentUserSlim(
+                        u.PublicId, u.DisplayName,
+                        u.Email, u.EmailVerified,
+                        u.OAuthConnections.Select(c => c.Provider).ToList(),
+                        u.AutoFollowOnReply,
+                        u.Timezone, u.IsDisplayNameLocked,
+                        u.PasswordHash != null,
+                        u.AvatarFileName, u.Bio, u.FeedToken,
+                        u.AllowAdultContent, u.AdultPreviewImageMode,
+                        u.DisplayNameChangedAt,
+                        u.HidePresence))
+                    .FirstOrDefaultAsync(cancel);
 
-        var raw = await context.Users
-            .Where(u => u.PublicId == publicId.Value)
-            .Select(u => new CurrentUserSlim(
-                u.PublicId, u.DisplayName,
-                u.Email, u.EmailVerified,
-                u.OAuthConnections.Select(c => c.Provider).ToList(),
-                u.AutoFollowOnReply,
-                u.Timezone, u.IsDisplayNameLocked,
-                u.PasswordHash != null,
-                u.AvatarFileName, u.Bio, u.FeedToken,
-                u.AllowAdultContent, u.AdultPreviewImageMode,
-                u.DisplayNameChangedAt,
-                u.HidePresence))
-            .FirstOrDefaultAsync(ct);
+                if (raw is null) return null;
 
-        if (raw is null) return null;
-
-        var decryptedEmail = raw.Email is not null ? emailProtector.Unprotect(raw.Email) : null;
-        var result = raw with { Email = decryptedEmail };
-
-        cache.Set(cacheKey, result, TimeSpan.FromSeconds(30));
-        return result;
+                var decryptedEmail = raw.Email is not null ? emailProtector.Unprotect(raw.Email) : null;
+                return raw with { Email = decryptedEmail };
+            },
+            CurrentUserCacheOptions,
+            cancellationToken: ct);
     }
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken ct = default)

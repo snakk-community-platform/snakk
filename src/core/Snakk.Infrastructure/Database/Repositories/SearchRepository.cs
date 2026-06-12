@@ -71,16 +71,10 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
             baseQuery = baseQuery.Where(d => d.CreatedByUserPublicId == authorPublicId);
 
         if (!string.IsNullOrEmpty(spacePublicId))
-        {
-            var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => s.Id).FirstOrDefaultAsync(ct);
-            baseQuery = baseQuery.Where(d => d.SpaceId == spaceDbId);
-        }
+            baseQuery = baseQuery.Where(d => d.Space.PublicId == spacePublicId);
 
         if (!string.IsNullOrEmpty(hubPublicId))
-        {
-            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync(ct);
-            baseQuery = baseQuery.Where(d => d.HubId == hubDbId);
-        }
+            baseQuery = baseQuery.Where(d => d.Space.Hub.PublicId == hubPublicId);
 
         // Date-range filter — applied on CreatedAt regardless of sort order.
         // IX_Discussion_PostCount_IsDeleted / IX_Discussion_ReactionCount_IsDeleted handle the
@@ -229,10 +223,7 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
             baseQuery = baseQuery.Where(p => p.DiscussionPublicId == discussionPublicId);
 
         if (!string.IsNullOrEmpty(spacePublicId))
-        {
-            var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => s.Id).FirstOrDefaultAsync(ct);
-            baseQuery = baseQuery.Where(p => p.SpaceId == spaceDbId);
-        }
+            baseQuery = baseQuery.Where(p => p.Discussion.Space.PublicId == spacePublicId);
 
         // Date-range filter on CreatedAt. IX_Post_ReactionCount_IsDeleted handles the
         // no-FTS popular/reactions path; GIN handles the FTS path.
@@ -301,9 +292,8 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         bool viewerAllowsAdult = false,
         CancellationToken ct = default)
     {
-        var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spacePublicId).Select(s => s.Id).FirstOrDefaultAsync(ct);
         var baseQuery = _context.Discussions
-            .Where(d => d.SpaceId == spaceDbId && !d.IsDeleted);
+            .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted);
 
         baseQuery = await WithAccessFilterAsync(baseQuery, userId, ct);
         baseQuery = await WithAdultFilterAsync(baseQuery, viewerAllowsAdult, ct);
@@ -426,10 +416,7 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         baseQuery = await WithSpaceAccessFilterAsync(baseQuery, userId, ct);
 
         if (!string.IsNullOrEmpty(hubPublicId))
-        {
-            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync(ct);
-            baseQuery = baseQuery.Where(s => s.HubId == hubDbId);
-        }
+            baseQuery = baseQuery.Where(s => s.Hub.PublicId == hubPublicId);
         else if (!string.IsNullOrEmpty(communityPublicId))
             baseQuery = baseQuery.Where(s => s.CommunityPublicId == communityPublicId);
 
@@ -471,9 +458,8 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         CancellationToken ct = default)
     {
         // Use denormalized counts + fetch one extra row to check HasMoreItems (avoids separate COUNT query)
-        var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubPublicId).Select(h => h.Id).FirstOrDefaultAsync(ct);
         var baseSpaceQuery = _context.Spaces
-            .Where(s => s.HubId == hubDbId);
+            .Where(s => s.Hub.PublicId == hubPublicId);
         baseSpaceQuery = await WithSpaceAccessFilterAsync(baseSpaceQuery, userId, ct);
         var spaces = await baseSpaceQuery
             .OrderBy(s => s.Name)
@@ -819,30 +805,23 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
             query = query.Where(d => d.CreatedByUserPublicId == authorId);
         }
 
+        // Scope filters go through the Space navigation rather than the denormalized
+        // public-id columns: the parents' PublicId columns are uniquely indexed and the
+        // join lets the planner use Discussion's int FK indexes (the denormalized string
+        // columns are unindexed). It also preserves the parents' soft-delete query
+        // filters, matching the old resolve-then-filter behavior.
         // Filter by multiple spaces (e.g. My Feed)
         if (spaceIds is { Count: > 0 })
-        {
-            var dbIds = await _context.Spaces.Where(s => spaceIds.Contains(s.PublicId)).Select(s => s.Id).ToListAsync(ct);
-            query = query.Where(d => dbIds.Contains(d.SpaceId));
-        }
+            query = query.Where(d => spaceIds.Contains(d.Space.PublicId));
         // Filter by single space (most specific)
         else if (!string.IsNullOrEmpty(spaceId))
-        {
-            var spaceDbId = await _context.Spaces.Where(s => s.PublicId == spaceId).Select(s => s.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.SpaceId == spaceDbId);
-        }
+            query = query.Where(d => d.Space.PublicId == spaceId);
         // Filter by hub if specified (more specific than community)
         else if (!string.IsNullOrEmpty(hubId))
-        {
-            var hubDbId = await _context.Hubs.Where(h => h.PublicId == hubId).Select(h => h.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.HubId == hubDbId);
-        }
+            query = query.Where(d => d.Space.Hub.PublicId == hubId);
         // Filter by community if specified
         else if (!string.IsNullOrEmpty(communityId))
-        {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.CommunityId == communityDbId);
-        }
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
 
         // Apply keyset pagination if cursor provided
         var cursorData = Cursor.Decode(cursor);
@@ -1280,10 +1259,7 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
 
         if (!string.IsNullOrEmpty(communityId))
-        {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.CommunityId == communityDbId);
-        }
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
 
         // Only show discussions with recent activity (TrendScore > 0)
         query = query.Where(d => d.TrendScore > 0);
@@ -1403,10 +1379,7 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
 
         if (!string.IsNullOrEmpty(communityId))
-        {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.CommunityId == communityDbId);
-        }
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
 
         // Apply time window filter on CreatedAt
         DateTime? cutoff = timePeriod switch
@@ -1536,10 +1509,7 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
 
         if (!string.IsNullOrEmpty(communityId))
-        {
-            var communityDbId = await _context.Communities.Where(c => c.PublicId == communityId).Select(c => c.Id).FirstOrDefaultAsync(ct);
-            query = query.Where(d => d.CommunityId == communityDbId);
-        }
+            query = query.Where(d => d.Space.Hub.Community.PublicId == communityId);
 
         var cursorData = Cursor.Decode(cursor);
 

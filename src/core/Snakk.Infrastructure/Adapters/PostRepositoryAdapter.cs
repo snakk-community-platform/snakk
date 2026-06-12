@@ -87,22 +87,8 @@ public class PostRepositoryAdapter(
         int pageSize,
         CancellationToken ct = default)
     {
-        var discussionDbId = await context.Discussions
-            .Where(d => d.PublicId == discussionId.Value)
-            .Select(d => d.Id)
-            .FirstOrDefaultAsync(ct);
-
-        if (discussionDbId == 0)
-            return new PagedResult<Post>
-            {
-                Items = [],
-                Offset = offset,
-                PageSize = pageSize,
-                HasMoreItems = false
-            };
-
         var result = await context.Posts
-            .Where(p => p.DiscussionId == discussionDbId)
+            .Where(p => p.Discussion.PublicId == discussionId.Value)
             .OrderBy(p => p.CreatedAt)
             .Select(p => new PostProjection(
                 p.PublicId,

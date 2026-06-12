@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Hybrid;
 using NSubstitute;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Tests.Helpers;
@@ -34,7 +34,7 @@ public class UserRepositoryAdapterTests : IDisposable
             return Convert.ToHexStringLower(bytes);
         });
 
-        _adapter = new UserRepositoryAdapter(databaseRepo, _db.Context, mockEmailProtector, Substitute.For<IMemoryCache>());
+        _adapter = new UserRepositoryAdapter(databaseRepo, _db.Context, mockEmailProtector, Substitute.For<HybridCache>());
     }
 
     public void Dispose() => _db.Dispose();

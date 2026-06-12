@@ -291,37 +291,48 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
                 SpacePublicId = ur.Space != null ? ur.Space.PublicId : null })
             .ToListAsync(ct);
 
-        foreach (var role in activeRoles)
+        if (activeRoles.Count == 0) return false;
+
+        // GlobalAdmin shortcut
+        if (activeRoles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin))
+            return true;
+
+        // Community-level check
+        if (!string.IsNullOrEmpty(communityPublicId)
+            && activeRoles.Any(r =>
+                r.CommunityPublicId == communityPublicId
+                && (r.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
+                    || r.RoleId == (int)UserRoleTypeEnum.CommunityMod)))
+            return true;
+
+        // Hub-level check
+        if (!string.IsNullOrEmpty(hubPublicId)
+            && activeRoles.Any(r =>
+                r.HubPublicId == hubPublicId
+                && r.RoleId == (int)UserRoleTypeEnum.HubMod))
+            return true;
+
+        // Space-level check
+        if (!string.IsNullOrEmpty(spacePublicId))
         {
-            if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
+            // Direct SpaceMod
+            if (activeRoles.Any(r =>
+                r.SpacePublicId == spacePublicId
+                && r.RoleId == (int)UserRoleTypeEnum.SpaceMod))
                 return true;
 
-            if (!string.IsNullOrEmpty(communityPublicId) && role.CommunityPublicId == communityPublicId)
-            {
-                if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
-                    || role.RoleId == (int)UserRoleTypeEnum.CommunityMod)
-                    return true;
-            }
+            // Hub mods can moderate spaces within their hub:
+            // collect all hub db-ids from HubMod roles, then a single AnyAsync
+            var hubModHubIds = activeRoles
+                .Where(r => r.RoleId == (int)UserRoleTypeEnum.HubMod && r.HubId.HasValue)
+                .Select(r => r.HubId!.Value)
+                .ToHashSet();
 
-            if (!string.IsNullOrEmpty(hubPublicId)
-                && role.HubPublicId == hubPublicId
-                && role.RoleId == (int)UserRoleTypeEnum.HubMod)
+            if (hubModHubIds.Count > 0
+                && await _context.Spaces.AnyAsync(s =>
+                    s.PublicId == spacePublicId
+                    && hubModHubIds.Contains(s.HubId), ct))
                 return true;
-
-            if (!string.IsNullOrEmpty(spacePublicId))
-            {
-                if (role.SpacePublicId == spacePublicId && role.RoleId == (int)UserRoleTypeEnum.SpaceMod)
-                    return true;
-
-                // Hub mod can moderate spaces in their hub
-                if (role.RoleId == (int)UserRoleTypeEnum.HubMod && role.HubId.HasValue)
-                {
-                    if (await _context.Spaces.AnyAsync(s =>
-                        s.PublicId == spacePublicId
-                        && s.HubId == role.HubId, ct))
-                        return true;
-                }
-            }
         }
 
         return false;
@@ -344,33 +355,43 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
                 CommunityPublicId = ur.Community != null ? ur.Community.PublicId : null })
             .ToListAsync(ct);
 
-        foreach (var role in activeRoles)
-        {
-            if (role.RoleId == (int)UserRoleTypeEnum.GlobalAdmin)
-                return true;
+        if (activeRoles.Count == 0) return false;
 
-            if (role.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && role.CommunityPublicId is not null)
-            {
-                if (!string.IsNullOrEmpty(communityPublicId) && role.CommunityPublicId == communityPublicId)
-                    return true;
+        // GlobalAdmin shortcut
+        if (activeRoles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin))
+            return true;
 
-                if (!string.IsNullOrEmpty(hubPublicId))
-                {
-                    if (await _context.Hubs.AnyAsync(h =>
-                        h.PublicId == hubPublicId
-                        && h.CommunityId == role.CommunityId, ct))
-                        return true;
-                }
+        // Collect CommunityAdmin db-ids and public-ids from active roles
+        var communityAdminIds = activeRoles
+            .Where(r => r.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && r.CommunityId.HasValue)
+            .Select(r => r.CommunityId!.Value)
+            .ToHashSet();
 
-                if (!string.IsNullOrEmpty(spacePublicId))
-                {
-                    if (await _context.Spaces.AnyAsync(s =>
-                        s.PublicId == spacePublicId
-                        && s.Hub.CommunityId == role.CommunityId, ct))
-                        return true;
-                }
-            }
-        }
+        var communityAdminPublicIds = activeRoles
+            .Where(r => r.RoleId == (int)UserRoleTypeEnum.CommunityAdmin && r.CommunityPublicId is not null)
+            .Select(r => r.CommunityPublicId!)
+            .ToHashSet();
+
+        if (communityAdminIds.Count == 0) return false;
+
+        // Direct community match
+        if (!string.IsNullOrEmpty(communityPublicId)
+            && communityAdminPublicIds.Contains(communityPublicId))
+            return true;
+
+        // Hub belongs to one of the admin's communities — single AnyAsync
+        if (!string.IsNullOrEmpty(hubPublicId)
+            && await _context.Hubs.AnyAsync(h =>
+                h.PublicId == hubPublicId
+                && communityAdminIds.Contains(h.CommunityId), ct))
+            return true;
+
+        // Space belongs (via hub) to one of the admin's communities — single AnyAsync
+        if (!string.IsNullOrEmpty(spacePublicId)
+            && await _context.Spaces.AnyAsync(s =>
+                s.PublicId == spacePublicId
+                && communityAdminIds.Contains(s.Hub.CommunityId), ct))
+            return true;
 
         return false;
     }

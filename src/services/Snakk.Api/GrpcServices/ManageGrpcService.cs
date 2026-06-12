@@ -203,6 +203,9 @@ public class ManageGrpcService(
         var result = await spaceManagementService.UpdateSettingsAsync(
             request.SpacePublicId, updateRequest);
 
+        if (result is not null)
+            await cache.RemoveAsync($"space-meta:{request.SpacePublicId}");
+
         return new UpdateSpaceSettingsResponse
         {
             Success = result is not null,
@@ -888,6 +891,9 @@ public class ManageGrpcService(
         var result = await communityManagementService.UpdateSettingsAsync(
             request.CommunityPublicId, updateRequest);
 
+        if (result is not null)
+            await cache.RemoveAsync($"community-meta:{request.CommunityPublicId}");
+
         return result is null
             ? new UpdateCommunitySettingsResponse { Success = false, ErrorMessage = "Community not found" }
             : new UpdateCommunitySettingsResponse { Success = true };
@@ -950,6 +956,9 @@ public class ManageGrpcService(
 
         var result = await hubManagementService.UpdateSettingsAsync(
             request.HubPublicId, updateRequest);
+
+        if (result is not null)
+            await cache.RemoveAsync($"hub-meta:{request.HubPublicId}");
 
         return result is null
             ? new UpdateHubSettingsResponse { Success = false, ErrorMessage = "Hub not found" }
@@ -1998,6 +2007,14 @@ public class ManageGrpcService(
             request.HasHubPublicId ? request.HubPublicId : null,
             request.HasSpacePublicId ? request.SpacePublicId : null,
             context.CancellationToken);
+
+        // Invalidate the meta cache for the affected entity — IsRestricted is cached in all three.
+        if (request.HasSpacePublicId)
+            await cache.RemoveAsync($"space-meta:{request.SpacePublicId}");
+        else if (request.HasHubPublicId)
+            await cache.RemoveAsync($"hub-meta:{request.HubPublicId}");
+        else if (request.HasCommunityPublicId)
+            await cache.RemoveAsync($"community-meta:{request.CommunityPublicId}");
 
         return new SetEntityRestrictedResponse { Success = true };
     }

@@ -38,7 +38,10 @@ public static class ServiceCollectionExtensions
         var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(
             configuration.GetConnectionString("DbConnection"))
         {
-            MaxPoolSize = 200,
+            // Keep well below Postgres max_connections (150) — Worker/Auth/DbSeeder
+            // pools share the same server. 50 pooled connections is ample with fast
+            // queries; each PG connection costs real memory in the postgres container.
+            MaxPoolSize = 50,
             MinPoolSize = 5,
             Timeout = 30,
             ConnectionIdleLifetime = 300
