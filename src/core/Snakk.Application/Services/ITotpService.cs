@@ -30,6 +30,14 @@ public interface ITotpService
     bool VerifyCode(string secret, string code, int window = 1);
 
     /// <summary>
+    /// Verifies a TOTP code and reports which 30-second time-step matched. The step lets
+    /// callers prevent replay of a still-valid code within the verification window.
+    /// </summary>
+    /// <param name="matchedStep">The matched Unix time-step (seconds / 30), or -1 if no match.</param>
+    /// <returns>True if code is valid, false otherwise</returns>
+    bool TryVerifyCode(string secret, string code, out long matchedStep, int window = 1);
+
+    /// <summary>
     /// Generates recovery/backup codes for 2FA
     /// </summary>
     /// <param name="count">Number of codes to generate (default: 10)</param>

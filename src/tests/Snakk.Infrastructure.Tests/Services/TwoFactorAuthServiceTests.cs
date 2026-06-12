@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Snakk.Application.Services;
@@ -16,6 +17,7 @@ public class TwoFactorAuthServiceTests : IDisposable
     private readonly IPasswordHasher _passwordHasher;
     private readonly ITrustedDeviceService _trustedDeviceService;
     private readonly ITwoFactorSecretProtector _secretProtector;
+    private readonly IDistributedCache _cache;
     private readonly ILogger<TwoFactorAuthService> _logger;
     private readonly TwoFactorAuthService _service;
 
@@ -31,6 +33,12 @@ public class TwoFactorAuthServiceTests : IDisposable
         _secretProtector = Substitute.For<ITwoFactorSecretProtector>();
         _logger = Substitute.For<ILogger<TwoFactorAuthService>>();
 
+        // No replay by default: cache miss on read, no-op on write.
+        _cache = Substitute.For<IDistributedCache>();
+        _cache.GetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((byte[]?)null);
+        _cache.SetAsync(Arg.Any<string>(), Arg.Any<byte[]>(), Arg.Any<DistributedCacheEntryOptions>(), Arg.Any<CancellationToken>())
+            .Returns(Task.CompletedTask);
+
         // Secret protector pass-through for tests (encrypt/decrypt are identity functions)
         _secretProtector.Protect(Arg.Any<string>()).Returns(callInfo => $"ENC:{callInfo.ArgAt<string>(0)}");
         _secretProtector.Unprotect(Arg.Any<string>()).Returns(callInfo => { var s = callInfo.ArgAt<string>(0); return s.StartsWith("ENC:") ? s[4..] : s; });
@@ -41,6 +49,7 @@ public class TwoFactorAuthServiceTests : IDisposable
             _passwordHasher,
             _trustedDeviceService,
             _secretProtector,
+            _cache,
             _logger);
     }
 
@@ -315,7 +324,8 @@ public class TwoFactorAuthServiceTests : IDisposable
     public async Task VerifyTwoFactorCodeAsync_WithValidTotpCode_ReturnsValid()
     {
         await CreateTestUser("verify_totp", twoFactorEnabled: true, twoFactorSecret: "SECRET");
-        _totpService.VerifyCode("SECRET", "123456", Arg.Any<int>()).Returns(true);
+        _totpService.TryVerifyCode("SECRET", "123456", out Arg.Any<long>(), Arg.Any<int>())
+            .Returns(ci => { ci[2] = 12345L; return true; });
 
         var (isValid, usedBackup) = await _service.VerifyTwoFactorCodeAsync("verify_totp", "123456");
 

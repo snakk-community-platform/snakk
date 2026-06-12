@@ -46,6 +46,44 @@ if (!builder.Environment.IsDevelopment())
 // Add Razor Pages
 builder.Services.AddRazorPages();
 
+// Rate limiting — scoped to the auth actions (login, registration, password reset, 2FA)
+// via [EnableRateLimiting] attributes. Snakk.Auth only serves the auth surface, so this
+// never throttles general site traffic. Defense-in-depth on top of the backend's own
+// login lockout (gRPC ResourceExhausted).
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Credential attempts: 10 per 5 min per client IP, POST only. The [EnableRateLimiting]
+    // attribute sits on the PageModel class so it also covers OnGet — page loads must not
+    // drain the credential bucket (the gateway already limits GETs at 30/min per IP).
+    options.AddPolicy("auth", ctx =>
+        ctx.Request.Method != HttpMethods.Post
+            ? System.Threading.RateLimiting.RateLimitPartition.GetNoLimiter("auth-get")
+            : System.Threading.RateLimiting.RateLimitPartition.GetTokenBucketLimiter(
+                $"ip:{ctx.Connection.RemoteIpAddress}:post",
+                _ => new System.Threading.RateLimiting.TokenBucketRateLimiterOptions
+                {
+                    TokenLimit = 10, TokensPerPeriod = 10,
+                    ReplenishmentPeriod = TimeSpan.FromMinutes(5),
+                    QueueLimit = 0, AutoReplenishment = true
+                }));
+
+    // 2FA code attempts: tighter (8 per 5 min per client IP) to throttle TOTP guessing.
+    // POST only, same reasoning as "auth" above.
+    options.AddPolicy("auth-2fa", ctx =>
+        ctx.Request.Method != HttpMethods.Post
+            ? System.Threading.RateLimiting.RateLimitPartition.GetNoLimiter("auth-2fa-get")
+            : System.Threading.RateLimiting.RateLimitPartition.GetTokenBucketLimiter(
+                $"ip:{ctx.Connection.RemoteIpAddress}:2fa:post",
+                _ => new System.Threading.RateLimiting.TokenBucketRateLimiterOptions
+                {
+                    TokenLimit = 8, TokensPerPeriod = 8,
+                    ReplenishmentPeriod = TimeSpan.FromMinutes(5),
+                    QueueLimit = 0, AutoReplenishment = true
+                }));
+});
+
 // gRPC client for calling Snakk.Api
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "https://localhost:17101";
 var grpcHandler = new SocketsHttpHandler
@@ -126,9 +164,25 @@ builder.Services.AddOpenIddict()
             options.SetIssuer(issuerUri);
 
         // Dev: ephemeral keys — lost on restart, fine for development.
-        // Production: replace with persisted ES256 signing key (DB or key vault).
-        options.AddEphemeralEncryptionKey()
-               .AddEphemeralSigningKey();
+        // Production: persisted self-signed certs so issued tokens survive restarts and are
+        // valid across instances (S19). Stored in the shared config dir, the same trust
+        // boundary as snakk-config.json.
+        if (builder.Environment.IsDevelopment())
+        {
+            options.AddEphemeralEncryptionKey()
+                   .AddEphemeralSigningKey();
+        }
+        else
+        {
+            var oidcKeyDir = Path.Combine(sharedConfigDir, "conf", "oidc-keys");
+            Directory.CreateDirectory(oidcKeyDir);
+            options.AddEncryptionCertificate(Snakk.Auth.Services.OidcKeyMaterial.LoadOrCreate(
+                Path.Combine(oidcKeyDir, "encryption.pfx"), "CN=Snakk OIDC Encryption",
+                System.Security.Cryptography.X509Certificates.X509KeyUsageFlags.KeyEncipherment));
+            options.AddSigningCertificate(Snakk.Auth.Services.OidcKeyMaterial.LoadOrCreate(
+                Path.Combine(oidcKeyDir, "signing.pfx"), "CN=Snakk OIDC Signing",
+                System.Security.Cryptography.X509Certificates.X509KeyUsageFlags.DigitalSignature));
+        }
 
         options.UseAspNetCore()
                .EnableAuthorizationEndpointPassthrough()
@@ -336,6 +390,7 @@ app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseHttpMetrics();
 
 app.MapRazorPages();

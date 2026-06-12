@@ -6,7 +6,9 @@ using Snakk.Protos.Auth;
 
 namespace Snakk.Auth.Pages;
 
-[IgnoreAntiforgeryToken]
+// Antiforgery is enforced: both the OAuth-new-user and post-auth (email change on an
+// authenticated account) POST flows submit the standard Razor form, which carries the
+// token. The post-auth branch mutates the account email, so CSRF protection matters.
 public class SetupEmailModel(
     AuthService.AuthServiceClient authClient,
     ILogger<SetupEmailModel> logger) : PageModel
@@ -140,6 +142,8 @@ public class SetupEmailModel(
             if (response.TwoFactorRequired)
             {
                 if (!Url.IsLocalUrl(returnUrl)) returnUrl = "/";
+                // Bind the 2FA step to this session — OAuth identity was just verified here (S3).
+                Snakk.Auth.Services.TwoFactorLoginSession.Begin(HttpContext.Session, Input.Email);
                 return Redirect($"/auth/twofactorverify?email={Uri.EscapeDataString(Input.Email)}&returnUrl={Uri.EscapeDataString(returnUrl)}");
             }
 

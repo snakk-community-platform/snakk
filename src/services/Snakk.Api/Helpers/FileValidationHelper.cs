@@ -41,21 +41,31 @@ public static class FileValidationHelper
         }
     };
 
+    // WebP container signature: "WEBP" at byte offset 8 (after the RIFF header + size).
+    private static readonly byte[] _webpFormat = [0x57, 0x45, 0x42, 0x50]; // "WEBP"
+
     public static async Task<bool> IsValidImageFileAsync(IFormFile file, string extension)
     {
-        if (!_fileSignatures.TryGetValue(extension.ToLowerInvariant(), out var signatures))
+        var ext = extension.ToLowerInvariant();
+        if (!_fileSignatures.TryGetValue(ext, out var signatures))
             return false;
 
+        // Read 12 bytes so WebP's format marker at offset 8 can be checked.
         using var stream = file.OpenReadStream();
-        var headerBytes = new byte[8];
+        var headerBytes = new byte[12];
         var bytesRead = await stream.ReadAsync(headerBytes.AsMemory(0, headerBytes.Length));
 
-        if (bytesRead < headerBytes.Length)
+        var prefixMatches = signatures.Any(signature =>
+            bytesRead >= signature.Length
+            && headerBytes.Take(signature.Length).SequenceEqual(signature));
+
+        if (!prefixMatches)
             return false;
 
-        return signatures.Any(signature =>
-            headerBytes
-                .Take(signature.Length)
-                .SequenceEqual(signature));
+        // RIFF is shared by WAV/AVI/WebP — require the "WEBP" format marker too.
+        if (ext == ".webp")
+            return bytesRead >= 12 && headerBytes.Skip(8).Take(4).SequenceEqual(_webpFormat);
+
+        return true;
     }
 }

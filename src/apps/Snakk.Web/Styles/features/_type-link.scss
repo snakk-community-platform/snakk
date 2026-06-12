@@ -11,6 +11,11 @@
     background: var(--bg-tertiary);
 }
 
+.link-preview-banner-link {
+    display: block;
+    text-decoration: none;
+}
+
 .link-preview-banner {
     border-radius: 0 !important;
 
@@ -24,9 +29,31 @@
     }
 }
 
+.link-preview-banner--empty {
+    background: var(--bg-tertiary);
+    min-height: 6rem;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        color: var(--text-tertiary);
+        flex-shrink: 0;
+    }
+}
+
 .link-preview-compact {
     .link-preview-card {
         flex-direction: row;
+    }
+
+    .link-preview-banner-link {
+        flex-shrink: 0;
+        align-self: stretch;
+        display: flex;
     }
 
     .link-preview-banner {

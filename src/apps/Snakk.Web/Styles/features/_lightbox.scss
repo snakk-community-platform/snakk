@@ -51,6 +51,10 @@ html.lightbox-lock {
     inset: 3.5rem 4.5rem 3rem;
     overflow: hidden;
     z-index: 1;
+    // A pan must not start a text/image selection — the other native gesture
+    // (besides image drag-and-drop) that can hijack a mouse drag mid-pan.
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 // Wrapper that fills the content area and stacks lqip + img in the same cell.
@@ -95,30 +99,25 @@ html.lightbox-lock {
     &.lightbox-loaded { opacity: 1; }
 }
 
-// Click-to-zoom: overlay scrolls; image renders at natural size
+// Click-to-zoom: content area scrolls; buttons stay fixed; drag to pan.
 .lightbox-overlay.lightbox-zoomed {
-    overflow: auto;
-    // flex-start: a tall image starts at scroll=0, not centered with the top
-    // half unreachable above the scroll origin.
-    align-items: flex-start;
-
     .lightbox-content {
-        position: relative;
-        inset: auto;
-        overflow: visible;
-        width: 100%;
-        min-height: 100%;
+        overflow: auto;
+        cursor: grab;
+
+        &:active { cursor: grabbing; }
     }
 
     .lightbox-img-wrap {
+        // Expand to hold the natural-size image; centred when smaller than
+        // the content area, scrollable when larger.
         position: static;
         inset: auto;
         display: flex;
-        align-items: flex-start;
+        align-items: center;
         justify-content: center;
+        min-width: 100%;
         min-height: 100%;
-        padding: 3.5rem 4.5rem 3rem;
-        cursor: zoom-out;
     }
 
     // LQIP not useful once zoomed — real image is already loaded.
@@ -126,11 +125,11 @@ html.lightbox-lock {
 
     .lightbox-img {
         grid-area: auto;
-        max-width: 100%;
+        max-width: none;
         max-height: none;
         width: auto;
         height: auto;
-        cursor: zoom-out;
+        cursor: inherit;
     }
 }
 
@@ -190,6 +189,4 @@ html.lightbox-lock {
 
 @media (max-width: 767.98px) {
     .lightbox-content { inset: 0; touch-action: none; }
-
-    .lightbox-overlay.lightbox-zoomed .lightbox-img-wrap { padding: 0; }
 }

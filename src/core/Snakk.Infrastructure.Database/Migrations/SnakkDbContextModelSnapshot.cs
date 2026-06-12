@@ -1274,8 +1274,7 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LastMessageExcerpt")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("text");
 
                     b.Property<string>("PublicId")
                         .IsRequired()
