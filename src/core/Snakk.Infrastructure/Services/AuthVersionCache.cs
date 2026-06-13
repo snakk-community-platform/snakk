@@ -1,4 +1,4 @@
-namespace Snakk.Api.Services;
+namespace Snakk.Infrastructure.Services;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;

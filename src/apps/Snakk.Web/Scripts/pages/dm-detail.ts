@@ -6,6 +6,8 @@
 (function(): void {
     'use strict';
 
+    const T = (window as any).T;
+
     const conversationId = (document.getElementById('dm-conversation-id') as HTMLInputElement | null)?.value ?? '';
     const currentUserPublicId = (document.getElementById('dm-current-user-id') as HTMLInputElement | null)?.value ?? '';
     let lastKnownMessagePublicId = '';
@@ -226,19 +228,19 @@
         const ids = getCheckedMessageIds();
         if (ids.length === 0) return;
         deleteModalMode = 'messages';
-        if (deleteModalTitle) deleteModalTitle.textContent = `Delete ${ids.length} message(s)`;
-        if (deleteModalDesc) deleteModalDesc.textContent = 'Choose how to delete the selected messages.';
-        if (deleteForMeBtn) deleteForMeBtn.textContent = 'Delete for me';
-        if (deleteForAllBtn) deleteForAllBtn.textContent = 'Delete for everyone';
+        if (deleteModalTitle) deleteModalTitle.textContent = (T?.pages?.messagesDeleteMsgsTitle ?? 'Delete {0} message(s)').replace('{0}', String(ids.length));
+        if (deleteModalDesc) deleteModalDesc.textContent = T?.pages?.messagesDeleteMsgsDesc ?? 'Choose how to delete the selected messages.';
+        if (deleteForMeBtn) deleteForMeBtn.textContent = T?.pages?.messagesDeleteForMe ?? 'Delete for me';
+        if (deleteForAllBtn) deleteForAllBtn.textContent = T?.pages?.messagesDeleteForAll ?? 'Delete for everyone';
         deleteModal?.showModal();
     });
 
     deleteConvBtn?.addEventListener('click', () => {
         deleteModalMode = 'conversation';
-        if (deleteModalTitle) deleteModalTitle.textContent = 'Delete conversation';
-        if (deleteModalDesc) deleteModalDesc.textContent = 'Choose how to delete this conversation.';
-        if (deleteForMeBtn) deleteForMeBtn.textContent = 'Delete for me';
-        if (deleteForAllBtn) deleteForAllBtn.textContent = 'Delete for everyone';
+        if (deleteModalTitle) deleteModalTitle.textContent = T?.pages?.messagesDeleteTitle ?? 'Delete conversation';
+        if (deleteModalDesc) deleteModalDesc.textContent = T?.pages?.messagesDeleteDesc ?? 'Choose how to delete this conversation.';
+        if (deleteForMeBtn) deleteForMeBtn.textContent = T?.pages?.messagesDeleteForMe ?? 'Delete for me';
+        if (deleteForAllBtn) deleteForAllBtn.textContent = T?.pages?.messagesDeleteForAll ?? 'Delete for everyone';
         deleteModal?.showModal();
     });
 

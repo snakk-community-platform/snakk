@@ -3,8 +3,6 @@ namespace Snakk.Api.Endpoints;
 using System.Security.Cryptography;
 using System.Text;
 using Snakk.Application.Services;
-using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database.Repositories;
 
 public static class RealtimeInternalEndpoints
 {
@@ -17,10 +15,7 @@ public static class RealtimeInternalEndpoints
     private static async Task<IResult> VerifySubscriptionAsync(
         VerifySubscriptionRequest request,
         IConfiguration configuration,
-        IDiscussionRepository discussionRepository,
-        IHubRepository hubRepository,
-        ISpaceRepository spaceRepository,
-        Snakk.Domain.Repositories.ICommunityRepository communityRepository,
+        IEntityHierarchyCacheService hierarchyCache,
         IUserGrantsCacheService grantsCache,
         HttpContext httpContext,
         CancellationToken ct)
@@ -41,13 +36,13 @@ public static class RealtimeInternalEndpoints
         var hasAccess = request.ScopeType switch
         {
             "Discussion" => await CheckDiscussionAccessAsync(
-                request.UserId, request.ScopeId, discussionRepository, restricted, grantsCache, ct),
+                request.UserId, request.ScopeId, hierarchyCache, restricted, grantsCache, ct),
             "Space" => await CheckSpaceAccessAsync(
-                request.UserId, request.ScopeId, spaceRepository, restricted, grantsCache, ct),
+                request.UserId, request.ScopeId, hierarchyCache, restricted, grantsCache, ct),
             "Hub" => await CheckHubAccessAsync(
-                request.UserId, request.ScopeId, hubRepository, restricted, grantsCache, ct),
+                request.UserId, request.ScopeId, hierarchyCache, restricted, grantsCache, ct),
             "Community" => await CheckCommunityAccessAsync(
-                request.ScopeId, communityRepository, ct),
+                request.ScopeId, hierarchyCache, ct),
             _ => false
         };
 
@@ -56,50 +51,59 @@ public static class RealtimeInternalEndpoints
 
     private static async Task<bool> CheckDiscussionAccessAsync(
         string userId, string publicId,
-        IDiscussionRepository repo, RestrictedEntitySet restricted, IUserGrantsCacheService grantsCache,
+        IEntityHierarchyCacheService hierarchyCache,
+        RestrictedEntitySet restricted,
+        IUserGrantsCacheService grantsCache,
         CancellationToken ct = default)
     {
-        var discussion = await repo.GetByPublicIdAsync(publicId, ct);
-        if (discussion is null) return false;
+        var hierarchy = await hierarchyCache.GetDiscussionHierarchyAsync(publicId, ct);
+        if (hierarchy is null) return false;
 
-        if (!restricted.SpaceIds.Contains(discussion.SpaceId)) return true;
+        if (!restricted.SpaceIds.Contains(hierarchy.SpaceId)) return true;
 
         var grants = await grantsCache.GetGrantsAsync(userId, ct);
-        return grants.SpaceIds.Contains(discussion.SpaceId);
+        return grants.SpaceIds.Contains(hierarchy.SpaceId);
     }
 
     private static async Task<bool> CheckSpaceAccessAsync(
         string userId, string publicId,
-        ISpaceRepository repo, RestrictedEntitySet restricted, IUserGrantsCacheService grantsCache,
+        IEntityHierarchyCacheService hierarchyCache,
+        RestrictedEntitySet restricted,
+        IUserGrantsCacheService grantsCache,
         CancellationToken ct = default)
     {
-        var space = await repo.GetByPublicIdAsync(publicId, ct);
-        if (space is null) return false;
+        var hierarchy = await hierarchyCache.GetSpaceHierarchyAsync(publicId, ct);
+        if (hierarchy is null) return false;
 
-        if (!restricted.SpaceIds.Contains(space.Id)) return true;
+        if (!restricted.SpaceIds.Contains(hierarchy.Id)) return true;
 
         var grants = await grantsCache.GetGrantsAsync(userId, ct);
-        return grants.SpaceIds.Contains(space.Id);
+        return grants.SpaceIds.Contains(hierarchy.Id);
     }
 
     private static async Task<bool> CheckHubAccessAsync(
         string userId, string publicId,
-        IHubRepository repo, RestrictedEntitySet restricted, IUserGrantsCacheService grantsCache,
+        IEntityHierarchyCacheService hierarchyCache,
+        RestrictedEntitySet restricted,
+        IUserGrantsCacheService grantsCache,
         CancellationToken ct = default)
     {
-        var hub = await repo.GetByPublicIdAsync(publicId, ct);
-        if (hub is null) return false;
+        var hierarchy = await hierarchyCache.GetHubHierarchyAsync(publicId, ct);
+        if (hierarchy is null) return false;
 
-        if (!restricted.HubIds.Contains(hub.Id)) return true;
+        if (!restricted.HubIds.Contains(hierarchy.Id)) return true;
 
         var grants = await grantsCache.GetGrantsAsync(userId, ct);
-        return grants.HubIds.Contains(hub.Id);
+        return grants.HubIds.Contains(hierarchy.Id);
     }
 
-    private static async Task<bool> CheckCommunityAccessAsync(string publicId, Snakk.Domain.Repositories.ICommunityRepository repo, CancellationToken ct = default)
+    private static async Task<bool> CheckCommunityAccessAsync(
+        string publicId,
+        IEntityHierarchyCacheService hierarchyCache,
+        CancellationToken ct = default)
     {
-        var community = await repo.GetByPublicIdAsync(CommunityId.From(publicId), ct);
-        return community is not null;
+        var communityId = await hierarchyCache.GetCommunityIdAsync(publicId, ct);
+        return communityId is not null;
     }
 }
 

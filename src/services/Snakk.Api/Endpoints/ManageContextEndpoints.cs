@@ -1,9 +1,7 @@
 namespace Snakk.Api.Endpoints;
 
-using Microsoft.EntityFrameworkCore;
 using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
-using Snakk.Infrastructure.Database;
 using System.Security.Claims;
 
 public static class ManageContextEndpoints
@@ -24,7 +22,7 @@ public static class ManageContextEndpoints
         string? hubId,
         string? spaceId,
         ClaimsPrincipal user,
-        SnakkDbContext context,
+        IManageScopeDataService scopeData,
         IManagePermissionService permissionService,
         CancellationToken ct)
     {
@@ -34,14 +32,7 @@ public static class ManageContextEndpoints
             return Results.Unauthorized();
 
         // Resolve community
-        var community = await context.Communities
-            .Where(c => c.PublicId == communityId)
-            .Select(c => new {
-                c.Id,
-                c.Name,
-                c.Slug,
-                c.PublicId })
-            .FirstOrDefaultAsync(ct);
+        var community = await scopeData.GetCommunityByPublicIdAsync(communityId, ct);
 
         if (community is null)
             return Results.NotFound(new { error = "Community not found" });
@@ -69,17 +60,8 @@ public static class ManageContextEndpoints
             });
         }
 
-        // Resolve hub
-        var hub = await context.Hubs
-            .Where(h =>
-                h.PublicId == hubId
-                && h.CommunityId == community.Id)
-            .Select(h => new {
-                h.Id,
-                h.Name,
-                h.Slug,
-                h.PublicId })
-            .FirstOrDefaultAsync(ct);
+        // Resolve hub (must belong to this community)
+        var hub = await scopeData.GetHubByPublicIdInCommunityAsync(hubId, community.DbId, ct);
 
         if (hub is null)
             return Results.NotFound(new { error = "Hub not found" });
@@ -106,17 +88,8 @@ public static class ManageContextEndpoints
             });
         }
 
-        // Resolve space
-        var space = await context.Spaces
-            .Where(s =>
-                s.PublicId == spaceId
-                && s.HubId == hub.Id)
-            .Select(s => new {
-                s.Id,
-                s.Name,
-                s.Slug,
-                s.PublicId })
-            .FirstOrDefaultAsync(ct);
+        // Resolve space (must belong to this hub)
+        var space = await scopeData.GetSpaceByPublicIdInHubAsync(spaceId, hub.DbId, ct);
 
         if (space is null)
             return Results.NotFound(new { error = "Space not found" });

@@ -163,7 +163,7 @@ public static class BffApiEndpoints
         group.MapPost("/auth/login", ReloginAsync)
             .WithName("BffRelogin")
             .AllowAnonymous()
-            .RequireRateLimiting("flood-post");
+            .RequireRateLimiting("auth");
 
         group.MapPost("/auth/sudo", IssueSudoTokenBffAsync)
             .WithName("BffIssueSudoToken")
@@ -214,23 +214,23 @@ public static class BffApiEndpoints
         authGroup.MapDelete("/me/devices/{deviceId}", RevokeMyDeviceAsync)
             .WithName("BffRevokeMyDevice");
 
-        // 2FA management
-        group.MapGet("/auth/2fa/status", Get2FAStatusBffAsync)
+        // 2FA management — security-critical, middleware-enforced auth via authGroup
+        authGroup.MapGet("/auth/2fa/status", Get2FAStatusBffAsync)
             .WithName("BffGet2FAStatus");
 
-        group.MapPost("/auth/2fa/setup", Setup2FABffAsync)
+        authGroup.MapPost("/auth/2fa/setup", Setup2FABffAsync)
             .WithName("BffSetup2FA");
 
-        group.MapPost("/auth/2fa/enable", Enable2FABffAsync)
+        authGroup.MapPost("/auth/2fa/enable", Enable2FABffAsync)
             .WithName("BffEnable2FA");
 
-        group.MapPost("/auth/2fa/disable", Disable2FABffAsync)
+        authGroup.MapPost("/auth/2fa/disable", Disable2FABffAsync)
             .WithName("BffDisable2FA");
 
-        group.MapGet("/auth/2fa/backup-codes", GetBackupCodesBffAsync)
+        authGroup.MapGet("/auth/2fa/backup-codes", GetBackupCodesBffAsync)
             .WithName("BffGetBackupCodes");
 
-        group.MapPost("/auth/2fa/backup-codes/regenerate", RegenerateBackupCodesBffAsync)
+        authGroup.MapPost("/auth/2fa/backup-codes/regenerate", RegenerateBackupCodesBffAsync)
             .WithName("BffRegenerateBackupCodes");
 
         // User operations
@@ -383,9 +383,9 @@ public static class BffApiEndpoints
             .WithName("BffValidateHistoryIds");
 
         // Social Links
-        group.MapGet("/me/social", GetMySocialLinksBffAsync)
+        authGroup.MapGet("/me/social", GetMySocialLinksBffAsync)
             .WithName("BffGetMySocialLinks");
-        group.MapPut("/me/social", UpdateMySocialLinksBffAsync)
+        authGroup.MapPut("/me/social", UpdateMySocialLinksBffAsync)
             .WithName("BffUpdateMySocialLinks");
         group.MapGet("/users/{publicId}/social", GetUserSocialLinksBffAsync)
             .WithName("BffGetUserSocialLinks");

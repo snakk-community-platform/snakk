@@ -1,11 +1,9 @@
 namespace Snakk.Api.Endpoints;
 
-using Microsoft.EntityFrameworkCore;
 using Snakk.Application.DTOs.Responses;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 using Snakk.Shared.Enums;
 using System.Security.Claims;
 
@@ -107,7 +105,7 @@ public static class AdminModerationEndpoints
         HttpContext httpContext,
         ModerationUseCase moderationUseCase,
         IAdminUserService adminUserService,
-        SnakkDbContext context,
+        IAdminModerationDataService adminModerationData,
         CancellationToken ct)
     {
         var adminUserId = GetUserId(httpContext);
@@ -119,20 +117,14 @@ public static class AdminModerationEndpoints
         if (!await adminUserService.UserExistsAsync(userId))
             return Results.NotFound(new { error = "User not found" });
 
-        var now = DateTime.UtcNow;
-
         // Find active ban for this user
-        var activeBan = await context.UserBans
-            .FirstOrDefaultAsync(b =>
-                b.User.PublicId == userId
-                && b.UnbannedAt == null
-                && (b.ExpiresAt == null || b.ExpiresAt > now), ct);
+        var activeBanPublicId = await adminModerationData.GetActiveBanPublicIdAsync(userId, ct);
 
-        if (activeBan is null)
+        if (activeBanPublicId is null)
             return Results.BadRequest(new { error = "User is not currently banned" });
 
         // Unban the user
-        var result = await moderationUseCase.UnbanUserAsync(activeBan.PublicId, adminUserId);
+        var result = await moderationUseCase.UnbanUserAsync(activeBanPublicId, adminUserId);
 
         if (!result.IsSuccess)
             return Results.BadRequest(new { error = result.Error });
@@ -145,8 +137,7 @@ public static class AdminModerationEndpoints
         UpdateUserRoleRequest request,
         HttpContext httpContext,
         ModerationUseCase moderationUseCase,
-        IAdminUserService adminUserService,
-        SnakkDbContext context,
+        IAdminModerationDataService adminModerationData,
         CancellationToken ct)
     {
         var adminUserId = GetUserId(httpContext);
@@ -154,11 +145,10 @@ public static class AdminModerationEndpoints
         if (adminUserId is null)
             return Results.Unauthorized();
 
-        // Verify user exists - also need to get database Id for role lookups
-        var targetUser = await context.Users
-            .FirstOrDefaultAsync(u => u.PublicId == userId, ct);
+        // Verify user exists and get database role info
+        var userRoleInfo = await adminModerationData.GetUserRoleInfoAsync(userId, ct);
 
-        if (targetUser is null)
+        if (userRoleInfo is null)
             return Results.NotFound(new { error = "User not found" });
 
         // Parse role type - only support GlobalAdmin for now (simple platform-wide admin)
@@ -184,17 +174,10 @@ public static class AdminModerationEndpoints
         // If the role is "User", revoke any existing platform-wide role
         if (roleType is null)
         {
-            var existingRole = await context.UserRoles
-                .FirstOrDefaultAsync(ur =>
-                    ur.UserId == targetUser.Id
-                    && ur.CommunityId == null
-                    && ur.HubId == null
-                    && ur.SpaceId == null
-                    && ur.RevokedAt == null, ct);
-
-            if (existingRole is not null)
+            if (userRoleInfo.ActivePlatformRolePublicId is not null)
             {
-                var revokeResult = await moderationUseCase.RevokeRoleAsync(existingRole.PublicId, adminUserId);
+                var revokeResult = await moderationUseCase.RevokeRoleAsync(
+                    userRoleInfo.ActivePlatformRolePublicId, adminUserId);
 
                 if (!revokeResult.IsSuccess)
                     return Results.BadRequest(new { error = revokeResult.Error });
@@ -204,26 +187,16 @@ public static class AdminModerationEndpoints
         }
 
         // Check if user already has a platform-wide role
-        var currentRole = await context.UserRoles
-            .FirstOrDefaultAsync(ur =>
-                ur.UserId == targetUser.Id
-                && ur.CommunityId == null
-                && ur.HubId == null
-                && ur.SpaceId == null
-                && ur.RevokedAt == null, ct);
-
-        // Check the role type
-        if (currentRole is not null)
+        if (userRoleInfo.ActivePlatformRolePublicId is not null)
         {
-            var currentRoleType = currentRole.RoleId;
-
-            if (currentRoleType == (int)roleType.Value)
+            if (userRoleInfo.ActivePlatformRoleId == (int)roleType.Value)
             {
                 return TypedResults.Ok(new MessageResponse("User already has this role"));
             }
 
             // Revoke existing role
-            var revokeResult = await moderationUseCase.RevokeRoleAsync(currentRole.PublicId, adminUserId);
+            var revokeResult = await moderationUseCase.RevokeRoleAsync(
+                userRoleInfo.ActivePlatformRolePublicId, adminUserId);
 
             if (!revokeResult.IsSuccess)
                 return Results.BadRequest(new { error = revokeResult.Error });
@@ -295,35 +268,31 @@ public static class AdminModerationEndpoints
 
     private static async Task<IResult> GetReportAsync(
         string id,
-        ModerationUseCase moderationUseCase,
-        SnakkDbContext context,
+        IAdminModerationDataService adminModerationData,
         CancellationToken ct)
     {
-        var report = await context.Reports
-            .Where(r => r.PublicId == id)
-            .Select(r => new AdminReportDetailResponse(
-                Id: r.PublicId,
-                ReporterId: r.ReporterUser.PublicId,
-                ReporterUsername: r.ReporterUser.DisplayName ?? "",
-                ReportedUserId: r.ReportedUser != null ? r.ReportedUser.PublicId : null,
-                ReportedUsername: r.ReportedUser != null ? r.ReportedUser.DisplayName : null,
-                PostId: r.ReportedPost != null ? r.ReportedPost.PublicId : null,
-                DiscussionId: r.ReportedDiscussion != null ? r.ReportedDiscussion.PublicId : null,
-                Reason: r.Reason != null ? r.Reason.Name : null,
-                ReasonDescription: r.Reason != null ? r.Reason.Description : null,
-                Details: r.Details,
-                Status: ((Snakk.Shared.Enums.ReportStatusEnum)r.StatusId).ToString(),
-                CreatedAt: r.CreatedAt,
-                ResolvedAt: r.ResolvedAt,
-                ResolverId: r.ResolvedByUser != null ? r.ResolvedByUser.PublicId : null,
-                ResolverUsername: r.ResolvedByUser != null ? r.ResolvedByUser.DisplayName : null,
-                ResolutionNote: r.ResolutionNote))
-            .FirstOrDefaultAsync(ct);
+        var report = await adminModerationData.GetReportDetailAsync(id, ct);
 
         if (report is null)
             return Results.NotFound(new { error = "Report not found" });
 
-        return TypedResults.Ok(report);
+        return TypedResults.Ok(new AdminReportDetailResponse(
+            Id: report.PublicId,
+            ReporterId: report.ReporterPublicId,
+            ReporterUsername: report.ReporterDisplayName,
+            ReportedUserId: report.ReportedUserPublicId,
+            ReportedUsername: report.ReportedUserDisplayName,
+            PostId: report.ReportedPostPublicId,
+            DiscussionId: report.ReportedDiscussionPublicId,
+            Reason: report.ReasonName,
+            ReasonDescription: report.ReasonDescription,
+            Details: report.Details,
+            Status: report.Status,
+            CreatedAt: report.CreatedAt,
+            ResolvedAt: report.ResolvedAt,
+            ResolverId: report.ResolverPublicId,
+            ResolverUsername: report.ResolverDisplayName,
+            ResolutionNote: report.ResolutionNote));
     }
 
     private static async Task<IResult> ResolveReportAsync(

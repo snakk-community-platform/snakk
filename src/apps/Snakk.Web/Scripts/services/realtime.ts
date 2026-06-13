@@ -109,7 +109,7 @@ interface Subscriptions {
     'use strict';
 
     const realtimeUrl = document.querySelector<HTMLMetaElement>('meta[name="realtime-service-url"]')?.content
-        || 'https://localhost:17103/realtime';
+        || '/realtime';
 
     const sanitizeHtml = (html: string): string => (window as any).SnakkUtils.sanitizeHtml(html);
 

@@ -1,13 +1,10 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Services;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 using Snakk.Protos.Passkey;
-using Snakk.Shared.Enums;
 
 namespace Snakk.Api.GrpcServices;
 
@@ -17,7 +14,7 @@ public class PasskeyGrpcService(
     IJwtTokenService jwtService,
     AuthenticationUseCase authUseCase,
     IUserGrantsCacheService grantsCache,
-    SnakkDbContext context,
+    IAuthDataService authDataService,
     ILogger<PasskeyGrpcService> logger) : PasskeyService.PasskeyServiceBase
 {
     public override async Task<BeginPasskeyRegistrationResponse> BeginPasskeyRegistration(
@@ -71,35 +68,21 @@ public class PasskeyGrpcService(
             var (userId, publicId) = await passkeyService.CompleteLoginAsync(
                 request.ChallengeId, request.AssertionResponseJson, ctx.CancellationToken);
 
-            var user = await context.Users
-                .Where(u => u.Id == userId)
-                .Select(u => new
-                {
-                    u.PublicId,
-                    u.DisplayName,
-                    u.Email,
-                    u.EmailVerified,
-                    u.AvatarFileName,
-                    u.AuthVersion,
-                    u.TwoFactorEnabled
-                })
-                .FirstOrDefaultAsync(ctx.CancellationToken)
+            // Fetch user data via IAuthDataService instead of SnakkDbContext
+            var userSlim = await authDataService.GetPasskeyLoginUserDataAsync(userId, ctx.CancellationToken)
                 ?? throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
 
-            var roles = await context.UserRoles
-                .Where(r => r.User.PublicId == publicId && r.RevokedAt == null)
-                .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-                .ToListAsync(ctx.CancellationToken);
+            var roles = await authDataService.GetUserRolesAsync(publicId, ctx.CancellationToken);
 
             var jwt = jwtService.GenerateToken(
-                user.PublicId,
-                user.DisplayName,
-                user.Email,
-                user.EmailVerified,
+                userSlim.PublicId,
+                userSlim.DisplayName,
+                userSlim.Email,
+                userSlim.EmailVerified,
                 roles.FirstOrDefault(),
-                user.AvatarFileName,
-                authVersion: user.AuthVersion,
-                twoFactorEnabled: user.TwoFactorEnabled);
+                userSlim.AvatarFileName,
+                authVersion: userSlim.AuthVersion,
+                twoFactorEnabled: userSlim.TwoFactorEnabled);
 
             var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(UserId.From(publicId));
 

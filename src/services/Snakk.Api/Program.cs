@@ -6,7 +6,7 @@ using Snakk.Api;
 using Snakk.Api.Endpoints;
 using Snakk.Api.Middleware;
 using Snakk.Api.Services;
-using Snakk.Infrastructure.Database;
+using Snakk.DataProtection;
 using Serilog;
 using Snakk.ServiceDefaults;
 
@@ -90,9 +90,9 @@ builder.Services.AddGrpc(o => o.Interceptors.Add<Snakk.Api.Interceptors.AuthVali
 builder.Services.AddSnakkServices(builder.Configuration);
 
 builder.Services.AddSingleton<Snakk.Application.Services.IRevocationCache, Snakk.Api.Services.RevocationCache>();
-builder.Services.AddSingleton<Snakk.Application.Services.IAuthVersionCache, Snakk.Api.Services.AuthVersionCache>();
+// IAuthVersionCache + AuthVersionSweeper are registered by AddAuthDataServices()
+// (implementations moved to Snakk.Infrastructure — they query the database).
 builder.Services.AddScoped<Snakk.Api.Interceptors.AuthValidationInterceptor>();
-builder.Services.AddHostedService<Snakk.Api.Services.AuthVersionSweeper>();
 builder.Services.AddRateLimiting();
 
 // Warn if ConsoleEmailSender is used outside Development/Testing (self-hosted installs may have no SMTP configured)
@@ -104,7 +104,7 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
         Console.WriteLine("WARNING: ConsoleEmailSender is active — emails will only be logged. Configure SMTP for a production email sender.");
 }
 builder.Services.AddHealthChecks()
-    .AddDbContextCheck<SnakkDbContext>();
+    .AddSnakkDbHealthCheck();
 
 var app = builder.Build();
 

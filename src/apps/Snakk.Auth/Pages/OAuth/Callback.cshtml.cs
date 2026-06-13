@@ -35,6 +35,10 @@ public class CallbackModel(
     [BindProperty(SupportsGet = true)]
     public string Provider { get; set; } = "";
 
+    // Per-request CSP nonce (set by the security-headers middleware) — required on the
+    // inline scripts of the minimal popup-close pages this handler returns directly.
+    private string CspNonce => HttpContext.Items["csp-nonce"] as string ?? "";
+
     public async Task<IActionResult> OnGetAsync()
     {
         try
@@ -128,8 +132,8 @@ public class CallbackModel(
                 {
                     logger.LogWarning("OAuth sudo nonce rejected: session userId {SessionId} did not match validated cookie userId",
                         sudoUserId);
-                    var html = """
-                        <!DOCTYPE html><html><body><script>
+                    var html = $$"""
+                        <!DOCTYPE html><html><body><script nonce="{{CspNonce}}">
                         window.opener && window.opener.postMessage({type:'snakk:sudo:oauth-failed'}, window.location.origin);
                         window.close();
                         </script></body></html>
@@ -149,7 +153,7 @@ public class CallbackModel(
 
                     // Return a minimal page that posts the nonce to the parent window and closes
                     var html = $$"""
-                        <!DOCTYPE html><html><body><script>
+                        <!DOCTYPE html><html><body><script nonce="{{CspNonce}}">
                         window.opener && window.opener.postMessage({type:'snakk:sudo:oauth-complete',nonce:'{{nonce}}'}, window.location.origin);
                         window.close();
                         </script></body></html>
@@ -159,8 +163,8 @@ public class CallbackModel(
                 catch (RpcException ex)
                 {
                     logger.LogWarning(ex, "GenerateOAuthSudoNonce gRPC error for user {UserId}", sudoUserId);
-                    var html = """
-                        <!DOCTYPE html><html><body><script>
+                    var html = $$"""
+                        <!DOCTYPE html><html><body><script nonce="{{CspNonce}}">
                         window.opener && window.opener.postMessage({type:'snakk:sudo:oauth-failed'}, window.location.origin);
                         window.close();
                         </script></body></html>

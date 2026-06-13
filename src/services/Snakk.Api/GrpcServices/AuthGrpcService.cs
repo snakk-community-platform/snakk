@@ -1,5 +1,4 @@
 using Grpc.Core;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Snakk.Api.Endpoints;
@@ -10,7 +9,6 @@ using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 using Snakk.Protos.Auth;
 using Snakk.Shared.Enums;
 using Snakk.Shared.Helpers;
@@ -22,7 +20,7 @@ public class AuthGrpcService(
     AuthenticationUseCase authUseCase,
     IJwtTokenService jwtService,
     ICurrentUserService currentUser,
-    SnakkDbContext context,
+    IAuthDataService authDataService,
     ISettingsService settingsService,
     ILogger<AuthGrpcService> logger,
     IUserGrantsCacheService grantsCache,
@@ -57,7 +55,7 @@ public class AuthGrpcService(
                 result.Error ?? "Registration failed. Please check your details and try again."));
 
         var user = result.Value!;
-        var roles = await GetUserRolesAsync(user.PublicId.Value);
+        var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value);
 
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,
@@ -99,15 +97,12 @@ public class AuthGrpcService(
         }
 
         var user = result.Value!;
-        var roles = await GetUserRolesAsync(user.PublicId.Value);
+        var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value);
 
         if (configuration.GetValue<bool>("Features:TwoFactorEnabled", true))
         {
-            // Check if 2FA is enabled — domain entity doesn't have this, so query DB
-            var has2FA = await context.Users
-                .Where(u => u.PublicId == user.PublicId.Value)
-                .Select(u => u.TwoFactorEnabled)
-                .FirstOrDefaultAsync();
+            // Check if 2FA is enabled — domain entity doesn't have this, so query via service
+            var has2FA = await authDataService.GetTwoFactorEnabledAsync(user.PublicId.Value);
 
             if (has2FA)
             {
@@ -140,16 +135,7 @@ public class AuthGrpcService(
         var ipAddress = string.IsNullOrEmpty(request.IpAddress) ? null : request.IpAddress;
         var userAgent = string.IsNullOrEmpty(request.UserAgent) ? null : request.UserAgent;
 
-        var sessionPublicId = await context.RefreshTokens
-            .Where(t => t.TokenValue == tokenHash)
-            .Select(t => t.PublicId)
-            .FirstOrDefaultAsync();
-
-        await context.RefreshTokens
-            .Where(t => t.TokenValue == tokenHash)
-            .ExecuteUpdateAsync(s => s
-                .SetProperty(t => t.IpAddress, ipAddress)
-                .SetProperty(t => t.UserAgent, userAgent));
+        var sessionPublicId = await authDataService.SetRefreshTokenSessionInfoAsync(tokenHash, ipAddress, userAgent);
 
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,
@@ -198,14 +184,11 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Invalid refresh token"));
 
         var (user, newRefreshToken) = result.Value;
-        var roles = await GetUserRolesAsync(user.PublicId.Value);
+        var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value);
 
         var newRawToken = newRefreshToken.Value;
         var newTokenHash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(newRawToken)));
-        var newSessionPublicId = await context.RefreshTokens
-            .Where(t => t.TokenValue == newTokenHash)
-            .Select(t => t.PublicId)
-            .FirstOrDefaultAsync();
+        var newSessionPublicId = await authDataService.GetRefreshTokenSessionIdAsync(newTokenHash);
 
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,
@@ -336,7 +319,7 @@ public class AuthGrpcService(
         if (userResult.IsSuccess)
         {
             var user = userResult.Value!;
-            var roles = await GetUserRolesAsync(user.PublicId.Value);
+            var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value);
 
             var newToken = jwtService.GenerateToken(
                 user.PublicId.Value,
@@ -378,7 +361,7 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.Internal, "Failed to retrieve updated user"));
 
         var user = userResult.Value!;
-        var roles = await GetUserRolesAsync(user.PublicId.Value);
+        var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value);
         var newToken = jwtService.GenerateToken(
             user.PublicId.Value,
             user.DisplayName,
@@ -434,8 +417,7 @@ public class AuthGrpcService(
         var provider = request.Provider.ToLowerInvariant();
 
         // Gate: only check for users who don't already have an account
-        var userAlreadyExists = await context.UserOAuthConnections
-            .AnyAsync(c => c.Provider == provider && c.ProviderUserId == request.ProviderUserId);
+        var userAlreadyExists = await authDataService.OAuthConnectionExistsAsync(provider, request.ProviderUserId);
         if (!userAlreadyExists)
             await EnforceRegistrationGateAsync(request.HasInviteCode ? request.InviteCode : null);
 
@@ -452,21 +434,15 @@ public class AuthGrpcService(
             throw new RpcException(new Status(StatusCode.InvalidArgument, result.Error ?? "OAuth login failed"));
 
         var user = result.Value!;
-        var roles = await GetUserRolesAsync(user.PublicId.Value);
+        var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value);
         var isNewUser = (DateTime.UtcNow - user.CreatedAt).TotalSeconds < 30;
 
         // Discord always requires 2FA; other providers check global flag and per-connection flag
         var globalTwoFAEnabled = configuration.GetValue<bool>("Features:TwoFactorEnabled", true);
-        var perConnectionRequire2FA = !isNewUser && await context.UserOAuthConnections
-            .Where(c => c.User.PublicId == user.PublicId.Value && c.Provider == provider)
-            .Select(c => c.Require2FA)
-            .FirstOrDefaultAsync();
+        var perConnectionRequire2FA = !isNewUser && await authDataService.GetOAuthConnectionRequire2FAAsync(user.PublicId.Value, provider);
 
         var requires2FA = provider == "discord"
-            || (globalTwoFAEnabled && await context.Users
-                .Where(u => u.PublicId == user.PublicId.Value)
-                .Select(u => u.TwoFactorEnabled)
-                .FirstOrDefaultAsync())
+            || (globalTwoFAEnabled && await authDataService.GetTwoFactorEnabledAsync(user.PublicId.Value))
             || perConnectionRequire2FA;
 
         if (requires2FA)
@@ -593,18 +569,7 @@ public class AuthGrpcService(
         GenerateDiscordLinkTokenRequest request, ServerCallContext ctx)
     {
         var userId = RequireAuth();
-        // AsTracking() so the DiscordLinkToken / DiscordLinkTokenExpiry assignments
-        // below actually persist. Without this the whole Discord link flow was dead:
-        // GenerateDiscordLinkToken returned a token never written to the DB, so
-        // CompleteDiscordLink's lookup by that token always failed (CR-25).
-        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user is null) throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
-
-        var token = Guid.NewGuid().ToString("N");
-        var expiry = DateTime.UtcNow.AddMinutes(15);
-        user.DiscordLinkToken = token;
-        user.DiscordLinkTokenExpiry = expiry;
-        await context.SaveChangesAsync();
+        var (token, expiry) = await authDataService.SetDiscordLinkTokenAsync(userId.Value);
 
         return new GenerateDiscordLinkTokenResponse
         {
@@ -616,52 +581,27 @@ public class AuthGrpcService(
     public override async Task<CompleteDiscordLinkResponse> CompleteDiscordLink(
         CompleteDiscordLinkRequest request, ServerCallContext ctx)
     {
-        // AsTracking() so the Discord-field assignments and the link-token clearing
-        // at lines 613-617 actually persist (CR-25). Without it, the link would
-        // appear to succeed but the row would be unchanged, AND the link token
-        // would remain valid until DiscordLinkTokenExpiry — letting any party that
-        // intercepted the token claim the same victim's Discord linkage repeatedly.
-        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u =>
-            u.DiscordLinkToken == request.LinkToken &&
-            u.DiscordLinkTokenExpiry != null &&
-            u.DiscordLinkTokenExpiry > DateTime.UtcNow);
+        var (resultCode, userPublicId) = await authDataService.CompleteDiscordLinkAsync(
+            request.LinkToken,
+            request.DiscordUserId,
+            request.DiscordUsername,
+            request.HasDiscordAvatarHash ? request.DiscordAvatarHash : null);
 
-        if (user is null)
-            return new CompleteDiscordLinkResponse { Success = false, ErrorCode = "TOKEN_INVALID" };
+        if (resultCode == "OK")
+        {
+            if (userPublicId is not null)
+                cache.Remove($"discord-status:{userPublicId}");
+            return new CompleteDiscordLinkResponse { Success = true };
+        }
 
-        var alreadyLinked = await context.Users.AnyAsync(u =>
-            u.DiscordUserId == request.DiscordUserId && u.PublicId != user.PublicId);
-        if (alreadyLinked)
-            return new CompleteDiscordLinkResponse { Success = false, ErrorCode = "ALREADY_LINKED" };
-
-        user.DiscordUserId = request.DiscordUserId;
-        user.DiscordUsername = request.DiscordUsername;
-        user.DiscordAvatarHash = request.HasDiscordAvatarHash ? request.DiscordAvatarHash : null;
-        user.DiscordLinkToken = null;
-        user.DiscordLinkTokenExpiry = null;
-        await context.SaveChangesAsync();
-
-        cache.Remove($"discord-status:{user.PublicId}");
-        return new CompleteDiscordLinkResponse { Success = true };
+        return new CompleteDiscordLinkResponse { Success = false, ErrorCode = resultCode };
     }
 
     public override async Task<Protos.Auth.MessageResponse> UnlinkDiscord(
         UnlinkDiscordRequest request, ServerCallContext ctx)
     {
         var userId = RequireAuth();
-        // AsTracking() so the field nulling below actually persists. Pre-fix the
-        // user got a success response but the Discord linkage row was unchanged —
-        // so "Unlink Discord" was UX-only (CR-25).
-        var user = await context.Users.AsTracking().FirstOrDefaultAsync(u => u.PublicId == userId.Value);
-        if (user is null) throw new RpcException(new Status(StatusCode.NotFound, "User not found"));
-
-        user.DiscordUserId = null;
-        user.DiscordUsername = null;
-        user.DiscordAvatarHash = null;
-        user.DiscordLinkToken = null;
-        user.DiscordLinkTokenExpiry = null;
-        // OAuthProvider and OAuthProviderId are NOT touched
-        await context.SaveChangesAsync();
+        await authDataService.UnlinkDiscordAsync(userId.Value);
 
         cache.Remove($"discord-status:{userId.Value}");
         return new Protos.Auth.MessageResponse { Message = "Discord unlinked" };
@@ -675,13 +615,10 @@ public class AuthGrpcService(
         if (cache.TryGetValue(key, out DiscordStatusResponse? cached) && cached is not null)
             return cached;
 
-        var discord = await context.Users
-            .Where(u => u.PublicId == userId.Value)
-            .Select(u => new { u.DiscordUserId, u.DiscordUsername, u.DiscordAvatarHash })
-            .FirstOrDefaultAsync();
+        var discord = await authDataService.GetDiscordStatusAsync(userId.Value);
 
         DiscordStatusResponse response;
-        if (discord?.DiscordUserId is null)
+        if (discord is null)
         {
             response = new DiscordStatusResponse { IsLinked = false };
         }
@@ -821,14 +758,10 @@ public class AuthGrpcService(
         var userPublicId = RequireAuth().Value;
 
         // Verify the provider+providerUserId matches a connection for this user
-        var connection = await context.UserOAuthConnections
-            .FirstOrDefaultAsync(c =>
-                c.User.PublicId == userPublicId &&
-                c.Provider == request.Provider &&
-                c.ProviderUserId == request.ProviderUserId,
-                ctx.CancellationToken);
+        var connectionExists = await authDataService.VerifyOAuthConnectionOwnershipAsync(
+            userPublicId, request.Provider, request.ProviderUserId, ctx.CancellationToken);
 
-        if (connection is null)
+        if (!connectionExists)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "OAuth connection not found for user"));
 
         var nonce = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
@@ -866,13 +799,6 @@ public class AuthGrpcService(
                 throw new RpcException(new Status(StatusCode.PermissionDenied, "INVITE_CODE_INVALID"));
         }
     }
-
-    // Shared helper to fetch roles for a user
-    private async Task<List<string>> GetUserRolesAsync(string publicId) =>
-        await context.UserRoles
-            .Where(r => r.User.PublicId == publicId && r.RevokedAt == null)
-            .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToListAsync();
 
     // Builds a UserInfo proto with conditional assignment for nullable fields.
     // Email/DisplayName are proto3 `optional` — leave unset when null rather than coercing to "".

@@ -5,9 +5,6 @@ using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
-using Snakk.Infrastructure.Database;
 using Snakk.Protos.Space;
 using Snakk.Shared.Helpers;
 
@@ -18,11 +15,10 @@ public class SpaceGrpcService(
     ISearchRepository searchRepository,
     IRuleService ruleService,
     StatisticsUseCase statisticsUseCase,
-    SnakkDbContext dbContext,
+    ISpaceDataService spaceData,
     ICurrentUserService currentUser,
     IUserGrantsCacheService grantsCache,
-    IEntityHierarchyCacheService hierarchyCache,
-    HybridCache cache) : SpaceService.SpaceServiceBase
+    IEntityHierarchyCacheService hierarchyCache) : SpaceService.SpaceServiceBase
 {
     public override async Task<SpaceInfo> GetSpaceBySlug(GetSpaceBySlugRequest request, ServerCallContext context)
     {
@@ -36,8 +32,8 @@ public class SpaceGrpcService(
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         var info = MapToProto(result.Value);
-        await PopulateRulesMetadata(info, result.Value.PublicId.Value);
-        await PopulateDiscordInviteUrlAsync(info, result.Value.PublicId.Value);
+        await PopulateRulesMetadata(info, result.Value.PublicId.Value, ct);
+        await PopulateDiscordInviteUrlAsync(info, result.Value.PublicId.Value, ct);
 
         return info;
     }
@@ -54,8 +50,8 @@ public class SpaceGrpcService(
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
         var info = MapToProto(result.Value);
-        await PopulateRulesMetadata(info, result.Value.PublicId.Value);
-        await PopulateDiscordInviteUrlAsync(info, result.Value.PublicId.Value);
+        await PopulateRulesMetadata(info, result.Value.PublicId.Value, ct);
+        await PopulateDiscordInviteUrlAsync(info, result.Value.PublicId.Value, ct);
 
         return info;
     }
@@ -216,68 +212,16 @@ public class SpaceGrpcService(
             && (!communityGate || grants.CommunityIds.Contains(h.CommunityId));
     }
 
-    private sealed record LatestDiscussionMeta(string PublicId, string Title, string Slug, DateTime LastActivityAt, string AuthorPublicId, string AuthorDisplayName, string? AuthorAvatarFileName, int PostCount);
-    private sealed record SpaceMeta(bool HasRules, string? RulesRevision, bool ParentHubHasRules, bool ParentCommunityHasRules, string? TeamRevision, bool IsRestricted, List<int> AllowedTypes, string? HubSlug, string? CommunitySlug, int DiscussionCount = 0, int ReplyCount = 0, LatestDiscussionMeta? LatestDiscussion = null, bool Require2FA = false);
-    private async Task PopulateDiscordInviteUrlAsync(SpaceInfo info, string publicId)
+    private async Task PopulateDiscordInviteUrlAsync(SpaceInfo info, string publicId, CancellationToken ct = default)
     {
-        var inviteUrl = await dbContext.Spaces
-            .Where(s => s.PublicId == publicId && s.DiscordInviteUrl != null)
-            .Select(s => s.DiscordInviteUrl)
-            .FirstOrDefaultAsync();
+        var inviteUrl = await spaceData.GetDiscordInviteUrlAsync(publicId, ct);
         if (inviteUrl is not null)
             info.DiscordInviteUrl = inviteUrl;
     }
 
-    private static readonly HybridCacheEntryOptions MetaCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
-
-    private async Task PopulateRulesMetadata(SpaceInfo info, string publicId)
+    private async Task PopulateRulesMetadata(SpaceInfo info, string publicId, CancellationToken ct = default)
     {
-        var data = await cache.GetOrCreateAsync<SpaceMeta?>(
-            $"space-meta:{publicId}",
-            async cancel =>
-            {
-                var raw = await dbContext.Spaces
-                    .Where(s => s.PublicId == publicId)
-                    .Select(s => new {
-                        s.Id,
-                        s.HasRules,
-                        s.RulesRevision,
-                        s.ParentHubHasRules,
-                        s.ParentCommunityHasRules,
-                        s.TeamRevision,
-                        s.IsRestricted,
-                        s.Require2FA,
-                        AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList(),
-                        HubSlug = s.Hub.Slug,
-                        CommunitySlug = s.Hub.Community.Slug,
-                        s.DiscussionCount,
-                        ReplyCount = s.PostCount - s.DiscussionCount,
-                    })
-                    .FirstOrDefaultAsync(cancel);
-                if (raw is null) return null;
-                // Separate query avoids the ROW_NUMBER() window-function scan EF Core generates
-                // when FirstOrDefault() is used on a navigation collection inside a projection.
-                var latestRaw = await dbContext.Discussions
-                    .Where(d => d.SpaceId == raw.Id && !d.IsDeleted)
-                    .OrderByDescending(d => d.LastActivityAt ?? d.CreatedAt)
-                    .Select(d => new {
-                        d.PublicId,
-                        d.Title,
-                        d.Slug,
-                        LastActivityAt = d.LastActivityAt ?? d.CreatedAt,
-                        AuthorPublicId = d.CreatedByUser.PublicId,
-                        AuthorDisplayName = d.CreatedByUser.DisplayName,
-                        AuthorAvatarFileName = d.CreatedByUser.AvatarFileName,
-                        d.PostCount })
-                    .FirstOrDefaultAsync(cancel);
-                var ld = latestRaw is null ? null : new LatestDiscussionMeta(
-                    latestRaw.PublicId, latestRaw.Title, latestRaw.Slug,
-                    latestRaw.LastActivityAt, latestRaw.AuthorPublicId,
-                    latestRaw.AuthorDisplayName ?? "", latestRaw.AuthorAvatarFileName,
-                    latestRaw.PostCount);
-                return new SpaceMeta(raw.HasRules, raw.RulesRevision, raw.ParentHubHasRules, raw.ParentCommunityHasRules, raw.TeamRevision, raw.IsRestricted, raw.AllowedTypes, raw.HubSlug, raw.CommunitySlug, raw.DiscussionCount, raw.ReplyCount, ld, raw.Require2FA);
-            },
-            MetaCacheOptions);
+        var data = await spaceData.GetSpaceMetaAsync(publicId, ct);
 
         if (data is not null)
         {

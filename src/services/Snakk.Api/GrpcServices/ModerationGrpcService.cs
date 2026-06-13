@@ -1,11 +1,10 @@
 using Grpc.Core;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Api.Services;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 using Snakk.Protos.Moderation;
 using Snakk.Shared.Enums;
 
@@ -14,7 +13,7 @@ namespace Snakk.Api.GrpcServices;
 public class ModerationGrpcService(
     ModerationUseCase moderationUseCase,
     ICurrentUserService currentUser,
-    SnakkDbContext dbContext,
+    IManageScopeDataService scopeData,
     HybridCache cache) : ModerationService.ModerationServiceBase
 {
     // ==================== Permission Checks ====================
@@ -533,75 +532,67 @@ public class ModerationGrpcService(
         var response = new GetModeratorsResponse();
         var groups = new List<ModeratorGroup>();
 
-        int? communityId = null;
-        int? hubId = null;
+        int? communityDbId = null;
+        int? hubDbId = null;
         string? communityName = null;
         string? hubName = null;
 
         if (request.ScopeType == "Space")
         {
-            var spaceData = await dbContext.Spaces
-                .Where(s => s.PublicId == request.ScopePublicId)
-                .Select(s => new { s.Id, s.Name, s.HubId, HubName = s.HubName, CommunityId = s.Hub.CommunityId, CommunityName = s.CommunityName })
-                .FirstOrDefaultAsync(ct);
+            var spaceData = await scopeData.GetSpaceModeratorSeedAsync(request.ScopePublicId, ct);
 
             if (spaceData is null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
 
-            hubId = spaceData.HubId;
+            hubDbId = spaceData.HubDbId;
             hubName = spaceData.HubName;
-            communityId = spaceData.CommunityId;
+            communityDbId = spaceData.CommunityDbId;
             communityName = spaceData.CommunityName;
 
-            var spaceMods = await GetActiveRolesAsync(spaceId: spaceData.Id, ct: ct);
+            var spaceMods = await scopeData.GetActiveModeratorRolesAsync(spaceDbId: spaceData.SpaceDbId, ct: ct);
             if (spaceMods.Count > 0)
-                groups.Add(new ModeratorGroup { Level = "Space Moderators", ScopeName = spaceData.Name, Moderators = { spaceMods } });
+                groups.Add(new ModeratorGroup { Level = "Space Moderators", ScopeName = spaceData.SpaceName, Moderators = { MapModeratorInfos(spaceMods) } });
         }
         else if (request.ScopeType == "Hub")
         {
-            var hubData = await dbContext.Hubs
-                .Where(h => h.PublicId == request.ScopePublicId)
-                .Select(h => new { h.Id, h.Name, h.CommunityId, CommunityName = h.Community.Name })
-                .FirstOrDefaultAsync(ct);
+            var hubData = await scopeData.GetHubModeratorSeedAsync(request.ScopePublicId, ct);
 
             if (hubData is null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
 
-            hubId = hubData.Id;
-            hubName = hubData.Name;
-            communityId = hubData.CommunityId;
+            hubDbId = hubData.HubDbId;
+            hubName = hubData.HubName;
+            communityDbId = hubData.CommunityDbId;
             communityName = hubData.CommunityName;
         }
         else if (request.ScopeType == "Community")
         {
-            var community = await dbContext.Communities
-                .Where(c => c.PublicId == request.ScopePublicId)
-                .FirstOrDefaultAsync(ct);
+            var community = await scopeData.GetCommunityModeratorSeedAsync(request.ScopePublicId, ct);
 
             if (community is null)
                 throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
-            communityId = community.Id;
-            communityName = community.Name;
+            communityDbId = community.CommunityDbId;
+            communityName = community.CommunityName;
         }
 
-        if (hubId.HasValue)
+        if (hubDbId.HasValue)
         {
-            var hubMods = await GetActiveRolesAsync(hubId: hubId.Value, ct: ct);
+            var hubMods = await scopeData.GetActiveModeratorRolesAsync(hubDbId: hubDbId.Value, ct: ct);
             if (hubMods.Count > 0)
-                groups.Add(new ModeratorGroup { Level = "Hub Moderators", ScopeName = hubName ?? "", Moderators = { hubMods } });
+                groups.Add(new ModeratorGroup { Level = "Hub Moderators", ScopeName = hubName ?? "", Moderators = { MapModeratorInfos(hubMods) } });
         }
 
-        if (communityId.HasValue)
+        if (communityDbId.HasValue)
         {
-            var communityMods = await GetActiveRolesAsync(communityId: communityId.Value, ct: ct);
+            var communityMods = await scopeData.GetActiveModeratorRolesAsync(communityDbId: communityDbId.Value, ct: ct);
             if (communityMods.Count > 0)
-                groups.Add(new ModeratorGroup { Level = "Community Team", ScopeName = communityName ?? "", Moderators = { communityMods } });
+                groups.Add(new ModeratorGroup { Level = "Community Team", ScopeName = communityName ?? "", Moderators = { MapModeratorInfos(communityMods) } });
         }
 
-        var globalAdmins = await GetActiveRolesAsync(globalOnly: true, ct: ct);
+        var globalAdmins = await scopeData.GetActiveModeratorRolesAsync(globalOnly: true, ct: ct);
         if (globalAdmins.Count > 0)
-            groups.Add(new ModeratorGroup { Level = "Global Admins", ScopeName = "", Moderators = { globalAdmins } });
+            groups.Add(new ModeratorGroup { Level = "Global Admins", ScopeName = "", Moderators = { MapModeratorInfos(globalAdmins) } });
 
         response.Groups.AddRange(groups);
         response.TotalCount = groups.Sum(g => g.Moderators.Count);
@@ -609,51 +600,14 @@ public class ModerationGrpcService(
         return response;
     }
 
-    private async Task<List<ModeratorInfo>> GetActiveRolesAsync(
-        int? communityId = null,
-        int? hubId = null,
-        int? spaceId = null,
-        bool globalOnly = false,
-        CancellationToken ct = default)
-    {
-        var query = dbContext.UserRoles
-            .Where(ur => ur.RevokedAt == null);
-
-        if (globalOnly)
+    private static IEnumerable<ModeratorInfo> MapModeratorInfos(
+        IReadOnlyList<Snakk.Application.DTOs.Management.ModeratorInfoDto> dtos) =>
+        dtos.Select(d => new ModeratorInfo
         {
-            query = query.Where(ur => ur.RoleId == (int)UserRoleTypeEnum.GlobalAdmin);
-        }
-        else if (spaceId.HasValue)
-        {
-            query = query.Where(ur =>
-                ur.SpaceId == spaceId.Value
-                && ur.RoleId == (int)UserRoleTypeEnum.SpaceMod);
-        }
-        else if (hubId.HasValue)
-        {
-            query = query.Where(ur =>
-                ur.HubId == hubId.Value
-                && ur.RoleId == (int)UserRoleTypeEnum.HubMod);
-        }
-        else if (communityId.HasValue)
-        {
-            query = query.Where(ur =>
-                ur.CommunityId == communityId.Value
-                && (ur.RoleId == (int)UserRoleTypeEnum.CommunityAdmin
-                    || ur.RoleId == (int)UserRoleTypeEnum.CommunityMod));
-        }
-
-        return await query
-            .OrderBy(ur => ur.RoleId)
-            .ThenBy(ur => ur.AssignedAt)
-            .Select(ur => new ModeratorInfo
-            {
-                UserPublicId = ur.User.PublicId,
-                DisplayName = ur.User.DisplayName,
-                Role = ((UserRoleTypeEnum)ur.RoleId).ToString()
-            })
-            .ToListAsync(ct);
-    }
+            UserPublicId = d.UserPublicId,
+            DisplayName = d.DisplayName,
+            Role = d.Role
+        });
 
     // ==================== Helpers ====================
 

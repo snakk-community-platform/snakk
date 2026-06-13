@@ -502,6 +502,19 @@ public class AuthenticationUseCase(
         if (refreshToken is null)
             return Result<(User, RefreshToken)>.Failure("Invalid refresh token");
 
+        if (refreshToken.IsRevoked)
+        {
+            // Reuse of an already-rotated/revoked token signals token theft: revoke the
+            // user's entire token family so a stolen token cannot keep a session alive.
+            // A short grace window avoids killing all sessions on benign multi-tab races
+            // where an in-flight refresh still carries the just-rotated token.
+            var revokedAt = DateTime.Parse(refreshToken.RevokedAt!, null, System.Globalization.DateTimeStyles.RoundtripKind);
+            if (DateTime.UtcNow - revokedAt > TimeSpan.FromSeconds(60))
+                await refreshTokenRepository.RevokeAllForUserAsync(refreshToken.UserId);
+
+            return Result<(User, RefreshToken)>.Failure("Refresh token is expired or revoked");
+        }
+
         if (!refreshToken.IsActive)
             return Result<(User, RefreshToken)>.Failure("Refresh token is expired or revoked");
 

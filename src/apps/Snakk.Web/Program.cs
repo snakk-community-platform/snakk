@@ -7,7 +7,7 @@ using Snakk.Web.Helpers;
 using Snakk.Shared.Helpers;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
-using Snakk.Infrastructure.Database;
+using Snakk.DataProtection;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -374,6 +374,18 @@ builder.Services.AddRateLimiter(options =>
                 TokenLimit = 15, TokensPerPeriod = 3,
                 ReplenishmentPeriod = TimeSpan.FromSeconds(60),
                 QueueLimit = 0, AutoReplenishment = true
+            }));
+
+    // Credential attempts (login/re-login): 10 per 5 minutes per IP.
+    // Partitioned by IP only — these requests are unauthenticated, and a
+    // per-user partition would let an attacker rotate target accounts.
+    options.AddPolicy("auth", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter($"ip:{httpContext.Connection.RemoteIpAddress}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(5),
+                QueueLimit = 0
             }));
 });
 

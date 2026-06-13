@@ -1461,7 +1461,7 @@ function showToast(message: string, type: 'error' | 'success' | 'info' = 'error'
 
     toast.innerHTML = `
         ${icon}
-        <p class="text-sm">${message}</p>
+        <p class="text-sm">${escapeHtml(message)}</p>
     `;
 
     document.body.appendChild(toast);

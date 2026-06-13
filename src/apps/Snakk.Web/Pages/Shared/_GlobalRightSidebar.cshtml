@@ -6,7 +6,7 @@
     <div class="sn-right-section">
         <div class="sn-right-title">
             <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            Site Stats
+            @T.Sections.SiteStats
         </div>
         <div hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
              hx-trigger="load"
@@ -25,7 +25,7 @@
     <div class="sn-right-section">
         <div class="sn-right-title">
             <span class="icon icon-archive-layers" aria-hidden="true"></span>
-            Active Spaces
+            @T.Sections.ActiveSpaces
         </div>
         <div hx-get="/partials/trending-spaces?scopeType=platform&scopeId=global"
              hx-trigger="load"
@@ -42,7 +42,7 @@
     <div class="sn-right-section">
         <div class="sn-right-title">
             <span class="icon icon-users-group" aria-hidden="true"></span>
-            Active Contributors
+            @T.Sections.ActiveContributors
         </div>
         <div hx-get="/partials/trending-contributors?scopeType=platform&scopeId=global"
              hx-trigger="load"

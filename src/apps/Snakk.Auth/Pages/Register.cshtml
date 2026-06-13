@@ -313,7 +313,7 @@
     }
     @if (Model.RegistrationMode == "InviteOnly")
     {
-        <script>
+        <script nonce="@(ViewContext.HttpContext.Items["csp-nonce"] as string)">
         (function () {
             var sharedInput = document.getElementById('invite-code-shared');
             if (!sharedInput) return;

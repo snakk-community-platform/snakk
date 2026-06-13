@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\aspire\Snakk.ServiceDefaults\Snakk.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.DataProtection\Snakk.DataProtection.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Application\Snakk.Application.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Protos\Snakk.Protos.csproj" />

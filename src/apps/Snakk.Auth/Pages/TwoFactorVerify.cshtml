@@ -85,7 +85,7 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
+    <script nonce="@(ViewContext.HttpContext.Items["csp-nonce"] as string)">
     (function () {
         'use strict';
 

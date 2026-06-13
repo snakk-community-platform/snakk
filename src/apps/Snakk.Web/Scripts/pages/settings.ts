@@ -115,7 +115,7 @@ interface SettingsPageConfig {
 
         if (data.isDisplayNameLocked) {
             if (statusEl) {
-                statusEl.textContent = 'Your display name has been locked by an administrator.';
+                statusEl.textContent = (window as any).T?.settings?.displayNameLocked ?? 'Your display name has been locked by an administrator.';
                 statusEl.className = 'text-sm mb-3 text-warning';
                 statusEl.classList.remove('hidden');
             }
@@ -127,7 +127,10 @@ interface SettingsPageConfig {
             if (daysSince < cooldownDays) {
                 const remaining = cooldownDays - daysSince;
                 if (statusEl) {
-                    statusEl.textContent = `You can change your display name again in ${remaining} day${remaining === 1 ? '' : 's'}.`;
+                    const tpl = remaining === 1
+                        ? ((window as any).T?.settings?.displayNameCooldownOne ?? 'You can change your display name again in {0} day.')
+                        : ((window as any).T?.settings?.displayNameCooldownOther ?? 'You can change your display name again in {0} days.');
+                    statusEl.textContent = tpl.replace('{0}', String(remaining));
                     statusEl.className = 'text-sm mb-3 text-base-content/60';
                     statusEl.classList.remove('hidden');
                 }
@@ -168,7 +171,7 @@ interface SettingsPageConfig {
         chip.className = 'upload-chip upload-chip-uploading';
         chip.id = 'avatar-upload-chip';
         chipsEl.appendChild(chip);
-        statusEl.textContent = 'Uploading avatar…';
+        statusEl.textContent = (window as any).T?.settings?.avatarUploading ?? 'Uploading avatar…';
         progressRow.classList.remove('hidden');
     }
 
@@ -354,7 +357,7 @@ interface SettingsPageConfig {
         if (!deleteBtn) return;
 
         deleteBtn.disabled = true;
-        deleteBtn.textContent = 'Reverting...';
+        deleteBtn.textContent = (window as any).T?.settings?.avatarRevertLabel ?? 'Reverting...';
 
         try {
             const response = await fetch('/bff/avatars', {
@@ -365,10 +368,10 @@ interface SettingsPageConfig {
             if (response.ok) {
                 refreshAvatar(true);
                 deleteBtn.disabled = true;
-                deleteBtn.textContent = 'Use Generated';
+                deleteBtn.textContent = (window as any).T?.settings?.avatarUseGenerated ?? 'Use Generated';
             } else {
                 deleteBtn.disabled = false;
-                deleteBtn.textContent = 'Use Generated';
+                deleteBtn.textContent = (window as any).T?.settings?.avatarUseGenerated ?? 'Use Generated';
                 const result = await response.json();
                 showStatus(result.error || 'Failed to delete avatar.', true);
             }
@@ -2091,7 +2094,7 @@ interface SettingsPageConfig {
         if (session.isCurrent) {
             const badge = document.createElement('span');
             badge.className = 'sn-device-badge sn-device-badge--active';
-            badge.textContent = 'This device';
+            badge.textContent = (window as any).T?.settings?.secSessionsCurrent ?? 'This device';
             nameRow.appendChild(badge);
         }
 
@@ -2107,7 +2110,7 @@ interface SettingsPageConfig {
             const btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'sn-device-revoke';
-            btn.textContent = 'Revoke';
+            btn.textContent = (window as any).T?.settings?.secSessionsRevokeBtn ?? 'Revoke';
             btn.addEventListener('click', () => {
                 const snakkSudo = (window as any).snakkSudo as { ensure: (cb: () => void) => void } | undefined;
                 snakkSudo?.ensure(async () => {
@@ -2363,7 +2366,7 @@ interface SettingsPageConfig {
                 const disconnectBtn = document.createElement('button');
                 disconnectBtn.type = 'button';
                 disconnectBtn.className = 'sn-device-revoke';
-                disconnectBtn.textContent = 'Disconnect';
+                disconnectBtn.textContent = (window as any).T?.settings?.connAccDisconnect ?? 'Disconnect';
                 disconnectBtn.addEventListener('click', () => ensureSudo(async () => {
                     disconnectBtn.disabled = true;
                     const r = await fetch(`/bff/settings/oauth-connections/${provider}`, {
@@ -2386,7 +2389,7 @@ interface SettingsPageConfig {
                 const connectBtn = document.createElement('button');
                 connectBtn.type = 'button';
                 connectBtn.className = 'btn btn-primary btn-sm';
-                connectBtn.textContent = 'Connect';
+                connectBtn.textContent = (window as any).T?.settings?.connAccConnect ?? 'Connect';
                 connectBtn.addEventListener('click', () => ensureSudo(() => { window.location.href = connectUrl; }));
                 actions.appendChild(connectBtn);
             }
@@ -2552,7 +2555,7 @@ interface SettingsPageConfig {
             if (!selectedPlatform) return;
             const raw = valueInput.value.trim();
             if (!raw) {
-                addError.textContent = 'Please enter a username or profile URL.';
+                addError.textContent = (window as any).T?.settings?.socialEnterUsername ?? 'Please enter a username or profile URL.';
                 addError.classList.remove('hidden');
                 return;
             }
@@ -2562,7 +2565,7 @@ interface SettingsPageConfig {
                 return;
             }
             if (links.length >= 10) {
-                addError.textContent = 'Maximum 10 social links allowed.';
+                addError.textContent = (window as any).T?.settings?.socialMaxLinks ?? 'Maximum 10 social links allowed.';
                 addError.classList.remove('hidden');
                 return;
             }
@@ -2671,7 +2674,7 @@ interface SettingsPageConfig {
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
             removeBtn.className = 'sn-device-revoke';
-            removeBtn.textContent = 'Remove';
+            removeBtn.textContent = (window as any).T?.settings?.socialRemove ?? 'Remove';
             removeBtn.addEventListener('click', async () => {
                 const prev = [...links];
                 links = links.filter(l => l.platform !== link.platform);

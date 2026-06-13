@@ -1,14 +1,11 @@
 namespace Snakk.Api.Endpoints;
 
-using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Helpers;
 using Snakk.Api.Models;
 using Snakk.Api.Services;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
-using Snakk.Shared.Enums;
 using Snakk.Shared.Helpers;
 using Snakk.Application.DTOs.Responses;
 using System.Security.Claims;
@@ -54,7 +51,7 @@ public static class AuthEndpoints
         AuthenticationUseCase authUseCase,
         IJwtTokenService jwtService,
         ITurnstileService turnstileService,
-        SnakkDbContext context,
+        IAuthDataService authDataService,
         HttpContext httpContext,
         ILogger<object> logger,
         CancellationToken ct)
@@ -82,10 +79,7 @@ public static class AuthEndpoints
         var user = result.Value!;
 
         // Fetch user roles from UserRoles table (new users typically have no roles)
-        var roles = await context.UserRoles
-            .Where(r => r.User.PublicId == user.PublicId.Value && r.RevokedAt == null)
-            .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToListAsync(ct);
+        var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value, ct);
 
         // Generate JWT for immediate login
         var jwt = jwtService.GenerateToken(
@@ -120,7 +114,7 @@ public static class AuthEndpoints
         AuthenticationUseCase authUseCase,
         IJwtTokenService jwtService,
         ITurnstileService turnstileService,
-        SnakkDbContext context,
+        IAuthDataService authDataService,
         HttpContext httpContext,
         ILogger<object> logger,
         IUserGrantsCacheService grantsCache,
@@ -145,10 +139,7 @@ public static class AuthEndpoints
         // Short-circuit 2FA-enabled accounts so REST matches the gRPC Login contract
         // (which returns TwoFactorRequired=true instead of issuing tokens). Without this
         // gate the password was the only required factor on the REST surface.
-        var twoFactorEnabled = await context.Users
-            .Where(u => u.PublicId == user.PublicId.Value)
-            .Select(u => u.TwoFactorEnabled)
-            .FirstOrDefaultAsync(ct);
+        var twoFactorEnabled = await authDataService.GetTwoFactorEnabledAsync(user.PublicId.Value, ct);
 
         if (twoFactorEnabled)
         {
@@ -164,10 +155,7 @@ public static class AuthEndpoints
         }
 
         // Fetch user roles from UserRoles table
-        var roles = await context.UserRoles
-            .Where(r => r.User.PublicId == user.PublicId.Value && r.RevokedAt == null)
-            .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToListAsync(ct);
+        var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value, ct);
 
         // Generate JWT with roles (using first role for backward compatibility with single-role JWT service)
         var jwt = jwtService.GenerateToken(
@@ -233,7 +221,7 @@ public static class AuthEndpoints
         RefreshTokenRequest request,
         AuthenticationUseCase authUseCase,
         IJwtTokenService jwtService,
-        SnakkDbContext context,
+        IAuthDataService authDataService,
         HttpContext httpContext,
         ILogger<object> logger,
         CancellationToken ct)
@@ -246,10 +234,7 @@ public static class AuthEndpoints
         var (user, newRefreshToken) = result.Value;
 
         // Fetch user roles from UserRoles table
-        var roles = await context.UserRoles
-            .Where(r => r.User.PublicId == user.PublicId.Value && r.RevokedAt == null)
-            .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToListAsync(ct);
+        var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value, ct);
 
         var jwt = jwtService.GenerateToken(
             user.PublicId.Value,

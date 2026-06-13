@@ -4,7 +4,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
-using Snakk.Infrastructure.Database;
+using Snakk.DataProtection;
 using Snakk.Application.UseCases;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Networking;
@@ -34,45 +34,10 @@ public static class ServiceCollectionExtensions
             });
         });
 
-        // Database (PostgreSQL) with DbContext pooling for better performance
-        var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(
-            configuration.GetConnectionString("DbConnection"))
-        {
-            // Keep well below Postgres max_connections (150) — Worker/Auth/DbSeeder
-            // pools share the same server. 50 pooled connections is ample with fast
-            // queries; each PG connection costs real memory in the postgres container.
-            MaxPoolSize = 50,
-            MinPoolSize = 5,
-            Timeout = 30,
-            ConnectionIdleLifetime = 300
-        }.ToString();
-
-        services.AddSingleton<Snakk.Api.Interceptors.SlowQueryInterceptor>();
-        services.AddDbContextPool<SnakkDbContext>((sp, options) =>
-            options
-                .UseNpgsql(
-                    connectionString,
-                    o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
-                          .CommandTimeout(60))
-                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
-                .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>())
-                .ConfigureWarnings(w => w.Ignore(
-                    Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId
-                        .PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)),
-            poolSize: 128);
-
-        // Factory for services that need per-operation contexts (e.g. CounterService parallel updates)
-        services.AddPooledDbContextFactory<SnakkDbContext>((sp, options) =>
-            options
-                .UseNpgsql(
-                    connectionString,
-                    o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
-                          .CommandTimeout(60))
-                .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTrackingWithIdentityResolution)
-                .AddInterceptors(sp.GetRequiredService<Snakk.Api.Interceptors.SlowQueryInterceptor>())
-                .ConfigureWarnings(w => w.Ignore(
-                    Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId
-                        .PossibleIncorrectRequiredNavigationWithQueryFilterInteractionWarning)));
+        // Database (PostgreSQL) — pooled DbContext + factory + slow-query interceptor.
+        // Registered via an Infrastructure extension so this layer never names
+        // SnakkDbContext or other Snakk.Infrastructure.Database types.
+        services.AddSnakkDatabase(configuration);
 
         // Persist Data Protection keys in Postgres — shared across all services,
         // durable as app data, and read at most once per 24 h (cached in memory).
@@ -208,92 +173,16 @@ public static class ServiceCollectionExtensions
         // FluentValidation
         services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 
-        // Database Repositories
-        services.AddScoped<Infrastructure.Database.Repositories.ICommunityDatabaseRepository, Infrastructure.Database.Repositories.CommunityDatabaseRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IHubRepository, Infrastructure.Database.Repositories.HubRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.ISpaceRepository, Infrastructure.Database.Repositories.SpaceRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IDiscussionRepository, Infrastructure.Database.Repositories.DiscussionRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IPostRepository, Infrastructure.Database.Repositories.PostRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IUserRepository, Infrastructure.Database.Repositories.UserRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IReactionDatabaseRepository, Infrastructure.Database.Repositories.ReactionDatabaseRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.INotificationDatabaseRepository, Infrastructure.Database.Repositories.NotificationDatabaseRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IFollowDatabaseRepository, Infrastructure.Database.Repositories.FollowDatabaseRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IMentionDatabaseRepository, Infrastructure.Database.Repositories.MentionDatabaseRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IBannerDatabaseRepository, Infrastructure.Database.Repositories.BannerDatabaseRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IAchievementRepository, Infrastructure.Database.Repositories.AchievementRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IUserAchievementRepository, Infrastructure.Database.Repositories.UserAchievementRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IUserAchievementProgressRepository, Infrastructure.Database.Repositories.UserAchievementProgressRepository>();
+        // Repositories + domain adapters — registered via an Infrastructure extension so
+        // this layer never names Snakk.Infrastructure.Database repository types.
+        services.AddSnakkRepositories();
 
-        // Moderation Repositories
-        services.AddScoped<Infrastructure.Database.Repositories.IUserRoleRepository, Infrastructure.Database.Repositories.UserRoleRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IUserBanRepository, Infrastructure.Database.Repositories.UserBanRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IReportRepository, Infrastructure.Database.Repositories.ReportRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IReportCommentRepository, Infrastructure.Database.Repositories.ReportCommentRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IReportReasonRepository, Infrastructure.Database.Repositories.ReportReasonRepository>();
-        services.AddScoped<Infrastructure.Database.Repositories.IModerationLogRepository, Infrastructure.Database.Repositories.ModerationLogRepository>();
-
-        // Refresh Token Repository
-        services.AddScoped<Domain.Repositories.IRefreshTokenRepository, Infrastructure.Database.Repositories.RefreshTokenRepository>();
-
-        // Domain Repository Adapters
-        services.AddScoped<Domain.Repositories.ICommunityRepository, Infrastructure.Adapters.CommunityRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IHubRepository, Infrastructure.Adapters.HubRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.ISpaceRepository, Infrastructure.Adapters.SpaceRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IDiscussionRepository, Infrastructure.Adapters.DiscussionRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IPostRepository, Infrastructure.Adapters.PostRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IUserRepository, Infrastructure.Adapters.UserRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IDiscussionReadStateRepository, Infrastructure.Adapters.DiscussionReadStateRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IReactionRepository, Infrastructure.Adapters.ReactionRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.INotificationRepository, Infrastructure.Adapters.NotificationRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IFollowRepository, Infrastructure.Adapters.FollowRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IMentionRepository, Infrastructure.Adapters.MentionRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IBannerRepository, Infrastructure.Adapters.BannerRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IAchievementRepository, Infrastructure.Adapters.AchievementRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IUserAchievementRepository, Infrastructure.Adapters.UserAchievementRepositoryAdapter>();
-        services.AddScoped<Domain.Repositories.IUserAchievementProgressRepository, Infrastructure.Adapters.UserAchievementProgressRepositoryAdapter>();
-
-        // Search Repository (Application layer interface, Infrastructure implementation)
-        services.AddScoped<Application.Repositories.ISearchRepository, Infrastructure.Database.Repositories.SearchRepository>();
-
-        // Save Repository (Application layer interface, Infrastructure implementation)
-        services.AddScoped<Application.Repositories.ISaveRepository, Infrastructure.Database.Repositories.SaveRepository>();
-
-        // Social Link Repository (Application layer interface, Infrastructure implementation)
-        services.AddScoped<Application.Repositories.IUserSocialLinkRepository, Infrastructure.Database.Repositories.UserSocialLinkRepository>();
-
-        // Reaction Query Repository (Application layer interface, Infrastructure implementation)
-        services.AddScoped<Application.Repositories.IReactionQueryRepository, Infrastructure.Database.Repositories.ReactionQueryRepository>();
-
-        // Moderation Repository (Application layer interface, Infrastructure implementation)
-        services.AddScoped<Application.Repositories.IModerationRepository, Infrastructure.Database.Repositories.ModerationRepository>();
-
-        // Stats Repository (Application layer interface, Infrastructure implementation)
-        services.AddScoped<Application.Repositories.IStatsRepository, Infrastructure.Database.Repositories.StatsRepository>();
-
-        // Activity snapshot repository
-        services.AddScoped<Application.Repositories.IActivitySnapshotRepository, Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
-        services.AddScoped<Application.Repositories.IDiscussionViewRepository, Infrastructure.Database.Repositories.DiscussionViewRepository>();
-
-        // Stats Rollup Repository
-        services.AddScoped<Application.Repositories.IStatsRollupRepository, Infrastructure.Database.Repositories.StatsRollupRepository>();
-
-        // Dashboard Chart Repository (Application layer interface, Infrastructure implementation)
-        services.AddScoped<Application.Repositories.IDashboardChartRepository, Infrastructure.Database.Repositories.DashboardChartRepository>();
-
-        // Display Name History Repository
-        services.AddScoped<Application.Repositories.IDisplayNameHistoryRepository, Infrastructure.Database.Repositories.DisplayNameHistoryRepository>();
-
-        // Password Reset Repositories
-        services.AddScoped<Application.Repositories.IPasswordResetTokenRepository, Infrastructure.Database.Repositories.PasswordResetTokenRepository>();
-        services.AddScoped<Application.Repositories.IPasswordResetRequestRepository, Infrastructure.Database.Repositories.PasswordResetRequestRepository>();
+        // Data services extracted from endpoints/gRPC services (Clean Architecture refactor)
+        services.AddContentDataServices();
+        services.AddAuthDataServices();
+        services.AddAdminDataServices();
 
         services.AddScoped<Application.Services.DisplayNameValidator>();
-
-        // DM Repository
-        services.AddScoped<Application.Repositories.IDmRepository, Infrastructure.Database.Repositories.DmRepository>();
-
-        // GDPR Repository
-        services.AddScoped<Application.Repositories.IGdprRepository, Infrastructure.Database.Repositories.GdprRepository>();
 
         // Use Cases
         services.AddScoped<CommunityUseCase>();

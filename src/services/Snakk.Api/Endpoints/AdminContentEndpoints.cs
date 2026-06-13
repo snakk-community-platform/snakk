@@ -1,11 +1,9 @@
 namespace Snakk.Api.Endpoints;
 
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore;
+using Snakk.Application.DTOs.Admin;
 using Snakk.Application.DTOs.Responses;
-using Snakk.Infrastructure.Database;
-using Snakk.Infrastructure.Database.Entities;
-using Snakk.Shared.Enums;
+using Snakk.Application.Services;
 
 public static class AdminContentEndpoints
 {
@@ -64,17 +62,11 @@ public static class AdminContentEndpoints
             .WithName("AdminDeleteDiscussion");
     }
 
-    private static async Task<IResult> GetContentOverviewAsync(SnakkDbContext context, CancellationToken ct)
+    private static async Task<IResult> GetContentOverviewAsync(
+        IAdminContentService adminContentService,
+        CancellationToken ct)
     {
-        var counts = new ContentOverviewCounts(
-            TotalCommunities:  await context.Communities.CountAsync(x => !x.IsDeleted, ct),
-            TotalHubs:         await context.Hubs.CountAsync(x => !x.IsDeleted, ct),
-            TotalSpaces:       await context.Spaces.CountAsync(x => !x.IsDeleted, ct),
-            TotalDiscussions:  await context.Discussions.CountAsync(x => !x.IsDeleted, ct),
-            TotalPosts:        await context.Posts.CountAsync(x => !x.IsDeleted, ct),
-            PinnedDiscussions: await context.Discussions.CountAsync(x => !x.IsDeleted && x.IsPinned, ct),
-            LockedDiscussions: await context.Discussions.CountAsync(x => !x.IsDeleted && x.IsLocked, ct)
-        );
+        var counts = await adminContentService.GetContentOverviewExtendedAsync(ct);
 
         return TypedResults.Ok(new ContentOverviewResponse(
             counts.TotalCommunities,
@@ -90,82 +82,50 @@ public static class AdminContentEndpoints
         int page,
         int pageSize,
         string? search,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
 
-        var query = context.Communities
-            .Where(c => !c.IsDeleted)
-            .AsQueryable();
+        var result = await adminContentService.GetCommunitiesPagedByPublicIdAsync(page, pageSize, search, ct);
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var searchLower = search.ToLower();
-            query = query.Where(c =>
-                c.Name.ToLower().Contains(searchLower)
-                || c.Slug.ToLower().Contains(searchLower));
-        }
-
-        var total = await query.CountAsync(ct);
-
-        var communities = await query
-            .OrderByDescending(c => c.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(c => new AdminCommunityItemResponse(
+        return TypedResults.Ok(new AdminCommunityListResponse(
+            result.Items.Select(c => new AdminCommunityItemResponse(
                 Id: c.PublicId,
                 Name: c.Name,
                 Slug: c.Slug,
                 Description: c.Description,
-                Visibility: ((CommunityVisibilityEnum)c.VisibilityId).ToString(),
+                Visibility: c.Visibility,
                 CreatedAt: c.CreatedAt,
                 HubCount: c.HubCount,
-                MemberCount: 0))
-            .ToListAsync(ct);
-
-        return TypedResults.Ok(new AdminCommunityListResponse(
-            communities,
-            total,
-            page,
-            pageSize));
+                MemberCount: c.MemberCount)),
+            result.Total,
+            result.Page,
+            result.PageSize));
     }
 
     private static async Task<IResult> GetCommunityAsync(
         string id,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
-        var community = await context.Communities
-            .Where(c =>
-                c.PublicId == id
-                && !c.IsDeleted)
-            .Select(c => new AdminCommunityDetailResponse(
-                Id: c.PublicId,
-                Name: c.Name,
-                Slug: c.Slug,
-                Description: c.Description,
-                Visibility: ((CommunityVisibilityEnum)c.VisibilityId).ToString(),
-                CreatedAt: c.CreatedAt,
-                HubCount: c.HubCount,
-                MemberCount: 0,
-                Hubs: context.Hubs
-                    .Where(h =>
-                        h.CommunityId == c.Id
-                        && !h.IsDeleted)
-                    .Select(h => new AdminHubSummaryResponse(
-                        h.PublicId,
-                        h.Name,
-                        h.Slug,
-                        h.SpaceCount))
-                    .ToList()))
-            .FirstOrDefaultAsync(ct);
+        var community = await adminContentService.GetCommunityAsync(id, ct);
 
         if (community is null)
             return Results.NotFound();
 
-        return TypedResults.Ok(community);
+        return TypedResults.Ok(new AdminCommunityDetailResponse(
+            Id: community.PublicId,
+            Name: community.Name,
+            Slug: community.Slug,
+            Description: community.Description,
+            Visibility: community.Visibility,
+            CreatedAt: community.CreatedAt,
+            HubCount: community.HubCount,
+            MemberCount: community.MemberCount,
+            Hubs: community.Hubs.Select(h => new AdminHubSummaryResponse(
+                h.PublicId, h.Name, h.Slug, h.SpaceCount))));
     }
 
     private static async Task<IResult> GetHubsAsync(
@@ -173,49 +133,27 @@ public static class AdminContentEndpoints
         int pageSize,
         string? search,
         string? communityId,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
 
-        var query = context.Hubs
-            .Where(h => !h.IsDeleted)
-            .AsQueryable();
+        var result = await adminContentService.GetHubsPagedByPublicIdAsync(page, pageSize, search, communityId, ct);
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var searchLower = search.ToLower();
-            query = query.Where(h =>
-                h.Name.ToLower().Contains(searchLower)
-                || h.Slug.ToLower().Contains(searchLower));
-        }
-
-        if (!string.IsNullOrWhiteSpace(communityId))
-            query = query.Where(h => h.Community.PublicId == communityId);
-
-        var total = await query.CountAsync(ct);
-
-        var hubs = await query
-            .OrderByDescending(h => h.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(h => new AdminHubItemResponse(
+        return TypedResults.Ok(new AdminHubListResponse(
+            result.Items.Select(h => new AdminHubItemResponse(
                 Id: h.PublicId,
                 Name: h.Name,
                 Slug: h.Slug,
                 Description: h.Description,
-                CommunityId: h.Community.PublicId,
-                CommunityName: h.Community.Name,
+                CommunityId: h.CommunityPublicId,
+                CommunityName: h.CommunityName,
                 CreatedAt: h.CreatedAt,
-                SpaceCount: h.SpaceCount))
-            .ToListAsync(ct);
-
-        return TypedResults.Ok(new AdminHubListResponse(
-            hubs,
-            total,
-            page,
-            pageSize));
+                SpaceCount: h.SpaceCount)),
+            result.Total,
+            result.Page,
+            result.PageSize));
     }
 
     private static async Task<IResult> GetSpacesAsync(
@@ -223,51 +161,29 @@ public static class AdminContentEndpoints
         int pageSize,
         string? search,
         string? hubId,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
 
-        var query = context.Spaces
-            .Where(s => !s.IsDeleted)
-            .AsQueryable();
+        var result = await adminContentService.GetSpacesPagedByPublicIdAsync(page, pageSize, search, hubId, ct);
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var searchLower = search.ToLower();
-            query = query.Where(s =>
-                s.Name.ToLower().Contains(searchLower)
-                || s.Slug.ToLower().Contains(searchLower));
-        }
-
-        if (!string.IsNullOrWhiteSpace(hubId))
-            query = query.Where(s => s.Hub.PublicId == hubId);
-
-        var total = await query.CountAsync(ct);
-
-        var spaces = await query
-            .OrderByDescending(s => s.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(s => new AdminSpaceItemResponse(
+        return TypedResults.Ok(new AdminSpaceListResponse(
+            result.Items.Select(s => new AdminSpaceItemResponse(
                 Id: s.PublicId,
                 Name: s.Name,
                 Slug: s.Slug,
                 Description: s.Description,
-                HubId: s.Hub.PublicId,
-                HubName: s.Hub.Name,
-                CommunityId: s.Hub.Community.PublicId,
-                CommunityName: s.Hub.Community.Name,
+                HubId: s.HubPublicId,
+                HubName: s.HubName,
+                CommunityId: s.CommunityPublicId,
+                CommunityName: s.CommunityName,
                 CreatedAt: s.CreatedAt,
-                DiscussionCount: s.DiscussionCount))
-            .ToListAsync(ct);
-
-        return TypedResults.Ok(new AdminSpaceListResponse(
-            spaces,
-            total,
-            page,
-            pageSize));
+                DiscussionCount: s.DiscussionCount)),
+            result.Total,
+            result.Page,
+            result.PageSize));
     }
 
     private static async Task<IResult> GetDiscussionsAsync(
@@ -277,235 +193,137 @@ public static class AdminContentEndpoints
         string? spaceId,
         bool? isPinned,
         bool? isLocked,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize > 0 ? pageSize : 20, 1, 100);
 
-        var query = context.Discussions
-            .Where(d => !d.IsDeleted)
-            .AsQueryable();
+        var result = await adminContentService.GetDiscussionsPagedByPublicIdAsync(
+            page, pageSize, search, spaceId, isPinned, isLocked, ct);
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            var searchLower = search.ToLower();
-            query = query.Where(d => d.Title.ToLower().Contains(searchLower));
-        }
-
-        if (!string.IsNullOrWhiteSpace(spaceId))
-            query = query.Where(d => d.Space.PublicId == spaceId);
-
-        if (isPinned.HasValue)
-            query = query.Where(d => d.IsPinned == isPinned.Value);
-
-        if (isLocked.HasValue)
-            query = query.Where(d => d.IsLocked == isLocked.Value);
-
-        var total = await query.CountAsync(ct);
-
-        var discussions = await query
-            .OrderByDescending(d => d.CreatedAt)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(d => new AdminDiscussionItemResponse(
+        return TypedResults.Ok(new AdminDiscussionListResponse(
+            result.Items.Select(d => new AdminDiscussionItemResponse(
                 Id: d.PublicId,
                 Title: d.Title,
                 Slug: d.Slug,
-                SpaceId: d.Space.PublicId,
-                SpaceName: d.Space.Name,
-                HubId: d.Space.Hub.PublicId,
-                HubName: d.Space.Hub.Name,
-                CommunityId: d.Space.Hub.Community.PublicId,
-                CommunityName: d.Space.Hub.Community.Name,
-                AuthorId: d.CreatedByUser.PublicId,
-                AuthorName: d.CreatedByUser.DisplayName ?? "",
+                SpaceId: d.SpacePublicId,
+                SpaceName: d.SpaceName,
+                HubId: d.HubPublicId,
+                HubName: d.HubName,
+                CommunityId: d.CommunityPublicId,
+                CommunityName: d.CommunityName,
+                AuthorId: d.AuthorPublicId,
+                AuthorName: d.AuthorDisplayName,
                 PostCount: d.PostCount,
                 IsPinned: d.IsPinned,
                 IsLocked: d.IsLocked,
                 CreatedAt: d.CreatedAt,
-                LastActivityAt: d.LastActivityAt))
-            .ToListAsync(ct);
-
-        return TypedResults.Ok(new AdminDiscussionListResponse(
-            discussions,
-            total,
-            page,
-            pageSize));
+                LastActivityAt: d.LastActivityAt)),
+            result.Total,
+            result.Page,
+            result.PageSize));
     }
 
     private static async Task<IResult> GetDiscussionAsync(
         string id,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
-        var discussion = await context.Discussions
-            .Where(d =>
-                d.PublicId == id
-                && !d.IsDeleted)
-            .Select(d => new AdminDiscussionDetailResponse(
-                Id: d.PublicId,
-                Title: d.Title,
-                Slug: d.Slug,
-                SpaceId: d.Space.PublicId,
-                SpaceName: d.Space.Name,
-                HubId: d.Space.Hub.PublicId,
-                HubName: d.Space.Hub.Name,
-                CommunityId: d.Space.Hub.Community.PublicId,
-                CommunityName: d.Space.Hub.Community.Name,
-                AuthorId: d.CreatedByUser.PublicId,
-                AuthorName: d.CreatedByUser.DisplayName ?? "",
-                PostCount: d.PostCount,
-                ReactionCount: d.ReactionCount,
-                IsPinned: d.IsPinned,
-                IsLocked: d.IsLocked,
-                Tags: d.Tags,
-                CreatedAt: d.CreatedAt,
-                LastActivityAt: d.LastActivityAt))
-            .FirstOrDefaultAsync(ct);
+        var discussion = await adminContentService.GetDiscussionAsync(id, ct);
 
         if (discussion is null)
             return Results.NotFound();
 
-        return TypedResults.Ok(discussion);
+        return TypedResults.Ok(new AdminDiscussionDetailResponse(
+            Id: discussion.PublicId,
+            Title: discussion.Title,
+            Slug: discussion.Slug,
+            SpaceId: discussion.SpacePublicId,
+            SpaceName: discussion.SpaceName,
+            HubId: discussion.HubPublicId,
+            HubName: discussion.HubName,
+            CommunityId: discussion.CommunityPublicId,
+            CommunityName: discussion.CommunityName,
+            AuthorId: discussion.AuthorPublicId,
+            AuthorName: discussion.AuthorDisplayName,
+            PostCount: discussion.PostCount,
+            ReactionCount: discussion.ReactionCount,
+            IsPinned: discussion.IsPinned,
+            IsLocked: discussion.IsLocked,
+            Tags: discussion.Tags,
+            CreatedAt: discussion.CreatedAt,
+            LastActivityAt: discussion.LastActivityAt));
     }
 
     private static async Task<IResult> PinDiscussionAsync(
         string id,
         HttpContext httpContext,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
         var actorPublicId = GetActorPublicId(httpContext);
         if (actorPublicId is null)
             return Results.Unauthorized();
 
-        var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d =>
-                d.PublicId == id
-                && !d.IsDeleted, ct);
-
-        if (discussion is null)
-            return Results.NotFound(new { error = "Discussion not found" });
-
-        if (discussion.IsPinned)
-            return Results.BadRequest(new { error = "Discussion is already pinned" });
-
-        discussion.IsPinned = true;
-        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.PinDiscussion, discussion, ct);
-        await context.SaveChangesAsync(ct);
-
-        return Results.NoContent();
+        var result = await adminContentService.PinDiscussionByPublicIdAsync(id, actorPublicId, ct);
+        return MapMutationResult(result);
     }
 
     private static async Task<IResult> UnpinDiscussionAsync(
         string id,
         HttpContext httpContext,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
         var actorPublicId = GetActorPublicId(httpContext);
         if (actorPublicId is null)
             return Results.Unauthorized();
 
-        var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d =>
-                d.PublicId == id
-                && !d.IsDeleted, ct);
-
-        if (discussion is null)
-            return Results.NotFound(new { error = "Discussion not found" });
-
-        if (!discussion.IsPinned)
-            return Results.BadRequest(new { error = "Discussion is not pinned" });
-
-        discussion.IsPinned = false;
-        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.UnpinDiscussion, discussion, ct);
-        await context.SaveChangesAsync(ct);
-
-        return Results.NoContent();
+        var result = await adminContentService.UnpinDiscussionByPublicIdAsync(id, actorPublicId, ct);
+        return MapMutationResult(result);
     }
 
     private static async Task<IResult> LockDiscussionAsync(
         string id,
         HttpContext httpContext,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
         var actorPublicId = GetActorPublicId(httpContext);
         if (actorPublicId is null)
             return Results.Unauthorized();
 
-        var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d =>
-                d.PublicId == id
-                && !d.IsDeleted, ct);
-
-        if (discussion is null)
-            return Results.NotFound(new { error = "Discussion not found" });
-
-        if (discussion.IsLocked)
-            return Results.BadRequest(new { error = "Discussion is already locked" });
-
-        discussion.IsLocked = true;
-        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.LockDiscussion, discussion, ct);
-        await context.SaveChangesAsync(ct);
-
-        return Results.NoContent();
+        var result = await adminContentService.LockDiscussionByPublicIdAsync(id, actorPublicId, ct);
+        return MapMutationResult(result);
     }
 
     private static async Task<IResult> UnlockDiscussionAsync(
         string id,
         HttpContext httpContext,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
         var actorPublicId = GetActorPublicId(httpContext);
         if (actorPublicId is null)
             return Results.Unauthorized();
 
-        var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d =>
-                d.PublicId == id
-                && !d.IsDeleted, ct);
-
-        if (discussion is null)
-            return Results.NotFound(new { error = "Discussion not found" });
-
-        if (!discussion.IsLocked)
-            return Results.BadRequest(new { error = "Discussion is not locked" });
-
-        discussion.IsLocked = false;
-        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.UnlockDiscussion, discussion, ct);
-        await context.SaveChangesAsync(ct);
-
-        return Results.NoContent();
+        var result = await adminContentService.UnlockDiscussionByPublicIdAsync(id, actorPublicId, ct);
+        return MapMutationResult(result);
     }
 
     private static async Task<IResult> DeleteDiscussionAsync(
         string id,
         HttpContext httpContext,
-        SnakkDbContext context,
+        IAdminContentService adminContentService,
         CancellationToken ct)
     {
         var actorPublicId = GetActorPublicId(httpContext);
         if (actorPublicId is null)
             return Results.Unauthorized();
 
-        var discussion = await context.Discussions
-            .FirstOrDefaultAsync(d =>
-                d.PublicId == id
-                && !d.IsDeleted, ct);
-
-        if (discussion is null)
-            return Results.NotFound(new { error = "Discussion not found" });
-
-        discussion.IsDeleted = true;
-        discussion.DeletedAt = DateTime.UtcNow;
-        await AppendModerationLogAsync(context, actorPublicId, ModerationActionEnum.DeleteDiscussion, discussion, ct);
-        await context.SaveChangesAsync(ct);
-
-        return Results.NoContent();
+        var result = await adminContentService.SoftDeleteDiscussionByPublicIdAsync(id, actorPublicId, ct);
+        return MapMutationResult(result);
     }
 
     private static string? GetActorPublicId(HttpContext httpContext)
@@ -516,36 +334,12 @@ public static class AdminContentEndpoints
         return httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
     }
 
-    private static async Task AppendModerationLogAsync(
-        SnakkDbContext context,
-        string actorPublicId,
-        ModerationActionEnum action,
-        DiscussionDatabaseEntity discussion,
-        CancellationToken ct = default)
-    {
-        var actorId = await context.Users
-            .Where(u => u.PublicId == actorPublicId)
-            .Select(u => (int?)u.Id)
-            .FirstOrDefaultAsync(ct);
-
-        if (actorId is null)
-            return;
-
-        context.ModerationLogs.Add(new ModerationLogDatabaseEntity
+    private static IResult MapMutationResult(AdminDiscussionMutationResult result) =>
+        result.Status switch
         {
-            PublicId = Guid.NewGuid().ToString(),
-            ActorUserId = actorId.Value,
-            ActionId = (int)action,
-            TargetDiscussionId = discussion.Id,
-            CommunityId = discussion.CommunityId,
-            HubId = discussion.HubId,
-            SpaceId = discussion.SpaceId,
-            CreatedAt = DateTime.UtcNow
-        });
-    }
+            AdminDiscussionMutationStatus.Success => Results.NoContent(),
+            AdminDiscussionMutationStatus.NotFound => Results.NotFound(new { error = "Discussion not found" }),
+            AdminDiscussionMutationStatus.AlreadyInState => Results.BadRequest(new { error = result.ErrorMessage }),
+            _ => Results.Problem("Unexpected error")
+        };
 }
-
-file record ContentOverviewCounts(
-    int TotalCommunities, int TotalHubs, int TotalSpaces,
-    int TotalDiscussions, int TotalPosts,
-    int PinnedDiscussions, int LockedDiscussions);

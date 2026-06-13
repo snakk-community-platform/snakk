@@ -161,7 +161,7 @@
     {
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     }
-    <script>
+    <script nonce="@(ViewContext.HttpContext.Items["csp-nonce"] as string)">
     (function () {
         var form = document.querySelector('form');
         if (!form) return;
@@ -175,7 +175,7 @@
         });
     }());
     </script>
-    <script>
+    <script nonce="@(ViewContext.HttpContext.Items["csp-nonce"] as string)">
     (function () {
         'use strict';
         var STORAGE_KEY = 'snakk:lastOAuthProvider';
@@ -229,7 +229,7 @@
     </script>
     @if (Model.PasskeysEnabled)
     {
-    <script>
+    <script nonce="@(ViewContext.HttpContext.Items["csp-nonce"] as string)">
     (function () {
         'use strict';
 
