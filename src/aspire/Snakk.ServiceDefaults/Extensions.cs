@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
@@ -38,8 +39,23 @@ public static class Extensions
     /// </summary>
     public static IHostApplicationBuilder AddSnakkObservability(this IHostApplicationBuilder builder)
     {
-        builder.ConfigureOpenTelemetry();
-        builder.ConfigurePyroscope();
+        var options = builder.Configuration
+            .GetSection(ObservabilityOptions.SectionName)
+            .Get<ObservabilityOptions>() ?? new ObservabilityOptions();
+
+        // Bind the live options into DI too, so app code (e.g. the RUM endpoint
+        // mapping and the layout's beacon <script>) can read the same flags.
+        builder.Services.Configure<ObservabilityOptions>(
+            builder.Configuration.GetSection(ObservabilityOptions.SectionName));
+
+        if (options.Enabled)
+        {
+            builder.ConfigureOpenTelemetry(options);
+            builder.ConfigurePyroscope(options);
+        }
+
+        // Health checks are independent of telemetry flags — liveness/readiness
+        // probes must work even with all observability shed.
         builder.AddDefaultHealthChecks();
         return builder;
     }
@@ -53,8 +69,15 @@ public static class Extensions
     /// managed wrapper assembly is loaded so its native side-effects fire.
     /// No-op when the env var is unset (unit tests, ad-hoc dev runs).
     /// </summary>
-    private static IHostApplicationBuilder ConfigurePyroscope(this IHostApplicationBuilder builder)
+    private static IHostApplicationBuilder ConfigurePyroscope(this IHostApplicationBuilder builder, ObservabilityOptions options)
     {
+        // Profiling is the single biggest per-process telemetry cost, so it has
+        // its own kill switch on top of the env-var gate. Opt it OUT in prod
+        // appsettings (Observability:Profiling:Enabled=false) until a profile is
+        // actually needed; the env var alone no longer turns it on.
+        if (!options.IsOn(options.Profiling))
+            return builder;
+
         var pyroscopeUrl = builder.Configuration["PYROSCOPE_SERVER_ADDRESS"];
         if (string.IsNullOrWhiteSpace(pyroscopeUrl))
             return builder;
@@ -104,31 +127,50 @@ public static class Extensions
     /// (Aspire sets this automatically in dev; docker-compose sets it to the
     /// Collector). No export if unset — services stay quiet in unit-test scenarios.
     /// </summary>
-    public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
+    public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder, ObservabilityOptions options)
     {
-        builder.Logging.AddOpenTelemetry(logging =>
+        // OTel logs — only register the provider when the signal is on, so the
+        // IncludeScopes/IncludeFormattedMessage capture cost isn't paid otherwise.
+        if (options.IsOn(options.OtlpLogs))
         {
-            logging.IncludeFormattedMessage = true;
-            logging.IncludeScopes = true;
-        });
+            builder.Logging.AddOpenTelemetry(logging =>
+            {
+                logging.IncludeFormattedMessage = true;
+                logging.IncludeScopes = true;
+            });
+        }
 
-        builder.Services.AddOpenTelemetry()
+        var otel = builder.Services.AddOpenTelemetry()
             .ConfigureResource(r => r.AddService(
                 serviceName: builder.Environment.ApplicationName,
-                serviceInstanceId: Environment.MachineName))
-            .WithMetrics(metrics => metrics
+                serviceInstanceId: Environment.MachineName));
+
+        if (options.IsOn(options.Metrics))
+        {
+            otel.WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
-                .AddProcessInstrumentation())
-            .WithTracing(tracing =>
+                .AddProcessInstrumentation()
+                // SignalR/WebSocket saturation (Snakk.Realtime): hub + long-running
+                // connection counts/durations. Only Realtime emits these; harmless
+                // elsewhere. Npgsql pool, gRPC client/server (rpc_*), and Kestrel
+                // connection metrics already flow via the instrumentations above.
+                .AddMeter("Microsoft.AspNetCore.Http.Connections")
+                .AddMeter("Microsoft.AspNetCore.SignalR.Server"));
+        }
+
+        if (options.IsOn(options.Tracing))
+        {
+            otel.WithTracing(tracing =>
             {
-                // Dev: 100% sample. Prod: tail sampling lives in the Collector,
-                // so services emit everything and let the Collector decide.
-                if (builder.Environment.IsDevelopment())
-                {
-                    tracing.SetSampler(new AlwaysOnSampler());
-                }
+                // Dev: always 100% so local traces are complete. Prod: head-sample
+                // at the configured ratio (default 1.0 = prior behaviour) BEFORE
+                // the Collector's tail sampler, so trace volume can be shed at the
+                // source under load. ParentBased keeps a trace's spans together.
+                tracing.SetSampler(builder.Environment.IsDevelopment()
+                    ? new AlwaysOnSampler()
+                    : new ParentBasedSampler(new TraceIdRatioBasedSampler(options.Tracing.SamplingRatio)));
 
                 tracing
                     .AddAspNetCoreInstrumentation(o =>
@@ -142,6 +184,7 @@ public static class Extensions
                     .AddEntityFrameworkCoreInstrumentation()
                     .AddRedisInstrumentation();
             });
+        }
 
         builder.AddOpenTelemetryExporters();
         return builder;

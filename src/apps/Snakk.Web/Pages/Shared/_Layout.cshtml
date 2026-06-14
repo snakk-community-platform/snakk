@@ -6,7 +6,9 @@
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment HostEnvironment
 @inject Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider FileVersionProvider
+@inject Microsoft.Extensions.Options.IOptions<Snakk.ServiceDefaults.ObservabilityOptions> ObservabilityOptions
 @{
+    var rumEnabled = ObservabilityOptions.Value.IsOn(ObservabilityOptions.Value.Rum);
     var isAuth = User.Identity?.IsAuthenticated == true;
     var themeCookie = isAuth ? Context.Request.Cookies[AuthCookieHelper.ThemeCookieName] : null;
     var initialTheme = themeCookie == "dark" ? "dark" : "lofi";
@@ -369,7 +371,13 @@
         </div>
     </dialog>
     <partial name="Shared/_ReloginModal" />
-    <script src="@SnakkUrlHelper.Js("core/web-vitals")" asp-append-version="true" defer hx-preserve></script>
+    @if (rumEnabled)
+    {
+        // Web Vitals RUM beacon. Skipped entirely when observability RUM is off
+        // so the client registers no PerformanceObservers and fires no beacon —
+        // the server-side /bff/rum endpoint is unmapped in that case too.
+        <script src="@SnakkUrlHelper.Js("core/web-vitals")" asp-append-version="true" defer hx-preserve></script>
+    }
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
