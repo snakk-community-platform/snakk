@@ -17,10 +17,17 @@ public static class InfrastructureDatabaseRegistration
         var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(
             configuration.GetConnectionString("DbConnection"))
         {
-            // Keep well below Postgres max_connections (150) — Worker/Auth/DbSeeder
-            // pools share the same server. 50 pooled connections is ample with fast
-            // queries; each PG connection costs real memory in the postgres container.
-            MaxPoolSize = 50,
+            // Snakk.Api is the primary DB consumer; size its pool to actually USE the
+            // database under load rather than cap it. A small pool silently serializes
+            // requests — they queue for a connection (Npgsql pending_requests climbs into
+            // the hundreds) long before Postgres itself is busy, so latency explodes
+            // while the server sits near-idle. 200 matches the prior tuned value.
+            //
+            // Postgres max_connections MUST accommodate this pool plus the other services
+            // sharing the server (Worker, Auth, DataProtection) plus superuser headroom —
+            // size it on the PG side (>= the sum) before raising pools further; each PG
+            // connection costs real memory in the server.
+            MaxPoolSize = 200,
             MinPoolSize = 5,
             Timeout = 30,
             ConnectionIdleLifetime = 300
