@@ -94,12 +94,30 @@ public class FileValidationHelperTests
     [Test]
     public async Task ValidWebp_ReturnsTrue()
     {
-        var bytes = CreateFileBytes(0x52, 0x49, 0x46, 0x46);
+        // Full WebP container header: "RIFF" + 4 size bytes + "WEBP" format marker at offset 8.
+        var bytes = new byte[]
+        {
+            0x52, 0x49, 0x46, 0x46, // RIFF
+            0x24, 0x00, 0x00, 0x00, // chunk size (arbitrary)
+            0x57, 0x45, 0x42, 0x50  // WEBP
+        };
         var file = CreateFormFile(bytes, "image.webp");
 
         var result = await FileValidationHelper.IsValidImageFileAsync(file, ".webp");
 
         await Assert.That(result).IsTrue();
+    }
+
+    [Test]
+    public async Task RiffWithoutWebpMarker_ReturnsFalse()
+    {
+        // RIFF prefix alone (shared by WAV/AVI) must not pass as WebP.
+        var bytes = CreateFileBytes(0x52, 0x49, 0x46, 0x46);
+        var file = CreateFormFile(bytes, "image.webp");
+
+        var result = await FileValidationHelper.IsValidImageFileAsync(file, ".webp");
+
+        await Assert.That(result).IsFalse();
     }
 
     [Test]
@@ -128,8 +146,8 @@ public class FileValidationHelperTests
     [Test]
     public async Task TruncatedFile_ReturnsFalse()
     {
-        // Only 4 bytes, less than the required 8 byte header read
-        var bytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xE0 };
+        // Shorter than the 4-byte JPEG signature — cannot match any signature.
+        var bytes = new byte[] { 0xFF, 0xD8 };
         var file = CreateFormFile(bytes, "truncated.jpg");
 
         var result = await FileValidationHelper.IsValidImageFileAsync(file, ".jpg");

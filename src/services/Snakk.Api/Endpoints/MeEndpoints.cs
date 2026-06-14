@@ -1,15 +1,12 @@
 namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Snakk.Api.Models;
 using Snakk.Api.Services;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
-using Snakk.Shared.Enums;
 using Snakk.Application.DTOs.Responses;
 
 public static class MeEndpoints
@@ -108,7 +105,7 @@ public static class MeEndpoints
         ICurrentUserService currentUser,
         AuthenticationUseCase authUseCase,
         IJwtTokenService jwtService,
-        SnakkDbContext context,
+        IMeDataService meDataService,
         CancellationToken ct)
     {
         var userIdValue = currentUser.GetCurrentUserId();
@@ -129,13 +126,7 @@ public static class MeEndpoints
         {
             var user = userResult.Value!;
 
-            var userDbEntity = await context.Users
-                .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-                .FirstOrDefaultAsync(u => u.PublicId == user.PublicId.Value, ct);
-
-            var roles = userDbEntity?.Roles
-                .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-                .ToList() ?? [];
+            var roles = await meDataService.GetUserRolesAsync(user.PublicId.Value, ct);
 
             var newToken = jwtService.GenerateToken(
                 user.PublicId.Value,
@@ -207,7 +198,7 @@ public static class MeEndpoints
         ICurrentUserService currentUser,
         ITwoFactorAuthService twoFactorService,
         IPasswordHasher passwordHasher,
-        SnakkDbContext context,
+        IMeDataService meDataService,
         IDistributedCache cache,
         CancellationToken ct)
     {
@@ -215,24 +206,21 @@ public static class MeEndpoints
         if (userIdValue is null)
             return Results.Unauthorized();
 
-        var user = await context.Users
-            .Where(u => u.PublicId == userIdValue)
-            .Select(u => new { u.PasswordHash, u.TwoFactorEnabled })
-            .FirstOrDefaultAsync(ct);
+        var userCreds = await meDataService.GetUserCredentialDataAsync(userIdValue, ct);
 
-        if (user is null)
+        if (userCreds is null)
             return Results.Unauthorized();
 
-        if (!string.IsNullOrEmpty(user.PasswordHash))
+        if (!string.IsNullOrEmpty(userCreds.PasswordHash))
         {
             if (string.IsNullOrWhiteSpace(request.Password))
                 return Results.BadRequest(new { error = "Password is required." });
 
-            if (!passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
+            if (!passwordHasher.VerifyPassword(request.Password, userCreds.PasswordHash))
                 return Results.BadRequest(new { error = "Incorrect password." });
         }
 
-        if (user.TwoFactorEnabled)
+        if (userCreds.TwoFactorEnabled)
         {
             if (string.IsNullOrWhiteSpace(request.TotpCode))
                 return Results.BadRequest(new { error = "2FA code is required." });
@@ -252,16 +240,13 @@ public static class MeEndpoints
     private static async Task<IResult> BeginSudoPasskeyAsync(
         ICurrentUserService currentUser,
         IPasskeyService passkeyService,
-        SnakkDbContext context,
+        IMeDataService meDataService,
         CancellationToken ct)
     {
         var userIdValue = currentUser.GetCurrentUserId();
         if (userIdValue is null) return Results.Unauthorized();
 
-        var email = await context.Users
-            .Where(u => u.PublicId == userIdValue)
-            .Select(u => u.Email)
-            .FirstOrDefaultAsync(ct);
+        var email = await meDataService.GetEmailAsync(userIdValue, ct);
 
         var (optionsJson, challengeId) = await passkeyService.BeginLoginAsync(email, ct);
         return Results.Ok(new { optionsJson, challengeId });
@@ -322,7 +307,7 @@ public static class MeEndpoints
         [FromBody] DeleteAccountRequest request,
         ICurrentUserService currentUser,
         GdprUseCase gdprUseCase,
-        SnakkDbContext context,
+        IMeDataService meDataService,
         IDistributedCache cache,
         IEmailProtector emailProtector,
         CancellationToken ct)
@@ -333,10 +318,7 @@ public static class MeEndpoints
         if (!await ValidateSudoTokenAsync(request.SudoToken, userIdValue, cache, ct))
             return Results.Json(new { error = "Authentication required." }, statusCode: 403);
 
-        var encryptedEmail = await context.Users
-            .Where(u => u.PublicId == userIdValue)
-            .Select(u => u.Email)
-            .FirstOrDefaultAsync(ct);
+        var encryptedEmail = await meDataService.GetEncryptedEmailAsync(userIdValue, ct);
 
         if (string.IsNullOrEmpty(encryptedEmail))
             return Results.BadRequest(new { error = "No email address on this account." });
@@ -379,7 +361,7 @@ public static class MeEndpoints
         ICurrentUserService currentUser,
         ITwoFactorAuthService twoFactorService,
         IPasswordHasher passwordHasher,
-        SnakkDbContext context,
+        IMeDataService meDataService,
         IDistributedCache cache,
         CancellationToken ct)
     {
@@ -404,10 +386,7 @@ public static class MeEndpoints
 
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
-            var hash = await context.Users
-                .Where(u => u.PublicId == userIdValue)
-                .Select(u => u.PasswordHash)
-                .FirstOrDefaultAsync(ct);
+            var hash = await meDataService.GetPasswordHashAsync(userIdValue, ct);
 
             if (string.IsNullOrEmpty(hash))
                 return Results.BadRequest(new { error = "No password set on this account." });

@@ -27,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\services\Snakk.Api\Snakk.Api.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Domain\Snakk.Domain.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.DataProtection\Snakk.DataProtection.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Application\Snakk.Application.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Infrastructure.Database\Snakk.Infrastructure.Database.csproj" />

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -7,6 +7,7 @@ using Snakk.Application.Services;
 using Snakk.DbSeeder.Services;
 using Snakk.Domain.Repositories;
 using Snakk.Infrastructure.Adapters;
+using Snakk.DataProtection;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Repositories;
 using Snakk.Infrastructure.Services;

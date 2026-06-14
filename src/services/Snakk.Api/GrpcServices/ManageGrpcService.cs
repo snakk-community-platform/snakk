@@ -1,12 +1,10 @@
 using Grpc.Core;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Extensions;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 using Snakk.Protos.Manage;
 using Snakk.Shared.Enums;
 using Snakk.Shared.Helpers;
@@ -18,7 +16,7 @@ using AppUpdateRulesRequest = Snakk.Application.DTOs.Management.UpdateRulesReque
 namespace Snakk.Api.GrpcServices;
 
 public class ManageGrpcService(
-    SnakkDbContext dbContext,
+    IManageScopeDataService scopeData,
     IManagePermissionService permissionService,
     ICommunityManagementService communityManagementService,
     ISpaceManagementService spaceManagementService,
@@ -44,10 +42,7 @@ public class ManageGrpcService(
         if (string.IsNullOrEmpty(userId))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
-        var community = await dbContext.Communities
-            .Where(c => c.Slug == request.CommunitySlug)
-            .Select(c => new { c.Id, c.Name, c.Slug, c.PublicId, c.AvatarFileName })
-            .FirstOrDefaultAsync();
+        var community = await scopeData.GetCommunityBySlugAsync(request.CommunitySlug);
 
         if (community is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
@@ -71,12 +66,7 @@ public class ManageGrpcService(
         }
 
         // Resolve hub
-        var hub = await dbContext.Hubs
-            .Where(h =>
-                h.Slug == request.HubSlug
-                && h.CommunityId == community.Id)
-            .Select(h => new { h.Id, h.Name, h.Slug, h.PublicId, h.AvatarFileName })
-            .FirstOrDefaultAsync();
+        var hub = await scopeData.GetHubBySlugInCommunityAsync(request.HubSlug, community.DbId);
 
         if (hub is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Hub not found"));
@@ -100,12 +90,7 @@ public class ManageGrpcService(
         }
 
         // Resolve space
-        var space = await dbContext.Spaces
-            .Where(s =>
-                s.Slug == request.SpaceSlug
-                && s.HubId == hub.Id)
-            .Select(s => new { s.Id, s.Name, s.Slug, s.PublicId, s.AvatarFileName })
-            .FirstOrDefaultAsync();
+        var space = await scopeData.GetSpaceBySlugInHubAsync(request.SpaceSlug, hub.DbId);
 
         if (space is null)
             throw new RpcException(new Status(StatusCode.NotFound, "Space not found"));
@@ -226,10 +211,7 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
-        var discord = await dbContext.Spaces
-            .Where(s => s.PublicId == request.SpacePublicId)
-            .Select(s => new { s.DiscordWebhookUrl, s.DiscordChannelName, s.DiscordInviteUrl })
-            .FirstOrDefaultAsync();
+        var discord = await scopeData.GetSpaceDiscordSettingsAsync(request.SpacePublicId);
 
         var response = new SpaceDiscordSettingsResponse();
         if (discord?.DiscordWebhookUrl is not null) response.DiscordWebhookUrl = discord.DiscordWebhookUrl;
@@ -251,29 +233,28 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
-        // AsTracking() so the Discord settings assignments below actually persist
-        // (HI-22a). Same class-of-bug as CR-1 / CR-25 — the SnakkDbContext default
-        // is NoTracking, so untracked reads + property mutation silently no-ops.
-        var space = await dbContext.Spaces.AsTracking().FirstOrDefaultAsync(s => s.PublicId == request.SpacePublicId);
-        if (space is null)
-            return new UpdateSpaceDiscordSettingsResponse { Success = false, ErrorMessage = "Space not found" };
-
+        // Validate URL first, before calling into the service that does the AsTracking mutation.
+        string? webhookUrl = null;
         if (request.HasDiscordWebhookUrl && !string.IsNullOrWhiteSpace(request.DiscordWebhookUrl))
         {
             var trimmed = request.DiscordWebhookUrl.Trim();
             if (!IsValidDiscordWebhookUrl(trimmed))
                 return new UpdateSpaceDiscordSettingsResponse { Success = false, ErrorMessage = "Invalid Discord webhook URL. Must be an HTTPS discord.com webhook." };
-            space.DiscordWebhookUrl = trimmed;
+            webhookUrl = trimmed;
         }
-        else
+
+        var settings = new Snakk.Application.DTOs.Management.SpaceDiscordSettingsDto
         {
-            space.DiscordWebhookUrl = null;
-        }
-        space.DiscordChannelName = request.HasDiscordChannelName && !string.IsNullOrWhiteSpace(request.DiscordChannelName)
-            ? request.DiscordChannelName.Trim() : null;
-        space.DiscordInviteUrl = request.HasDiscordInviteUrl && !string.IsNullOrWhiteSpace(request.DiscordInviteUrl)
-            ? request.DiscordInviteUrl.Trim() : null;
-        await dbContext.SaveChangesAsync();
+            DiscordWebhookUrl = webhookUrl,
+            DiscordChannelName = request.HasDiscordChannelName && !string.IsNullOrWhiteSpace(request.DiscordChannelName)
+                ? request.DiscordChannelName.Trim() : null,
+            DiscordInviteUrl = request.HasDiscordInviteUrl && !string.IsNullOrWhiteSpace(request.DiscordInviteUrl)
+                ? request.DiscordInviteUrl.Trim() : null
+        };
+
+        var updated = await scopeData.UpdateSpaceDiscordSettingsAsync(request.SpacePublicId, settings);
+        if (!updated)
+            return new UpdateSpaceDiscordSettingsResponse { Success = false, ErrorMessage = "Space not found" };
 
         return new UpdateSpaceDiscordSettingsResponse { Success = true };
     }
@@ -289,13 +270,7 @@ public class ManageGrpcService(
         // Site scope requires global admin; other scopes use normal permission check
         if (request.ScopeType == "Site")
         {
-            var user = await dbContext.Users
-                .Where(u => u.PublicId == userId)
-                .Select(u => new { u.Roles })
-                .FirstOrDefaultAsync();
-            var isGlobalAdmin = user?.Roles.Any(r =>
-                r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
-
+            var isGlobalAdmin = await scopeData.IsGlobalAdminAsync(userId);
             if (!isGlobalAdmin)
                 throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
         }
@@ -320,41 +295,34 @@ public class ManageGrpcService(
         {
             case "Hub":
             {
-                var hubParent = await dbContext.Hubs
-                    .Where(h => h.PublicId == request.ScopePublicId)
-                    .Select(h => new
-                    {
-                        CommunityPublicId = h.Community.PublicId,
-                        CommunityName = h.Community.Name,
-                        CommunityHasRules = h.Community.HasRules
-                    })
-                    .FirstOrDefaultAsync();
+                var hubParent = await scopeData.GetHubParentAsync(request.ScopePublicId);
 
-                if (hubParent is { CommunityHasRules: true })
-                    await AddInheritedGroup(response, "Community", hubParent.CommunityName, hubParent.CommunityPublicId);
+                // We need CommunityHasRules — use GetHubWithCommunityAsync to get full hub+community data
+                var hubWithCommunity = await scopeData.GetHubWithCommunityAsync(request.ScopePublicId);
+                // GetHubParentAsync already gives us CommunityPublicId + Name; check rules via ruleService
+                if (hubParent is not null)
+                {
+                    var communityRules = await ruleService.GetRulesAsync("Community", hubParent.CommunityPublicId);
+                    if (communityRules.Rules.Count > 0)
+                        await AddInheritedGroup(response, "Community", hubParent.CommunityName, hubParent.CommunityPublicId);
+                }
 
                 break;
             }
             case "Space":
             {
-                var spaceParents = await dbContext.Spaces
-                    .Where(s => s.PublicId == request.ScopePublicId)
-                    .Select(s => new
-                    {
-                        CommunityPublicId = s.Hub.Community.PublicId,
-                        CommunityName = s.Hub.Community.Name,
-                        CommunityHasRules = s.Hub.Community.HasRules,
-                        HubPublicId = s.Hub.PublicId,
-                        HubName = s.Hub.Name,
-                        HubHasRules = s.Hub.HasRules
-                    })
-                    .FirstOrDefaultAsync();
+                var spaceParents = await scopeData.GetSpaceParentsAsync(request.ScopePublicId);
 
-                if (spaceParents is { CommunityHasRules: true })
-                    await AddInheritedGroup(response, "Community", spaceParents.CommunityName, spaceParents.CommunityPublicId);
+                if (spaceParents is not null)
+                {
+                    var communityRules = await ruleService.GetRulesAsync("Community", spaceParents.CommunityPublicId);
+                    if (communityRules.Rules.Count > 0)
+                        await AddInheritedGroup(response, "Community", spaceParents.CommunityName, spaceParents.CommunityPublicId);
 
-                if (spaceParents is { HubHasRules: true })
-                    await AddInheritedGroup(response, "Hub", spaceParents.HubName, spaceParents.HubPublicId);
+                    var hubRules = await ruleService.GetRulesAsync("Hub", spaceParents.HubPublicId);
+                    if (hubRules.Rules.Count > 0)
+                        await AddInheritedGroup(response, "Hub", spaceParents.HubName, spaceParents.HubPublicId);
+                }
 
                 break;
             }
@@ -403,13 +371,7 @@ public class ManageGrpcService(
         // Site scope requires global admin; other scopes use normal permission check
         if (request.ScopeType == "Site")
         {
-            var user = await dbContext.Users
-                .Where(u => u.PublicId == userId)
-                .Select(u => new { u.Roles })
-                .FirstOrDefaultAsync();
-            var isGlobalAdmin = user?.Roles.Any(r =>
-                r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
-
+            var isGlobalAdmin = await scopeData.IsGlobalAdminAsync(userId);
             if (!isGlobalAdmin)
                 throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
         }
@@ -472,19 +434,16 @@ public class ManageGrpcService(
         {
             case "Hub":
             {
-                var hub = await dbContext.Hubs
-                    .Include(h => h.Community)
-                    .Where(h => h.PublicId == request.ScopePublicId)
-                    .FirstOrDefaultAsync();
+                var hubWithCommunity = await scopeData.GetHubWithCommunityAsync(request.ScopePublicId);
 
-                if (hub?.Community is not null)
+                if (hubWithCommunity is not null)
                 {
                     var communityReasons = await moderationRepository.GetReportReasonsForExactScopeAsync(
-                        "Community", hub.Community.PublicId);
+                        "Community", hubWithCommunity.CommunityPublicId);
                     if (communityReasons.Any())
                     {
                         var group = new InheritedReportReasonGroup
-                            { SourceScopeType = "Community", SourceScopeName = hub.Community.Name };
+                            { SourceScopeType = "Community", SourceScopeName = hubWithCommunity.CommunityName };
                         group.Reasons.AddRange(communityReasons.Select(r => new ReportReasonItem
                             { Name = r.Name, Description = r.Description ?? "", DisplayOrder = r.DisplayOrder }));
                         response.InheritedGroups.Add(group);
@@ -495,34 +454,27 @@ public class ManageGrpcService(
             }
             case "Space":
             {
-                var space = await dbContext.Spaces
-                    .Include(s => s.Hub)
-                    .ThenInclude(h => h.Community)
-                    .Where(s => s.PublicId == request.ScopePublicId)
-                    .FirstOrDefaultAsync();
+                var spaceWithHubCommunity = await scopeData.GetSpaceWithHubCommunityAsync(request.ScopePublicId);
 
-                if (space?.Hub?.Community is not null)
+                if (spaceWithHubCommunity is not null)
                 {
                     var communityReasons = await moderationRepository.GetReportReasonsForExactScopeAsync(
-                        "Community", space.Hub.Community.PublicId);
+                        "Community", spaceWithHubCommunity.CommunityPublicId);
                     if (communityReasons.Any())
                     {
                         var group = new InheritedReportReasonGroup
-                            { SourceScopeType = "Community", SourceScopeName = space.Hub.Community.Name };
+                            { SourceScopeType = "Community", SourceScopeName = spaceWithHubCommunity.CommunityName };
                         group.Reasons.AddRange(communityReasons.Select(r => new ReportReasonItem
                             { Name = r.Name, Description = r.Description ?? "", DisplayOrder = r.DisplayOrder }));
                         response.InheritedGroups.Add(group);
                     }
-                }
 
-                if (space?.Hub is not null)
-                {
                     var hubReasons = await moderationRepository.GetReportReasonsForExactScopeAsync(
-                        "Hub", space.Hub.PublicId);
+                        "Hub", spaceWithHubCommunity.HubPublicId);
                     if (hubReasons.Any())
                     {
                         var group = new InheritedReportReasonGroup
-                            { SourceScopeType = "Hub", SourceScopeName = space.Hub.Name };
+                            { SourceScopeType = "Hub", SourceScopeName = spaceWithHubCommunity.HubName };
                         group.Reasons.AddRange(hubReasons.Select(r => new ReportReasonItem
                             { Name = r.Name, Description = r.Description ?? "", DisplayOrder = r.DisplayOrder }));
                         response.InheritedGroups.Add(group);
@@ -584,10 +536,7 @@ public class ManageGrpcService(
         {
             case "Hub":
             {
-                var parent = await dbContext.Hubs
-                    .Where(h => h.PublicId == request.ScopePublicId)
-                    .Select(h => new { CommunityPublicId = h.Community.PublicId, CommunityName = h.Community.Name })
-                    .FirstOrDefaultAsync();
+                var parent = await scopeData.GetHubParentAsync(request.ScopePublicId);
 
                 if (parent is not null)
                 {
@@ -606,14 +555,7 @@ public class ManageGrpcService(
             }
             case "Space":
             {
-                var parents = await dbContext.Spaces
-                    .Where(s => s.PublicId == request.ScopePublicId)
-                    .Select(s => new {
-                        CommunityPublicId = s.Hub.Community.PublicId,
-                        CommunityName = s.Hub.Community.Name,
-                        HubPublicId = s.Hub.PublicId,
-                        HubName = s.Hub.Name })
-                    .FirstOrDefaultAsync();
+                var parents = await scopeData.GetSpaceParentsAsync(request.ScopePublicId);
 
                 if (parents is not null)
                 {
@@ -678,10 +620,7 @@ public class ManageGrpcService(
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
         // Find target user by display name
-        var targetUser = await dbContext.Users
-            .Where(u => u.DisplayName == request.TargetUsername)
-            .Select(u => u.PublicId)
-            .FirstOrDefaultAsync();
+        var targetUser = await scopeData.FindUserPublicIdByDisplayNameAsync(request.TargetUsername);
 
         if (targetUser is null)
             return new CreateBanResponse { Success = false, ErrorMessage = "User not found" };
@@ -702,10 +641,7 @@ public class ManageGrpcService(
             targetUser, banType, communityPublicId, hubPublicId, spacePublicId,
             request.Reason, expiresAt, userId);
 
-        var moderatorName = await dbContext.Users
-            .Where(u => u.PublicId == userId)
-            .Select(u => u.DisplayName)
-            .FirstOrDefaultAsync() ?? userId;
+        var moderatorName = await scopeData.GetUserDisplayNameByPublicIdAsync(userId) ?? userId;
 
         await activityBroadcaster.BroadcastUserBanned(
             userId, moderatorName, targetUser, request.TargetUsername, request.Reason);
@@ -769,10 +705,7 @@ public class ManageGrpcService(
         {
             case "Hub":
             {
-                var parent = await dbContext.Hubs
-                    .Where(h => h.PublicId == request.ScopePublicId)
-                    .Select(h => new { CommunityPublicId = h.Community.PublicId, CommunityName = h.Community.Name })
-                    .FirstOrDefaultAsync();
+                var parent = await scopeData.GetHubParentAsync(request.ScopePublicId);
 
                 if (parent is not null)
                 {
@@ -791,14 +724,7 @@ public class ManageGrpcService(
             }
             case "Space":
             {
-                var parents = await dbContext.Spaces
-                    .Where(s => s.PublicId == request.ScopePublicId)
-                    .Select(s => new {
-                        CommunityPublicId = s.Hub.Community.PublicId,
-                        CommunityName = s.Hub.Community.Name,
-                        HubPublicId = s.Hub.PublicId,
-                        HubName = s.Hub.Name })
-                    .FirstOrDefaultAsync();
+                var parents = await scopeData.GetSpaceParentsAsync(request.ScopePublicId);
 
                 if (parents is not null)
                 {
@@ -973,11 +899,7 @@ public class ManageGrpcService(
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
         // Global admin only
-        var user = await dbContext.Users
-            .Where(u => u.PublicId == userId)
-            .Select(u => new { u.Roles })
-            .FirstOrDefaultAsync();
-        var isGlobalAdmin = user?.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
+        var isGlobalAdmin = await scopeData.IsGlobalAdminAsync(userId);
         if (!isGlobalAdmin)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
 
@@ -998,11 +920,7 @@ public class ManageGrpcService(
         if (string.IsNullOrEmpty(userId))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
-        var user = await dbContext.Users
-            .Where(u => u.PublicId == userId)
-            .Select(u => new { u.Roles })
-            .FirstOrDefaultAsync();
-        var isGlobalAdmin = user?.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
+        var isGlobalAdmin = await scopeData.IsGlobalAdminAsync(userId);
         if (!isGlobalAdmin)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
 
@@ -1026,11 +944,7 @@ public class ManageGrpcService(
         if (string.IsNullOrEmpty(userId))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
-        var user = await dbContext.Users
-            .Where(u => u.PublicId == userId)
-            .Select(u => new { u.Roles })
-            .FirstOrDefaultAsync();
-        var isGlobalAdmin = user?.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
+        var isGlobalAdmin = await scopeData.IsGlobalAdminAsync(userId);
         if (!isGlobalAdmin)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
 
@@ -1049,11 +963,7 @@ public class ManageGrpcService(
         if (string.IsNullOrEmpty(userId))
             throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
 
-        var user = await dbContext.Users
-            .Where(u => u.PublicId == userId)
-            .Select(u => new { u.Roles })
-            .FirstOrDefaultAsync();
-        var isGlobalAdmin = user?.Roles.Any(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null) ?? false;
+        var isGlobalAdmin = await scopeData.IsGlobalAdminAsync(userId);
         if (!isGlobalAdmin)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Global admin access required"));
 
@@ -1092,10 +1002,7 @@ public class ManageGrpcService(
         if (!hasPermission)
             throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
 
-        var targetUser = await dbContext.Users
-            .Where(u => u.DisplayName == request.TargetUsername)
-            .Select(u => u.PublicId)
-            .FirstOrDefaultAsync();
+        var targetUser = await scopeData.FindUserPublicIdByDisplayNameAsync(request.TargetUsername);
 
         if (targetUser is null)
             return new AddTeamMemberResponse { Success = false, ErrorMessage = "User not found" };
@@ -1346,10 +1253,7 @@ public class ManageGrpcService(
                 break;
             case "Delete" when request.ContentType == "Discussion":
             {
-                var spacePublicId = await dbContext.Discussions
-                    .Where(d => d.PublicId == request.TargetPublicId)
-                    .Select(d => d.Space.PublicId)
-                    .FirstOrDefaultAsync(ct);
+                var spacePublicId = await scopeData.GetDiscussionSpacePublicIdAsync(request.TargetPublicId, ct);
 
                 await moderationRepository.ModeratorDeleteDiscussionAsync(request.TargetPublicId, userId, reason, ct);
 

@@ -2,7 +2,7 @@ using System.Data.Common;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 
-namespace Snakk.Api.Interceptors;
+namespace Snakk.Infrastructure.Interceptors;
 
 /// <summary>
 /// Logs EF Core queries that exceed a configurable duration threshold.

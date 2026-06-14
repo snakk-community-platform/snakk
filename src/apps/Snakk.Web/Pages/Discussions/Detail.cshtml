@@ -292,7 +292,7 @@
                                         @if (firstPostItem != null)
                                         {
                                             <li>
-                                                <button hx-get="/api/posts/@firstPostItem.PublicId/history"
+                                                <button hx-get="/bff/posts/@firstPostItem.PublicId/history"
                                                         hx-target="#history-modal-content"
                                                         hx-swap="innerHTML"
                                                         data-modal-open="history_modal"
@@ -304,7 +304,7 @@
                                             {
                                                 <li><button data-action="edit-post" data-post-id="@firstPostItem.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
                                                 <li>
-                                                    <button hx-delete="/api/posts/@firstPostItem.PublicId?userId=@Model.CurrentUserId"
+                                                    <button hx-delete="/bff/posts/@firstPostItem.PublicId"
                                                             hx-target="#post-@firstPostItem.PostNumber"
                                                             hx-swap="outerHTML"
                                                             hx-confirm="@T.Pages.DiscDeleteConfirm"
@@ -1327,7 +1327,7 @@
                                                     </button>
                                                     <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-[100]">
                                                         <li>
-                                                            <button hx-get="/api/posts/@post.PublicId/history"
+                                                            <button hx-get="/bff/posts/@post.PublicId/history"
                                                                     hx-target="#history-modal-content"
                                                                     hx-swap="innerHTML"
                                                                     data-modal-open="history_modal"
@@ -1351,7 +1351,7 @@
                                                         {
                                                             <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
                                                             <li>
-                                                                <button hx-delete="/api/posts/@post.PublicId?userId=@Model.CurrentUserId"
+                                                                <button hx-delete="/bff/posts/@post.PublicId"
                                                                         hx-target="#post-@post.PublicId"
                                                                         hx-swap="outerHTML"
                                                                         hx-confirm="@T.Pages.DiscDeleteConfirm"

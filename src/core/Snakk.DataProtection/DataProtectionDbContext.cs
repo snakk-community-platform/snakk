@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace Snakk.Infrastructure.Database;
+namespace Snakk.DataProtection;
 
 public class DataProtectionDbContext(DbContextOptions<DataProtectionDbContext> options)
     : DbContext(options), IDataProtectionKeyContext

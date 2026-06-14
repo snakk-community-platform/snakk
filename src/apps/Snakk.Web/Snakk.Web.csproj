@@ -10,7 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\aspire\Snakk.ServiceDefaults\Snakk.ServiceDefaults.csproj" />
-    <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.DataProtection\Snakk.DataProtection.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Protos\Snakk.Protos.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Shared\Snakk.Shared.csproj" />
   </ItemGroup>
@@ -18,6 +18,7 @@
   <ItemGroup>
     <PackageReference Include="Fido2.AspNet" Version="4.0.1" />
     <PackageReference Include="HtmlSanitizer" Version="9.0.892" />
+    <PackageReference Include="Markdig" Version="1.2.0" />
     <!-- JWT Authentication -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />

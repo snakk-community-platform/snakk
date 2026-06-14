@@ -13,19 +13,19 @@
             <div class="flex gap-2">
                 <div class="stats shadow flex-1">
                     <div class="stat">
-                        <div class="stat-title">Discussions</div>
+                        <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
                         <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
                     </div>
                 </div>
                 <div class="stats shadow flex-1">
                     <div class="stat">
-                        <div class="stat-title">Replies</div>
+                        <div class="stat-title">@T.Sidebar.StatsReplies</div>
                         <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
                     </div>
                 </div>
                 <div class="stats shadow flex-1">
                     <div class="stat">
-                        <div class="stat-title">Followers</div>
+                        <div class="stat-title">@T.Sidebar.StatsFollowers</div>
                         <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
                     </div>
                 </div>
@@ -36,7 +36,7 @@
         <div class="sn-right-section">
             <div class="sn-right-title">
                 <span class="icon icon-info-circle" aria-hidden="true"></span>
-                About @Model.Space!.Name
+                @T.Pages.SpaceDetailAboutPrefix@Model.Space!.Name
             </div>
             @if (!string.IsNullOrEmpty(Model.Space.Description))
             {
@@ -49,7 +49,7 @@
         <div class="sn-right-section">
             <div class="sn-right-title">
                 <span class="icon icon-document-text" aria-hidden="true"></span>
-                Space Rules
+                @T.Pages.SpaceDetailRules
             </div>
             <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                              htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
@@ -65,7 +65,7 @@
         <div class="sn-right-section">
             <div class="sn-right-title">
                 <span class="icon icon-shield-check" aria-hidden="true"></span>
-                Space Moderators
+                @T.Pages.SpaceDetailModerators
             </div>
             <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                              htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(CommunityCtx, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">

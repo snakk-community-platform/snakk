@@ -11,7 +11,6 @@
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -30,10 +29,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\aspire\Snakk.ServiceDefaults\Snakk.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\core\Snakk.DataProtection\Snakk.DataProtection.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Application\Snakk.Application.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Protos\Snakk.Protos.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Infrastructure\Snakk.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\core\Snakk.Infrastructure.Database\Snakk.Infrastructure.Database.csproj" />
     <ProjectReference Include="..\..\core\Snakk.Shared\Snakk.Shared.csproj" />
   </ItemGroup>
 

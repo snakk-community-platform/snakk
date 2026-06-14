@@ -1,13 +1,11 @@
 namespace Snakk.Api.Endpoints;
 
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Snakk.Application.Services;
 using Snakk.Domain;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 using Snakk.Application.DTOs.Responses;
 using System.Security.Claims;
 
@@ -165,8 +163,8 @@ public static class TwoFactorAuthEndpoints
         ITokenService tokenService,
         IJwtTokenService jwtTokenService,
         ITrustedDeviceService trustedDeviceService,
+        ITwoFactorDataService twoFactorDataService,
         HttpContext httpContext,
-        SnakkDbContext context,
         IMemoryCache cache,
         CancellationToken ct)
     {
@@ -178,28 +176,24 @@ public static class TwoFactorAuthEndpoints
         if (pendingUserId is null)
             return Results.BadRequest(new { error = "Invalid or expired login session. Please sign in again." });
 
-        var user = await context.Users
-            .AsTracking()
-            .Include(u => u.TwoFactorBackupCodes)
-            .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(u => u.PublicId == pendingUserId, ct);
+        var userData = await twoFactorDataService.GetUserForTwoFactorVerifyAsync(pendingUserId, ct);
 
-        if (user is null || !user.TwoFactorEnabled)
+        if (userData is null)
             return Results.BadRequest(new { error = "Invalid request" });
 
-        if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTime.UtcNow)
+        if (userData.LockoutEnd.HasValue && userData.LockoutEnd.Value > DateTime.UtcNow)
             return Results.BadRequest(new { error = "Account is temporarily locked due to too many failed login attempts. Please try again later." });
 
         var isValid = false;
 
         // Try TOTP code first
-        if (!string.IsNullOrEmpty(user.TwoFactorSecret))
+        if (!string.IsNullOrEmpty(userData.TwoFactorSecret))
         {
-            var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
+            var decryptedSecret = secretProtector.Unprotect(userData.TwoFactorSecret);
             if (totpService.VerifyCode(decryptedSecret, request.Code))
             {
                 // Reject replayed codes — window is ±1 step (90 s), so TTL matches
-                var replayKey = $"2fa_used:{user.PublicId}:{request.Code}";
+                var replayKey = $"2fa_used:{userData.PublicId}:{request.Code}";
                 if (!cache.TryGetValue(replayKey, out _))
                 {
                     cache.Set(replayKey, true, TimeSpan.FromSeconds(90));
@@ -211,7 +205,7 @@ public static class TwoFactorAuthEndpoints
         // If TOTP fails, try backup codes
         if (!isValid)
         {
-            var unusedBackupCodes = user.TwoFactorBackupCodes
+            var unusedBackupCodes = userData.BackupCodes
                 .Where(bc => !bc.IsUsed)
                 .ToList();
 
@@ -219,11 +213,9 @@ public static class TwoFactorAuthEndpoints
             {
                 if (totpService.VerifyBackupCode(request.Code, backupCode.CodeHash))
                 {
-                    // Mark backup code as used
-                    backupCode.IsUsed = true;
-                    backupCode.UsedAt = DateTime.UtcNow;
-                    backupCode.UsedIp = httpContext.Connection.RemoteIpAddress?.ToString();
-                    await context.SaveChangesAsync(ct);
+                    // Mark backup code as used (service owns the tracking context)
+                    var usedIp = httpContext.Connection.RemoteIpAddress?.ToString();
+                    await twoFactorDataService.ConsumeBackupCodeAsync(backupCode.Id, usedIp, ct);
 
                     isValid = true;
                     break;
@@ -233,31 +225,23 @@ public static class TwoFactorAuthEndpoints
 
         if (!isValid)
         {
-            user.FailedLoginAttempts++;
-            if (user.FailedLoginAttempts >= 5)
-                user.LockoutEnd = DateTime.UtcNow.AddMinutes(15);
-            await context.SaveChangesAsync(ct);
+            await twoFactorDataService.IncrementFailedLoginAttemptsAsync(userData.PublicId, ct);
             return Results.BadRequest(new { error = "Invalid 2FA code" });
         }
 
         // Reset lockout counters on successful 2FA
-        user.FailedLoginAttempts = 0;
-        user.LockoutEnd = null;
-        user.LastLoginAt = DateTime.UtcNow;
-        await context.SaveChangesAsync(ct);
+        await twoFactorDataService.RecordSuccessfulLoginAsync(userData.PublicId, ct);
 
         // Generate tokens with 2FA verified claim
-        var role = user.Roles
-            .Select(r => ((Snakk.Shared.Enums.UserRoleTypeEnum)r.RoleId).ToString())
-            .FirstOrDefault();
+        var role = userData.Roles.FirstOrDefault();
 
         var accessToken = jwtTokenService.GenerateToken(
-            user.PublicId,
-            user.DisplayName,
-            user.Email,
-            user.EmailVerified,
+            userData.PublicId,
+            userData.DisplayName,
+            userData.Email,
+            userData.EmailVerified,
             role,
-            twoFactorEnabled: user.TwoFactorEnabled);
+            twoFactorEnabled: userData.TwoFactorEnabled);
 
         // Check if device should be trusted
         var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
@@ -267,7 +251,7 @@ public static class TwoFactorAuthEndpoints
 
         // Create refresh token with device info
         var refreshToken = await tokenService.CreateRefreshTokenAsync(
-            UserId.From(user.PublicId),
+            UserId.From(userData.PublicId),
             deviceName,
             deviceFingerprint,
             ipAddress,
@@ -292,7 +276,7 @@ public static class TwoFactorAuthEndpoints
         });
 
         var isDeviceTrusted = await trustedDeviceService.IsDeviceTrustedAsync(
-            UserId.From(user.PublicId),
+            UserId.From(userData.PublicId),
             deviceFingerprint);
 
         return TypedResults.Ok(new TwoFactorVerifyResponse(

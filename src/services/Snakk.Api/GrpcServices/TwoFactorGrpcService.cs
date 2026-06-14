@@ -1,15 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
 using Grpc.Core;
-using Microsoft.EntityFrameworkCore;
 using Snakk.Api.Services;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain;
 using Snakk.Domain.ValueObjects;
-using Snakk.Infrastructure.Database;
 using Snakk.Protos.TwoFactor;
-using Snakk.Shared.Enums;
 
 namespace Snakk.Api.GrpcServices;
 
@@ -21,7 +18,8 @@ public class TwoFactorGrpcService(
     AuthenticationUseCase authUseCase,
     ICurrentUserService currentUser,
     ITrustedDeviceService trustedDeviceService,
-    SnakkDbContext context,
+    IAuthDataService authDataService,
+    ITwoFactorDataService twoFactorDataService,
     IUserGrantsCacheService grantsCache,
     ILogger<TwoFactorGrpcService> logger) : TwoFactorService.TwoFactorServiceBase
 {
@@ -95,39 +93,32 @@ public class TwoFactorGrpcService(
         VerifyTwoFactorLoginRequest request, ServerCallContext ctx)
     {
         var ct = ctx.CancellationToken;
-        // AsTracking() so the `backupCode.IsUsed = true` mutation at line 136 actually
-        // persists — the SnakkDbContext default is NoTrackingWithIdentityResolution,
-        // which silently no-ops EF change-detection on Include()d collections. CR-22
-        // in docs/SECURITY-AUDIT-2026-05-23.md: backup codes were infinitely reusable.
+
         // Hash matches EmailProtector.ComputeHash: SHA256(UTF8(email.Trim().ToLowerInvariant())) → hex lower
         var emailHashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(request.Email.Trim().ToLowerInvariant()));
         var emailHash = Convert.ToHexStringLower(emailHashBytes);
-        var user = await context.Users
-            .AsTracking()
-            .Include(u => u.TwoFactorBackupCodes)
-            .Include(u => u.Roles.Where(r => r.RevokedAt == null))
-            .FirstOrDefaultAsync(u => u.EmailHash == emailHash, ct);
 
-        if (user is null || !user.TwoFactorEnabled)
+        var userData = await twoFactorDataService.GetUserForTwoFactorLoginByEmailHashAsync(emailHash, ct);
+
+        if (userData is null)
         {
-            logger.LogWarning("VerifyTwoFactorLogin: {Reason} for email {Email}",
-                user is null ? "user not found" : "2FA not enabled", request.Email);
+            logger.LogWarning("VerifyTwoFactorLogin: user not found or 2FA not enabled for email {Email}", request.Email);
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid request"));
         }
 
         var isValid = false;
 
         // Try TOTP code first
-        if (!string.IsNullOrEmpty(user.TwoFactorSecret))
+        if (!string.IsNullOrEmpty(userData.TwoFactorSecret))
         {
             try
             {
-                var decryptedSecret = secretProtector.Unprotect(user.TwoFactorSecret);
+                var decryptedSecret = secretProtector.Unprotect(userData.TwoFactorSecret);
                 isValid = totpService.VerifyCode(decryptedSecret, request.Code);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to decrypt 2FA secret for user {UserId}", user.PublicId);
+                logger.LogError(ex, "Failed to decrypt 2FA secret for user {UserId}", userData.PublicId);
                 throw new RpcException(new Status(StatusCode.Internal, "2FA configuration error. Please re-enable 2FA."));
             }
         }
@@ -135,7 +126,7 @@ public class TwoFactorGrpcService(
         // If TOTP fails, try backup codes
         if (!isValid)
         {
-            var unusedBackupCodes = user.TwoFactorBackupCodes
+            var unusedBackupCodes = userData.BackupCodes
                 .Where(bc => !bc.IsUsed)
                 .ToList();
 
@@ -143,11 +134,7 @@ public class TwoFactorGrpcService(
             {
                 if (totpService.VerifyBackupCode(request.Code, backupCode.CodeHash))
                 {
-                    backupCode.IsUsed = true;
-                    backupCode.UsedAt = DateTime.UtcNow;
-                    backupCode.UsedIp = null;
-                    await context.SaveChangesAsync(ct);
-
+                    await twoFactorDataService.ConsumeBackupCodeAsync(backupCode.Id, usedIp: null, ct);
                     isValid = true;
                     break;
                 }
@@ -158,33 +145,33 @@ public class TwoFactorGrpcService(
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid 2FA code"));
 
         // Generate tokens
-        var roles = await GetUserRolesAsync(user.PublicId);
+        var roles = await authDataService.GetUserRolesAsync(userData.PublicId, ct);
 
         var accessToken = jwtService.GenerateToken(
-            user.PublicId,
-            user.DisplayName,
-            user.Email,
-            user.EmailVerified,
+            userData.PublicId,
+            userData.DisplayName,
+            userData.Email,
+            userData.EmailVerified,
             roles.FirstOrDefault(),
-            user.AvatarFileName,
-            authVersion: user.AuthVersion,
-            twoFactorEnabled: user.TwoFactorEnabled);
+            userData.AvatarFileName,
+            authVersion: userData.AuthVersion,
+            twoFactorEnabled: userData.TwoFactorEnabled);
 
-        var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(UserId.From(user.PublicId));
+        var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(UserId.From(userData.PublicId));
 
         if (!refreshTokenResult.IsSuccess)
             throw new RpcException(new Status(StatusCode.Internal, "Failed to create refresh token"));
 
-        logger.LogInformation("2FA login verified for {UserId}", user.PublicId);
+        logger.LogInformation("2FA login verified for {UserId}", userData.PublicId);
 
         if (request.TrustDevice && !string.IsNullOrEmpty(request.IpAddress))
         {
             var fingerprint = trustedDeviceService.GenerateDeviceFingerprint(request.UserAgent, request.IpAddress);
             var deviceName = trustedDeviceService.GetDeviceName(request.UserAgent);
-            await trustedDeviceService.TrustDeviceAsync(UserId.From(user.PublicId), fingerprint, deviceName, request.IpAddress, 30, ct);
+            await trustedDeviceService.TrustDeviceAsync(UserId.From(userData.PublicId), fingerprint, deviceName, request.IpAddress, 30, ct);
         }
 
-        await grantsCache.GetGrantsAsync(user.PublicId, ct);
+        await grantsCache.GetGrantsAsync(userData.PublicId, ct);
 
         return new VerifyTwoFactorLoginResponse
         {
@@ -315,10 +302,4 @@ public class TwoFactorGrpcService(
 
         return UserId.From(userId);
     }
-
-    private async Task<List<string>> GetUserRolesAsync(string publicId) =>
-        await context.UserRoles
-            .Where(r => r.User.PublicId == publicId && r.RevokedAt == null)
-            .Select(r => ((UserRoleTypeEnum)r.RoleId).ToString())
-            .ToListAsync();
 }

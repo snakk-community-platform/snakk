@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Http.Resilience;
 using Snakk.Worker.Workers;
+using Snakk.DataProtection;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Services;
 using Snakk.Application.Services;

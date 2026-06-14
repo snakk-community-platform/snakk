@@ -21,6 +21,7 @@ COPY docker/Snakk.Docker.slnx Snakk.Docker.slnx
 COPY src/aspire/Snakk.ServiceDefaults/Snakk.ServiceDefaults.csproj aspire/Snakk.ServiceDefaults/
 COPY src/core/Snakk.Domain/Snakk.Domain.csproj core/Snakk.Domain/
 COPY src/core/Snakk.Application/Snakk.Application.csproj core/Snakk.Application/
+COPY src/core/Snakk.DataProtection/Snakk.DataProtection.csproj core/Snakk.DataProtection/
 COPY src/core/Snakk.Infrastructure/Snakk.Infrastructure.csproj core/Snakk.Infrastructure/
 COPY src/core/Snakk.Infrastructure.Database/Snakk.Infrastructure.Database.csproj core/Snakk.Infrastructure.Database/
 COPY src/core/Snakk.Protos/Snakk.Protos.csproj core/Snakk.Protos/

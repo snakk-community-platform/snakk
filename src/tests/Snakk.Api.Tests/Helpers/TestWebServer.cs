@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Snakk.DataProtection;
 using Snakk.Infrastructure.Database;
 
 namespace Snakk.Api.Tests.Helpers;

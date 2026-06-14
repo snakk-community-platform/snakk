@@ -41,6 +41,7 @@ import { Plugin, PluginKey, TextSelection } from '@milkdown/kit/prose/state';
 import { Slice, Fragment } from '@milkdown/kit/prose/model';
 import type { Node } from '@milkdown/kit/prose/model';
 import { createImageGroupPlugin, createGapCursorPlugin, createGapParaPlugin, createEmptyParaCursorPlugin, setEmptyParaCursorCallback, setChartEditCallback, setTableEditCallback, setImageEditCallback, setCodeEditCallback, setListEditCallback, countImagesFromView, countBlocksInEditor, replaceImageSrc, buildListNode, type TableModalData, type ImageModalData, type CodeModalData, type ListModalData, type ListItem, type BlockCounts } from './editor-node-views';
+import { T } from '../locales/t.g';
 
 // ============================================================================
 // Code Block Language Options (must match Prism grammars in prism-entry.mjs)
@@ -642,7 +643,7 @@ function showLinkDialog(editor: Editor): void {
             <input type="text" class="link-dialog-text" placeholder="Display text" />
         </div>
         <div class="link-dialog-actions">
-            <button type="button" class="link-dialog-cancel">Cancel</button>
+            <button type="button" class="link-dialog-cancel">${T.common.cancel}</button>
             <button type="button" class="link-dialog-insert">Insert Link</button>
         </div>
     `;
@@ -821,7 +822,7 @@ function showChartPickerModal(editor: Editor): void {
     const header = document.createElement('div');
     header.className = 'sn-modal-header';
     const title = document.createElement('span');
-    title.textContent = 'Insert Chart';
+    title.textContent = T.editor.insertChart;
     const closeBtn = document.createElement('button');
     closeBtn.className = 'sn-modal-close';
     closeBtn.innerHTML = '&times;';
@@ -949,7 +950,7 @@ function buildChartForm(type: string, form: HTMLElement, initial?: Partial<Chart
         listWrap.className = 'sn-modal-field';
         const lbl = document.createElement('label');
         lbl.className = 'sn-modal-label';
-        lbl.textContent = 'Data';
+        lbl.textContent = T.editor.data;
         listWrap.appendChild(lbl);
 
         const list = document.createElement('div');
@@ -1007,7 +1008,7 @@ function buildChartForm(type: string, form: HTMLElement, initial?: Partial<Chart
         const addBtn = document.createElement('button');
         addBtn.type = 'button';
         addBtn.className = 'chart-add-btn';
-        addBtn.textContent = '+ Add Item';
+        addBtn.textContent = T.editor.addItem;
         addBtn.addEventListener('click', () => { addRow(); list.dispatchEvent(new Event('input', { bubbles: true })); });
         listWrap.appendChild(addBtn);
         form.appendChild(listWrap);
@@ -1017,7 +1018,7 @@ function buildChartForm(type: string, form: HTMLElement, initial?: Partial<Chart
         listWrap.className = 'sn-modal-field';
         const lbl = document.createElement('label');
         lbl.className = 'sn-modal-label';
-        lbl.textContent = 'Series';
+        lbl.textContent = T.editor.series;
         listWrap.appendChild(lbl);
 
         const list = document.createElement('div');
@@ -1084,7 +1085,7 @@ function buildChartForm(type: string, form: HTMLElement, initial?: Partial<Chart
         listWrap.className = 'sn-modal-field';
         const lbl = document.createElement('label');
         lbl.className = 'sn-modal-label';
-        lbl.textContent = 'Series';
+        lbl.textContent = T.editor.series;
         listWrap.appendChild(lbl);
 
         const list = document.createElement('div');
@@ -1412,11 +1413,11 @@ function showChartEditorModal(type: string, options: ChartModalOptions): void {
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'sn-modal-cancel';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = T.common.cancel;
     const insertBtn = document.createElement('button');
     insertBtn.type = 'button';
     insertBtn.className = 'sn-modal-insert';
-    insertBtn.textContent = options.isEdit ? 'Update Chart' : 'Insert Chart';
+    insertBtn.textContent = options.isEdit ? T.editor.updateChart : T.editor.insertChart;
     footer.appendChild(cancelBtn);
     footer.appendChild(insertBtn);
     modal.appendChild(footer);
@@ -1722,7 +1723,7 @@ function showCodeModal(options: CodeModalOptions): void {
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'sn-modal-cancel';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = T.common.cancel;
     cancelBtn.addEventListener('click', closeCodeModal);
     const insertBtn = document.createElement('button');
     insertBtn.type = 'button';
@@ -2009,7 +2010,7 @@ function createImagePickerWidget(
     const chooseBtn = document.createElement('button');
     chooseBtn.type = 'button';
     chooseBtn.className = 'image-modal-choose';
-    chooseBtn.textContent = 'Choose files';
+    chooseBtn.textContent = T.editor.chooseFiles;
     dropZone.appendChild(dropHint);
     dropZone.appendChild(chooseBtn);
 
@@ -2022,7 +2023,7 @@ function createImagePickerWidget(
     layoutRow.className = 'image-modal-layout-row';
     const layoutLabel = document.createElement('div');
     layoutLabel.className = 'text-sm font-medium mb-2';
-    layoutLabel.textContent = 'Layout';
+    layoutLabel.textContent = T.editor.layout;
     const layoutPicker = document.createElement('div');
     layoutPicker.className = 'flex flex-wrap gap-2';
     LAYOUTS_MODAL.forEach(({ value, label, glp }) => {
@@ -2278,7 +2279,7 @@ function createImagePickerWidget(
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
                 removeBtn.className = 'image-modal-oversized-remove';
-                removeBtn.textContent = 'Remove';
+                removeBtn.textContent = T.editor.remove;
                 removeBtn.addEventListener('click', () => {
                     URL.revokeObjectURL(item.blobUrl);
                     modalItems.splice(idx, 1);
@@ -2523,7 +2524,7 @@ function showImageModal(options: ImageModalOptions): void {
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'sn-modal-cancel';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = T.common.cancel;
     cancelBtn.addEventListener('click', confirmClose);
     footer.appendChild(statusEl);
     footer.appendChild(cancelBtn);
@@ -2731,7 +2732,7 @@ function showTableModal(options: TableModalOptions): void {
     const header = document.createElement('div');
     header.className = 'sn-modal-header';
     const titleSpan = document.createElement('span');
-    titleSpan.textContent = isEdit ? 'Edit Table' : 'Insert Table';
+    titleSpan.textContent = isEdit ? T.editor.updateTable : T.editor.insertTable;
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.className = 'sn-modal-close';
@@ -3029,11 +3030,11 @@ function showTableModal(options: TableModalOptions): void {
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'sn-modal-cancel';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = T.common.cancel;
     const insertBtn = document.createElement('button');
     insertBtn.type = 'button';
     insertBtn.className = 'sn-modal-insert';
-    insertBtn.textContent = isEdit ? 'Update Table' : 'Insert Table';
+    insertBtn.textContent = isEdit ? T.editor.updateTable : T.editor.insertTable;
     footer.appendChild(cancelBtn);
     footer.appendChild(insertBtn);
     modal.appendChild(footer);
@@ -3115,7 +3116,7 @@ function _oldTablePickerRemoved() { const picker = document.createElement('div')
 
     const label = document.createElement('div');
     label.className = 'table-picker-label';
-    label.textContent = 'Select size';
+    label.textContent = T.editor.selectSize;
 
     const grid = document.createElement('div');
     grid.className = 'table-picker-grid';
@@ -3165,7 +3166,7 @@ function _oldTablePickerRemoved() { const picker = document.createElement('div')
 
     grid.addEventListener('mouseleave', () => {
         cells.forEach(cell => cell.classList.remove('highlighted'));
-        label.textContent = 'Select size';
+        label.textContent = T.editor.selectSize;
     });
 
     grid.addEventListener('click', (e) => {
@@ -3204,7 +3205,7 @@ function _oldTablePickerRemoved() { const picker = document.createElement('div')
         touchActive = false;
         if (e.type === 'pointercancel') {
             cells.forEach(cell => cell.classList.remove('highlighted'));
-            label.textContent = 'Select size';
+            label.textContent = T.editor.selectSize;
             lastTouchCell = null;
             return;
         }
@@ -3303,7 +3304,7 @@ function showListPickerModal(editor: Editor): void {
     const header = document.createElement('div');
     header.className = 'sn-modal-header';
     const title = document.createElement('span');
-    title.textContent = 'Insert List';
+    title.textContent = T.editor.insertList;
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.className = 'sn-modal-close';
@@ -3463,7 +3464,7 @@ function showListEditorModal(type: ListModalData['type'], options: ListModalOpti
     const addItemBtn = document.createElement('button');
     addItemBtn.type = 'button';
     addItemBtn.className = 'lmc-add-btn';
-    addItemBtn.textContent = '+ Add item';
+    addItemBtn.textContent = T.editor.addItem;
     addItemBtn.addEventListener('click', () => {
         const newRow = addItemRow();
         newRow.querySelector<HTMLInputElement>('.lmc-item-input')?.focus();
@@ -3478,7 +3479,7 @@ function showListEditorModal(type: ListModalData['type'], options: ListModalOpti
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'sn-modal-cancel';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = T.common.cancel;
     cancelBtn.onclick = confirmClose;
 
     const insertBtn = document.createElement('button');
@@ -4394,7 +4395,7 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
             backIcon.className = 'sn-picker-icon';
             backIcon.textContent = '←';
             const backLabel = document.createElement('span');
-            backLabel.textContent = 'Back';
+            backLabel.textContent = T.editor.back;
             backRow.appendChild(backIcon);
             backRow.appendChild(backLabel);
             picker.appendChild(backRow);

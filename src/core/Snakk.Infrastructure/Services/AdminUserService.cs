@@ -23,6 +23,9 @@ public class AdminUserService(
 
     public async Task<AdminUserDto?> GetUserByIdAsync(string userId, CancellationToken ct = default)
     {
+        // Aggregate: TTL-only, no write-path invalidation. Display name/email are mutated
+        // by user self-service flows that live outside this service (profile update,
+        // email change) — a 5-minute-stale admin detail view is acceptable.
         var cacheKey = $"admin_user_{userId}";
 
         return await cache.GetOrCreateAsync(

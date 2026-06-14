@@ -1459,23 +1459,29 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
     {
         var newRevision = Guid.NewGuid().ToString("N")[..8];
 
+        // Pages read TeamRevision from the cached {space|hub|community}-meta entries, not
+        // from the database — without evicting the meta entry the new revision is invisible
+        // until the TTL expires and the moderators panel keeps serving the stale team.
         if (!string.IsNullOrEmpty(spacePublicId))
         {
             await _context.Spaces
                 .Where(s => s.PublicId == spacePublicId)
                 .ExecuteUpdateAsync(s => s.SetProperty(x => x.TeamRevision, newRevision), ct);
+            await _cache.RemoveAsync($"space-meta:{spacePublicId}", ct);
         }
         else if (!string.IsNullOrEmpty(hubPublicId))
         {
             await _context.Hubs
                 .Where(h => h.PublicId == hubPublicId)
                 .ExecuteUpdateAsync(h => h.SetProperty(x => x.TeamRevision, newRevision), ct);
+            await _cache.RemoveAsync($"hub-meta:{hubPublicId}", ct);
         }
         else if (!string.IsNullOrEmpty(communityPublicId))
         {
             await _context.Communities
                 .Where(c => c.PublicId == communityPublicId)
                 .ExecuteUpdateAsync(c => c.SetProperty(x => x.TeamRevision, newRevision), ct);
+            await _cache.RemoveAsync($"community-meta:{communityPublicId}", ct);
         }
     }
 
@@ -1632,6 +1638,10 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
         discussion.DeletedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(ct);
+
+        // The deleted discussion may be the cached "latest" for its space — that entry is
+        // write-invalidated with a very long TTL, so a missed removal would persist for months.
+        await _cache.RemoveAsync($"space-latest-discussion:{discussion.SpaceId}", ct);
 
         await LogModerationActionAsync(
             moderatorPublicId,

@@ -9,6 +9,7 @@ using OpenIddict.Abstractions;
 using Serilog;
 using Snakk.Auth.Data;
 using Snakk.Auth.Endpoints;
+using Snakk.DataProtection;
 using Snakk.Infrastructure.Database;
 using Snakk.ServiceDefaults;
 using System.Net;
@@ -384,6 +385,32 @@ app.UsePathBase("/auth");
 
 // Handle forwarded headers from reverse proxy
 app.UseForwardedHeaders();
+
+// Security headers — CSP with per-request nonce for inline scripts, Turnstile allowed
+app.Use(async (context, next) =>
+{
+    var nonce = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+    context.Items["csp-nonce"] = nonce;
+
+    var headers = context.Response.Headers;
+    headers.Append("Content-Security-Policy",
+        "default-src 'self'; " +
+        $"script-src 'self' 'nonce-{nonce}' https://challenges.cloudflare.com; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self'; " +
+        "connect-src 'self'; " +
+        "frame-src https://challenges.cloudflare.com; " +
+        "frame-ancestors 'self'; " +
+        "base-uri 'self'; " +
+        "form-action 'self'");
+    headers.Append("X-Frame-Options", "SAMEORIGIN");
+    headers.Append("X-Content-Type-Options", "nosniff");
+    headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
+
+    await next();
+});
 
 app.UseStaticFiles();
 

@@ -291,6 +291,9 @@ public class PermissionService(
 
     public async Task<List<PermissionDto>> GetAllPermissionsAsync(CancellationToken ct = default)
     {
+        // Aggregate: TTL-only, no write-path invalidation. The Permissions table is a
+        // seed-only catalog of permission definitions — no production code path mutates it
+        // (role assignments live in RolePermissions and are invalidated separately).
         var cacheKey = "all_permissions";
 
         var permissions = await cache.GetOrCreateAsync(

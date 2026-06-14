@@ -3,10 +3,7 @@ using Grpc.Core;
 using Snakk.Api.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.Services;
-using Snakk.Infrastructure.Database;
 using Snakk.Protos.Community;
 using Snakk.Shared.Helpers;
 using System.Security.Claims;
@@ -17,12 +14,11 @@ public class CommunityGrpcService(
     CommunityUseCase communityUseCase,
     IRuleService ruleService,
     StatisticsUseCase statisticsUseCase,
-    SnakkDbContext dbContext,
+    ICommunityDataService communityData,
     IGroupAccessService groupAccessService,
     ICurrentUserService currentUser,
     IUserGrantsCacheService grantsCache,
-    IEntityHierarchyCacheService hierarchyCache,
-    HybridCache cache) : CommunityService.CommunityServiceBase
+    IEntityHierarchyCacheService hierarchyCache) : CommunityService.CommunityServiceBase
 {
     public override async Task<CommunityInfo> GetCommunityBySlug(GetCommunityBySlugRequest request, ServerCallContext context)
     {
@@ -36,7 +32,7 @@ public class CommunityGrpcService(
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var info = MapToProto(result.Value);
-        await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+        await PopulateRulesMetadata(info, result.Value.PublicId.Value, ct);
 
         return info;
     }
@@ -53,7 +49,7 @@ public class CommunityGrpcService(
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var info = MapToProto(result.Value);
-        await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+        await PopulateRulesMetadata(info, result.Value.PublicId.Value, ct);
 
         return info;
     }
@@ -70,7 +66,7 @@ public class CommunityGrpcService(
             throw new RpcException(new Status(StatusCode.NotFound, "Community not found"));
 
         var info = MapToProto(result.Value);
-        await PopulateRulesMetadata(info, result.Value.PublicId.Value);
+        await PopulateRulesMetadata(info, result.Value.PublicId.Value, ct);
 
         return info;
     }
@@ -80,12 +76,9 @@ public class CommunityGrpcService(
         var ct = context.CancellationToken;
         var result = await communityUseCase.GetPublicCommunitiesAsync(request.Offset, request.PageSize);
 
-        // Fetch denormalized counts from database entities
+        // Fetch denormalized counts via data service (no direct DbContext)
         var publicIds = result.Items.Select(c => c.PublicId.Value).ToList();
-        var counts = await dbContext.Communities
-            .Where(c => publicIds.Contains(c.PublicId))
-            .Select(c => new { c.PublicId, c.DiscussionCount, c.PostCount })
-            .ToDictionaryAsync(c => c.PublicId, ct);
+        var counts = await communityData.GetCountsByPublicIdsAsync(publicIds, ct);
 
         var response = new PagedCommunityList
         {
@@ -187,22 +180,9 @@ public class CommunityGrpcService(
         return grants.CommunityIds.Contains(communityDbId.Value);
     }
 
-    private sealed record CommunityMeta(bool HasRules, string? RulesRevision, string? TeamRevision, bool IsRestricted, bool Require2FA = false);
-    private static readonly HybridCacheEntryOptions MetaCacheOptions = new() { Expiration = TimeSpan.FromMinutes(5) };
-
-    private async Task PopulateRulesMetadata(CommunityInfo info, string publicId)
+    private async Task PopulateRulesMetadata(CommunityInfo info, string publicId, CancellationToken ct = default)
     {
-        var data = await cache.GetOrCreateAsync<CommunityMeta?>(
-            $"community-meta:{publicId}",
-            async cancel =>
-            {
-                var raw = await dbContext.Communities
-                    .Where(c => c.PublicId == publicId)
-                    .Select(c => new { c.HasRules, c.RulesRevision, c.TeamRevision, c.IsRestricted, c.Require2FA })
-                    .FirstOrDefaultAsync(cancel);
-                return raw is null ? null : new CommunityMeta(raw.HasRules, raw.RulesRevision, raw.TeamRevision, raw.IsRestricted, raw.Require2FA);
-            },
-            MetaCacheOptions);
+        var data = await communityData.GetCommunityMetaAsync(publicId, ct);
 
         if (data is not null)
         {
