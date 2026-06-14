@@ -279,7 +279,59 @@ The shared log-shipping volumes (`postgres-logs`, `valkey-slowlog`, `caddy-logs`
 
 ---
 
-## 6. Cross-references
+## 6. Shedding telemetry load — the `Observability` feature flags
+
+Each telemetry signal is an independent kill switch, bound from the
+`Observability` config section and read once at process start by
+`AddSnakkObservability` (`src/aspire/Snakk.ServiceDefaults/Extensions.cs`).
+Use them to shed observability cost in prod under pressure (incident, capacity
+crunch, small box) **without a code change** — flip an env var, restart the
+service.
+
+Every flag is env-overridable with the standard ASP.NET double-underscore
+convention, e.g.:
+
+```
+Observability__Tracing__Enabled=false
+Observability__Tracing__SamplingRatio=0.1
+Observability__Profiling__Enabled=false
+```
+
+| Flag | Default | What turning it OFF does | Restart? |
+| --- | --- | --- | --- |
+| `Observability:Enabled` | `true` | Master switch. NO OTel pipeline (traces/metrics/logs) and no profiler are registered — instrumentation is *not wired*, so per-request Activity creation, the EF Core interceptor, and scope capture cost nothing. Health checks still work. | Yes |
+| `Observability:Tracing:Enabled` | `true` | Skips the tracing pipeline entirely (no spans created or exported). | Yes |
+| `Observability:Tracing:SamplingRatio` | `1.0` | Head-samples at the given probability in non-Dev environments via `ParentBased(TraceIdRatioBased(ratio))`, *before* the Collector's tail sampler. Lower it (e.g. `0.1`) to shed trace volume at the source. Dev always samples 100%. | Yes |
+| `Observability:Metrics:Enabled` | `true` | Skips the metrics pipeline (ASP.NET/HttpClient/Runtime/Process/SignalR meters). | Yes |
+| `Observability:OtlpLogs:Enabled` | `true` | Skips the OTel logging provider (`IncludeScopes`/`IncludeFormattedMessage` capture). Serilog console logging is unaffected. | Yes |
+| `Observability:Profiling:Enabled` | `true` | Doesn't load the Pyroscope continuous profiler even if `PYROSCOPE_SERVER_ADDRESS` is set. **This is the single biggest per-process cost — opt it OUT in prod (`false`) until you actually need a profile.** | Yes |
+| `Observability:Rum:Enabled` | `true` | `Snakk.Web` doesn't map `POST /bff/rum` AND `_Layout` omits the `web-vitals` `<script>`, so browsers register no observers and fire no beacon (rather than firing one to get a 404). | Yes |
+
+**Defaults preserve prior behaviour exactly.** A service with no `Observability`
+section behaves as it did before the flags existed (everything on, full
+sampling). The flags are an *additional* gate on top of the existing env-var
+gates — OTLP export still also requires `OTEL_EXPORTER_OTLP_ENDPOINT`, profiling
+still also requires `PYROSCOPE_SERVER_ADDRESS`. A flag set to `false` wins.
+
+**Recommended prod posture:** ship with everything on at a conservative
+`SamplingRatio` (e.g. `0.1`) **except** `Profiling:Enabled=false` (opt-in). The
+flags exist to shed load fast, not to run dark.
+
+**Restart semantics:** OTel pipelines and the Pyroscope native agent read config
+only at startup, so every flag takes effect on restart, not live. If live
+tracing-volume control becomes necessary, the one worth the complexity is a
+custom sampler reading `IOptionsMonitor` — everything else stays restart-gated.
+
+**Aggregate cost (measured 2026-05-30, all signals on vs all off, dev box,
+10k-VU browse):** ~8% throughput and 3–8× tail latency at high load, dominated
+by 100%-sampled tracing + continuous profiling in the Dev config. The
+per-signal A/B (rebase `experiment/observability-off`, k6 each flag
+independently) is the open follow-up — drop the per-flag numbers into this
+table as they land.
+
+---
+
+## 7. Cross-references
 
 External docs we link to rather than restate:
 
