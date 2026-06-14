@@ -322,12 +322,37 @@ only at startup, so every flag takes effect on restart, not live. If live
 tracing-volume control becomes necessary, the one worth the complexity is a
 custom sampler reading `IOptionsMonitor` — everything else stays restart-gated.
 
-**Aggregate cost (measured 2026-05-30, all signals on vs all off, dev box,
-10k-VU browse):** ~8% throughput and 3–8× tail latency at high load, dominated
-by 100%-sampled tracing + continuous profiling in the Dev config. The
-per-signal A/B (rebase `experiment/observability-off`, k6 each flag
-independently) is the open follow-up — drop the per-flag numbers into this
-table as they land.
+**Measured cost (per-signal A/B, 2026-06-14, v0.7.004, dev box, browse.js
+@10k VU, 60s ramp / 2m hold, one run per config):**
+
+| Config | Throughput | p95 |
+| --- | --- | --- |
+| All on (run #1, cold) | 8,035 rps | 55.7 ms |
+| Profiling off | 8,088 rps | 46.5 ms |
+| Tracing off | 8,108 rps | 50.0 ms |
+| Metrics off | 8,086 rps | 47.1 ms |
+| OtlpLogs off | 8,104 rps | 33.8 ms |
+| All off (master) | 8,129 rps | 34.1 ms |
+| **All on (run #7, warm — control)** | **8,131 rps** | **34.7 ms** |
+
+**Result: per-signal overhead is below this setup's noise floor.** Throughput
+spread across all seven runs is ~1% (browse.js has think-time, so the system
+isn't CPU-bound at 10k VU — rps is offered-load-shaped, not app-shaped). The
+p95 trend (55.7 → 34 ms) looked like an observability cost but is **box warmup**
+(JIT/GC/page-cache/PG-buffer settling): the all-on *control* re-run as run #7
+landed at 34.7 ms — identical to all-off (34.1 ms) and 21 ms below the all-on
+*cold* run #1. Run order, not the flags, drove the latency differences.
+
+This supersedes an earlier informal "~8% throughput / 3–8× latency" figure
+(2026-05-30, pre-refactor, all-signals, uncontrolled) — that did not hold up
+under a warmup-controlled measurement on v0.7.004.
+
+The flags' *value* (shed load fast, on demand) is unchanged; their steady-state
+*cost* is simply smaller than a think-time browse load at 10k VU can resolve. A
+precise per-signal number needs a CPU-bound harness: constant-arrival-rate
+(`constant-arrival-rate` executor, no think-time) at a fixed sub-saturation RPS,
+comparing p95 all-on vs each-off, **interleaved and repeated** so warmup
+averages out. Open follow-up — drop those numbers in when measured.
 
 ---
 
