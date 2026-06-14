@@ -175,4 +175,67 @@ public class JwtTokenServiceTests
         await Assert.That(() => new JwtTokenService(config, Substitute.For<IDistributedCache>()))
             .Throws<InvalidOperationException>();
     }
+
+    // --- Async + L1-memoized revocation (the per-request hot-path fix) ---
+
+    private static JwtTokenService CreateServiceWithCache(IDistributedCache cache)
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:SecretKey"] = TestSecret,
+                ["Jwt:Issuer"] = TestIssuer,
+                ["Jwt:Audience"] = TestAudience,
+                ["Jwt:ExpirationMinutes"] = "60"
+            })
+            .Build();
+        return new JwtTokenService(config, cache);
+    }
+
+    [Test]
+    public async Task IsRevokedAsync_KeyAbsent_ReturnsFalse()
+    {
+        var cache = Substitute.For<IDistributedCache>();
+        cache.GetAsync("jwt:revoked:jti1", Arg.Any<CancellationToken>()).Returns((byte[]?)null);
+        var service = CreateServiceWithCache(cache);
+
+        await Assert.That(await service.IsRevokedAsync("jti1")).IsFalse();
+    }
+
+    [Test]
+    public async Task IsRevokedAsync_KeyPresent_ReturnsTrue()
+    {
+        var cache = Substitute.For<IDistributedCache>();
+        cache.GetAsync("jwt:revoked:jti1", Arg.Any<CancellationToken>()).Returns([(byte)1]);
+        var service = CreateServiceWithCache(cache);
+
+        await Assert.That(await service.IsRevokedAsync("jti1")).IsTrue();
+    }
+
+    [Test]
+    public async Task IsRevokedAsync_MemoizesL1_SecondCallSkipsRedis()
+    {
+        var cache = Substitute.For<IDistributedCache>();
+        cache.GetAsync("jwt:revoked:jti1", Arg.Any<CancellationToken>()).Returns((byte[]?)null);
+        var service = CreateServiceWithCache(cache);
+
+        await service.IsRevokedAsync("jti1");
+        await service.IsRevokedAsync("jti1");
+
+        // Second call must be answered from L1 — only one L2 round-trip total.
+        await cache.Received(1).GetAsync("jwt:revoked:jti1", Arg.Any<CancellationToken>());
+    }
+
+    [Test]
+    public async Task RevokeSession_SeedsL1_IsSessionRevokedAsyncEnforcesWithoutRedis()
+    {
+        var cache = Substitute.For<IDistributedCache>();
+        var service = CreateServiceWithCache(cache);
+
+        service.RevokeSession("sid1");
+
+        // Issuing replica enforces immediately from the seeded L1 — no L2 read needed.
+        await Assert.That(await service.IsSessionRevokedAsync("sid1")).IsTrue();
+        await cache.DidNotReceive().GetAsync("jwt:session-revoked:sid1", Arg.Any<CancellationToken>());
+    }
 }
