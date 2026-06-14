@@ -44,9 +44,12 @@ public interface IDiscussionRepository
     Task<List<TopDiscussionByUser>> GetTopDiscussionsByUserAsync(UserId userId, int limit, CancellationToken ct = default);
 
     /// <summary>
-    /// Writes the last-reply preview fields directly. Call on post create with the known values.
+    /// Reply hot-path write: bumps LastActivityAt and the denormalized last-reply
+    /// preview columns in a SINGLE targeted UPDATE (no SELECT, no full-entity
+    /// rewrite). Call on reply create with the known author values. Counters
+    /// (PostCount etc.) stay in ICounterService.
     /// </summary>
-    Task SetLastPostAsync(DiscussionId discussionId,
+    Task RecordReplyAsync(DiscussionId discussionId, DateTime lastActivityAt,
         string? authorPublicId, string? displayName,
         string? avatarFile, string? thumbFile, string? excerpt,
         CancellationToken ct = default);

@@ -378,15 +378,22 @@ public class DiscussionRepositoryAdapter(
             .ToListAsync(ct);
     }
 
-    public async Task SetLastPostAsync(
-        DiscussionId discussionId,
+    public async Task RecordReplyAsync(
+        DiscussionId discussionId, DateTime lastActivityAt,
         string? authorPublicId, string? displayName,
         string? avatarFile, string? thumbFile, string? excerpt,
         CancellationToken ct = default)
     {
+        // One targeted UPDATE for the whole reply denormalization: activity bump +
+        // last-reply preview. Replaces a load + full-entity tracked UPDATE (which
+        // rewrote all ~30 columns just to set LastActivityAt) plus a second UPDATE
+        // for the preview columns — collapsing two round-trips and the SELECT into
+        // one statement on the hot Discussion row. PostCount/EngagementScore are
+        // incremented separately by ICounterService.
         await context.Discussions
             .Where(d => d.PublicId == discussionId.Value)
             .ExecuteUpdateAsync(s => s
+                .SetProperty(d => d.LastActivityAt, lastActivityAt)
                 .SetProperty(d => d.LastPostAuthorPublicId, authorPublicId)
                 .SetProperty(d => d.LastPostAuthorDisplayName, displayName)
                 .SetProperty(d => d.LastPostAuthorAvatarFileName, avatarFile)

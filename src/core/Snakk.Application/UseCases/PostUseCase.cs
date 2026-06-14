@@ -83,14 +83,26 @@ public class PostUseCase(
             }
         }
 
-        // Update discussion activity
-        discussion.UpdateActivity();
+        // Last-reply preview text — computed before the write so the discussion's
+        // activity bump + denormalized preview commit in one statement below.
+        var plainExcerpt = markupParser.ToPlainText(post.Content);
+        if (plainExcerpt.Length > 150) plainExcerpt = plainExcerpt[..150];
+        var lastActivityAt = DateTime.UtcNow;
 
-        // Persist atomically — avoids an orphan post if the activity update on discussion fails
+        // Persist atomically — avoids an orphan post if the discussion write fails.
+        // RecordReplyAsync is a single targeted UPDATE (LastActivityAt + last-reply
+        // preview), replacing the former load + full-entity update and a separate
+        // preview write. Counters (PostCount etc.) follow outside the transaction.
         await unitOfWork.ExecuteInTransactionAsync(async () =>
         {
             await postRepository.AddAsync(post);
-            await discussionRepository.UpdateAsync(discussion);
+            await discussionRepository.RecordReplyAsync(
+                discussion.PublicId, lastActivityAt,
+                user.PublicId.Value,
+                user.DisplayName,
+                user.AvatarFileName,
+                user.AvatarThumbnailFileName,
+                plainExcerpt);
         });
 
         // Publish any draft media referenced in the post (only the uploader's own drafts)
@@ -107,18 +119,6 @@ public class PostUseCase(
 
         // Send realtime notification
         await realtimeNotifier.NotifyPostCreatedAsync(post, user, discussion);
-        var plainExcerpt = markupParser.ToPlainText(post.Content);
-        if (plainExcerpt.Length > 150) plainExcerpt = plainExcerpt[..150];
-
-        // Update denormalized last-reply preview on Discussion
-        if (!post.IsFirstPost)
-            await discussionRepository.SetLastPostAsync(
-                discussion.PublicId,
-                user.PublicId.Value,
-                user.DisplayName,
-                user.AvatarFileName,
-                user.AvatarThumbnailFileName,
-                plainExcerpt);
 
         var replierAvatarUrl = AvatarHelper.GetAvatarMicroUrl(
             user.PublicId.Value, AvatarEntityType.User,
