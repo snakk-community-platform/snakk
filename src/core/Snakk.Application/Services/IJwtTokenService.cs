@@ -31,6 +31,15 @@ public interface IJwtTokenService
     bool IsRevoked(string jti);
 
     /// <summary>
+    /// Async, L1-memoized jti-revocation check for the per-request hot path
+    /// (JwtBearerEvents.OnTokenValidated). Avoids the synchronous Redis round-trip
+    /// of <see cref="IsRevoked"/> — which blocks a threadpool thread per request and
+    /// starves the pool under load — and a short in-memory memo collapses the
+    /// per-request L2 reads to roughly one per jti per memo window.
+    /// </summary>
+    Task<bool> IsRevokedAsync(string jti, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Marks a session as revoked. Any access token carrying this session ID is rejected until the cache entry expires.
     /// </summary>
     void RevokeSession(string sessionPublicId);
@@ -42,6 +51,12 @@ public interface IJwtTokenService
     /// was written but no validation path checked it.
     /// </summary>
     bool IsSessionRevoked(string sessionPublicId);
+
+    /// <summary>
+    /// Async, L1-memoized session-revocation check for the per-request hot path —
+    /// see <see cref="IsRevokedAsync"/> for the rationale.
+    /// </summary>
+    Task<bool> IsSessionRevokedAsync(string sessionPublicId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Issues a short-lived (5 min) token that proves the bearer has already cleared
