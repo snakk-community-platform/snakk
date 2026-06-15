@@ -17,6 +17,7 @@ public class UserProfileUseCaseTests
     private readonly IPostRepository _postRepository = Substitute.For<IPostRepository>();
     private readonly IUserAchievementRepository _userAchievementRepository = Substitute.For<IUserAchievementRepository>();
     private readonly IUserAchievementProgressRepository _userAchievementProgressRepository = Substitute.For<IUserAchievementProgressRepository>();
+    private readonly IManageScopeDataService _manageScopeData = Substitute.For<IManageScopeDataService>();
     private UserProfileUseCase _useCase = null!;
 
     [Before(Test)]
@@ -40,7 +41,8 @@ public class UserProfileUseCaseTests
             _achievementRepository,
             _discussionRepository,
             _postRepository,
-            achievementService);
+            achievementService,
+            _manageScopeData);
     }
 
     #region GetUserProfileAsync Tests
