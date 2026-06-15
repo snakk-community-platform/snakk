@@ -17,12 +17,6 @@ else
 {
     @foreach (var post in Model.Items)
     {
-        <div class="sn-reaction-strip">
-            <span class="sn-reaction-emoji">@post.ReactionEmoji</span>
-            <span class="sn-reaction-time">
-                <time data-timestamp="@post.ReactedAt.ToString("O")">@DisplayHelper.FormatRelativeTime(post.ReactedAt)</time>
-            </span>
-        </div>
         @await Html.PartialAsync("Shared/_PostCard", post.ToPostListItem())
     }
 

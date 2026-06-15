@@ -606,7 +606,8 @@ public class ModerationGrpcService(
         {
             UserPublicId = d.UserPublicId,
             DisplayName = d.DisplayName,
-            Role = d.Role
+            Role = d.Role,
+            Slug = d.Slug
         });
 
     // ==================== Helpers ====================

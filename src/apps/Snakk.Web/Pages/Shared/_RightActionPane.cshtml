@@ -4,7 +4,7 @@
 @using System.Security.Claims
 @inject IOptions<OAuthProvidersOptions> OAuthOptions
 @{
-    var newDiscussionUrl = ViewData["RightPane.NewDiscussionUrl"] as string ?? "/new";
+    var newDiscussionUrl = ViewData["RightPane.NewDiscussionUrl"] as string ?? "/create";
     var actions = (ViewData["RightPane.Actions"] as string[]) ?? Array.Empty<string>();
     var manageUrl = ViewData["RightPane.ManageUrl"] as string;
     var subscribeAction = ViewData["RightPane.SubscribeAction"] as string ?? "subscribe";
@@ -23,7 +23,7 @@
     var isAuth = User.Identity?.IsAuthenticated == true;
     var canManage = isAuth && !string.IsNullOrEmpty(User.FindFirst(ClaimTypes.Role)?.Value);
     var hasActions = actions.Length > 0;
-    var isNewPage = Context.Request.Path.StartsWithSegments("/new");
+    var isNewPage = Context.Request.Path.StartsWithSegments("/create");
 
     var oauth       = OAuthOptions.Value;
     var returnUrl   = Uri.EscapeDataString(ViewContext.HttpContext.Request.Path.Value ?? "/");
@@ -42,7 +42,7 @@
     <div class="sn-right-action-box">
     @if (!isNewPage)
     {
-    <a href="@newDiscussionUrl" id="rp-new-discussion" class="btn btn-primary btn-sm w-full justify-center">
+    <a href="@newDiscussionUrl" id="rp-new-discussion" class="btn btn-primary btn-sm w-full justify-center shadow-layered">
         <span class="icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") w-3.5 h-3.5" aria-hidden="true"></span>
         @T.Actions.NewDiscussion
     </a>
@@ -107,7 +107,7 @@
             }
             @if (actions.Contains("follows") && isAuth)
             {
-                <a href="/following/spaces" class="btn btn-outline btn-sm">
+                <a href="/my/follows/spaces" class="btn btn-outline btn-sm">
                     <span class="icon icon-users-group w-3.5 h-3.5" aria-hidden="true"></span>
                     <span>@T.Actions.ManageFollows</span>
                 </a>
@@ -130,6 +130,16 @@
                 <button type="button" id="history-clear-btn" class="btn btn-outline btn-sm">
                     <span class="icon icon-trash w-3.5 h-3.5" aria-hidden="true"></span>
                     <span>@T.Actions.ClearHistory</span>
+                </button>
+            }
+            @if (actions.Contains("mark-all-read"))
+            {
+                <button type="button" id="unread-mark-read-btn"
+                        hx-post="/bff/me/mark-all-read"
+                        hx-swap="none"
+                        class="btn btn-outline btn-sm">
+                    <span class="icon icon-check w-3.5 h-3.5" aria-hidden="true"></span>
+                    <span>@T.Pages.UnreadMarkAllRead</span>
                 </button>
             }
     }

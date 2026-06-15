@@ -29,10 +29,11 @@
         else
         {
             <div id="discussions-container" class="h-feed">
+                @{ var trendIndex = 0; }
                 @foreach (var discussion in Model.TrendingDiscussions.Items)
                 {
                     @await Html.PartialAsync("Shared/_DiscussionCard",
-                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community))
+                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community, Rank: trendIndex++ + 1))
                 }
 
                 @if (Model.TrendingDiscussions.HasMoreItems)
@@ -121,7 +122,7 @@
                 @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
                 {
                     <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                       class="sn-card-tag sn-card-tag--space"
+                       class="sn-card-tag sn-card-tag--space shadow-layered"
                        style="--space-grad: @SpaceGradient(space.PublicId)">@space.Name</a>
                 }
             </div>
@@ -139,13 +140,14 @@
         </div>
         @if (Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
         {
-            <div class="sn-trending-list">
+            <div class="grid grid-cols-8 gap-1">
                 @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
                 {
-                    <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor">
-                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                        <span class="sn-trending-contributor-name">@c.DisplayName</span>
-                        <span class="sn-card-tag sn-card-tag-light sn-tag-sm">@c.PostCountToday</span>
+                    <a href="@SnakkUrlHelper.UserProfile(c.Slug)"
+                       data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
+                        <img src="@c.AvatarMicroUrl" alt="@c.DisplayName"
+                             class="rounded-full w-full aspect-square object-cover shadow-layered"
+                             loading="lazy" decoding="async" />
                     </a>
                 }
             </div>

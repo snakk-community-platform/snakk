@@ -35,7 +35,8 @@ public record SpaceMetaDto(
     int DiscussionCount,
     int ReplyCount,
     SpaceLatestDiscussionDto? LatestDiscussion,
-    bool Require2FA);
+    bool Require2FA,
+    bool AllowAnonymousReading);
 
 public record SpaceLatestDiscussionDto(
     string PublicId,

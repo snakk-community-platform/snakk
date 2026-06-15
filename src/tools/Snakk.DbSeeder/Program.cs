@@ -44,7 +44,7 @@ var displayConnectionString = connectionString.Contains("Password=")
 Console.WriteLine($"Connection String: {displayConnectionString}\n");
 
 builder.Services.AddDbContext<SnakkDbContext>(options =>
-    options.UseNpgsql(connectionString));
+    options.UseNpgsql(connectionString, npg => npg.MaxBatchSize(1000)));
 
 builder.Services.AddDbContext<DataProtectionDbContext>(opts =>
     opts.UseNpgsql(connectionString));

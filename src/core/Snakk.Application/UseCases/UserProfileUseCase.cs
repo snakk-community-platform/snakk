@@ -19,7 +19,9 @@ public record UserProfileDto(
     IReadOnlyList<UserAchievementSummary> Achievements,
     IReadOnlyList<TopDiscussionByUser> TopDiscussions,
     IReadOnlyList<TopSpaceForUser> TopSpaces,
-    string? AvatarThumbnailFileName = null);
+    string? AvatarThumbnailFileName = null,
+    string? Slug = null,
+    bool IsGlobalAdmin = false);
 
 public record UserAchievementSummary(
     string Slug,
@@ -38,7 +40,8 @@ public class UserProfileUseCase(
     IAchievementRepository achievementRepository,
     IDiscussionRepository discussionRepository,
     IPostRepository postRepository,
-    AchievementService achievementService) : UseCaseBase
+    AchievementService achievementService,
+    IManageScopeDataService manageScopeData) : UseCaseBase
 {
     public async Task<UserProfileDto?> GetUserProfileAsync(string publicId)
     {
@@ -77,6 +80,8 @@ public class UserProfileUseCase(
             })
             .ToList();
 
+        var adminIds = await manageScopeData.GetGlobalAdminPublicIdsAsync();
+
         return new UserProfileDto(
             user.PublicId,
             user.DisplayName ?? "",
@@ -92,6 +97,59 @@ public class UserProfileUseCase(
             achievements,
             topDiscussions,
             topSpaces,
-            user.AvatarThumbnailFileName);
+            user.AvatarThumbnailFileName,
+            user.Slug,
+            adminIds.Contains(user.PublicId));
+    }
+
+    public async Task<UserProfileDto?> GetUserBySlugAsync(string slug)
+    {
+        var user = await userRepository.GetProfileSlimBySlugAsync(slug);
+        if (user is null) return null;
+
+        var userId = UserId.From(user.PublicId);
+        var followingCount = await followRepository.GetFollowingCountByUserAsync(userId);
+        var reactionsReceived = await reactionRepository.GetTotalReactionsReceivedByUserAsync(userId);
+        var topDiscussions = await discussionRepository.GetTopDiscussionsByUserAsync(userId, 5);
+        var topSpaces = await postRepository.GetTopSpacesForUserAsync(userId, 5);
+
+        var userAchievements = (await achievementService.GetDisplayedUserAchievementsAsync(userId)).ToList();
+        var achievementsById = userAchievements.Count > 0
+            ? (await achievementRepository.GetByIdsAsync(userAchievements.Select(ua => ua.AchievementId)))
+                .ToDictionary(a => a.PublicId)
+            : new Dictionary<AchievementId, Domain.Entities.Achievement>();
+
+        var achievements = userAchievements
+            .Where(ua => achievementsById.ContainsKey(ua.AchievementId))
+            .OrderBy(ua => ua.DisplayOrder)
+            .Select(ua =>
+            {
+                var a = achievementsById[ua.AchievementId];
+                return new UserAchievementSummary(
+                    a.Slug, a.Name, a.Description, a.IconUrl,
+                    a.Category.ToString(), a.Tier.ToString(), a.Points, ua.EarnedAt);
+            })
+            .ToList();
+
+        var adminIds = await manageScopeData.GetGlobalAdminPublicIdsAsync();
+
+        return new UserProfileDto(
+            user.PublicId,
+            user.DisplayName ?? "",
+            user.AvatarFileName,
+            user.CreatedAt,
+            user.LastSeenAt,
+            user.DiscussionCount,
+            user.FollowerCount,
+            followingCount,
+            user.ReplyCount,
+            reactionsReceived,
+            user.Bio,
+            achievements,
+            topDiscussions,
+            topSpaces,
+            user.AvatarThumbnailFileName,
+            user.Slug,
+            adminIds.Contains(user.PublicId));
     }
 }

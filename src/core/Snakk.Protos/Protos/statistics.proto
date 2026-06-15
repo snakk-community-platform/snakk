@@ -158,6 +158,7 @@ message TopContributorInfo {
   int32 post_count_today = 4;
   optional string avatar_thumbnail_url = 5;
   optional string avatar_micro_url = 6;
+  optional string slug = 7;
 }
 
 message TopContributorsList {
@@ -186,6 +187,7 @@ message UserStats {
   int32 following_count = 7;
   optional string bio = 8;
   optional string avatar_thumbnail_url = 9;
+  bool is_global_admin = 10;
 }
 
 message LatestSpaceInfo {
@@ -208,6 +210,7 @@ message LatestContributorInfo {
   string last_post_at = 4;
   optional string avatar_thumbnail_url = 5;
   optional string avatar_micro_url = 6;
+  optional string slug = 7;
 }
 
 message LatestContributorsList {

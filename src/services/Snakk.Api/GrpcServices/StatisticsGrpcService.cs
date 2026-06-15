@@ -4,6 +4,8 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Shared.Helpers;
 using Snakk.Api.Services;
 using Snakk.Application.UseCases;
+using Snakk.Application.Services;
+using Snakk.Domain.Repositories;
 using Snakk.Protos;
 using Snakk.Protos.Statistics;
 using Snakk.Application.Repositories;
@@ -16,15 +18,13 @@ public class StatisticsGrpcService(
     StatisticsUseCase statisticsUseCase,
     IActivitySnapshotRepository activitySnapshotRepository,
     IDiscussionViewRepository discussionViewRepository,
-    IConfiguration configuration,
     ICurrentUserService currentUser,
     HybridCache cache,
-    IStatsRollupRepository rollupRepository) : StatisticsService.StatisticsServiceBase
+    IStatsRollupRepository rollupRepository,
+    IUserRepository userRepository,
+    IVolumeWindowService volumeWindowService) : StatisticsService.StatisticsServiceBase
 {
     private static readonly TimeSpan RollupFreshnessCap = TimeSpan.FromMinutes(10);
-
-    private DateTime GetTrendingSince() =>
-        DateTime.UtcNow.AddHours(-configuration.GetValue("Trending:LookbackHours", 24));
 
     // -------------------------------------------------------------------------
     // Cache options
@@ -104,7 +104,7 @@ public class StatisticsGrpcService(
         GetTopActiveDiscussionsTodayRequest request, string userId, CancellationToken ct)
     {
         var result = await statisticsUseCase.GetTopActiveDiscussionsTodayAsync(
-            GetTrendingSince(),
+            DateTime.UtcNow - await volumeWindowService.EstimateDiscussionWindowAsync(ct),
             request.HasHubId ? request.HubId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.HasCommunityId ? request.CommunityId : null,
@@ -115,9 +115,29 @@ public class StatisticsGrpcService(
         if (!result.IsSuccess || result.Value is null)
             return new TopActiveDiscussionsList();
 
+        var authorIds = result.Value.Items
+            .Select(d => d.AuthorPublicId)
+            .OfType<string>()
+            .Distinct()
+            .ToList();
+        var authorSlugs = await userRepository.GetSlugsByPublicIdsAsync(authorIds, ct);
+
         var response = new TopActiveDiscussionsList();
         foreach (var d in result.Value.Items)
         {
+            // Coalesce: GDPR-anonymized authors have null ids; proto setters throw on null
+            var authorPid = d.AuthorPublicId ?? "";
+            var authorRef = new AuthorRef
+            {
+                PublicId = authorPid,
+                DisplayName = d.AuthorDisplayName ?? "",
+                AvatarUrl = AvatarHelper.GetAvatarUrl(authorPid, AvatarEntityType.User, 0, d.AuthorAvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(authorPid, AvatarEntityType.User, 0, d.AuthorAvatarFileName, d.AuthorAvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(authorPid, AvatarEntityType.User, 0, d.AuthorAvatarFileName)
+            };
+            if (authorPid.Length > 0 && authorSlugs.TryGetValue(authorPid, out var authorSlug))
+                authorRef.Slug = authorSlug;
+
             response.Items.Add(new TopActiveDiscussionInfo
             {
                 PublicId = d.DiscussionId,
@@ -127,15 +147,7 @@ public class StatisticsGrpcService(
                 Space = new EntityRef { PublicId = d.SpacePublicId, Slug = d.SpaceSlug, Name = d.SpaceName },
                 Hub = new EntityRef { PublicId = d.HubPublicId, Slug = d.HubSlug, Name = d.HubName },
                 CommunitySlug = d.CommunitySlug,
-                Author = new AuthorRef
-                {
-                    // Coalesce: GDPR-anonymized authors have null ids; proto setters throw on null
-                    PublicId = d.AuthorPublicId ?? "",
-                    DisplayName = d.AuthorDisplayName ?? "",
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId ?? "", AvatarEntityType.User, 0, d.AuthorAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.AuthorPublicId ?? "", AvatarEntityType.User, 0, d.AuthorAvatarFileName, d.AuthorAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.AuthorPublicId ?? "", AvatarEntityType.User, 0, d.AuthorAvatarFileName)
-                }
+                Author = authorRef
             });
         }
         return response;
@@ -169,7 +181,7 @@ public class StatisticsGrpcService(
         }
         // Scoped or stale: live aggregation
         var spaces = await statisticsUseCase.GetTopActiveSpacesTodayAsync(
-            GetTrendingSince(),
+            DateTime.UtcNow - await volumeWindowService.EstimatePostWindowAsync(ct),
             request.HasHubId ? request.HubId : null,
             request.HasCommunityId ? request.CommunityId : null,
             request.Limit);
@@ -204,7 +216,7 @@ public class StatisticsGrpcService(
         }
         // Scoped or stale: live aggregation
         var result = await statisticsUseCase.GetTopContributorsTodayAsync(
-            GetTrendingSince(),
+            DateTime.UtcNow - await volumeWindowService.EstimatePostWindowAsync(ct),
             request.HasHubId ? request.HubId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.HasCommunityId ? request.CommunityId : null,
@@ -255,7 +267,7 @@ public class StatisticsGrpcService(
             }
         }
         // Scoped or stale: live aggregation
-        var since = DateTime.UtcNow.AddDays(-configuration.GetValue("Trending:SpacesLookbackDays", 7));
+        var since = DateTime.UtcNow - await volumeWindowService.EstimatePostWindowAsync(ct);
         var spaces = await statisticsUseCase.GetTrendingSpacesAsync(
             since,
             request.HasHubId ? request.HubId : null,
@@ -291,7 +303,7 @@ public class StatisticsGrpcService(
             }
         }
         // Scoped or stale: live aggregation
-        var since = DateTime.UtcNow.AddDays(-configuration.GetValue("Trending:ContributorsLookbackDays", 7));
+        var since = DateTime.UtcNow - await volumeWindowService.EstimatePostWindowAsync(ct);
         var result = await statisticsUseCase.GetTrendingContributorsAsync(
             since,
             request.HasHubId ? request.HubId : null,
@@ -460,7 +472,7 @@ public class StatisticsGrpcService(
                 foreach (var row in rows.Take(request.Limit))
                 {
                     var c = JsonSerializer.Deserialize<LatestContributorResult>(row.PayloadJson)!;
-                    response.Items.Add(new LatestContributorInfo
+                    var item = new LatestContributorInfo
                     {
                         PublicId           = c.UserId,
                         DisplayName        = c.DisplayName,
@@ -468,7 +480,9 @@ public class StatisticsGrpcService(
                         AvatarUrl          = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName),
                         AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarThumbnailFileName),
                         AvatarMicroUrl     = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarMicroFileName)
-                    });
+                    };
+                    if (c.Slug is not null) item.Slug = c.Slug;
+                    response.Items.Add(item);
                 }
                 return response;
             }
@@ -484,7 +498,7 @@ public class StatisticsGrpcService(
         var fallbackResponse = new LatestContributorsList();
         foreach (var c in result.Value.Items)
         {
-            fallbackResponse.Items.Add(new LatestContributorInfo
+            var latestItem = new LatestContributorInfo
             {
                 PublicId           = c.UserId,
                 DisplayName        = c.DisplayName,
@@ -492,7 +506,9 @@ public class StatisticsGrpcService(
                 AvatarUrl          = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName),
                 AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarThumbnailFileName),
                 AvatarMicroUrl     = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarMicroFileName)
-            });
+            };
+            if (c.Slug is not null) latestItem.Slug = c.Slug;
+            fallbackResponse.Items.Add(latestItem);
         }
         return fallbackResponse;
     }
@@ -524,7 +540,7 @@ public class StatisticsGrpcService(
         var response = new TopContributorsList();
         foreach (var c in contributors)
         {
-            response.Items.Add(new TopContributorInfo
+            var item = new TopContributorInfo
             {
                 PublicId           = c.UserId,
                 DisplayName        = c.DisplayName,
@@ -532,7 +548,9 @@ public class StatisticsGrpcService(
                 AvatarUrl          = AvatarHelper.GetAvatarUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName),
                 AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarThumbnailFileName),
                 AvatarMicroUrl     = AvatarHelper.GetAvatarMicroUrl(c.UserId, AvatarEntityType.User, c.AvatarRevision, c.AvatarFileName, c.AvatarMicroFileName)
-            });
+            };
+            if (c.Slug is not null) item.Slug = c.Slug;
+            response.Items.Add(item);
         }
         return response;
     }
@@ -586,7 +604,8 @@ public class StatisticsGrpcService(
             DiscussionCount = stats.DiscussionCount,
             ReplyCount      = stats.ReplyCount,
             FollowerCount   = stats.FollowerCount,
-            AvatarUrl       = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.User, 0, stats.AvatarFileName)
+            AvatarUrl       = AvatarHelper.GetAvatarUrl(stats.PublicId, AvatarEntityType.User, 0, stats.AvatarFileName),
+            IsGlobalAdmin   = stats.IsGlobalAdmin
         };
         if (stats.Bio != null) userStats.Bio = stats.Bio;
         if (!string.IsNullOrEmpty(stats.AvatarThumbnailFileName))

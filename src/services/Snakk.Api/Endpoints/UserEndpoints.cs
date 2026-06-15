@@ -2,6 +2,8 @@ namespace Snakk.Api.Endpoints;
 
 using Snakk.Application.DTOs.Responses;
 using Snakk.Application.DTOs.Stats;
+using Snakk.Application.Repositories;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Repositories;
 using Snakk.Shared.Helpers;
@@ -32,6 +34,10 @@ public static class UserEndpoints
         group.MapGet("/{publicId}/stats", GetUserStatsAsync)
             .WithName("GetUserStats")
             .Produces<UserStatsResponse>();
+
+        group.MapGet("/{publicId}/mod-roles", GetUserModRolesAsync)
+            .WithName("GetUserModRoles")
+            .Produces<UserModRolesResponse>();
     }
 
     private static async Task<IResult> GetUserProfileAsync(
@@ -132,5 +138,50 @@ public static class UserEndpoints
             FollowerCount = stats.FollowerCount,
             FollowingCount = 0 // TODO: Add to domain stats
         });
+    }
+
+    private static async Task<IResult> GetUserModRolesAsync(
+        string publicId,
+        IModerationRepository moderationRepo,
+        ISpaceDataService spaceData,
+        IHubDataService hubData,
+        ICommunityDataService communityData,
+        CancellationToken ct)
+    {
+        var roles = await moderationRepo.GetCachedModRolesForUserAsync(publicId, ct);
+
+        var items = new List<UserModRoleResponse>();
+        foreach (var role in roles)
+        {
+            string? accessLevel = null;
+            if (role.EntityType == "Space" && role.EntityId is not null)
+            {
+                var meta = await spaceData.GetSpaceMetaAsync(role.EntityId, ct);
+                if (meta is not null)
+                    accessLevel = meta.IsRestricted ? "members"
+                        : !meta.AllowAnonymousReading ? "registered"
+                        : "public";
+            }
+            else if (role.EntityType == "Hub" && role.EntityId is not null)
+            {
+                var meta = await hubData.GetHubMetaAsync(role.EntityId, ct);
+                if (meta is not null)
+                    accessLevel = meta.IsRestricted ? "members"
+                        : !meta.AllowAnonymousReading ? "registered"
+                        : "public";
+            }
+            else if (role.EntityType == "Community" && role.EntityId is not null)
+            {
+                var meta = await communityData.GetCommunityMetaAsync(role.EntityId, ct);
+                if (meta is not null)
+                    accessLevel = meta.IsRestricted ? "members"
+                        : meta.VisibilityId == 2 ? "unlisted"
+                        : "public";
+            }
+
+            items.Add(new UserModRoleResponse(role.Role, role.EntityType, role.EntityId, role.EntityName, accessLevel));
+        }
+
+        return TypedResults.Ok(new UserModRolesResponse(items));
     }
 }

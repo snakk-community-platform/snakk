@@ -12,7 +12,8 @@ public record AuthorRef(
     bool IsDeleted = false,
     DateTime? JoinedAt = null,
     int DiscussionCount = 0,
-    int ReplyCount = 0);
+    int ReplyCount = 0,
+    string? Slug = null);
 
 /// <summary>Short reference to a reply-to post.</summary>
 public record ReplyToRef(string AuthorName, string ContentSnippet);

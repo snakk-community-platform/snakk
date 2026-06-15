@@ -2,8 +2,10 @@
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityContext
+@inject IConfiguration Configuration
 @{
     var isAuthenticated = User.Identity?.IsAuthenticated == true;
+    var isMessagingEnabled = Configuration.GetValue<bool>("Features:PrivateMessagingEnabled");
     var path = ViewContext.HttpContext.Request.Path.Value ?? "";
 
     string Active(string href, bool prefix = false)
@@ -23,7 +25,7 @@
     <a href="@communityHref" class="sn-tabbar-item@(Active(communityHref, prefix: true))" aria-label="@communityLabel">
         <span class="icon icon-users-group" aria-hidden="true"></span>
     </a>
-    <a href="/new" class="sn-tabbar-item sn-tabbar-item--primary@(Active("/new", prefix: true))" aria-label="@T.MobileNav.Post">
+    <a href="/create" class="sn-tabbar-item sn-tabbar-item--primary@(Active("/create", prefix: true))" aria-label="@T.MobileNav.Post">
         <span class="sn-tabbar-item-icon">
             <span class="icon icon-plus" aria-hidden="true"></span>
         </span>
@@ -31,6 +33,7 @@
     @if (isAuthenticated)
     {
         var publicId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        var slug = User.FindFirst("Slug")?.Value;
         var displayName = User.FindFirst(ClaimTypes.Name)?.Value ?? "";
         var emailVerified = User.FindFirst("EmailVerified")?.Value;
         var role = User.FindFirst(ClaimTypes.Role)?.Value;
@@ -40,6 +43,8 @@
         var avatarThumbnailFileName = User.FindFirst("AvatarThumbnailFileName")?.Value;
         var avatarUrl = SnakkUrlHelper.UserAvatarThumbnail(publicId, avatarFileName: avatarFileName, avatarThumbnailFileName: avatarThumbnailFileName);
 
+        @if (isMessagingEnabled)
+        {
         <!-- DM (Messages) tab -->
         <a href="/messages" class="sn-tabbar-item@(Active("/messages", prefix: true))" aria-label="@T.AuthNav.Messages" hx-boost="false">
             <span class="relative inline-flex">
@@ -47,6 +52,7 @@
                 <span class="dm-badge hidden">0</span>
             </span>
         </a>
+        }
         <!-- Notification bell -->
         <div class="dropdown dropdown-top dropdown-end flex-1 flex">
             <label tabindex="0" class="sn-tabbar-item flex-1" aria-label="@T.AuthNav.Notifications">
@@ -68,14 +74,14 @@
 
         <!-- User menu -->
         <div class="dropdown dropdown-top dropdown-end flex-1 flex">
-            <label tabindex="0" class="sn-tabbar-item flex-1@(Active("/me", prefix: true))" aria-label="@T.MobileNav.Me">
+            <label tabindex="0" class="sn-tabbar-item flex-1@(Active("/my/contributions", prefix: true))" aria-label="@T.MobileNav.Me">
                 <div class="avatar avatar-sm">
                     <img src="@avatarUrl" alt="@displayName" loading="lazy" />
                 </div>
             </label>
             <ul tabindex="0" class="mb-2 z-1 p-2 shadow-lg menu menu-sm dropdown-content bg-base-100 border border-subtle rounded-lg w-52">
                 <li>
-                    <a href="@SnakkUrlHelper.UserProfile(publicId)" class="sn-user-menu-card"
+                    <a href="@SnakkUrlHelper.UserProfile(slug)" class="sn-user-menu-card"
                        style="--user-grad: @UserGradient(publicId)">
                         <img src="@avatarUrl" alt="@displayName" class="sn-user-menu-card-avatar" loading="lazy" />
                         <span class="sn-user-menu-card-name">@displayName</span>
@@ -86,7 +92,7 @@
                     </a>
                 </li>
                 <li>
-                    <a href="/settings">
+                    <a href="/my/settings">
                         <span class="icon icon-cog h-4 w-4" aria-hidden="true"></span>
                         @T.Nav.Settings
                     </a>

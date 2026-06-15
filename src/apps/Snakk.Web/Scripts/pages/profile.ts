@@ -48,6 +48,7 @@ interface ActivityDataPoint {
         async function loadUserStats(): Promise<void> {
             try {
                 const response = await fetch(`/bff/users/${userId}/stats`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
                 const followerStat = document.getElementById('stat-followers');
@@ -75,6 +76,7 @@ interface ActivityDataPoint {
 
             try {
                 const response = await fetch(`/bff/search/posts?authorPublicId=${userId}&pageSize=${limit}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
                 if (!data.items || data.items.length === 0) {
@@ -130,6 +132,7 @@ interface ActivityDataPoint {
 
             try {
                 const response = await fetch(`/bff/users/${userId}/activity-history?days=${days}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
 
                 const data: ActivityDataPoint[] = (result.activities || []).map((a: any) => ({
@@ -247,6 +250,7 @@ interface ActivityDataPoint {
 
             try {
                 const response = await fetch('/bff/me/display-name-history', { credentials: 'include' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
                 if (!data.entries || data.entries.length === 0) return;
@@ -276,6 +280,7 @@ interface ActivityDataPoint {
             try {
                 // Check if user is authenticated and viewing someone else's profile
                 const authResponse = await fetch(`/bff/auth/status`, { credentials: 'include' });
+                if (!authResponse.ok) throw new Error(`HTTP ${authResponse.status}`);
                 const authData = await authResponse.json();
 
                 if (!authData.isAuthenticated) {
@@ -286,7 +291,7 @@ interface ActivityDataPoint {
                 if (authData.publicId === userId) {
                     // Viewing own profile
                     container.innerHTML = `
-                        <a href="/settings" class="btn btn-outline btn-sm">
+                        <a href="/my/settings" class="btn btn-outline btn-sm">
                             <span class="icon icon-pencil h-4 w-4" aria-hidden="true"></span>
                             Edit Profile
                         </a>
@@ -299,6 +304,7 @@ interface ActivityDataPoint {
                 const followResponse = await fetch(`/bff/users/${userId}/follow-status?currentUserId=${authData.publicId}`, {
                     credentials: 'include'
                 });
+                if (!followResponse.ok) throw new Error(`HTTP ${followResponse.status}`);
                 const followData = await followResponse.json();
 
                 container.innerHTML = `

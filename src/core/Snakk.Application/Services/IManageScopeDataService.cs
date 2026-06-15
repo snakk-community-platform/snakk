@@ -40,6 +40,17 @@ public interface IManageScopeDataService
 
     Task<bool> IsGlobalAdminAsync(string userPublicId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Returns the cached set of all active global admin public IDs.
+    /// O(1) Contains() check at call site — no per-user DB round-trip.
+    /// </summary>
+    Task<IReadOnlySet<string>> GetGlobalAdminPublicIdsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Invalidates the global admin ID cache. Call after AssignRole / RevokeRole for GlobalAdmin.
+    /// </summary>
+    Task InvalidateGlobalAdminCacheAsync(CancellationToken ct = default);
+
     // ===== Parent hierarchy for inherited bans/team/report-reasons =====
 
     Task<HubParentDto?> GetHubParentAsync(string hubPublicId, CancellationToken ct = default);

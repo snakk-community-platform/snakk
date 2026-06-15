@@ -65,7 +65,8 @@ public class AuthGrpcService(
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion,
-            twoFactorEnabled: user.TwoFactorEnabled);
+            twoFactorEnabled: user.TwoFactorEnabled,
+            slug: user.Slug);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 
@@ -146,7 +147,8 @@ public class AuthGrpcService(
             user.AvatarFileName,
             authVersion: user.AuthVersion,
             sessionId: sessionPublicId,
-            twoFactorEnabled: user.TwoFactorEnabled);
+            twoFactorEnabled: user.TwoFactorEnabled,
+            slug: user.Slug);
 
         logger.LogInformation("Login succeeded for {UserId} from {Ip}", user.PublicId.Value, request.IpAddress);
 
@@ -199,7 +201,8 @@ public class AuthGrpcService(
             user.AvatarFileName,
             authVersion: user.AuthVersion,
             sessionId: newSessionPublicId,
-            twoFactorEnabled: user.TwoFactorEnabled);
+            twoFactorEnabled: user.TwoFactorEnabled,
+            slug: user.Slug);
 
         var needsConsent = !await consentService.HasAllRequiredConsentsAsync(user.PublicId.Value);
 
@@ -370,7 +373,8 @@ public class AuthGrpcService(
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion,
-            twoFactorEnabled: user.TwoFactorEnabled);
+            twoFactorEnabled: user.TwoFactorEnabled,
+            slug: user.Slug);
 
         return new SetEmailResponse { Token = newToken };
     }
@@ -470,7 +474,8 @@ public class AuthGrpcService(
             roles.FirstOrDefault(),
             user.AvatarFileName,
             authVersion: user.AuthVersion,
-            twoFactorEnabled: user.TwoFactorEnabled);
+            twoFactorEnabled: user.TwoFactorEnabled,
+            slug: user.Slug);
 
         var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(user.PublicId);
 

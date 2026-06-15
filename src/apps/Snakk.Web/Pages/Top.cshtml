@@ -16,13 +16,14 @@
 <!-- Center Column -->
 <div class="sn-center">
     <div class="sn-center-inner">
+        <div class="sn-section-header">
         <h2 class="sn-section-title">
             <span class="icon icon-star" aria-hidden="true"></span>
             @T.Pages.TopHeading
         </h2>
 
         <!-- Period tabs -->
-        <div class="sn-tabs mb-4">
+        <div class="sn-tabs">
             @{
                 var tabs = new[]
                 {
@@ -38,6 +39,8 @@
                 <a href="/top/@period" class="sn-tab @(Model.Period == period ? "active" : "")">@label</a>
             }
         </div>
+        </div>
+        <p class="sn-section-description">@T.Pages.TopDescription</p>
 
         @if (Model.TopDiscussions?.Items == null || !Model.TopDiscussions.Items.Any())
         {
@@ -46,10 +49,11 @@
         else
         {
             <div id="discussions-container" class="h-feed">
+                @{ var topIndex = 0; }
                 @foreach (var discussion in Model.TopDiscussions.Items)
                 {
                     @await Html.PartialAsync("Shared/_DiscussionCard",
-                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community))
+                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community, Rank: Model.Offset + topIndex++ + 1))
                 }
 
                 @if (Model.TopDiscussions.HasMoreItems)
@@ -118,7 +122,7 @@
                 @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
                 {
                     <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                       class="sn-card-tag sn-card-tag--space"
+                       class="sn-card-tag sn-card-tag--space shadow-layered"
                        style="--space-grad: @SpaceGradient(space.PublicId)">@space.Name</a>
                 }
             </div>
@@ -136,13 +140,14 @@
         </div>
         @if (Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
         {
-            <div class="sn-trending-list">
+            <div class="grid grid-cols-8 gap-1">
                 @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
                 {
-                    <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor">
-                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                        <span class="sn-trending-contributor-name">@c.DisplayName</span>
-                        <span class="sn-card-tag sn-card-tag-light sn-tag-sm">@c.PostCountToday</span>
+                    <a href="@SnakkUrlHelper.UserProfile(c.Slug)"
+                       data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
+                        <img src="@c.AvatarMicroUrl" alt="@c.DisplayName"
+                             class="rounded-full w-full aspect-square object-cover shadow-layered"
+                             loading="lazy" decoding="async" />
                     </a>
                 }
             </div>

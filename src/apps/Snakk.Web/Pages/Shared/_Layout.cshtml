@@ -149,7 +149,7 @@
    inside the body MUST set hx-target="this" (or its own target), otherwise its response
    will replace #main-content and wipe the whole page. Required by hx-boost — boosted
    anchors look up hx-target via inheritance, so we can't disinherit at body level. *@
-<body class="antialiased" data-auth="@(isAuth ? "1" : "0")" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="head-support">
+<body class="antialiased" data-auth="@(isAuth ? "1" : "0")" data-messaging="@(isMessagingEnabled ? "1" : "0")" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="head-support">
     <div id="loading-bar" class="loading-bar"></div>
 
     @{

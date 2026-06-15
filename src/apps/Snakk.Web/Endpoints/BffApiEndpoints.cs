@@ -115,6 +115,13 @@ public static class BffApiEndpoints
         authGroup.MapPost("/read-states/batch", BatchUpdateReadStatesAsync)
             .WithName("BffBatchUpdateReadStates");
 
+        // "New since last visit" feed
+        authGroup.MapGet("/me/unread-count", GetUnreadSinceLastVisitCountAsync)
+            .WithName("BffGetUnreadSinceLastVisitCount");
+
+        authGroup.MapPost("/me/mark-all-read", MarkAllAsReadSinceLastVisitAsync)
+            .WithName("BffMarkAllAsReadSinceLastVisit");
+
         // Post reactions
         group.MapGet("/posts/{postId}/reactions", GetPostReactionsAsync)
             .WithName("BffGetPostReactions");
@@ -605,7 +612,8 @@ public static class BffApiEndpoints
         if (!result.IsSuccess)
             return MapGrpcError(result.Status, result.Error);
 
-        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.NameId)?.Value;
         if (userId is not null) await followedSpacesCache.InvalidateAsync(userId, ct);
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
@@ -895,6 +903,25 @@ public static class BffApiEndpoints
     {
 
         await apiClient.BatchUpdateReadStatesAsync(request.Updates.Select(u => (u.DiscussionId, u.PostId)).ToList(), ct);
+        return Results.Ok();
+    }
+
+    private static async Task<IResult> GetUnreadSinceLastVisitCountAsync(
+        SnakkApiClient apiClient,
+        HttpContext httpContext,
+        CancellationToken ct)
+    {
+        var count = await apiClient.GetUnreadDiscussionCountAsync(ct);
+        SetCacheControl(httpContext, "private, max-age=120");
+        return Results.Ok(new { count });
+    }
+
+    private static async Task<IResult> MarkAllAsReadSinceLastVisitAsync(
+        SnakkApiClient apiClient,
+        HttpContext httpContext,
+        CancellationToken ct)
+    {
+        await apiClient.MarkVisitAsReadAsync(ct);
         return Results.Ok();
     }
 
@@ -1809,7 +1836,8 @@ public static class BffApiEndpoints
             ReplyCount = apiResult.ReplyCount,
             FollowerCount = apiResult.FollowerCount,
             FollowingCount = apiResult.FollowingCount,
-            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"user:{apiResult.PublicId}")
+            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"user:{apiResult.PublicId}"),
+            IsGlobalAdmin = apiResult.IsGlobalAdmin
         };
 
         // Public user profile stats — identical for all viewers
@@ -3245,7 +3273,8 @@ public static class BffApiEndpoints
                 c.OtherUser.DisplayName,
                 SnakkUrlHelper.UserAvatarThumbnail(
                     c.OtherUser.PublicId,
-                    avatarThumbnailFileName: c.OtherUser.HasAvatarThumbnailFileName ? c.OtherUser.AvatarThumbnailFileName : null)),
+                    avatarThumbnailFileName: c.OtherUser.HasAvatarThumbnailFileName ? c.OtherUser.AvatarThumbnailFileName : null),
+                c.OtherUser.HasSlug ? c.OtherUser.Slug : null),
             c.HasLastMessageExcerpt ? c.LastMessageExcerpt : null,
             c.LastMessageAt != null ? c.LastMessageAt.ToDateTime().ToString("O") : DateTime.UtcNow.ToString("O"),
             c.IsPinned);

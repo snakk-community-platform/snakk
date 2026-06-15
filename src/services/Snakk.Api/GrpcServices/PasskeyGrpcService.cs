@@ -82,7 +82,8 @@ public class PasskeyGrpcService(
                 roles.FirstOrDefault(),
                 userSlim.AvatarFileName,
                 authVersion: userSlim.AuthVersion,
-                twoFactorEnabled: userSlim.TwoFactorEnabled);
+                twoFactorEnabled: userSlim.TwoFactorEnabled,
+                slug: userSlim.Slug);
 
             var refreshTokenResult = await authUseCase.CreateRefreshTokenAsync(UserId.From(publicId));
 

@@ -17,7 +17,8 @@ public interface IJwtTokenService
         string? avatarMicroFileName = null,
         long authVersion = 0,
         string? sessionId = null,
-        bool twoFactorEnabled = false);
+        bool twoFactorEnabled = false,
+        string? slug = null);
 
     string GenerateToken(User user, string? sessionId = null);
 

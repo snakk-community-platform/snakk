@@ -49,7 +49,7 @@ services:
       -c random_page_cost=1.1
       -c effective_io_concurrency=200
       -c jit=off
-      -c max_connections=150
+      -c max_connections=300
       -c track_io_timing=on
       -c log_min_duration_statement=500
       -c log_lock_waits=on

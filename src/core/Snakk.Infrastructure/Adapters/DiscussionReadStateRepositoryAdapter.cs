@@ -136,4 +136,48 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
 
         return results;
     }
+
+    public async Task<Dictionary<string, DateTime>> GetLastReadAtByDiscussionAsync(
+        string userId,
+        List<string> discussionIds,
+        CancellationToken ct = default)
+    {
+        return await dbContext.DiscussionReadStates
+            .Where(rs => rs.UserId == userId && discussionIds.Contains(rs.DiscussionId))
+            .Select(rs => new { rs.DiscussionId, rs.LastReadAt })
+            .ToDictionaryAsync(rs => rs.DiscussionId, rs => rs.LastReadAt, ct);
+    }
+
+    public async Task<Dictionary<string, int>> GetUnreadPostCountsAsync(
+        Dictionary<string, DateTime> cutoffByDiscussionId,
+        CancellationToken ct = default)
+    {
+        if (cutoffByDiscussionId.Count == 0) return [];
+
+        var discussionIds = cutoffByDiscussionId.Keys.ToList();
+        var minCutoff = cutoffByDiscussionId.Values.Min();
+
+        // Single query: fetch post timestamps for all discussions after the earliest cutoff.
+        // Then apply per-discussion cutoffs in memory (avoids N+1 queries).
+        var rows = await dbContext.Posts
+            .Where(p =>
+                p.DiscussionPublicId != null
+                && discussionIds.Contains(p.DiscussionPublicId)
+                && !p.IsDeleted
+                && p.CreatedAt > minCutoff)
+            .Select(p => new { p.DiscussionPublicId, p.CreatedAt })
+            .ToListAsync(ct);
+
+        var result = new Dictionary<string, int>();
+        foreach (var row in rows)
+        {
+            if (row.DiscussionPublicId is null) continue;
+            if (!cutoffByDiscussionId.TryGetValue(row.DiscussionPublicId, out var cutoff)) continue;
+            if (row.CreatedAt <= cutoff) continue;
+
+            result.TryGetValue(row.DiscussionPublicId, out var count);
+            result[row.DiscussionPublicId] = count + 1;
+        }
+        return result;
+    }
 }

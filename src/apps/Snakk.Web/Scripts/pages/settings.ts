@@ -18,6 +18,11 @@ interface SettingsPageConfig {
 
     // Sudo state — token stored in httpOnly cookie, only expiry tracked in JS
     let SUDO_EXPIRES_KEY = 'snakk:sudo-expires';
+
+    // Track last-saved preference values to enable rollback on API failure
+    let savedTimezone: string | null = null;
+    let savedAllowAdultContent: string | null = null;
+    let savedAdultPreviewImageMode: string | null = null;
     let sudoExpiresAt: number = 0;
     let sudoCallback: (() => void) | null = null;
     let pendingPasskeyChallenge: { challengeId: string; assertionJson: string } | null = null;
@@ -38,7 +43,7 @@ interface SettingsPageConfig {
             });
 
             if (response.status === 401) {
-                window.location.href = '/auth/login?returnUrl=/settings';
+                window.location.href = '/auth/login?returnUrl=/my/settings';
                 return;
             }
 
@@ -616,6 +621,7 @@ interface SettingsPageConfig {
 
     async function handleTimezoneChange(select: HTMLSelectElement): Promise<void> {
         const timezone = select.value;
+        const previousTimezone = savedTimezone;
 
         try {
             const response = await fetch('/bff/me/preferences', {
@@ -627,9 +633,13 @@ interface SettingsPageConfig {
 
             if (!response.ok) {
                 showMessage('Failed to update timezone', true);
+                if (previousTimezone !== null) select.value = previousTimezone;
+            } else {
+                savedTimezone = timezone;
             }
         } catch (error) {
             showMessage('Network error. Please try again.', true);
+            if (previousTimezone !== null) select.value = previousTimezone;
         }
     }
 
@@ -657,6 +667,7 @@ interface SettingsPageConfig {
     async function handleAdultContentPreferenceChange(radio: HTMLInputElement): Promise<void> {
         const value = radio.value;
         const allowAdultContent: boolean | null = value === 'allow' ? true : value === 'hide' ? false : null;
+        const previousValue = savedAllowAdultContent;
 
         try {
             const response = await fetch('/bff/me/preferences', {
@@ -668,15 +679,26 @@ interface SettingsPageConfig {
 
             if (!response.ok) {
                 showMessage('Failed to update preference', true);
+                const prevRadio = previousValue !== null
+                    ? document.querySelector<HTMLInputElement>(`input[name="allowAdultContent"][value="${previousValue}"]`)
+                    : null;
+                if (prevRadio) prevRadio.checked = true;
+            } else {
+                savedAllowAdultContent = value;
             }
         } catch (error) {
             showMessage('Network error. Please try again.', true);
+            const prevRadio = previousValue !== null
+                ? document.querySelector<HTMLInputElement>(`input[name="allowAdultContent"][value="${previousValue}"]`)
+                : null;
+            if (prevRadio) prevRadio.checked = true;
         }
     }
 
     async function handleAdultPreviewImageModeChange(radio: HTMLInputElement): Promise<void> {
         const value = radio.value;
         const adultPreviewImageMode = value === 'blur' ? 1 : value === 'hide' ? 2 : 0;
+        const previousValue = savedAdultPreviewImageMode;
 
         try {
             const response = await fetch('/bff/me/preferences', {
@@ -688,9 +710,19 @@ interface SettingsPageConfig {
 
             if (!response.ok) {
                 showMessage('Failed to update preference', true);
+                const prevRadio = previousValue !== null
+                    ? document.querySelector<HTMLInputElement>(`input[name="adultPreviewImageMode"][value="${previousValue}"]`)
+                    : null;
+                if (prevRadio) prevRadio.checked = true;
+            } else {
+                savedAdultPreviewImageMode = value;
             }
         } catch (error) {
             showMessage('Network error. Please try again.', true);
+            const prevRadio = previousValue !== null
+                ? document.querySelector<HTMLInputElement>(`input[name="adultPreviewImageMode"][value="${previousValue}"]`)
+                : null;
+            if (prevRadio) prevRadio.checked = true;
         }
     }
 
@@ -1121,18 +1153,21 @@ interface SettingsPageConfig {
         document.querySelectorAll<HTMLInputElement>('input[name="allowAdultContent"][type="radio"]').forEach(radio => {
             if (radio.dataset.initialized) return;
             radio.dataset.initialized = 'true';
+            if (radio.checked) savedAllowAdultContent = radio.value;
             radio.addEventListener('change', (e) => handleAdultContentPreferenceChange(e.target as HTMLInputElement));
         });
 
         document.querySelectorAll<HTMLInputElement>('input[name="adultPreviewImageMode"][type="radio"]').forEach(radio => {
             if (radio.dataset.initialized) return;
             radio.dataset.initialized = 'true';
+            if (radio.checked) savedAdultPreviewImageMode = radio.value;
             radio.addEventListener('change', (e) => handleAdultPreviewImageModeChange(e.target as HTMLInputElement));
         });
 
         const timezoneSelect = document.getElementById('timezone-select') as HTMLSelectElement | null;
         if (timezoneSelect && !timezoneSelect.dataset.initialized) {
             timezoneSelect.dataset.initialized = 'true';
+            savedTimezone = timezoneSelect.value;
             timezoneSelect.addEventListener('change', (e) => handleTimezoneChange(e.target as HTMLSelectElement));
         }
 
@@ -2373,11 +2408,11 @@ interface SettingsPageConfig {
                         method: 'DELETE', credentials: 'include'
                     });
                     if (r.ok) {
-                        window.location.href = '/settings/privacy';
+                        window.location.href = '/my/settings/privacy';
                     } else {
                         const e = await r.json().catch(() => ({}));
                         if (e.error === 'LAST_AUTH_METHOD') {
-                            window.location.href = '/settings/privacy?error=LAST_AUTH_METHOD#section-connected-accounts';
+                            window.location.href = '/my/settings/privacy?error=LAST_AUTH_METHOD#section-connected-accounts';
                         } else {
                             disconnectBtn.disabled = false;
                         }
@@ -2385,7 +2420,7 @@ interface SettingsPageConfig {
                 }));
                 actions.appendChild(disconnectBtn);
             } else {
-                const connectUrl = `/auth/oauth/${provider}/challenge?connectMode=true&returnUrl=/settings/privacy`;
+                const connectUrl = `/auth/oauth/${provider}/challenge?connectMode=true&returnUrl=/my/settings/privacy`;
                 const connectBtn = document.createElement('button');
                 connectBtn.type = 'button';
                 connectBtn.className = 'btn btn-primary btn-sm';

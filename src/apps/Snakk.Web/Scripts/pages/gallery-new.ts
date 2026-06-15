@@ -155,6 +155,7 @@
                 }
             } catch (err) {
                 console.error('[Gallery] Upload failed:', err);
+                if (statusEl) statusEl.textContent = 'Upload failed. Please try again.';
                 btnSpinner?.classList.add('hidden');
                 progressRow?.classList.add('hidden');
                 setBlocker('flushing', false);

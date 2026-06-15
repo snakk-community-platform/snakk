@@ -51,7 +51,7 @@ public class TrendingModel(
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
         try { TrendingDiscussions = await _apiClient.GetTrendingDiscussionsAsync(offset, 20, communityId, viewerAllowsAdult: viewerAllowsAdult); }
-        catch { }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending discussions"); }
     }
 
     private async Task EnsureSidebarDataAsync(string? communityId)

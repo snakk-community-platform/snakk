@@ -1,4 +1,5 @@
 using Snakk.Application.Repositories;
+using Snakk.Application.Services;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Shared.Models;
@@ -9,7 +10,8 @@ public class StatisticsUseCase(
     IPostRepository postRepo,
     IDiscussionRepository discussionRepo,
     IUserRepository userRepo,
-    IStatsRepository statsRepo)
+    IStatsRepository statsRepo,
+    IManageScopeDataService manageScopeData)
 {
     /// <summary>
     /// Gets top contributors by post count for today
@@ -47,7 +49,8 @@ public class StatisticsUseCase(
                     AvatarThumbnailFileName: u?.AvatarThumbnailFileName,
                     AvatarMicroFileName: u?.AvatarMicroFileName,
                     AvatarRevision: u?.AvatarRevision ?? 0,
-                    PostCountToday: c.PostCount);
+                    PostCountToday: c.PostCount,
+                    Slug: u?.Slug);
             })
             .ToList();
 
@@ -228,7 +231,8 @@ public class StatisticsUseCase(
         if (stats is null)
             return Result<UserStatsDto>.Failure("User not found");
 
-        return Result<UserStatsDto>.Success(stats);
+        var adminIds = await manageScopeData.GetGlobalAdminPublicIdsAsync();
+        return Result<UserStatsDto>.Success(stats with { IsGlobalAdmin = adminIds.Contains(publicId) });
     }
 
     /// <summary>
@@ -335,7 +339,8 @@ public class StatisticsUseCase(
                     AvatarThumbnailFileName: u?.AvatarThumbnailFileName,
                     AvatarMicroFileName: u?.AvatarMicroFileName,
                     AvatarRevision: u?.AvatarRevision ?? 0,
-                    LastPostAt: c.LastPostAt);
+                    LastPostAt: c.LastPostAt,
+                    Slug: u?.Slug);
             })
             .ToList();
 
@@ -358,7 +363,8 @@ public record TopContributorResult(
     string? AvatarThumbnailFileName,
     string? AvatarMicroFileName,
     int AvatarRevision,
-    int PostCountToday);
+    int PostCountToday,
+    string? Slug = null);
 
 public record TopDiscussionResult(
     string DiscussionId,
@@ -384,7 +390,8 @@ public record LatestContributorResult(
     string? AvatarThumbnailFileName,
     string? AvatarMicroFileName,
     int AvatarRevision,
-    DateTime LastPostAt);
+    DateTime LastPostAt,
+    string? Slug = null);
 
 public record UserActivityHistoryResult(
     int Days,

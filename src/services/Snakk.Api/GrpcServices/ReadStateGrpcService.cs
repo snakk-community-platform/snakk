@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Snakk.Api.Services;
+using Snakk.Application.Services;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
@@ -9,7 +10,8 @@ namespace Snakk.Api.GrpcServices;
 
 public class ReadStateGrpcService(
     IDiscussionReadStateRepository readStateRepository,
-    ICurrentUserService currentUser) : ReadStateService.ReadStateServiceBase
+    ICurrentUserService currentUser,
+    IUserVisitTracker userVisitTracker) : ReadStateService.ReadStateServiceBase
 {
     public override async Task<ReadStateInfo> GetReadState(GetReadStateRequest request, ServerCallContext context)
     {
@@ -89,6 +91,14 @@ public class ReadStateGrpcService(
         }
 
         return new BatchMarkAsReadResponse { Success = true, Processed = processed };
+    }
+
+    public override async Task<MarkVisitAsReadResponse> MarkVisitAsRead(MarkVisitAsReadRequest request, ServerCallContext context)
+    {
+        var ct = context.CancellationToken;
+        var userId = RequireAuth();
+        await userVisitTracker.ForceNewVisitAsync(userId.Value, ct);
+        return new MarkVisitAsReadResponse { Success = true };
     }
 
     private UserId? TryGetAuthUserId()

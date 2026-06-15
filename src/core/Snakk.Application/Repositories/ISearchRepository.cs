@@ -96,6 +96,17 @@ public interface ISearchRepository
         string? authorId = null,
         IReadOnlyList<string>? spaceIds = null,
         bool viewerAllowsAdult = false,
+        bool sinceLastVisit = false,
+        DateTime? lastVisitAt = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the count of discussions with activity after the given cutoff date.
+    /// </summary>
+    Task<int> GetUnreadDiscussionCountAsync(
+        DateTime since,
+        string? userId = null,
+        bool viewerAllowsAdult = false,
         CancellationToken ct = default);
 
     /// <summary>
@@ -276,7 +287,8 @@ public record RecentDiscussionDto(
     string? LastReplierAvatarThumbnailFileName = null,
     string? LastPostExcerpt = null,
     bool IsAdult = false,
-    DiscussionPreviewDto? Preview = null);
+    DiscussionPreviewDto? Preview = null,
+    DateTime? SavedAt = null);
 
 // ── Discussion preview sub-DTOs ──
 public record DiscussionPreviewDto(

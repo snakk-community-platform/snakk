@@ -71,7 +71,10 @@
                 body: JSON.stringify({ content })
             });
 
-            if (!response.ok) return;
+            if (!response.ok) {
+                console.error('[DM] sendMessage failed:', response.status);
+                return;
+            }
 
             const message = await response.json() as {
                 publicId: string;
@@ -271,7 +274,10 @@
                     body: JSON.stringify({ messageIds: ids, deleteForAll })
                 }
             );
-            if (!response.ok) return;
+            if (!response.ok) {
+                console.error('[DM] deleteMessages failed:', response.status);
+                return;
+            }
             removeMessageElements(ids);
             clearAllCheckboxes();
         } catch (err) {
@@ -296,6 +302,7 @@
                 { method: 'DELETE', credentials: 'include' }
             );
             if (response.ok) window.location.href = '/messages';
+            else console.error('[DM] deleteConversation failed:', response.status);
         } catch (err) {
             console.warn('[DM] Failed to delete conversation:', err);
         }

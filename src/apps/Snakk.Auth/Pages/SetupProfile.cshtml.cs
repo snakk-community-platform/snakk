@@ -26,8 +26,11 @@ public class SetupProfileModel(
         public bool? AllowAdultContent { get; set; }
     }
 
-    public void OnGet()
+    public IActionResult OnGet()
     {
+        if (string.IsNullOrEmpty(Request.Cookies[".Snakk.Auth"] ?? Request.Cookies[".Snakk.Auth.Session"]))
+            return RedirectToPage("/Login");
+        return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()

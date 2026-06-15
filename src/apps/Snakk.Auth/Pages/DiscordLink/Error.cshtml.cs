@@ -10,6 +10,6 @@ public class ErrorModel : PageModel
 
     public IActionResult OnGet()
     {
-        return Redirect($"/settings/integrations?discord=error&reason={Reason ?? "unknown"}");
+        return Redirect($"/my/settings/integrations?discord=error&reason={Reason ?? "unknown"}");
     }
 }

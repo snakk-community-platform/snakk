@@ -20,7 +20,8 @@ public class AuthDataService(SnakkDbContext context) : IAuthDataService
                 u.EmailVerified,
                 u.AvatarFileName,
                 u.AuthVersion,
-                u.TwoFactorEnabled))
+                u.TwoFactorEnabled,
+                u.Slug))
             .FirstOrDefaultAsync(ct);
     }
 

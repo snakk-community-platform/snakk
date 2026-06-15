@@ -25,7 +25,8 @@ public class AuthenticationUseCase(
     DisplayNameValidator displayNameValidator,
     IPasswordResetTokenRepository passwordResetTokenRepository,
     IPasswordResetRequestRepository passwordResetRequestRepository,
-    IAuthVersionCache authVersionCache) : UseCaseBase
+    IAuthVersionCache authVersionCache,
+    ISlugService slugService) : UseCaseBase
 {
     // Dummy BCrypt hash for timing equalization (prevents email enumeration)
     private static readonly string DummyPasswordHash = "$2a$12$LJ3m4ys3Gy2e1mGFBgHnMeZOp5xDz4MBpUmLhMYkP5K8xA2YUCIi";
@@ -93,6 +94,9 @@ public class AuthenticationUseCase(
             allowAdultContent);
 
         await userRepository.AddAsync(user);
+
+        // Assign initial slug from display name
+        await slugService.AssignInitialSlugAsync(user.PublicId.Value, suggestedDisplayName);
 
         // Dispatch domain events
         await eventDispatcher.DispatchAsync(user.DomainEvents);
@@ -350,6 +354,9 @@ public class AuthenticationUseCase(
         await userRepository.UpdateAsync(user);
         await displayNameHistoryRepository.AddAsync(user.PublicId.Value, previousName, trimmed);
 
+        // Auto-update slug from new display name (no-ops if user has a custom slug)
+        await slugService.AutoUpdateSlugFromDisplayNameAsync(user.PublicId.Value, trimmed);
+
         return Result.Success();
     }
 
@@ -399,6 +406,8 @@ public class AuthenticationUseCase(
         await userRepository.UpdateAsync(user);
         await displayNameHistoryRepository.AddAsync(
             user.PublicId.Value, previousName, trimmed, adminUserId.Value);
+
+        await slugService.AutoUpdateSlugFromDisplayNameAsync(user.PublicId.Value, trimmed);
 
         return Result.Success();
     }

@@ -39,11 +39,11 @@ public class CommunityDataService(
             {
                 var raw = await dbContext.Communities
                     .Where(c => c.PublicId == publicId)
-                    .Select(c => new { c.HasRules, c.RulesRevision, c.TeamRevision, c.IsRestricted, c.Require2FA })
+                    .Select(c => new { c.HasRules, c.RulesRevision, c.TeamRevision, c.IsRestricted, c.Require2FA, c.VisibilityId })
                     .FirstOrDefaultAsync(cancel);
                 return raw is null
                     ? null
-                    : new CommunityMetaDto(raw.HasRules, raw.RulesRevision, raw.TeamRevision, raw.IsRestricted, raw.Require2FA);
+                    : new CommunityMetaDto(raw.HasRules, raw.RulesRevision, raw.TeamRevision, raw.IsRestricted, raw.Require2FA, raw.VisibilityId);
             },
             MetaCacheOptions,
             cancellationToken: ct);

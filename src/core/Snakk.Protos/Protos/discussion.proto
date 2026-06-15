@@ -44,6 +44,9 @@ service DiscussionService {
   rpc GetDiscussionsByIds (GetDiscussionsByIdsRequest) returns (DiscussionsByIdsResponse);
   rpc GetRecentDiscussionsByIds (GetRecentDiscussionsByIdsRequest) returns (PagedRecentDiscussionList);
 
+  // Unread-since-last-visit feed
+  rpc GetUnreadDiscussionCount (GetUnreadDiscussionCountRequest) returns (GetUnreadDiscussionCountResponse);
+
   // Images
   rpc GetImagesLayout (GetImagesLayoutRequest) returns (ImagesLayoutResponse);
 
@@ -125,6 +128,15 @@ message GetRecentDiscussionsRequest {
   optional string space_id = 7;
   repeated string space_ids = 8;
   bool viewer_allows_adult = 9;
+  // When true, only return discussions with activity after the current user's LastVisitAt
+  bool since_last_visit = 10;
+}
+
+message GetUnreadDiscussionCountRequest {
+}
+
+message GetUnreadDiscussionCountResponse {
+  int32 count = 1;
 }
 
 message GetTrendingDiscussionsRequest {
@@ -219,6 +231,8 @@ message RecentDiscussionInfo {
   optional snakk.AuthorRef last_replier = 17;
   string last_post_excerpt = 18;
   bool is_adult = 19;
+  optional google.protobuf.Timestamp saved_at = 20;
+  optional int32 unread_post_count = 21;
 }
 
 message DiscussionPreview {

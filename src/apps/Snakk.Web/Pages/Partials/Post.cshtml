@@ -44,9 +44,9 @@
             <img src="@post.Author.AvatarThumbnailUrl"
                  alt="@post.Author.DisplayName"
                  width="48" height="48"
-                 class="post-avatar"
+                 class="post-avatar shadow-layered"
                  loading="lazy" decoding="async" />
-            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+            <a href="@SnakkUrlHelper.UserProfile(post.Author.Slug)"
                class="post-author-name"
                data-popup-type="user"
                data-popup-id="@post.Author.PublicId"
@@ -63,15 +63,15 @@
             }
             @if (post.IsOp)
             {
-                <span class="badge badge-primary badge-xs post-badge-op">@T.Pages.DiscBadgeOp</span>
+                    <span class="badge badge-primary badge-xs post-badge-op shadow-layered">@T.Pages.DiscBadgeOp</span>
             }
             @if (post.IsUsersFirstPostInSpace)
             {
-                <span class="badge badge-success badge-xs post-badge-new">@T.Pages.DiscBadgeNew</span>
+                    <span class="badge badge-success badge-xs post-badge-new shadow-layered">@T.Pages.DiscBadgeNew</span>
             }
             @if (post.IsMilestone)
             {
-                <span class="badge badge-warning badge-xs post-badge-milestone" title="@T.Pages.DiscBadgeMilestone">&#9733;</span>
+                    <span class="badge badge-warning badge-xs post-badge-milestone shadow-layered" title="@T.Pages.DiscBadgeMilestone">&#9733;</span>
             }
         </div>
     </aside>

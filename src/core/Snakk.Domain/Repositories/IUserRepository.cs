@@ -9,7 +9,8 @@ public record UserAvatarSlim(
     string? AvatarFileName,
     string? AvatarThumbnailFileName,
     string? AvatarMicroFileName,
-    int AvatarRevision);
+    int AvatarRevision,
+    string? Slug = null);
 
 public record PostAuthorSlim(
     string PublicId,
@@ -20,7 +21,8 @@ public record PostAuthorSlim(
     int AvatarRevision,
     DateTime CreatedAt,
     int DiscussionCount,
-    int ReplyCount);
+    int ReplyCount,
+    string? Slug = null);
 
 public record UserProfileSlim(
     string PublicId,
@@ -32,7 +34,8 @@ public record UserProfileSlim(
     int DiscussionCount,
     int FollowerCount,
     int ReplyCount,
-    string? Bio);
+    string? Bio,
+    string? Slug = null);
 
 public record CurrentUserSlim(
     string PublicId,
@@ -60,6 +63,9 @@ public interface IUserRepository
     Task<IEnumerable<UserAvatarSlim>> GetAvatarSlimByPublicIdsAsync(IEnumerable<UserId> publicIds, CancellationToken ct = default);
     Task<IEnumerable<PostAuthorSlim>> GetPostAuthorSlimByPublicIdsAsync(IEnumerable<UserId> publicIds, CancellationToken ct = default);
     Task<UserProfileSlim?> GetProfileSlimByPublicIdAsync(UserId publicId, CancellationToken ct = default);
+    Task<UserProfileSlim?> GetProfileSlimBySlugAsync(string slug, CancellationToken ct = default);
+    Task<string?> ResolveOldSlugAsync(string oldSlug, CancellationToken ct = default);
+    Task<Dictionary<string, string>> GetSlugsByPublicIdsAsync(IEnumerable<string> publicIds, CancellationToken ct = default);
     Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId, CancellationToken ct = default);
     Task<User?> GetByEmailAsync(string email, CancellationToken ct = default);
     Task<User?> GetByOAuthConnectionAsync(string provider, string providerUserId, CancellationToken ct = default);
@@ -74,6 +80,7 @@ public interface IUserRepository
     Task<IEnumerable<User>> SearchByDisplayNameAsync(string query, int limit, CancellationToken ct = default);
     Task<IEnumerable<User>> GetAllAsync(CancellationToken ct = default);
     Task<int?> GetInternalIdByPublicIdAsync(string publicId, CancellationToken ct = default);
+    Task<DateTime?> GetLastVisitAtAsync(string publicId, CancellationToken ct = default);
     Task AddAsync(User user, CancellationToken ct = default);
     Task UpdateAsync(User user, CancellationToken ct = default);
 }

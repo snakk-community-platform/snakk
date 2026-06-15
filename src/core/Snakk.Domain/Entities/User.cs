@@ -42,6 +42,7 @@ public class User
     public bool TwoFactorEnabled { get; private set; }
     public bool IsDeleted { get; private set; }
     public DateTime? DeletedAt { get; private set; }
+    public string? Slug { get; private set; }
 
     private readonly List<IDomainEvent> _domainEvents = [];
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
@@ -86,7 +87,8 @@ public class User
         DateTime? emailVerificationTokenCreatedAt = null,
         long authVersion = 1,
         DateTime? authVersionUpdatedAt = null,
-        bool twoFactorEnabled = false)
+        bool twoFactorEnabled = false,
+        string? slug = null)
     {
         PublicId = publicId;
         DisplayName = displayName;
@@ -122,6 +124,7 @@ public class User
         AuthVersion = authVersion;
         AuthVersionUpdatedAt = authVersionUpdatedAt ?? DateTime.UtcNow;
         TwoFactorEnabled = twoFactorEnabled;
+        Slug = slug;
     }
 
     public static User CreateWithEmail(
@@ -249,7 +252,8 @@ public class User
         DateTime? emailVerificationTokenCreatedAt = null,
         long authVersion = 1,
         DateTime? authVersionUpdatedAt = null,
-        bool twoFactorEnabled = false) =>
+        bool twoFactorEnabled = false,
+        string? slug = null) =>
         new User(
             publicId,
             displayName,
@@ -284,7 +288,8 @@ public class User
             emailVerificationTokenCreatedAt,
             authVersion,
             authVersionUpdatedAt,
-            twoFactorEnabled);
+            twoFactorEnabled,
+            slug);
 
     public void UpdateDisplayName(string displayName)
     {

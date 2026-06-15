@@ -6,6 +6,7 @@ using Snakk.Application.DTOs.Responses;
 using Snakk.Application.DTOs.Stats;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
+using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Shared.Helpers;
 
@@ -119,6 +120,7 @@ public static class SpaceEndpoints
         int pageSize,
         int? typeFilter,
         Application.Repositories.ISearchRepository searchRepo,
+        IUserRepository userRepo,
         CancellationToken ct)
     {
         // Clamp pagination parameters
@@ -126,6 +128,13 @@ public static class SpaceEndpoints
         offset = Math.Max(0, offset);
 
         var result = await searchRepo.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, typeFilter, ct: ct);
+
+        var authorIds = result.Items
+            .Select(d => d.AuthorPublicId)
+            .Where(id => id is not null)
+            .Distinct()
+            .ToList();
+        var slugMap = await userRepo.GetSlugsByPublicIdsAsync(authorIds!, ct);
 
         var items = result.Items.Select(d => new DiscussionBySpaceResponse(
             PublicId: d.PublicId,
@@ -142,7 +151,8 @@ public static class SpaceEndpoints
             Author: new AuthorRef(
                 PublicId: d.AuthorPublicId,
                 DisplayName: d.AuthorDisplayName,
-                AvatarUrl: d.AuthorAvatarFileName),
+                AvatarUrl: d.AuthorAvatarFileName,
+                Slug: d.AuthorPublicId is not null ? slugMap.GetValueOrDefault(d.AuthorPublicId) : null),
             Tags: d.Tags?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
 
         return TypedResults.Ok(new PagedResponse<DiscussionBySpaceResponse>(

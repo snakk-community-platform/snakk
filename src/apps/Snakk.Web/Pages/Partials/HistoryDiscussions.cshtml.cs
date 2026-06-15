@@ -12,8 +12,9 @@ public class HistoryDiscussionsModel(
     public IList<RecentDiscussionInfo> Items { get; set; } = [];
     public bool ShowCommunity { get; set; }
     public ICommunityContext Community => communityContext;
+    public Dictionary<string, DateTime> VisitedTimestamps { get; private set; } = [];
 
-    public async Task<IActionResult> OnGetAsync(string? ids, CancellationToken cancellationToken = default)
+    public async Task<IActionResult> OnGetAsync(string? ids, string? timestamps, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(ids))
@@ -26,6 +27,16 @@ public class HistoryDiscussionsModel(
         var idList = ids.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Take(20)
             .ToList();
+
+        if (!string.IsNullOrWhiteSpace(timestamps))
+        {
+            var tsList = timestamps.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            for (var i = 0; i < Math.Min(idList.Count, tsList.Length); i++)
+            {
+                if (DateTime.TryParse(tsList[i], out var dt))
+                    VisitedTimestamps[idList[i]] = dt.ToUniversalTime();
+            }
+        }
 
         try
         {

@@ -3,6 +3,7 @@ using Grpc.Core;
 using Snakk.Shared.Helpers;
 using Snakk.Api.Services;
 using Snakk.Application.Services;
+using Snakk.Domain.Repositories;
 using Snakk.Protos;
 using Snakk.Protos.Discussion;
 using Snakk.Protos.Search;
@@ -13,7 +14,8 @@ namespace Snakk.Api.GrpcServices;
 public class SearchGrpcService(
     Application.Repositories.ISearchRepository searchRepository,
     ICurrentUserService currentUser,
-    IFileStorage fileStorage) : SearchService.SearchServiceBase
+    IFileStorage fileStorage,
+    IUserRepository userRepository) : SearchService.SearchServiceBase
 {
     public override async Task<PagedDiscussionSearchResults> SearchDiscussions(SearchDiscussionsRequest request, ServerCallContext context)
     {
@@ -36,6 +38,13 @@ public class SearchGrpcService(
             request.HasDateRange ? request.DateRange : null,
             ct);
 
+        var discussionAuthorIds = result.Items
+            .SelectMany(d => new[] { d.CreatedByUserPublicId, d.LastReplierPublicId })
+            .OfType<string>()
+            .Distinct()
+            .ToList();
+        var discussionSlugs = await userRepository.GetSlugsByPublicIdsAsync(discussionAuthorIds, ct);
+
         var response = new PagedDiscussionSearchResults
         {
             Offset = result.Offset,
@@ -45,6 +54,17 @@ public class SearchGrpcService(
 
         foreach (var d in result.Items)
         {
+            var authorRef = new AuthorRef
+            {
+                PublicId = d.CreatedByUserPublicId,
+                DisplayName = d.CreatedByUserDisplayName,
+                AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
+            };
+            if (discussionSlugs.TryGetValue(d.CreatedByUserPublicId, out var authorSlug))
+                authorRef.Slug = authorSlug;
+
             var item = new RecentDiscussionInfo
             {
                 PublicId = d.PublicId,
@@ -61,15 +81,7 @@ public class SearchGrpcService(
                 Space = new EntityRef { PublicId = d.SpacePublicId, Slug = d.SpaceSlug, Name = d.SpaceName },
                 Hub = new EntityRef { PublicId = d.HubPublicId ?? "", Slug = d.HubSlug ?? "", Name = d.HubName ?? "" },
                 Community = new EntityRef { PublicId = d.CommunityPublicId ?? "", Slug = d.CommunitySlug ?? "", Name = d.CommunityName ?? "" },
-
-                Author = new AuthorRef
-                {
-                    PublicId = d.CreatedByUserPublicId,
-                    DisplayName = d.CreatedByUserDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
-                }
+                Author = authorRef
             };
 
             if (d.LastActivityAt.HasValue)
@@ -79,7 +91,7 @@ public class SearchGrpcService(
 
             if (d.LastReplierPublicId is not null)
             {
-                item.LastReplier = new AuthorRef
+                var replierRef = new AuthorRef
                 {
                     PublicId = d.LastReplierPublicId,
                     DisplayName = d.LastReplierDisplayName ?? "",
@@ -87,6 +99,9 @@ public class SearchGrpcService(
                     AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName, d.LastReplierAvatarThumbnailFileName),
                     AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName)
                 };
+                if (discussionSlugs.TryGetValue(d.LastReplierPublicId, out var replierSlug))
+                    replierRef.Slug = replierSlug;
+                item.LastReplier = replierRef;
             }
 
             if (d.Preview is not null)
@@ -192,6 +207,9 @@ public class SearchGrpcService(
             request.HasDateRange ? request.DateRange : null,
             ct);
 
+        var postAuthorIds = result.Items.Select(p => p.AuthorPublicId).Distinct().ToList();
+        var postSlugs = await userRepository.GetSlugsByPublicIdsAsync(postAuthorIds, ct);
+
         var response = new PagedPostSearchResults
         {
             Offset = result.Offset,
@@ -201,6 +219,17 @@ public class SearchGrpcService(
 
         foreach (var p in result.Items)
         {
+            var postAuthorRef = new AuthorRef
+            {
+                PublicId = p.AuthorPublicId,
+                DisplayName = p.AuthorDisplayName,
+                AvatarUrl = AvatarHelper.GetAvatarUrl(p.AuthorPublicId, AvatarEntityType.User, 0, p.AuthorAvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(p.AuthorPublicId, AvatarEntityType.User, 0, p.AuthorAvatarFileName, p.AuthorAvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(p.AuthorPublicId, AvatarEntityType.User, 0, p.AuthorAvatarFileName)
+            };
+            if (postSlugs.TryGetValue(p.AuthorPublicId, out var postAuthorSlug))
+                postAuthorRef.Slug = postAuthorSlug;
+
             response.Items.Add(new PostSearchResult
             {
                 PublicId = p.PublicId,
@@ -216,15 +245,7 @@ public class SearchGrpcService(
                 DiscussionTitle = p.DiscussionTitle,
                 DiscussionSlug = p.DiscussionSlug,
                 CommunitySlug = p.CommunitySlug,
-
-                Author = new AuthorRef
-                {
-                    PublicId = p.AuthorPublicId,
-                    DisplayName = p.AuthorDisplayName,
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(p.AuthorPublicId, AvatarEntityType.User, 0, p.AuthorAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(p.AuthorPublicId, AvatarEntityType.User, 0, p.AuthorAvatarFileName, p.AuthorAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(p.AuthorPublicId, AvatarEntityType.User, 0, p.AuthorAvatarFileName)
-                },
+                Author = postAuthorRef,
                 Space = new EntityRef
                 {
                     Slug = p.SpaceSlug,

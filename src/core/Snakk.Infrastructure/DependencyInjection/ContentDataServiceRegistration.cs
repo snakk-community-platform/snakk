@@ -17,6 +17,7 @@ public static class ContentDataServiceRegistration
         services.AddScoped<IHubDataService, HubDataService>();
         services.AddScoped<ISpaceDataService, SpaceDataService>();
         services.AddScoped<IUserDataService, UserDataService>();
+        services.AddScoped<ISlugService, SlugService>();
 
         return services;
     }

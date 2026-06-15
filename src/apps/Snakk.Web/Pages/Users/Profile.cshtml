@@ -1,4 +1,4 @@
-﻿@page "/u/{publicId}/{tab?}"
+﻿@page "/u/{slug}/{tab?}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Shared.Helpers
@@ -42,6 +42,10 @@
                 <div class="sn-profile-info">
                     <div class="sn-profile-name-row">
                         <h1 class="sn-profile-name">@Model.Profile.DisplayName</h1>
+                        @if (Model.Profile.IsGlobalAdmin)
+                        {
+                            <span class="badge badge-sm badge-warning">@T.Roles.GlobalAdmin</span>
+                        }
                     </div>
                     @if (Model.Profile.HasBio && !string.IsNullOrWhiteSpace(Model.Profile.Bio))
                     {
@@ -172,7 +176,8 @@
         {
 
             <!-- Discussions / Top / Posts Tabs -->
-            <div class="sn-tabs mb-4" role="tablist">
+            <div class="sn-section-header">
+            <div class="sn-tabs" role="tablist">
                 <button class="sn-tab sn-profile-tab @(Model.ActiveTab == "discussions" ? "active" : "")" role="tab" aria-selected="@(Model.ActiveTab == "discussions" ? "true" : "false")" data-tab="discussions">
                     <span class="icon icon-chat-bubbles h-4 w-4" aria-hidden="true"></span>
                     Discussions
@@ -185,6 +190,7 @@
                     <span class="icon icon-posts-tab h-4 w-4" aria-hidden="true"></span>
                     Posts
                 </button>
+            </div>
             </div>
 
             <!-- Discussions Tab -->
@@ -249,7 +255,7 @@
 <!-- Right Column -->
 <aside class="sn-right">
 @{
-    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
     if (Model.Profile != null)
     {
         ViewData["RightPane.Actions"] = new[] { "feed", "share", "follow-user" };
@@ -257,6 +263,32 @@
         ViewData["RightPane.ShareTitle"] = Model.Profile.DisplayName;
         ViewData["RightPane.ShareIsPublic"] = true;
     }
+
+    var communityRoles = Model.ModerationRoles
+        .Where(r => r.Role is "CommunityAdmin" or "CommunityMod").ToList();
+    var hubRoles = Model.ModerationRoles
+        .Where(r => r.Role == "HubMod").ToList();
+    var spaceRoles = Model.ModerationRoles
+        .Where(r => r.Role == "SpaceMod").ToList();
+    var hasModSection = (Model.Profile?.IsGlobalAdmin == true)
+        || communityRoles.Count > 0 || hubRoles.Count > 0 || spaceRoles.Count > 0;
+
+    string ModAccessBadgeClass(string? level) => level switch
+    {
+        "public" => "badge-success",
+        "registered" => "badge-info",
+        "members" => "badge-warning",
+        "unlisted" => "badge-ghost",
+        _ => "badge-ghost"
+    };
+    string ModAccessLabel(string? level) => level switch
+    {
+        "public" => T.Pages.ProfileModRolesAccessPublic,
+        "registered" => T.Pages.ProfileModRolesAccessRegistered,
+        "members" => T.Pages.ProfileModRolesAccessMembers,
+        "unlisted" => T.Pages.ProfileModRolesAccessUnlisted,
+        _ => ""
+    };
 }
 <div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />
@@ -294,44 +326,98 @@
         {
             <div class="sn-right-section">
                 <div class="sn-right-title">Most Active In</div>
-                <div class="flex flex-col gap-1">
+                <div class="sn-spaces-inline">
                     @foreach (var s in Model.Profile.TopSpaces)
                     {
                         var spaceUrl = $"/c/{s.CommunitySlug}/h/{s.HubSlug}/{s.SpaceSlug}";
-                        <a href="@spaceUrl" class="sn-space-item">
-                            <img src="@SnakkUrlHelper.SpaceAvatar(s.PublicId, avatarFileName: s.HasSpaceAvatarFileName ? s.SpaceAvatarFileName : null)"
-                                 alt="" width="20" height="20" decoding="async" />
-                            <span class="truncate">@s.SpaceName</span>
-                            <span class="sn-space-count">@s.PostCount</span>
-                        </a>
+                        <span class="inline-flex items-stretch">
+                            <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space shadow-layered"
+                               hx-target="#main-content"
+                               style="--space-grad: @SpaceGradient(s.PublicId); border-radius: 0.25rem 0 0 0.25rem"
+                               data-popup-type="space" data-popup-id="@s.PublicId" data-popup-name="@s.SpaceName">@s.SpaceName</a>
+                            <span class="flex items-center px-1.5 text-[0.6875rem] font-semibold text-base-content/60"
+                                  style="border-radius: 0 0.25rem 0.25rem 0; background: var(--bg-primary)">@s.PostCount</span>
+                        </span>
                     }
                 </div>
             </div>
         }
 
-        <!-- Recent Activity -->
-        <div class="sn-right-section">
-            <div class="sn-right-title">Recent Activity</div>
-            <div class="text-sm">
-                @if (Model.Profile.LastSeenAt != null)
+        <!-- Moderation Roles -->
+        @if (hasModSection)
+        {
+            <div class="sn-right-section" id="mod-roles-section">
+                <div class="sn-right-title">@T.Pages.ProfileModRolesTitle</div>
+
+                @if (Model.Profile.IsGlobalAdmin)
                 {
-                    <div class="flex items-center gap-2" style="color: var(--text-tertiary)">
-                        <span class="icon icon-clock w-3.5 h-3.5" aria-hidden="true"></span>
-                        <span>Last seen @Model.GetRelativeTime(Model.Profile.LastSeenAt?.ToDateTime())</span>
+                    <div class="alert alert-warning p-3 rounded-lg flex items-start gap-2 mb-3">
+                        <span class="icon icon-shield h-4 w-4 shrink-0 mt-0.5" aria-hidden="true"></span>
+                        <div>
+                            <div class="font-semibold text-sm">@T.Pages.ProfileModRolesGlobalAdminHeading</div>
+                            <div class="text-xs mt-0.5" style="opacity: 0.8">@T.Pages.ProfileModRolesGlobalAdminDesc</div>
+                        </div>
                     </div>
                 }
-                else
+
+                @if (communityRoles.Count > 0)
                 {
-                    <span style="color: var(--text-tertiary)">No recent activity</span>
+                    <div class="mb-2">
+                        <div class="text-xs font-semibold mb-0.5" style="color: var(--text-secondary)">@T.Pages.ProfileModRolesCommunities</div>
+                        <div class="text-xs mb-1.5" style="color: var(--text-tertiary)">@T.Pages.ProfileModRolesCommunitiesDesc</div>
+                        <div class="sn-spaces-inline">
+                            @foreach (var role in communityRoles)
+                            {
+                                <span class="inline-flex items-stretch">
+                                    <span class="sn-card-tag sn-card-tag--space"
+                                          style="--space-grad: @CommunityGradient(role.EntityId); border-radius: 0.25rem 0 0 0.25rem">@(role.EntityName ?? "—")</span>
+                                    <span class="flex items-center px-1.5 text-[0.6875rem] font-semibold text-base-content/60"
+                                          style="border-radius: 0 0.25rem 0.25rem 0; background: var(--bg-primary)">@(role.Role == "CommunityAdmin" ? T.Pages.ProfileModRolesAdmin : T.Pages.ProfileModRolesMod)</span>
+                                </span>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (hubRoles.Count > 0)
+                {
+                    <div class="mb-2">
+                        <div class="text-xs font-semibold mb-0.5" style="color: var(--text-secondary)">@T.Pages.ProfileModRolesHubs</div>
+                        <div class="text-xs mb-1.5" style="color: var(--text-tertiary)">@T.Pages.ProfileModRolesHubsDesc</div>
+                        <div class="sn-spaces-inline">
+                            @foreach (var role in hubRoles)
+                            {
+                                <span class="inline-flex items-stretch">
+                                    <span class="sn-card-tag sn-card-tag--space"
+                                          style="--space-grad: @HubGradient(role.EntityId); border-radius: 0.25rem 0 0 0.25rem">@(role.EntityName ?? "—")</span>
+                                    <span class="flex items-center px-1.5 text-[0.6875rem] font-semibold text-base-content/60"
+                                          style="border-radius: 0 0.25rem 0.25rem 0; background: var(--bg-primary)">@T.Pages.ProfileModRolesMod</span>
+                                </span>
+                            }
+                        </div>
+                    </div>
+                }
+
+                @if (spaceRoles.Count > 0)
+                {
+                    <div class="mb-2">
+                        <div class="text-xs font-semibold mb-0.5" style="color: var(--text-secondary)">@T.Pages.ProfileModRolesSpaces</div>
+                        <div class="text-xs mb-1.5" style="color: var(--text-tertiary)">@T.Pages.ProfileModRolesSpacesDesc</div>
+                        <div class="sn-spaces-inline">
+                            @foreach (var role in spaceRoles)
+                            {
+                                <span class="inline-flex items-stretch">
+                                    <span class="sn-card-tag sn-card-tag--space"
+                                          style="--space-grad: @SpaceGradient(role.EntityId); border-radius: 0.25rem 0 0 0.25rem">@(role.EntityName ?? "—")</span>
+                                    <span class="flex items-center px-1.5 text-[0.6875rem] font-semibold text-base-content/60"
+                                          style="border-radius: 0 0.25rem 0.25rem 0; background: var(--bg-primary)">@T.Pages.ProfileModRolesMod</span>
+                                </span>
+                            }
+                        </div>
+                    </div>
                 }
             </div>
-        </div>
-
-        <!-- Name History (own profile only) -->
-        <div class="sn-right-section hidden" id="name-history-section">
-            <div class="sn-right-title">Name History</div>
-            <div id="name-history-list"></div>
-        </div>
+        }
     }
     </div>
 </div>

@@ -53,6 +53,7 @@ interface EntityStats {
     spaceCount?: number;
     hubCount?: number;
     gradientCss?: string;
+    isGlobalAdmin?: boolean;
 }
 
 interface EntityResolveResult {
@@ -111,6 +112,7 @@ class SnakkPopup {
                 <figure class="snakk-popup-banner">
                     <div class="snakk-popup-banner-info">
                         <div class="snakk-popup-name"></div>
+                        <span class="snakk-popup-admin-badge badge badge-sm badge-warning" style="display:none">Admin</span>
                         <div class="snakk-popup-type"></div>
                     </div>
                 </figure>
@@ -420,6 +422,8 @@ class SnakkPopup {
         }
 
         if (nameEl) nameEl.textContent = stats?.name || stats?.displayName || stats?.title || name;
+        const adminBadgeEl = popup.querySelector('.snakk-popup-admin-badge') as HTMLElement;
+        if (adminBadgeEl) adminBadgeEl.style.display = stats?.isGlobalAdmin ? '' : 'none';
         if (typeEl) typeEl.textContent = this.getTypeDisplayName(type);
 
         const bannerEl = popup.querySelector('.snakk-popup-banner') as HTMLElement;
@@ -478,7 +482,8 @@ class SnakkPopup {
         if (messageLink) {
             const currentUserPublicId = document.querySelector<HTMLMetaElement>('meta[name="current-user-id"]')?.content ?? '';
             const isOwnProfile = publicId === currentUserPublicId;
-            if (type === 'user' && currentUserPublicId && !isOwnProfile) {
+            const isMessagingEnabled = document.body.dataset.messaging !== '0';
+            if (type === 'user' && currentUserPublicId && !isOwnProfile && isMessagingEnabled) {
                 messageLink.href = `/messages/start?recipient=${encodeURIComponent(publicId)}`;
                 messageLink.style.display = '';
             } else {
@@ -542,10 +547,9 @@ class SnakkPopup {
      * Handle mouse over on trigger elements (mouseover bubbles, mouseenter doesn't)
      */
     handleMouseOver(e: Event): void {
-        // Touch devices get tap-to-open via handleTriggerClick; ignore hover paths.
-        // Also skip when the last pointer event was touch, to handle hybrid devices
-        // (e.g. iPad with keyboard) that report (hover: hover) but still fire a
-        // synthetic mouseover before the click when the user taps a link.
+        // Popups are desktop-only. Also skip when the last pointer event was touch
+        // to handle hybrid devices (e.g. iPad with keyboard) that report (hover: hover)
+        // but still fire a synthetic mouseover before the click when the user taps a link.
         if (isCoarse || lastPointerType === 'touch') return;
         try { if (localStorage.getItem('snakk:disable-hover-popup') === 'true') return; } catch { /* ignore */ }
 
@@ -616,6 +620,18 @@ class SnakkPopup {
     /**
      * Immediately dismiss popup and clear all state
      */
+    syncPopupTitles(): void {
+        let disabled = false;
+        try { disabled = localStorage.getItem('snakk:disable-hover-popup') === 'true'; } catch { /* ignore */ }
+        document.querySelectorAll<HTMLElement>('[data-popup-type][data-popup-name]').forEach(el => {
+            if (disabled) {
+                el.title = el.dataset.popupName!;
+            } else {
+                el.removeAttribute('title');
+            }
+        });
+    }
+
     dismissPopup(): void {
         if (this.showTimeout) clearTimeout(this.showTimeout);
         if (this.hideTimeout) clearTimeout(this.hideTimeout);
@@ -643,41 +659,6 @@ class SnakkPopup {
         document.addEventListener('mouseover', this._mouseOverHandler, false);
         document.addEventListener('mouseout', this._mouseOutHandler, false);
 
-        // Tap-to-open on coarse pointers. First tap on a trigger opens the popup
-        // and suppresses the link navigation; tapping the "Go to" link navigates.
-        document.addEventListener('click', (e: Event) => {
-            if (!isCoarse) return;
-            const target = e.target as HTMLElement;
-
-            // Tap inside an already-open popup is for its own controls — do nothing here.
-            if (this.currentPopup && this.currentPopup.contains(target)) return;
-
-            let triggerEl = target.closest('[data-popup-type]') as HTMLElement | null;
-            const isEntityLink = !triggerEl
-                && !!(triggerEl = target.closest('a.entity-link') as HTMLElement | null);
-            if (!triggerEl || triggerEl.classList.contains('breadcrumb-current')) return;
-
-            e.preventDefault();
-            if (this.showTimeout) clearTimeout(this.showTimeout);
-            if (this.hideTimeout) clearTimeout(this.hideTimeout);
-            this.currentTrigger = triggerEl;
-            if (isEntityLink && !triggerEl.dataset.popupType) {
-                this.showEntityLinkPopup(triggerEl);
-            } else {
-                this.showPopup(triggerEl);
-            }
-        }, false);
-
-        // Outside-tap close on coarse pointers.
-        document.addEventListener('pointerdown', (e: Event) => {
-            if (!isCoarse) return;
-            if (!this.currentPopup || this.currentPopup.style.display === 'none') return;
-            const target = e.target as HTMLElement;
-            if (this.currentPopup.contains(target)) return;
-            if (target.closest('[data-popup-type], a.entity-link')) return;
-            this.dismissPopup();
-        }, false);
-
         // Close popup on HTMX navigation so it doesn't linger after page swap
         document.addEventListener('htmx:beforeRequest', () => this.dismissPopup(), false);
 
@@ -691,7 +672,6 @@ class SnakkPopup {
             const anchor = (e.target as HTMLElement).closest('a') as HTMLAnchorElement | null;
             if (!anchor) return;
             if (this.currentPopup && this.currentPopup.contains(anchor)) return;
-            if (isCoarse && anchor.closest('[data-popup-type], a.entity-link')) return;
             this.dismissPopup();
         };
         document.addEventListener('mousedown', dismissOnAnchor, false);
@@ -699,6 +679,14 @@ class SnakkPopup {
 
         // Close popup on browser back/forward navigation
         window.addEventListener('popstate', () => this.dismissPopup());
+
+        // Keep title attributes on [data-popup-type] elements in sync with the
+        // hover-popup preference so tooltip and popup are never shown together.
+        this.syncPopupTitles();
+        document.addEventListener('htmx:afterSettle', () => this.syncPopupTitles(), false);
+        window.addEventListener('storage', (e: StorageEvent) => {
+            if (e.key === 'snakk:disable-hover-popup') this.syncPopupTitles();
+        });
     }
 
     /**

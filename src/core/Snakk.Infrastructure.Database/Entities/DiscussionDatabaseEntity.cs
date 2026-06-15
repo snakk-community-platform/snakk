@@ -36,12 +36,14 @@ public class DiscussionDatabaseEntity
 
     // Denormalized OP author display fields (cascaded on user rename/avatar change)
     public string? AuthorDisplayName { get; set; }
+    public string? AuthorSlug { get; set; }
     public string? AuthorAvatarFileName { get; set; }
     public string? AuthorAvatarThumbnailFileName { get; set; }
 
     // Denormalized last-reply preview (updated on post create/delete)
     public string? LastPostAuthorPublicId { get; set; }
     public string? LastPostAuthorDisplayName { get; set; }
+    public string? LastPostAuthorSlug { get; set; }
     public string? LastPostAuthorAvatarFileName { get; set; }
     public string? LastPostAuthorAvatarThumbnailFileName { get; set; }
     [MaxLength(200)]

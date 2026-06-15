@@ -8,13 +8,15 @@
 @{ var partialCardIndex = 0; }
 @foreach (var discussion in Model.Items)
 {
+    var rank = Model.Sort == "trending" ? (int?)(Model.Offset + partialCardIndex + 1) : null;
     @await Html.PartialAsync("Shared/_DiscussionCard",
-        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, Model.ShowHub, Model.ShowSpace, ShowPath: Model.ShowPath, IsFirst: Model.Offset == 0 && partialCardIndex++ == 0))
+        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, Model.ShowHub, Model.ShowSpace, ShowPath: Model.ShowPath, IsFirst: Model.Offset == 0 && partialCardIndex == 0, Rank: rank, GotoUnread: Model.Sort == "since"))
+    partialCardIndex++;
 }
 
 @if (Model.HasMoreItems
      && Model.NextOffset < Model.MaxOffset
-     && (Model.NextCursor != null || Model.Sort == "trending" || Model.Sort == "new"))
+     && (Model.NextCursor != null || Model.Sort == "trending" || Model.Sort == "new" || Model.Sort == "since"))
 {
     var communityParam = Model.CommunityId != null ? $"&communityId={Model.CommunityId}" : "";
     var offsetParam = $"&offset={Model.NextOffset}";
@@ -24,7 +26,9 @@
             ? $"/partials/discussions?sort=new&cursor={Model.NextCursor}&pageSize=20{communityParam}{offsetParam}"
             : Model.Sort == "my-feed"
                 ? $"/partials/discussions?sort=my-feed&cursor={Model.NextCursor}&pageSize=20{offsetParam}"
-                : $"/partials/discussions?cursor={Model.NextCursor}&pageSize=20{communityParam}{(Model.HubId != null ? $"&hubId={Model.HubId}" : "")}{(Model.SpaceId != null ? $"&spaceId={Model.SpaceId}" : "")}{(Model.HideCommunity ? "&hideCommunity=true" : "")}{(Model.HideHub ? "&hideHub=true" : "")}{(Model.HidePath ? "&hidePath=true" : "")}{offsetParam}";
+                : Model.Sort == "since"
+                    ? $"/partials/discussions?sort=since&cursor={Model.NextCursor}&pageSize=20{offsetParam}"
+                    : $"/partials/discussions?cursor={Model.NextCursor}&pageSize=20{communityParam}{(Model.HubId != null ? $"&hubId={Model.HubId}" : "")}{(Model.SpaceId != null ? $"&spaceId={Model.SpaceId}" : "")}{(Model.HideCommunity ? "&hideCommunity=true" : "")}{(Model.HideHub ? "&hideHub=true" : "")}{(Model.HidePath ? "&hidePath=true" : "")}{offsetParam}";
     <div hx-get="@nextUrl"
          hx-trigger="revealed once"
          hx-swap="outerHTML"

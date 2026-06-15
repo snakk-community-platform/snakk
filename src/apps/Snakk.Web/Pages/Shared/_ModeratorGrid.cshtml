@@ -14,7 +14,7 @@
     <div class="sn-mod-list-grid">
         @foreach (var mod in group.Moderators)
         {
-            <a href="@SnakkUrlHelper.UserProfile(mod.UserPublicId)" class="sn-mod-list-card"
+            <a href="@SnakkUrlHelper.UserProfile(mod.Slug)" class="sn-mod-list-card"
                data-popup-type="user" data-popup-id="@mod.UserPublicId" data-popup-name="@mod.DisplayName">
                 <div class="sn-mod-list-banner"
                      style="background-image: @UserGradient(mod.UserPublicId)">

@@ -103,4 +103,5 @@ public sealed record PasskeyLoginUserData(
     bool EmailVerified,
     string? AvatarFileName,
     long AuthVersion,
-    bool TwoFactorEnabled);
+    bool TwoFactorEnabled,
+    string? Slug = null);

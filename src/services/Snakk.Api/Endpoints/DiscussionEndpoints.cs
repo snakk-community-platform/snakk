@@ -138,6 +138,7 @@ public static class DiscussionEndpoints
         int offset,
         int pageSize,
         Application.Repositories.ISearchRepository searchRepo,
+        IUserRepository userRepo,
         CancellationToken ct,
         string? communityId = null,
         string? cursor = null)
@@ -147,6 +148,13 @@ public static class DiscussionEndpoints
         offset = Math.Max(0, offset);
 
         var result = await searchRepo.GetRecentDiscussionsAsync(offset, pageSize, communityId, null, cursor, httpContext.User.GetUserIdString(), ct: ct);
+
+        var authorIds = result.Items
+            .Select(d => d.CreatedByUserPublicId)
+            .Where(id => id is not null)
+            .Distinct()
+            .ToList();
+        var slugMap = await userRepo.GetSlugsByPublicIdsAsync(authorIds!, ct);
 
         return TypedResults.Ok(new PagedResponse<RecentDiscussionResponse>(
             Items: result.Items.Select(d => new RecentDiscussionResponse(
@@ -176,7 +184,8 @@ public static class DiscussionEndpoints
                 Author: new AuthorRef(
                     PublicId: d.CreatedByUserPublicId,
                     DisplayName: d.CreatedByUserDisplayName,
-                    AvatarUrl: AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0)),
+                    AvatarUrl: AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId, AvatarEntityType.User, 0),
+                    Slug: d.CreatedByUserPublicId is not null ? slugMap.GetValueOrDefault(d.CreatedByUserPublicId) : null),
                 PostCount: d.PostCount,
                 ReactionCount: d.ReactionCount,
                 Tags: d.Tags)),
@@ -190,6 +199,8 @@ public static class DiscussionEndpoints
         StatisticsUseCase useCase,
         IConfiguration configuration,
         ClaimsPrincipal user,
+        IUserRepository userRepo,
+        CancellationToken ct,
         string? hubId = null,
         string? spaceId = null,
         string? communityId = null,
@@ -208,8 +219,15 @@ public static class DiscussionEndpoints
         if (!result.IsSuccess)
             return Results.Problem(result.Error);
 
+        var authorIds = result.Value!.Items
+            .Select(d => d.AuthorPublicId)
+            .Where(id => id is not null)
+            .Distinct()
+            .ToList();
+        var slugMap = await userRepo.GetSlugsByPublicIdsAsync(authorIds!, ct);
+
         return TypedResults.Ok(new TopActiveDiscussionsResponse(
-            Items: result.Value!.Items.Select(d => new TopActiveDiscussionResponse(
+            Items: result.Value.Items.Select(d => new TopActiveDiscussionResponse(
                 PublicId: d.DiscussionId,
                 Title: d.Title,
                 Slug: d.Slug,
@@ -224,7 +242,8 @@ public static class DiscussionEndpoints
                     Name: d.HubName),
                 Author: new AuthorRef(
                     PublicId: d.AuthorPublicId,
-                    DisplayName: d.AuthorDisplayName)))));
+                    DisplayName: d.AuthorDisplayName,
+                    Slug: d.AuthorPublicId is not null ? slugMap.GetValueOrDefault(d.AuthorPublicId) : null)))));
     }
 
     private static async Task<IResult> GetDiscussionPostsAsync(
@@ -279,7 +298,8 @@ public static class DiscussionEndpoints
                     IsDeleted: p.Author.IsDeleted,
                     JoinedAt: p.Author.JoinedAt,
                     DiscussionCount: p.Author.DiscussionCount,
-                    ReplyCount: p.Author.ReplyCount),
+                    ReplyCount: p.Author.ReplyCount,
+                    Slug: p.Author.Slug),
                 ReplyTo: p.ReplyTo is not null ? new ReplyToRef(
                     AuthorName: p.ReplyTo.AuthorName,
                     ContentSnippet: p.ReplyTo.ContentSnippet) : null,

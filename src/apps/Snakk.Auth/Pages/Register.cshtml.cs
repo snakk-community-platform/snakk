@@ -77,7 +77,7 @@ public class RegisterModel(
                 ? "Open"
                 : publicSettings.RegistrationMode;
         }
-        catch { /* Don't block page load */ }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to load public settings during registration page load"); }
 
         ErrorMessage = error switch
         {
@@ -96,7 +96,7 @@ public class RegisterModel(
                 new Snakk.Protos.Consent.GetRequiredConsentsRequest());
             RequiredConsents = consents.Consents.ToList();
         }
-        catch { /* Don't block registration page load */ }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to load required consents for registration page"); }
 
         return Page();
     }

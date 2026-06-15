@@ -804,6 +804,19 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         return (discussions, totalCount);
     }
 
+    public async Task<int> GetUnreadDiscussionCountAsync(
+        DateTime since,
+        string? userId = null,
+        bool viewerAllowsAdult = false,
+        CancellationToken ct = default)
+    {
+        var query = _context.Discussions.AsQueryable();
+        query = await WithAccessFilterAsync(query, userId, ct);
+        query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
+        query = query.Where(d => d.LastActivityAt > since);
+        return await query.CountAsync(ct);
+    }
+
     public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetRecentDiscussionsAsync(
         int offset,
         int pageSize,
@@ -815,12 +828,17 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         string? authorId = null,
         IReadOnlyList<string>? spaceIds = null,
         bool viewerAllowsAdult = false,
+        bool sinceLastVisit = false,
+        DateTime? lastVisitAt = null,
         CancellationToken ct = default)
     {
         var query = _context.Discussions.AsQueryable();
 
         query = await WithAccessFilterAsync(query, userId, ct);
         query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
+
+        if (sinceLastVisit && lastVisitAt.HasValue)
+            query = query.Where(d => d.LastActivityAt > lastVisitAt.Value);
 
         // Filter by author if specified
         if (!string.IsNullOrEmpty(authorId))

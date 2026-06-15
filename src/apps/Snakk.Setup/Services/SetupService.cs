@@ -80,7 +80,19 @@ public class SetupService()
                 ["MultiCommunityEnabled"] = state.MultiCommunityEnabled,
                 ["PasskeysEnabled"] = state.PasskeysEnabled,
                 ["TwoFactorEnabled"] = state.TwoFactorEnabled,
-                ["PrivateMessagingEnabled"] = state.PrivateMessagingEnabled
+                ["PrivateMessagingEnabled"] = state.PrivateMessagingEnabled,
+                ["AdaptiveVolumeWindowEnabled"] = state.AdaptiveVolumeWindowEnabled
+            },
+            ["Trending"] = new Dictionary<string, object>
+            {
+                ["TargetPostsInWindow"] = state.TrendingTargetPosts,
+                ["TargetDiscussionsInWindow"] = state.TrendingTargetDiscussions,
+                ["MinWindowHours"] = 6,
+                ["MaxWindowDays"] = 30,
+                ["BufferMultiplier"] = 1.15,
+                ["LookbackHours"] = state.TrendingLookbackHours,
+                ["SpacesLookbackDays"] = state.SpacesLookbackDays,
+                ["ContributorsLookbackDays"] = state.ContributorsLookbackDays
             },
             ["FileStorage"] = BuildFileStorageConfig(state),
             ["Setup"] = new Dictionary<string, string>

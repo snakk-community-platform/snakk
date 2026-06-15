@@ -239,9 +239,9 @@
                                 <img src="@firstPostItem.Author.AvatarThumbnailUrl"
                                      alt="@firstPostItem.Author.DisplayName"
                                      width="24" height="24"
-                                     class="rounded-full"
+                                     class="rounded-full shadow-layered"
                                      decoding="async" />
-                                <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.PublicId)"
+                                <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.Slug)"
                                    class="font-medium hover:underline"
                                    data-popup-type="user"
                                    data-popup-id="@firstPostItem.Author.PublicId"
@@ -377,7 +377,7 @@
                             };
                             @if (opHasReactions || Model.IsAuthenticated)
                             {
-                                <div class="sn-reaction-badge shrink-0 @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "cursor-pointer" : "")"
+                                <div class="sn-reaction-badge shrink-0 shadow-layered @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "cursor-pointer" : "")"
                                     @if (Model.IsAuthenticated && !Model.Discussion!.IsLocked)
                                     {
                                         <text>data-action="toggle-reaction-picker" data-post-id="@firstPostItem.PublicId"</text>
@@ -1169,10 +1169,10 @@
                                             <img src="@post.Author.AvatarThumbnailUrl"
                                                  alt="@post.Author.DisplayName"
                                                  width="48" height="48"
-                                                 class="post-avatar"
+                                                 class="post-avatar shadow-layered"
                                                  decoding="async"
                                             @(i >= 10 ? "loading=\"lazy\"" : "") />
-                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.Slug)"
                                                class="post-author-name"
                                                data-popup-type="user"
                                                data-popup-id="@post.Author.PublicId"
@@ -1243,7 +1243,7 @@
                                                         }
                                                         else
                                                         {
-                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.Slug)"
                                                                data-popup-type="user"
                                                                data-popup-id="@post.Author.PublicId"
                                                                data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
@@ -1259,7 +1259,7 @@
                                                         }
                                                         else
                                                         {
-                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.Slug)"
                                                                data-popup-type="user"
                                                                data-popup-id="@post.Author.PublicId"
                                                                data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
@@ -1581,7 +1581,7 @@
 <!-- Right Column -->
 <aside class="sn-right">
     @{
-        ViewData["RightPane.NewDiscussionUrl"] = Model.Space != null ? "/new?spaceId=" + Model.Space.PublicId : "/new";
+        ViewData["RightPane.NewDiscussionUrl"] = Model.Space != null ? "/create?spaceId=" + Model.Space.PublicId : "/create";
         ViewData["RightPane.Actions"] = new[] { "share", "subscribe", "save" };
         ViewData["RightPane.ShareUrl"] = Model.CanonicalUrl;
         ViewData["RightPane.ShareTitle"] = Model.Discussion!.Title;
@@ -1686,10 +1686,10 @@
                     <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                                     model="Model.InlineModerators"
                                     htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
-                        <div class="flex flex-col gap-2" style="min-height:6rem">
-                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
-                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
-                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-28"></div></div>
+                        <div class="grid grid-cols-8 gap-1">
+                            <div class="skeleton rounded-full aspect-square w-full"></div>
+                            <div class="skeleton rounded-full aspect-square w-full"></div>
+                            <div class="skeleton rounded-full aspect-square w-full"></div>
                         </div>
                     </inline-or-htmx>
                 </div>
@@ -1860,6 +1860,8 @@
         officialAnswers = Model.Discussion?.Type == "Iama" && Model.IamaInfo != null
             ? Model.IamaInfo.OfficialAnswers.ToDictionary(kv => kv.Key, kv => kv.Value)
             : (object?)null,
-        sort = Model.Sort
+        sort = Model.Sort,
+        lastReadPostId = Model.LastReadPostId,
+        unreadLabel = T.Pages.DiscJumpToUnread
     }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
 </script>

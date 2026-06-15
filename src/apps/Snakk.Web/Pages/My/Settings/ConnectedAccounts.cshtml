@@ -1,0 +1,33 @@
+@page "/my/settings/connected-accounts"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.My.Settings.ConnectedAccountsModel
+@{
+    Layout = "~/Pages/Shared/_SettingsLayout.cshtml";
+    ViewData["Title"] = T.Settings.ConnAccTitle;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
+    ViewData["Settings.Icon"] = "icon-user-group";
+    ViewData["Settings.Heading"] = T.Settings.ConnAccHeading;
+}
+            @if (Model.ErrorCode == "LAST_AUTH_METHOD")
+            {
+                <div class="alert alert-error mb-4 text-sm">@T.Settings.ConnAccLastAuthMethodError</div>
+            }
+            else if (Model.ErrorCode == "PROVIDER_TAKEN_BY_OTHER")
+            {
+                <div class="alert alert-error mb-4 text-sm">@T.Settings.ConnAccProviderTakenError</div>
+            }
+            else if (Model.ErrorCode is not null)
+            {
+                <div class="alert alert-error mb-4 text-sm">@T.Settings.ConnAccConnectFailed</div>
+            }
+
+            <div class="sn-settings-section">
+                <p class="text-sm mb-4" style="color: var(--text-tertiary)">@T.Settings.ConnAccIntro</p>
+                <div id="connected-accounts-list" class="flex flex-col gap-3">
+                    <!-- Populated by JS -->
+                    <div class="text-sm" style="color: var(--text-tertiary)">Loading…</div>
+                </div>
+            </div>
+<partial name="Shared/_SudoModals" />
+
+<script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

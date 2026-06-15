@@ -1,0 +1,28 @@
+﻿@page "/my/settings"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.My.SettingsModel
+@{
+    ViewData["Title"] = T.Settings.PageTitle;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<!-- Center Column -->
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <partial name="Shared/_AuthPrompt" />
+    </div>
+</div>
+
+<!-- Right Column -->
+<aside class="sn-right">
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
+}
+<div class="sn-right-sticky">
+    <partial name="Shared/_RightActionPane" />
+</div>
+</aside>

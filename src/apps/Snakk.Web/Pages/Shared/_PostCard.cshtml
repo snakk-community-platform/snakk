@@ -21,7 +21,7 @@
         }
         else
         {
-            <a href="@SnakkUrlHelper.UserProfile(Model.AuthorPublicId)"
+            <a href="@SnakkUrlHelper.UserProfile(Model.AuthorSlug)"
                class="sn-card-author p-author h-card"
                data-popup-type="user"
                data-popup-id="@Model.AuthorPublicId"
@@ -31,9 +31,25 @@
         <div class="tooltip tooltip-bottom" data-tip="@T.Card.CreatedAt @FormatFullDateTime(Model.CreatedAt)">
             <time class="sn-card-time" datetime="@Model.CreatedAt.ToString("o")">@FormatRelativeTime(Model.CreatedAt)</time>
         </div>
+        @if (Model.ReactionEmoji != null)
+        {
+            <span class="sn-card-dot">&middot;</span>
+            <span style="font-size:1em;line-height:1" aria-hidden="true">@Model.ReactionEmoji</span>
+        }
+        @if (Model.UnsaveId != null)
+        {
+            <button type="button" class="btn btn-xs shrink-0"
+                    style="background-color: oklch(0.65 0.18 45); border-color: oklch(0.65 0.18 45); color: white;"
+                    data-action="unsave-from-list"
+                    data-unsave-type="post"
+                    data-unsave-id="@Model.UnsaveId">
+                <span class="icon icon-bookmark-alt w-3 h-3" aria-hidden="true"></span>
+                @T.Card.Unsave
+            </button>
+        }
         @if (!string.IsNullOrEmpty(hubLabel) || !string.IsNullOrEmpty(spaceLabel))
         {
-            <span class="sn-card-path">
+            <span class="sn-card-path ml-auto">
                 @if (!string.IsNullOrEmpty(hubLabel))
                 {
                     <span class="sn-card-path-link">@hubLabel</span>

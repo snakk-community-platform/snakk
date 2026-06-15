@@ -415,7 +415,7 @@
     align-items: center;
     gap: 0.375rem;
     flex-wrap: nowrap;
-    padding: 0.5rem 1.5rem;
+    padding: 0.75rem 1.5rem;
     overflow: hidden;
 
     // Lift children above the ::before overlay
@@ -446,7 +446,7 @@
         background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
         z-index: 0;
         pointer-events: none;
-        height: 2.25rem;
+        height: 2.75rem;
     }
 
     .badge {
@@ -501,13 +501,45 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     color: var(--text-tertiary);
-    margin-bottom: 1.75rem;
+    margin-bottom: 2.25rem;
 
     svg, .icon {
         width: 0.875rem;
         height: 0.875rem;
         flex-shrink: 0;
     }
+}
+
+.sn-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2.25rem;
+
+    .sn-section-title {
+        margin-bottom: 0;
+    }
+
+    .sn-tab {
+        font-size: 0.6875rem;
+    }
+
+    @media (max-width: 767.98px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}
+
+.sn-section-description {
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    margin-bottom: 2rem;
+}
+
+.sn-section-title + .sn-section-description,
+.sn-section-header + .sn-section-description {
+    margin-top: -2rem;
 }
 
 

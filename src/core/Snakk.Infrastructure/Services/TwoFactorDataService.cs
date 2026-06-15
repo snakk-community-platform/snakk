@@ -106,6 +106,7 @@ public class TwoFactorDataService(SnakkDbContext context) : ITwoFactorDataServic
         AvatarFileName = u.AvatarFileName,
         AuthVersion = u.AuthVersion,
         TwoFactorEnabled = u.TwoFactorEnabled,
+        Slug = u.Slug,
         TwoFactorSecret = u.TwoFactorSecret,
         LockoutEnd = u.LockoutEnd,
         BackupCodes = u.TwoFactorBackupCodes

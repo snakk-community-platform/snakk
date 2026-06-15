@@ -51,7 +51,7 @@ public class ChallengeModel(IJwtCookieValidator jwtCookieValidator) : PageModel
             }
         }
 
-        if (!string.IsNullOrEmpty(ReturnUrl))
+        if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
             HttpContext.Session.SetString("OAuth_ReturnUrl", ReturnUrl);
 
         // CSRF is handled by the OAuth handler's correlation cookie.

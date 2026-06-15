@@ -47,6 +47,7 @@ public class HubDataService(
                         h.TeamRevision,
                         h.IsRestricted,
                         h.Require2FA,
+                        h.AllowAnonymousReading,
                         CommunitySlug = h.Community.Slug
                     })
                     .FirstOrDefaultAsync(cancel);
@@ -59,7 +60,8 @@ public class HubDataService(
                         raw.TeamRevision,
                         raw.IsRestricted,
                         raw.CommunitySlug,
-                        raw.Require2FA);
+                        raw.Require2FA,
+                        raw.AllowAnonymousReading);
             },
             MetaCacheOptions,
             cancellationToken: ct);

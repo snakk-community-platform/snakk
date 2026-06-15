@@ -59,7 +59,7 @@
             <div class="sn-community-card-banner" style="background-image: @CommunityGradient(Model.CommunityDetail.PublicId)">
                 <img src="@SnakkUrlHelper.CommunityAvatar(Model.CommunityDetail.PublicId, avatarFileName: Model.CommunityDetail.HasAvatarFileName ? Model.CommunityDetail.AvatarFileName : null)"
                      alt="" width="56" height="56"
-                     class="sn-community-avatar" decoding="async" fetchpriority="high" />
+                     class="sn-community-avatar shadow-layered" decoding="async" fetchpriority="high" />
                 <h1 class="sn-community-name">@Model.CommunityDetail.Name</h1>
             </div>
         </div>
@@ -86,7 +86,7 @@
                            class="flex items-center gap-3 px-4 py-3 bg-base-200/50 border-b border-subtle hover:bg-base-200 transition-colors"
                            data-popup-type="hub" data-popup-id="@hub.PublicId" data-popup-name="@hub.Name">
                             <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" width="28" height="28"
-                                 class="w-7 h-7 rounded-full shrink-0" loading="lazy" decoding="async" />
+                                 class="w-7 h-7 rounded-full shrink-0 shadow-layered" loading="lazy" decoding="async" />
                             <span class="font-semibold text-sm">@hub.Name</span>
                             @if (!string.IsNullOrEmpty(hub.Description))
                             {
@@ -107,7 +107,7 @@
                                     <a href="@spaceUrl" class="shrink-0"
                                        data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">
                                         <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId, avatarFileName: space.HasAvatarFileName ? space.AvatarFileName : null)" alt="" width="36" height="36"
-                                             class="w-9 h-9 rounded-full" loading="lazy" decoding="async" />
+                                             class="w-9 h-9 rounded-full shadow-layered" loading="lazy" decoding="async" />
                                     </a>
 
                                     <!-- Space info -->
@@ -148,7 +148,7 @@
                                                 SnakkUrlHelper.DiscussionSlugId(ld.Slug, ld.PublicId));
 
                                             <img src="@SnakkUrlHelper.UserAvatar(ld.AuthorPublicId, avatarFileName: ld.HasAuthorAvatarFileName ? ld.AuthorAvatarFileName : null)"
-                                                 alt="" width="24" height="24" class="w-6 h-6 rounded-full shrink-0" loading="lazy" decoding="async" />
+                                                 alt="" width="24" height="24" class="w-6 h-6 rounded-full shrink-0 shadow-layered" loading="lazy" decoding="async" />
                                             <div class="min-w-0">
                                                 <a href="@discussionUrl" class="text-xs font-medium truncate block hover:text-primary transition-colors">@ld.Title</a>
                                                 <span class="text-[10px] text-base-content/40 block">@(ld.AuthorDisplayName) · @FormatRelativeTime(ld.LastActivityAt?.ToDateTime())</span>
@@ -288,94 +288,52 @@
         <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                          model="Model.InlineModerators"
                          htmx-url="/partials/moderators?scopeType=Community&scopeId=@Model.CommunityDetail?.PublicId&moderatorsUrl=@(SnakkUrlHelper.Community(Model.CommunityDetail!.Slug, Model.Community))/moderators&rev=@Model.CommunityDetail?.TeamRevision">
-            <div class="flex flex-col gap-2" style="min-height:4rem">
-                <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
-                <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
+            <div class="grid grid-cols-8 gap-1">
+                <div class="skeleton rounded-full aspect-square w-full"></div>
+                <div class="skeleton rounded-full aspect-square w-full"></div>
+                <div class="skeleton rounded-full aspect-square w-full"></div>
             </div>
         </inline-or-htmx>
     </div>
 
-    <!-- Trending -->
-    @{
-        var hasSpaces = Model.ShowTrendingSpaces && Model.InlineTrendingSpaces?.Spaces?.Items?.Count > 0;
-        var hasDiscussions = Model.ShowTrendingDiscussions && Model.InlineTrendingDiscussions?.Discussions?.Items?.Count > 0;
-        var hasContributors = Model.ShowTrendingContributors && Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0;
-    }
-    @if (hasSpaces || hasDiscussions || hasContributors)
+    @if (Model.ShowTrendingSpaces && Model.InlineTrendingSpaces?.Spaces?.Items?.Count > 0)
     {
         <div class="sn-right-section">
             <div class="sn-right-title">
-                <span class="icon icon-trending-up" aria-hidden="true"></span>
-                @T.Pages.CommDetailTrending
+                <span class="icon icon-archive-layers" aria-hidden="true"></span>
+                @T.Pages.CommDetailTrendingSpaces
             </div>
+            <div class="sn-spaces-inline">
+                @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
+                {
+                    <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
+                       class="sn-card-tag sn-card-tag--space shadow-layered"
+                       style="--space-grad: @SpaceGradient(space.PublicId)"
+                       data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
+                }
+            </div>
+        </div>
+    }
 
-            @if (hasSpaces)
-            {
-                <div class="sn-right-subsection">
-                    <div class="sn-right-subtitle">@T.Pages.CommDetailTrendingSpaces</div>
-                    <div class="sn-spaces-inline">
-                        @foreach (var space in Model.InlineTrendingSpaces!.Spaces!.Items)
-                        {
-                            <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                               class="sn-card-tag sn-card-tag--space"
-                               style="--space-grad: @SpaceGradient(space.PublicId)"
-                               data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
-                        }
-                    </div>
-                </div>
-            }
-
-            @if (hasDiscussions)
-            {
-                <div class="sn-right-subsection">
-                    <div class="sn-right-subtitle">@T.Pages.CommDetailTrendingDiscussions</div>
-                    <div class="sn-trending-list">
-                        @foreach (var d in Model.InlineTrendingDiscussions!.Discussions!.Items)
-                        {
-                            var trendUrl = SnakkUrlHelper.Discussion(
-                                d.CommunitySlug, Model.Community,
-                                d.Hub.Slug,
-                                d.Space.Slug,
-                                SnakkUrlHelper.DiscussionSlugId(d.Slug, d.PublicId));
-
-                            <a href="@trendUrl" class="sn-trending-discussion">
-                                <div class="sn-trending-discussion-header">
-                                    <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" loading="lazy" decoding="async" />
-                                    <span>@d.Author.DisplayName</span>
-                                </div>
-                                <div class="sn-trending-discussion-title-row">
-                                    <span class="sn-trending-discussion-title">@d.Title</span>
-                                    <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
-                                        <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
-                                        @d.PostCountToday
-                                    </span>
-                                </div>
-                            </a>
-                        }
-                    </div>
-                </div>
-            }
-
-            @if (hasContributors)
-            {
-                <div class="sn-right-subsection">
-                    <div class="sn-right-subtitle">@T.Pages.CommDetailTrendingContributors</div>
-                    <div class="sn-trending-list">
-                        @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
-                        {
-                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor"
-                               data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
-                                <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                                <span class="sn-trending-contributor-name">@c.DisplayName</span>
-                                <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
-                                    <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
-                                    @c.PostCountToday
-                                </span>
-                            </a>
-                        }
-                    </div>
-                </div>
-            }
+    @if (Model.ShowTrendingContributors && Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
+    {
+        <div class="sn-right-section">
+            <div class="sn-right-title">
+                <span class="icon icon-users-group" aria-hidden="true"></span>
+                @T.Pages.CommDetailTrendingContributors
+            </div>
+            <div class="grid grid-cols-8 gap-1">
+                @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
+                {
+                    <a href="@SnakkUrlHelper.UserProfile(c.Slug)"
+                       hx-target="#main-content" hx-swap="outerHTML show:window:top"
+                       data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
+                        <img src="@c.AvatarMicroUrl" alt="@c.DisplayName"
+                             class="rounded-full w-full aspect-square object-cover shadow-layered"
+                             loading="lazy" decoding="async" />
+                    </a>
+                }
+            </div>
         </div>
     }
     </div>

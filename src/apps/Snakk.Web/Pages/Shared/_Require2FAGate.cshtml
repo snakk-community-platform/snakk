@@ -17,7 +17,7 @@
             <div class="flex flex-col gap-2 pt-2">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <a href="/settings/privacy?returnUrl=@Uri.EscapeDataString(returnUrl)"
+                    <a href="/my/settings/privacy?returnUrl=@Uri.EscapeDataString(returnUrl)"
                        class="btn btn-primary btn-sm w-full">
                         @T.Require2fa.CtaSetup
                     </a>

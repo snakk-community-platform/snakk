@@ -541,6 +541,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("AuthorDisplayName")
                         .HasColumnType("text");
 
+                    b.Property<string>("AuthorSlug")
+                        .HasColumnType("text");
+
                     b.Property<int>("CommunityId")
                         .HasColumnType("integer");
 
@@ -599,6 +602,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("LastPostAuthorPublicId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LastPostAuthorSlug")
                         .HasColumnType("text");
 
                     b.Property<string>("LastPostPlainTextExcerpt")
@@ -3378,6 +3384,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("CurrentVisitActiveAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3402,7 +3411,13 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("DisplayName")
                         .HasColumnType("text");
 
+                    b.Property<int>("DisplayNameChangeCount")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("DisplayNameChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DisplayNameLastChangedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
@@ -3438,6 +3453,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<bool>("IsDisplayNameLocked")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSlugCustomized")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -3445,6 +3463,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastVisitAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("LockoutEnd")
@@ -3468,6 +3489,15 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<int>("ReplyCount")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Slug")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SlugChangeCount")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SlugLastChangedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Timezone")
                         .HasColumnType("text");
@@ -3513,6 +3543,11 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.HasIndex("PublicId")
                         .IsUnique();
+
+                    b.HasIndex("Slug")
+                        .IsUnique()
+                        .HasDatabaseName("IX_User_Slug")
+                        .HasFilter("\"Slug\" IS NOT NULL");
 
                     b.ToTable("User");
                 });
@@ -3877,11 +3912,45 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsDescending(false, true)
                         .HasDatabaseName("IX_Save_UserId_CreatedAt_Desc");
 
-                    b.HasIndex("UserId", "DiscussionId", "PostId")
+                    b.HasIndex("UserId", "DiscussionId")
                         .IsUnique()
-                        .HasFilter("\"DiscussionId\" IS NOT NULL OR \"PostId\" IS NOT NULL");
+                        .HasFilter("\"DiscussionId\" IS NOT NULL");
+
+                    b.HasIndex("UserId", "PostId")
+                        .IsUnique()
+                        .HasFilter("\"PostId\" IS NOT NULL");
 
                     b.ToTable("Save");
+                });
+
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserSlugHistoryDatabaseEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("OldSlug")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("SupersededAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OldSlug")
+                        .IsUnique()
+                        .HasDatabaseName("IX_UserSlugHistory_OldSlug");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("IX_UserSlugHistory_UserId");
+
+                    b.ToTable("UserSlugHistory");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserSocialLinkDatabaseEntity", b =>
@@ -5288,6 +5357,17 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserSlugHistoryDatabaseEntity", b =>
+                {
+                    b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
+                        .WithMany("SlugHistory")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.UserSocialLinkDatabaseEntity", b =>
                 {
                     b.HasOne("Snakk.Infrastructure.Database.Entities.UserDatabaseEntity", "User")
@@ -5439,6 +5519,8 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("Roles");
+
+                    b.Navigation("SlugHistory");
 
                     b.Navigation("SocialLinks");
 

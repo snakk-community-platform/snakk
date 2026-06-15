@@ -4,14 +4,23 @@
     const toggle = document.getElementById('hide-presence-toggle') as HTMLInputElement | null;
     if (!toggle) return;
     toggle.addEventListener('change', async function () {
-        const res = await fetch('/bff/me/preferences', {
-            method: 'PUT',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ hidePresence: toggle.checked })
-        });
-        if (res.ok) {
-            (window as any).SnakkRealtime?.reconnect();
+        const newValue = toggle.checked;
+        try {
+            const res = await fetch('/bff/me/preferences', {
+                method: 'PUT',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hidePresence: newValue })
+            });
+            if (res.ok) {
+                (window as any).SnakkRealtime?.reconnect();
+            } else {
+                toggle.checked = !newValue;
+                console.error('[Settings] Failed to update presence preference:', res.status);
+            }
+        } catch (err) {
+            toggle.checked = !newValue;
+            console.error('[Settings] Network error updating presence preference:', err);
         }
     });
 })();

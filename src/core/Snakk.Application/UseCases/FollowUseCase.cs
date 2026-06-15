@@ -175,6 +175,9 @@ public class FollowUseCase(
     public async Task<IEnumerable<DiscussionId>> GetFollowedDiscussionsAsync(UserId userId) =>
         await followRepository.GetFollowedDiscussionsByUserAsync(userId);
 
+    public async Task<IEnumerable<(DiscussionId Id, DateTime FollowedAt)>> GetFollowedDiscussionsWithTimestampsAsync(UserId userId) =>
+        await followRepository.GetFollowedDiscussionsWithTimestampsAsync(userId);
+
     /// <summary>
     /// Get all users followed by a user (for caching).
     /// </summary>

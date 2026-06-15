@@ -153,3 +153,98 @@
     color: var(--text-secondary);
     line-height: 1.5;
 }
+
+// ── Card side panel (contextual extra data for /top, /trending, /my/* pages) ──
+
+.sn-card--has-side {
+    display: flex;
+    align-items: stretch;
+}
+
+.sn-card-side {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 6rem;
+    flex-shrink: 0;
+    padding: 0.75rem 0.5rem;
+    gap: 0.5rem;
+    background: var(--bg-secondary);
+    position: relative;
+    z-index: 2;
+    border-radius: .375rem;
+    order: 2;
+    color: var(--text-secondary);
+}
+
+.sn-card-side-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: color 0.15s, background 0.15s;
+    background: rgba(0, 0, 0, 0);
+    border: 1px solid var(--border-primary);
+    color: var(--text-secondary);
+
+    &:hover {
+        color: var(--text-secondary);
+        background: color-mix(in srgb, currentColor 8%, transparent);
+    }
+}
+
+.sn-card-side-btn--full {
+    width: 100%;
+    gap: 0.25rem;
+    padding: 0.3rem 0.4rem;
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.sn-card-side-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    width: 100%;
+}
+
+.sn-card:hover .sn-card-side {
+    background: var(--bg-hover, color-mix(in srgb, currentColor 6%, transparent));
+}
+
+.sn-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.sn-card-rank {
+    color: var(--text-secondary);
+    letter-spacing: -0.03em;
+    line-height: 1;
+}
+
+.sn-card-side-emoji {
+    font-size: 1.3rem;
+    line-height: 1;
+}
+
+.sn-card-side-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    line-height: 1.3;
+}
+
+.sn-card-side-stat {
+    font-size: 0.85rem;
+    text-align: center;
+    line-height: 1.1;
+}

@@ -37,7 +37,7 @@
                          alt="@Model.Conversation.OtherUser.DisplayName"
                          loading="lazy" />
                 </div>
-                <a href="@SnakkUrlHelper.UserProfile(Model.Conversation.OtherUser.PublicId)"
+                <a href="@SnakkUrlHelper.UserProfile(Model.Conversation.OtherUser.Slug)"
                    class="font-semibold hover:underline flex-1 min-w-0 truncate text-sm">
                     @Model.Conversation.OtherUser.DisplayName
                 </a>

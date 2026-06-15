@@ -57,7 +57,7 @@ public class CallbackModel(
             }
 
             // Snakk.Auth is at /auth, Snakk.Web is at the root
-            return Redirect("/settings/integrations?discord=linked");
+            return Redirect("/my/settings/integrations?discord=linked");
         }
         catch (RpcException ex)
         {

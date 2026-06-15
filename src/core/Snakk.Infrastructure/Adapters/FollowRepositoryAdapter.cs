@@ -209,6 +209,20 @@ public class FollowRepositoryAdapter(
         return publicIds.Select(DiscussionId.From);
     }
 
+    public async Task<IEnumerable<(DiscussionId Id, DateTime FollowedAt)>> GetFollowedDiscussionsWithTimestampsAsync(UserId userId, CancellationToken ct = default)
+    {
+        var results = await context.UserFollows
+            .Where(f => f.UserPublicId == userId.Value
+                     && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion
+                     && f.DiscussionPublicId != null)
+            .OrderByDescending(f => f.CreatedAt)
+            .Select(f => new { f.DiscussionPublicId, f.CreatedAt })
+            .ToListAsync(ct);
+        return results
+            .Where(x => x.DiscussionPublicId != null)
+            .Select(x => (DiscussionId.From(x.DiscussionPublicId!), x.CreatedAt));
+    }
+
     public async Task<IEnumerable<UserId>> GetFollowedUsersByUserAsync(UserId userId, CancellationToken ct = default)
     {
         var user = await context.Users.FirstOrDefaultAsync(u => u.PublicId == userId.Value, ct);

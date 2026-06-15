@@ -26,6 +26,7 @@ public static class AuthDataServiceRegistration
         // Snakk.Api.Services.AuthVersionCache; that registration in Program.cs
         // must be replaced with the line below.
         services.AddSingleton<IAuthVersionCache, AuthVersionCache>();
+        services.AddSingleton<IUserVisitTracker, UserVisitTracker>();
 
         // AuthVersionSweeper was previously registered as a HostedService in
         // Program.cs pointing to Snakk.Api.Services.AuthVersionSweeper.

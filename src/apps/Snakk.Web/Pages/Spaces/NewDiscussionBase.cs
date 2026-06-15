@@ -51,7 +51,7 @@ public abstract class NewDiscussionBaseModel(
         SpaceId = spaceId;
 
         if (string.IsNullOrEmpty(spaceId))
-            return Redirect("/new");
+            return Redirect("/create");
 
         if (User.Identity?.IsAuthenticated != true)
             return Page();
@@ -64,7 +64,7 @@ public abstract class NewDiscussionBaseModel(
         SpaceId ??= string.Empty;
 
         if (string.IsNullOrEmpty(SpaceId))
-            return Redirect("/new");
+            return Redirect("/create");
 
         if (!HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
         {

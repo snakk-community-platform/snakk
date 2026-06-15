@@ -4,6 +4,7 @@ using Snakk.Api.Helpers;
 using Snakk.Api.Services;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
+using Snakk.Domain.Repositories;
 using Snakk.Protos.Save;
 
 namespace Snakk.Api.GrpcServices;
@@ -12,7 +13,9 @@ public class SaveGrpcService(
     ISaveRepository saveRepository,
     ISearchRepository searchRepository,
     ICurrentUserService currentUser,
-    IFileStorage fileStorage) : SaveService.SaveServiceBase
+    IFileStorage fileStorage,
+    IUserRepository userRepository,
+    IDiscussionReadStateRepository readStateRepository) : SaveService.SaveServiceBase
 {
     public override async Task<SaveToggleResponse> ToggleSaveDiscussion(ToggleSaveDiscussionRequest request, ServerCallContext context)
     {
@@ -68,7 +71,46 @@ public class SaveGrpcService(
             previewMap.TryGetValue(d.PublicId, out var preview) ? d with { Preview = preview } : d).ToList();
 
         var enrichedResult = result with { Items = enrichedItems };
-        return PagedDiscussionListMapper.Build(enrichedResult, fileStorage);
+
+        var authorIds = enrichedItems
+            .SelectMany(d => new[] { d.CreatedByUserPublicId, d.LastReplierPublicId })
+            .OfType<string>()
+            .Distinct()
+            .ToList();
+        var authorSlugs = await userRepository.GetSlugsByPublicIdsAsync(authorIds, ct);
+
+        Dictionary<string, int>? unreadCounts = null;
+        if (publicIds.Count > 0)
+        {
+            var lastReadAtTask = readStateRepository.GetLastReadAtByDiscussionAsync(userId, publicIds, ct);
+            var lastVisitAtTask = userRepository.GetLastVisitAtAsync(userId, ct);
+            await Task.WhenAll(lastReadAtTask, lastVisitAtTask);
+            var lastReadAtMap = lastReadAtTask.Result;
+            var lastVisitAt = lastVisitAtTask.Result;
+
+            var cutoffs = BuildCutoffMap(publicIds, lastReadAtMap, lastVisitAt);
+            if (cutoffs.Count > 0)
+                unreadCounts = await readStateRepository.GetUnreadPostCountsAsync(cutoffs, ct);
+        }
+
+        return PagedDiscussionListMapper.Build(enrichedResult, fileStorage, authorSlugs, unreadCounts);
+    }
+
+    private static Dictionary<string, DateTime> BuildCutoffMap(
+        List<string> discussionIds,
+        Dictionary<string, DateTime> lastReadAtMap,
+        DateTime? lastVisitAt)
+    {
+        var cutoffs = new Dictionary<string, DateTime>();
+        foreach (var id in discussionIds)
+        {
+            if (lastReadAtMap.TryGetValue(id, out var perDiscussion))
+                cutoffs[id] = perDiscussion;
+            else if (lastVisitAt.HasValue)
+                cutoffs[id] = lastVisitAt.Value;
+            // No fallback available — skip this discussion (no badge)
+        }
+        return cutoffs;
     }
 
     public override async Task<PagedSavedPostsList> GetSavedPosts(GetSavedPostsRequest request, ServerCallContext context)
@@ -108,6 +150,8 @@ public class SaveGrpcService(
 
             if (p.AuthorAvatarFileName is not null)
                 item.AuthorAvatarFileName = p.AuthorAvatarFileName;
+            if (p.AuthorSlug is not null)
+                item.AuthorSlug = p.AuthorSlug;
 
             response.Items.Add(item);
         }

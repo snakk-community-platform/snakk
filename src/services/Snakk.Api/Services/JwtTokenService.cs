@@ -27,7 +27,7 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
     private static readonly JwtSecurityTokenHandler _jwtHandler = new();
     private static readonly byte[] Sentinel = [1];
 
-    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null, bool twoFactorEnabled = false)
+    public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null, bool twoFactorEnabled = false, string? slug = null)
     {
         var jti = Guid.NewGuid().ToString("N");
         var claims = new List<Claim>
@@ -67,6 +67,9 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
         if (twoFactorEnabled)
             claims.Add(new(Snakk.Application.Auth.CustomClaimTypes.TwoFactorEnabled, "1"));
 
+        if (!string.IsNullOrEmpty(slug))
+            claims.Add(new("Slug", slug));
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey)) { KeyId = "snakk-hmac" };
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
@@ -93,7 +96,8 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
             user.AvatarMicroFileName,
             authVersion: user.AuthVersion,
             sessionId: sessionId,
-            twoFactorEnabled: user.TwoFactorEnabled);
+            twoFactorEnabled: user.TwoFactorEnabled,
+            slug: user.Slug);
 
     public ClaimsPrincipal? ValidateToken(string token)
     {
@@ -114,7 +118,7 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
             };
 
             var handler = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler();
-            var result = Task.Run(() => handler.ValidateTokenAsync(token, validationParameters)).GetAwaiter().GetResult();
+            var result = handler.ValidateToken(token, validationParameters);
 
             if (!result.IsValid) return null;
 
@@ -212,7 +216,7 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
             };
 
             var handler = new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler();
-            var result = Task.Run(() => handler.ValidateTokenAsync(token, validationParameters)).GetAwaiter().GetResult();
+            var result = handler.ValidateToken(token, validationParameters);
 
             if (!result.IsValid) return null;
 

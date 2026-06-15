@@ -97,7 +97,8 @@ public class PostGrpcService(
                     IsDeleted = ep.Author.IsDeleted,
                     JoinedAt = ToTimestamp(ep.Author.JoinedAt),
                     DiscussionCount = ep.Author.DiscussionCount,
-                    ReplyCount = ep.Author.ReplyCount
+                    ReplyCount = ep.Author.ReplyCount,
+                    Slug = ep.Author.Slug ?? ""
                 },
                 HasCodeBlock = post.HasCodeBlock,
                 IsUsersFirstPostInDiscussion = post.IsUsersFirstPostInDiscussion,

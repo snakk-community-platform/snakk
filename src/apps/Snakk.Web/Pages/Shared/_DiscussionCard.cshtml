@@ -21,6 +21,7 @@
         : SnakkUrlHelper.Discussion(
             Model.Community, discussion.Hub.Slug, discussion.Space.Slug,
             SnakkUrlHelper.DiscussionSlugId(discussion.Slug, discussion.PublicId));
+    var cardUrl = Model.GotoUnread ? baseUrl + "?gotoUnread=true" : baseUrl;
 
     var communityUrl = Model.ShowCommunity
         ? SnakkUrlHelper.Community(discussion.Community.Slug, Model.Community)
@@ -33,20 +34,113 @@
         : SnakkUrlHelper.Space(Model.Community, discussion.Hub.Slug, discussion.Space.Slug);
 
     var replyCount = Math.Max(0, discussion.PostCount - 1);
+    var hasSide = Model.Rank.HasValue || Model.SavedAt.HasValue || Model.UnsaveId != null || Model.UnfollowId != null
+                  || Model.RemoveHistoryId != null || Model.ReactionEmoji != null || Model.ShowStats
+                  || Model.VisitedAt.HasValue || Model.FollowedAt.HasValue || (Model.UnreadCount ?? 0) > 0;
 }
 
-<article class="sn-card h-entry" data-discussion-id="@discussion.PublicId"@if (Model.UnfollowId != null) {<text> data-following-item="discussion" data-id="@Model.UnfollowId"</text>}>
+<article class="sn-card h-entry@(hasSide ? " sn-card--has-side" : "")" data-discussion-id="@discussion.PublicId"@if (Model.UnfollowId != null) {<text> data-following-item="discussion" data-id="@Model.UnfollowId"</text>}>
+    @if (hasSide)
+    {
+        <div class="sn-card-side">
+            @if (Model.UnsaveId != null)
+            {
+                <button type="button" class="sn-card-side-btn sn-card-side-btn--full"
+                        data-action="unsave-from-list"
+                        data-unsave-type="discussion"
+                        data-unsave-id="@Model.UnsaveId"
+                        title="@T.Card.Unsave">
+                    <span class="icon icon-trash w-3 h-3" aria-hidden="true"></span>
+                    @T.Card.Remove
+                </button>
+            }
+            @if (Model.UnfollowId != null)
+            {
+                <button type="button" class="sn-card-side-btn sn-card-side-btn--full"
+                        data-unfollow-type="discussion" data-unfollow-id="@Model.UnfollowId"
+                        title="@T.Card.Unsubscribe">
+                    <span class="icon icon-trash w-3 h-3" aria-hidden="true"></span>
+                    @T.Card.Remove
+                </button>
+            }
+            @if (Model.RemoveHistoryId != null)
+            {
+                <button type="button" class="sn-card-side-btn sn-card-side-btn--full"
+                        data-action="remove-from-history"
+                        data-remove-history-id="@Model.RemoveHistoryId"
+                        title="@T.Card.Remove">
+                    <span class="icon icon-trash w-3 h-3" aria-hidden="true"></span>
+                    @T.Card.Remove
+                </button>
+            }
+            @if (Model.Rank.HasValue)
+            {
+                <span class="sn-card-rank">#@Model.Rank</span>
+            }
+            @if (Model.ReactionEmoji != null)
+            {
+                <span class="sn-card-side-emoji" aria-hidden="true">@Model.ReactionEmoji</span>
+                @if (Model.ReactedAt.HasValue)
+                {
+                    <div class="sn-card-side-row">
+                        <span class="icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
+                        <span class="sn-card-side-label">@FormatRelativeTime(Model.ReactedAt)</span>
+                    </div>
+                }
+            }
+            @if (Model.SavedAt.HasValue)
+            {
+                <div class="sn-card-side-row">
+                    <span class="icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
+                    <span class="sn-card-side-label">@FormatRelativeTime(Model.SavedAt)</span>
+                </div>
+            }
+            @if (Model.FollowedAt.HasValue)
+            {
+                <div class="sn-card-side-row">
+                    <span class="icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
+                    <span class="sn-card-side-label">@FormatRelativeTime(Model.FollowedAt)</span>
+                </div>
+            }
+            @if (Model.ShowStats)
+            {
+                <div class="sn-card-side-row">
+                    <span class="icon icon-chat-bubble-filled" style="width:1rem;height:1rem" aria-hidden="true"></span>
+                    <span class="sn-card-side-stat">@replyCount</span>
+                </div>
+                <div class="sn-card-side-row">
+                    <span class="icon icon-badge-check" style="width:1rem;height:1rem" aria-hidden="true"></span>
+                    <span class="sn-card-side-stat">@discussion.ReactionCount</span>
+                </div>
+                <div class="sn-sparkline-container" data-sparkline-entity-type="discussion" data-sparkline-entity-id="@discussion.PublicId"></div>
+            }
+            @if (Model.VisitedAt.HasValue)
+            {
+                <div class="sn-card-side-row">
+                    <span class="icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
+                    <span class="sn-card-side-label">@FormatRelativeTime(Model.VisitedAt)</span>
+                </div>
+            }
+            @if ((Model.UnreadCount ?? 0) > 0)
+            {
+                <div class="sn-card-side-row">
+                    <span class="badge badge-primary badge-sm">+@Model.UnreadCount @T.Card.New</span>
+                </div>
+            }
+        </div>
+    }
+    <div class="sn-card-body">
     <div class="sn-card-header">
         @if (Model.ShowUser)
         {
-            <img src="@discussion.Author.AvatarMicroUrl" alt="" class="sn-card-avatar" width="20" height="20" loading="lazy" decoding="async" />
+            <img src="@discussion.Author.AvatarMicroUrl" alt="" class="sn-card-avatar shadow-layered" width="20" height="20" loading="lazy" decoding="async" />
             @if (string.IsNullOrEmpty(discussion.Author.PublicId))
             {
                 <span class="sn-card-author">@T.Card.DeletedUser</span>
             }
             else
             {
-                <a href="@SnakkUrlHelper.UserProfile(discussion.Author.PublicId)" class="sn-card-author p-author h-card"
+                <a href="@SnakkUrlHelper.UserProfile(discussion.Author.Slug)" class="sn-card-author p-author h-card"
                    data-popup-type="user"
                    data-popup-id="@discussion.Author.PublicId"
                    data-popup-name="@discussion.Author.DisplayName">@discussion.Author.DisplayName</a>
@@ -76,7 +170,7 @@
         }
         @if (Model.ShowPath)
         {
-            <span class="sn-card-path">
+            <span class="sn-card-path ml-auto">
                 @if (Model.ShowCommunity)
                 {
                     <a href="@communityUrl" class="sn-card-path-link"
@@ -93,7 +187,7 @@
                        data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
                     <span class="sn-card-path-sep">&rsaquo;</span>
                 }
-                <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space"
+                <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space shadow-layered"
                    style="--space-grad: @SpaceGradient(discussion.Space.PublicId)"
                    data-popup-type="space"
                    data-popup-id="@discussion.Space.PublicId"
@@ -104,13 +198,13 @@
 
     <div class="sn-card-title-row">
         <div class="sn-card-title">
-            <a href="@baseUrl" class="u-url p-name">@discussion.Title</a>
+            <a href="@cardUrl" class="u-url p-name">@discussion.Title</a>
         </div>
-        <span class="sn-card-stat sn-card-reactions@(discussion.ReactionCount == 0 ? " hidden" : "")">
+        <span class="sn-card-stat sn-card-reactions@(discussion.ReactionCount == 0 || Model.HideInlineStats ? " hidden" : "")">
             <span class="icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
             <span data-stat="reaction-count">@discussion.ReactionCount</span>
         </span>
-        <a href="@baseUrl" class="sn-card-stat sn-card-comments@(replyCount == 0 ? " hidden" : "")">
+        <a href="@cardUrl" class="sn-card-stat sn-card-comments@(replyCount == 0 || Model.HideInlineStats ? " hidden" : "")">
             <span class="icon icon-chat-bubble-filled" aria-hidden="true"></span>
             <span data-stat="post-count">@replyCount</span> <span class="sn-card-comments-label">@T.Card.Comments</span>
         </a>
@@ -527,14 +621,14 @@
                 <div class="tooltip tooltip-top" data-tip="@T.Card.RepliedAt @FormatFullDateTime(discussion.LastActivityAt?.ToDateTime())">
                     <time class="sn-card-reply-time">@FormatRelativeTime(discussion.LastActivityAt?.ToDateTime())</time>
                 </div>
-                <img src="@discussion.LastReplier.AvatarMicroUrl" alt="" class="sn-card-reply-avatar" width="16" height="16" loading="lazy" decoding="async" />
+                <img src="@discussion.LastReplier.AvatarMicroUrl" alt="" class="sn-card-reply-avatar shadow-layered" width="16" height="16" loading="lazy" decoding="async" />
                 @if (string.IsNullOrEmpty(discussion.LastReplier.PublicId))
                 {
                     <span class="sn-card-reply-username">@T.Card.DeletedUser</span>
                 }
                 else
                 {
-                    <a href="@SnakkUrlHelper.UserProfile(discussion.LastReplier.PublicId)"
+                    <a href="@SnakkUrlHelper.UserProfile(discussion.LastReplier.Slug)"
                        class="sn-card-reply-username"
                        data-popup-type="user"
                        data-popup-id="@discussion.LastReplier.PublicId"
@@ -545,16 +639,7 @@
         </div>
     }
     </div>
-    @if (Model.UnfollowId != null)
-    {
-        <div class="sn-card-stats">
-            <button type="button" class="btn btn-ghost btn-xs ml-auto shrink-0"
-                    data-unfollow-type="discussion" data-unfollow-id="@Model.UnfollowId"
-                    title="@T.Card.Unsubscribe">
-                @T.Card.Subscribed
-            </button>
-        </div>
-    }
+    </div>
 </article>
 @if (!ViewContext.HttpContext.Items.ContainsKey("iama-countdown-loaded"))
 {

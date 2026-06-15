@@ -28,4 +28,5 @@ public record SavedPostDto(
     string AuthorPublicId,
     string AuthorDisplayName,
     string? AuthorAvatarFileName,
-    DateTime SavedAt);
+    DateTime SavedAt,
+    string? AuthorSlug = null);

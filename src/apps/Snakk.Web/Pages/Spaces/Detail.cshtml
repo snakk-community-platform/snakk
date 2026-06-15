@@ -248,9 +248,10 @@ else
         <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                          model="Model.InlineModerators"
                          htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Slug))/moderators&rev=@Model.Space.TeamRevision">
-            <div class="flex flex-col gap-2" style="min-height:4rem">
-                <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
-                <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
+            <div class="grid grid-cols-8 gap-1">
+                <div class="skeleton rounded-full aspect-square w-full"></div>
+                <div class="skeleton rounded-full aspect-square w-full"></div>
+                <div class="skeleton rounded-full aspect-square w-full"></div>
             </div>
         </inline-or-htmx>
     </div>
@@ -283,7 +284,7 @@ else
 
                             <a href="@trendUrl" class="sn-trending-discussion">
                                 <div class="sn-trending-discussion-header">
-                                    <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" loading="lazy" decoding="async" />
+                                    <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" class="shadow-layered" loading="lazy" decoding="async" />
                                     <span>@d.Author.DisplayName</span>
                                 </div>
                                 <div class="sn-trending-discussion-title-row">
@@ -306,8 +307,8 @@ else
                     <div class="sn-trending-list">
                         @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
                         {
-                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor">
-                                <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
+                            <a href="@SnakkUrlHelper.UserProfile(c.Slug)" class="sn-trending-contributor">
+                                <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square shadow-layered" width="28" height="28" loading="lazy" decoding="async" />
                                 <span class="sn-trending-contributor-name">@c.DisplayName</span>
                                 <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
                                     <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>

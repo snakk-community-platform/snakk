@@ -28,37 +28,61 @@
 
                 <div>
                     <label class="text-sm font-medium mb-2 block">@T.Pages.SearchTypeLabel</label>
-                    <div class="join flex-wrap">
-                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="post" aria-label="@T.Pages.SearchTypePost"
-                               @(Model.SearchType == "post" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="searchType" value="discussion" aria-label="@T.Pages.SearchTypeDiscussion"
-                               @(Model.SearchType == "discussion" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <div class="sn-tabs">
+                        <label class="sn-tab">
+                            <input type="radio" name="searchType" value="post"
+                                   @(Model.SearchType == "post" ? "checked" : "")
+                                   hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                            @T.Pages.SearchTypePost
+                        </label>
+                        <label class="sn-tab">
+                            <input type="radio" name="searchType" value="discussion"
+                                   @(Model.SearchType == "discussion" ? "checked" : "")
+                                   hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                            @T.Pages.SearchTypeDiscussion
+                        </label>
                     </div>
                 </div>
 
                 <div>
                     <label class="text-sm font-medium mb-2 block">@T.Pages.SearchDateLabel</label>
-                    <div class="join flex-wrap">
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="today" aria-label="@T.Pages.SearchDateToday"
-                               @(Model.DateRange == "today" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past hour" aria-label="@T.Pages.SearchDatePastHour"
-                               @(Model.DateRange == "past hour" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past week" aria-label="@T.Pages.SearchDatePastWeek"
-                               @(Model.DateRange == "past week" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past month" aria-label="@T.Pages.SearchDatePastMonth"
-                               @(Model.DateRange == "past month" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="past year" aria-label="@T.Pages.SearchDatePastYear"
-                               @(Model.DateRange == "past year" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
-                        <input class="join-item btn btn-sm" type="radio" name="dateRange" value="all time" aria-label="@T.Pages.SearchDateAllTime"
-                               @(Model.DateRange == "all time" ? "checked" : "")
-                               hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                    <div class="sn-tabs">
+                        <label class="sn-tab">
+                            <input type="radio" name="dateRange" value="today"
+                                   @(Model.DateRange == "today" ? "checked" : "")
+                                   hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                            @T.Pages.SearchDateToday
+                        </label>
+                        <label class="sn-tab">
+                            <input type="radio" name="dateRange" value="past hour"
+                                   @(Model.DateRange == "past hour" ? "checked" : "")
+                                   hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                            @T.Pages.SearchDatePastHour
+                        </label>
+                        <label class="sn-tab">
+                            <input type="radio" name="dateRange" value="past week"
+                                   @(Model.DateRange == "past week" ? "checked" : "")
+                                   hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                            @T.Pages.SearchDatePastWeek
+                        </label>
+                        <label class="sn-tab">
+                            <input type="radio" name="dateRange" value="past month"
+                                   @(Model.DateRange == "past month" ? "checked" : "")
+                                   hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                            @T.Pages.SearchDatePastMonth
+                        </label>
+                        <label class="sn-tab">
+                            <input type="radio" name="dateRange" value="past year"
+                                   @(Model.DateRange == "past year" ? "checked" : "")
+                                   hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                            @T.Pages.SearchDatePastYear
+                        </label>
+                        <label class="sn-tab">
+                            <input type="radio" name="dateRange" value="all time"
+                                   @(Model.DateRange == "all time" ? "checked" : "")
+                                   hx-get="/search" hx-target="#search-results" hx-include="#search-filters input" hx-push-url="true" />
+                            @T.Pages.SearchDateAllTime
+                        </label>
                     </div>
                 </div>
             </div>
@@ -73,7 +97,7 @@
 
 <!-- Right Column -->
 @{
-    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
 }
 <partial name="Shared/_GlobalRightSidebar" />
 

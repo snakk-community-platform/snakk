@@ -105,5 +105,6 @@ public record ReactedPostVM(
         CommunitySlug       = CommunitySlug,
         HubName             = HubName,
         SpaceName           = SpaceName,
+        ReactionEmoji       = ReactionEmoji,
     };
 }

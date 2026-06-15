@@ -407,4 +407,5 @@ message ModeratorInfo {
   string user_public_id = 1;
   string display_name = 2;
   string role = 3;
+  string slug = 4;
 }

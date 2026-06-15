@@ -41,6 +41,7 @@ public class SpaceDataService(
                         s.TeamRevision,
                         s.IsRestricted,
                         s.Require2FA,
+                        s.AllowAnonymousReading,
                         AllowedTypes = s.AllowedDiscussionTypes.Select(a => a.DiscussionType).ToList(),
                         HubSlug = s.Hub.Slug,
                         CommunitySlug = s.Hub.Community.Slug,
@@ -94,7 +95,8 @@ public class SpaceDataService(
                     raw.DiscussionCount,
                     raw.ReplyCount,
                     ld,
-                    raw.Require2FA);
+                    raw.Require2FA,
+                    raw.AllowAnonymousReading);
             },
             MetaCacheOptions,
             cancellationToken: ct);

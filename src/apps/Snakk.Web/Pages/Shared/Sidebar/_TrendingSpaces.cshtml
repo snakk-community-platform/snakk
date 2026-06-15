@@ -13,7 +13,7 @@ else
         @foreach (var space in Model.Spaces.Items)
         {
             var spaceUrl = SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug);
-            <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space" hx-target="#main-content"
+            <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space shadow-layered" hx-target="#main-content"
                style="--space-grad: @SpaceGradient(space.PublicId)"
                data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
         }

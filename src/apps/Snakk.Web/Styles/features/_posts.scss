@@ -303,3 +303,27 @@
     color: var(--text-tertiary);
 }
 
+// ============================================
+// Unread Separator
+// ============================================
+
+.unread-separator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.75rem 0;
+    color: var(--link-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+
+    &::before,
+    &::after {
+        content: '';
+        flex: 1;
+        border-top: 1px solid var(--link-primary);
+        opacity: 0.4;
+    }
+}
+

@@ -23,6 +23,7 @@
             <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
             @T.Pages.IndexHeading
         </h2>
+        <p class="sn-section-description">@T.Pages.IndexDescription</p>
 
         @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
         {
@@ -59,7 +60,7 @@
 
 <!-- Right Column -->
 @{
-    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
     ViewData["RightPane.AboutTitle"] = T.Pages.IndexAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.IndexAboutDesc;
 }

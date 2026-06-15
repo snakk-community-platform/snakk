@@ -118,6 +118,7 @@ public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRe
             .Select(s => new
             {
                 s.Id,
+                SavedAt = s.CreatedAt,
                 PublicId = s.Discussion!.PublicId,
                 s.Discussion.Title,
                 s.Discussion.Slug,
@@ -188,7 +189,8 @@ public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRe
                     LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
                     LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
                     LastPostExcerpt: d.LastPostPlainTextExcerpt,
-                    IsAdult: d.IsAdultOnly);
+                    IsAdult: d.IsAdultOnly,
+                    SavedAt: d.SavedAt);
             }).ToList(),
             Offset = offset,
             PageSize = pageSize,
@@ -231,7 +233,8 @@ public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRe
                 s.Post.CreatedByUserPublicId,
                 s.Post.CreatedByUser.DisplayName ?? "",
                 s.Post.CreatedByUser.AvatarFileName,
-                s.CreatedAt))
+                s.CreatedAt,
+                s.Post.CreatedByUser.Slug))
             .ToPagedResultAsync(offset, pageSize, ct);
     }
 

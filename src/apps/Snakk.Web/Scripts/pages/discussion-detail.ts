@@ -69,6 +69,8 @@ interface DiscussionConfig {
     displayName: string;
     officialAnswers?: Record<string, string>;
     sort?: string;
+    lastReadPostId?: string | null;
+    unreadLabel?: string;
 }
 
 interface ReportReason {
@@ -537,6 +539,7 @@ async function submitEdit(postId: string): Promise<void> {
 
         if (!response.ok) {
             if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+            showToast('Failed to save. Please try again.', 'error');
             return;
         }
 
@@ -620,6 +623,7 @@ async function submitDiscussionTitle(): Promise<void> {
 
         if (!response.ok) {
             if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+            showToast('Failed to save. Please try again.', 'error');
             return;
         }
 
@@ -654,6 +658,7 @@ function cancelDiscussionTitle(): void {
 
 // Jump to unread functionality
 let lastReadPostId: string | null = null;
+let unreadLabel: string = '';
 
 function jumpToUnread(): void {
     if (lastReadPostId) {
@@ -672,6 +677,19 @@ function jumpToUnread(): void {
             }
         }
     }
+}
+
+function insertUnreadSeparator(): void {
+    document.getElementById('unread-separator')?.remove();
+    if (!lastReadPostId) return;
+    const lastRead = document.querySelector<HTMLElement>(`article[data-post-id="${lastReadPostId}"]`);
+    if (!lastRead) return;
+    const sep = document.createElement('div');
+    sep.id = 'unread-separator';
+    sep.className = 'unread-separator';
+    sep.setAttribute('role', 'separator');
+    sep.textContent = unreadLabel || 'Unread';
+    lastRead.after(sep);
 }
 
 // Mark posts as read via IntersectionObserver (no scroll polling or querySelectorAll)
@@ -1038,6 +1056,8 @@ async function loadReactionsForPost(postId: string): Promise<void> {
             fetch(`/bff/posts/${postId}/reactions/me`)
         ]);
 
+        if (!countsResponse.ok) throw new Error(`HTTP ${countsResponse.status}`);
+        if (!myResponse.ok) throw new Error(`HTTP ${myResponse.status}`);
         const countsData: ReactionCountsResponse = await countsResponse.json();
         const myData: MyReactionsResponse = await myResponse.json();
 
@@ -1119,12 +1139,12 @@ function updateFollowButton(isFollowing: boolean): void {
         if (isFollowing) {
             btn.classList.add('btn-primary');
             btn.classList.remove('btn-ghost');
-            text.textContent = 'Subscribed';
+            text.textContent = 'Followed';
             icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
         } else {
             btn.classList.remove('btn-primary');
             btn.classList.add('btn-ghost');
-            text.textContent = 'Subscribe';
+            text.textContent = 'Follow';
             icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />';
         }
     }
@@ -1135,11 +1155,11 @@ function updateFollowButton(isFollowing: boolean): void {
         if (isFollowing) {
             rpBtn.classList.add('btn-primary');
             rpBtn.classList.remove('btn-ghost');
-            if (rpText) rpText.textContent = 'Subscribed';
+            if (rpText) rpText.textContent = 'Followed';
         } else {
             rpBtn.classList.remove('btn-primary');
             rpBtn.classList.add('btn-ghost');
-            if (rpText) rpText.textContent = 'Subscribe';
+            if (rpText) rpText.textContent = 'Follow';
         }
     }
 }
@@ -1158,6 +1178,7 @@ async function loadFollowStatus(discussionId: string): Promise<void> {
     // Cache miss or not available, fetch from API
     try {
         const response = await fetch(`/bff/discussions/${discussionId}/follow-status`, { credentials: 'include' });
+        if (!response.ok) return;
         const result: FollowStatus = await response.json();
         updateFollowButton(result.isFollowing);
 
@@ -1607,6 +1628,8 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
 
             // Observe new posts for read tracking
             observeNewPosts();
+            // Re-position separator in case the last-read post just loaded
+            insertUnreadSeparator();
         }
 
         postsHasMoreItems = data.hasMoreItems;
@@ -1726,13 +1749,13 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                 badges += '<span class="badge badge-info badge-xs">Mod</span>';
             }
             if (post.isOp) {
-                badges += '<span class="badge badge-primary badge-xs post-badge-op">OP</span>';
+                badges += '<span class="badge badge-primary badge-xs post-badge-op shadow-layered">OP</span>';
             }
             if (post.isUsersFirstPostInSpace) {
-                badges += '<span class="badge badge-success badge-xs post-badge-new">New</span>';
+                badges += '<span class="badge badge-success badge-xs post-badge-new shadow-layered">New</span>';
             }
             if (post.isMilestone) {
-                badges += '<span class="badge badge-warning badge-xs post-badge-milestone" title="Milestone post">\u2605</span>';
+                badges += '<span class="badge badge-warning badge-xs post-badge-milestone shadow-layered" title="Milestone post">\u2605</span>';
             }
             authorPaneHtml += `<div class="post-author-badges">${badges}</div>`;
         }
@@ -2465,6 +2488,11 @@ function initDiscussionPage(config: DiscussionConfig): void {
     // Set endless scroll state from config
     postsCurrentOffset = config.postsCurrentOffset;
     postsHasMoreItems = config.postsHasMoreItems;
+
+    // Seed last-read post id for the separator and jump-to-unread button
+    lastReadPostId = config.lastReadPostId ?? null;
+    unreadLabel = config.unreadLabel ?? '';
+    insertUnreadSeparator();
 
     // Reset fragment/load-up state
     postsStartOffset = 0;

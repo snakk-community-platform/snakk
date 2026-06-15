@@ -1,43 +1,53 @@
 .sn-tabs {
   display: inline-flex;
-  padding: 3px;
-  gap: 2px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 0.5rem;
+  align-items: center;
+  gap: 0.5rem;
 
   @media (max-width: 767.98px) {
     display: flex;
-    width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
+    flex-wrap: wrap;
   }
 }
 
 .sn-tab {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.875rem;
   font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-tertiary);
+  font-weight: 400;
+  color: var(--text-secondary);
   background: transparent;
   border: none;
-  border-radius: 0.375rem;
+  padding: 0;
   cursor: pointer;
   white-space: nowrap;
-  flex-shrink: 0;
-  transition: color 0.15s, background-color 0.15s;
   text-decoration: none;
+  transition: color 0.15s;
+  flex-shrink: 0;
 
-  &:hover { color: var(--text-secondary); }
+  // Hide wrapped radio/checkbox inputs (search filter tab pattern)
+  input[type="radio"],
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+
+  &:hover { color: var(--text-primary); }
 
   &.active,
-  &[aria-selected="true"] {
-    background: var(--bg-tertiary);
+  &[aria-selected="true"],
+  &:has(input:checked) {
+    font-weight: bold;
     color: var(--text-primary);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  }
+
+  & + .sn-tab::before {
+    content: "|";
+    color: var(--text-tertiary);
+    font-weight: 400;
+    margin-right: 0.5rem;
   }
 }

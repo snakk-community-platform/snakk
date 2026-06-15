@@ -39,6 +39,7 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     public DbSet<ModerationLogDatabaseEntity> ModerationLogs { get; set; } = null!;
     public DbSet<AuditLogDatabaseEntity> AuditLogs { get; set; } = null!;
     public DbSet<UserDisplayNameHistoryDatabaseEntity> UserDisplayNameHistories { get; set; } = null!;
+    public DbSet<UserSlugHistoryDatabaseEntity> UserSlugHistory { get; set; } = null!;
 
     // Permissions
     public DbSet<PermissionDatabaseEntity> Permissions { get; set; } = null!;
@@ -468,11 +469,16 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasForeignKey(f => f.FollowedUserId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        // Save: unique constraint (one save per user per target)
+        // Save: two separate partial unique indexes so PostgreSQL NULL != NULL doesn't allow duplicates
         modelBuilder.Entity<UserSaveDatabaseEntity>()
-            .HasIndex(s => new { s.UserId, s.DiscussionId, s.PostId })
+            .HasIndex(s => new { s.UserId, s.DiscussionId })
             .IsUnique()
-            .HasFilter("\"DiscussionId\" IS NOT NULL OR \"PostId\" IS NOT NULL");
+            .HasFilter("\"DiscussionId\" IS NOT NULL");
+
+        modelBuilder.Entity<UserSaveDatabaseEntity>()
+            .HasIndex(s => new { s.UserId, s.PostId })
+            .IsUnique()
+            .HasFilter("\"PostId\" IS NOT NULL");
 
         modelBuilder.Entity<UserSaveDatabaseEntity>()
             .HasIndex(s => s.PublicId)
@@ -957,6 +963,13 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
             .HasIndex(u => u.PublicId)
             .IsUnique();
 
+        // Slug unique index (profile URL identifier)
+        modelBuilder.Entity<UserDatabaseEntity>()
+            .HasIndex(u => u.Slug)
+            .IsUnique()
+            .HasFilter("\"Slug\" IS NOT NULL")
+            .HasDatabaseName("IX_User_Slug");
+
         // DisplayName index for user search/autocomplete
         modelBuilder.Entity<UserDatabaseEntity>()
             .HasIndex(u => u.DisplayName)
@@ -1383,6 +1396,23 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
         modelBuilder.Entity<UserDisplayNameHistoryDatabaseEntity>()
             .HasIndex(h => h.NewName)
             .HasDatabaseName("IX_DisplayNameHistory_NewName");
+
+        // === Slug History ===
+
+        modelBuilder.Entity<UserSlugHistoryDatabaseEntity>()
+            .HasOne(h => h.User)
+            .WithMany(u => u.SlugHistory)
+            .HasForeignKey(h => h.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserSlugHistoryDatabaseEntity>()
+            .HasIndex(h => h.OldSlug)
+            .IsUnique()
+            .HasDatabaseName("IX_UserSlugHistory_OldSlug");
+
+        modelBuilder.Entity<UserSlugHistoryDatabaseEntity>()
+            .HasIndex(h => h.UserId)
+            .HasDatabaseName("IX_UserSlugHistory_UserId");
 
         // === Additional Discussion Indexes ===
 

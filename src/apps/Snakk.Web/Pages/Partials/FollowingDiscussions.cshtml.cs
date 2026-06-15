@@ -18,6 +18,7 @@ public class FollowingDiscussionsModel(
     public int MaxOffset { get; set; }
     public bool ShowCommunity { get; set; }
     public ICommunityContext Community => communityContext;
+    public Dictionary<string, DateTime> FollowTimestamps { get; private set; } = [];
 
     public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 10, CancellationToken cancellationToken = default)
     {
@@ -44,7 +45,9 @@ public class FollowingDiscussionsModel(
 
         try
         {
-            var allIds = await apiClient.GetFollowedDiscussionsAsync();
+            var allDetails = await apiClient.GetFollowedDiscussionsDetailedAsync(cancellationToken);
+            FollowTimestamps = allDetails.ToDictionary(x => x.PublicId, x => x.FollowedAt);
+            var allIds = allDetails.Select(x => x.PublicId).ToList();
             var batch = allIds.Skip(offset).Take(pageSize).ToList();
 
             HasMoreItems = offset + pageSize < allIds.Count;

@@ -28,13 +28,15 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
 var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(
     builder.Configuration.GetConnectionString("DbConnection"))
 {
-    MaxPoolSize = 50,
+    MaxPoolSize = 20,
     MinPoolSize = 2,
     Timeout = 30,
     ConnectionIdleLifetime = 300
 }.ToString();
 
-builder.Services.AddDbContextPool<SnakkDbContext>(options =>
+// AddPooledDbContextFactory registers both IDbContextFactory<T> (needed by ManageScopeDataService)
+// and SnakkDbContext (resolved through the factory for direct injections).
+builder.Services.AddPooledDbContextFactory<SnakkDbContext>(options =>
     options
         .UseNpgsql(connectionString,
             o => o.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
@@ -104,6 +106,7 @@ builder.Services.AddHttpClient("WebhookService", client =>
 
 // Activity snapshot repository
 builder.Services.AddScoped<Snakk.Application.Repositories.IActivitySnapshotRepository, Snakk.Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
+builder.Services.AddScoped<Snakk.Application.Services.IVolumeWindowService, Snakk.Infrastructure.Services.VolumeWindowService>();
 builder.Services.AddScoped<Snakk.Application.Repositories.IDiscussionViewRepository, Snakk.Infrastructure.Database.Repositories.DiscussionViewRepository>();
 
 // Stats rollup repository
@@ -115,6 +118,7 @@ builder.Services.AddScoped<Snakk.Domain.Repositories.IDiscussionRepository, Snak
 builder.Services.AddScoped<Snakk.Infrastructure.Database.Repositories.IPostRepository, Snakk.Infrastructure.Database.Repositories.PostRepository>();
 builder.Services.AddScoped<Snakk.Infrastructure.Database.Repositories.IDiscussionRepository, Snakk.Infrastructure.Database.Repositories.DiscussionRepository>();
 builder.Services.AddScoped<Snakk.Application.Repositories.IStatsRepository, Snakk.Infrastructure.Database.Repositories.StatsRepository>();
+builder.Services.AddScoped<Snakk.Application.Services.IManageScopeDataService, Snakk.Infrastructure.Services.ManageScopeDataService>();
 builder.Services.AddScoped<Snakk.Application.UseCases.StatisticsUseCase>();
 
 // Background workers

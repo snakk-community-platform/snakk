@@ -833,7 +833,7 @@
             const parts = msgPattern.replace('{0}', domain).split('{1}');
             msg.append(parts[0] || '');
             const a = document.createElement('a');
-            a.href = '/settings/browser';
+            a.href = '/my/settings/browser';
             a.textContent = labelSettings;
             msg.append(a);
             msg.append(parts[1] || '');

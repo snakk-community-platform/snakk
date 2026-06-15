@@ -69,9 +69,10 @@
             </div>
             <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                              htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(CommunityCtx, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
-                <div class="flex flex-col gap-2">
-                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
-                    <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
+                <div class="grid grid-cols-8 gap-1">
+                    <div class="skeleton rounded-full aspect-square w-full"></div>
+                    <div class="skeleton rounded-full aspect-square w-full"></div>
+                    <div class="skeleton rounded-full aspect-square w-full"></div>
                 </div>
             </inline-or-htmx>
         </div>

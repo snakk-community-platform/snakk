@@ -9,7 +9,7 @@ public class ReviewModel : SetupPageBase
 
     public void OnGet()
     {
-        ViewData["SetupStep"] = 12;
+        ViewData["SetupStep"] = 13;
         State = GetState();
     }
 

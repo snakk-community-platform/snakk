@@ -389,6 +389,9 @@ public static class ServiceCollectionExtensions
         });
         services.AddScoped<Application.Services.IPasskeyService, Infrastructure.Services.PasskeyService>();
 
+        // Volume window estimation for adaptive trending lookback
+        services.AddScoped<Application.Services.IVolumeWindowService, Infrastructure.Services.VolumeWindowService>();
+
         // Admin Services
         services.AddScoped<Application.Services.IAdminUserService, Infrastructure.Services.AdminUserService>();
         services.AddScoped<Application.Services.IAdminContentService, Infrastructure.Services.AdminContentService>();

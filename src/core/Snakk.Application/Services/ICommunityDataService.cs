@@ -31,4 +31,5 @@ public record CommunityMetaDto(
     string? RulesRevision,
     string? TeamRevision,
     bool IsRestricted,
-    bool Require2FA);
+    bool Require2FA,
+    int VisibilityId);

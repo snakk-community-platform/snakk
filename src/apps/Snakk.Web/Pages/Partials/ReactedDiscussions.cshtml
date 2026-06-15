@@ -18,14 +18,8 @@ else
 {
     @foreach (var pair in Model.Items)
     {
-        <div class="sn-reaction-strip">
-            <span class="sn-reaction-emoji">@pair.Reaction.ReactionEmoji</span>
-            <span class="sn-reaction-time">
-                <time data-timestamp="@pair.Reaction.ReactedAt.ToString("O")">@DisplayHelper.FormatRelativeTime(pair.Reaction.ReactedAt)</time>
-            </span>
-        </div>
         @await Html.PartialAsync("Shared/_DiscussionCard",
-            new DiscussionListItemVM(pair.Discussion, ShowCommunity: true, Model.Community))
+            new DiscussionListItemVM(pair.Discussion, ShowCommunity: true, Model.Community, ReactionEmoji: pair.Reaction.ReactionEmoji, ReactedAt: pair.Reaction.ReactedAt))
     }
 
     @if (Model.HasMoreItems)

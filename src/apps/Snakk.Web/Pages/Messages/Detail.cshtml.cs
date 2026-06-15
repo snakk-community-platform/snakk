@@ -48,7 +48,8 @@ public class DetailModel(
                         convResult.Conversation.OtherUser.PublicId,
                         avatarThumbnailFileName: convResult.Conversation.OtherUser.HasAvatarThumbnailFileName
                             ? convResult.Conversation.OtherUser.AvatarThumbnailFileName
-                            : null)),
+                            : null),
+                    convResult.Conversation.OtherUser.HasSlug ? convResult.Conversation.OtherUser.Slug : null),
                 convResult.Conversation.HasLastMessageExcerpt ? convResult.Conversation.LastMessageExcerpt : null,
                 convResult.Conversation.LastMessageAt?.ToDateTime().ToString("O") ?? DateTime.UtcNow.ToString("O"),
                 convResult.Conversation.IsPinned);
