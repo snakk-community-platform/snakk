@@ -1,5 +1,6 @@
 namespace Snakk.Api.Services;
 
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
 using Snakk.Application.Services;
@@ -26,6 +27,40 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
 
     private static readonly JwtSecurityTokenHandler _jwtHandler = new();
     private static readonly byte[] Sentinel = [1];
+
+    // L1 negative+positive memo over the L2 (Redis) revocation answer, mirroring
+    // RevocationCache's two-layer design (HI-63). The per-request OnTokenValidated
+    // hot path checked jti + session revocation with a SYNCHRONOUS Redis Get each,
+    // blocking a threadpool thread per request — under load the pool starved and the
+    // single Redis multiplexer backlogged (RedisTimeoutException). These memos make
+    // the steady-state cost ~one L2 read per key per L1Ttl, and IsRevokedAsync/
+    // IsSessionRevokedAsync do the read asynchronously so no thread is blocked.
+    // The issuing replica seeds L1 on RevokeToken/RevokeSession so it enforces
+    // immediately; other replicas converge within one L1Ttl (same posture as
+    // RevocationCache for user-revocation).
+    private static readonly TimeSpan L1Ttl = TimeSpan.FromSeconds(30);
+    private const int SweepThreshold = 50_000;
+    private readonly ConcurrentDictionary<string, (bool Revoked, DateTime Expiry)> _jtiL1 = new();
+    private readonly ConcurrentDictionary<string, (bool Revoked, DateTime Expiry)> _sessionL1 = new();
+
+    private static async Task<bool> IsKeyPresentAsync(
+        IDistributedCache cache, ConcurrentDictionary<string, (bool, DateTime)> l1,
+        string memoKey, string cacheKey, CancellationToken ct)
+    {
+        if (l1.TryGetValue(memoKey, out var memo) && DateTime.UtcNow < memo.Item2)
+            return memo.Item1;
+
+        var revoked = await cache.GetAsync(cacheKey, ct) is not null;
+
+        if (l1.Count > SweepThreshold)
+        {
+            var now = DateTime.UtcNow;
+            foreach (var e in l1)
+                if (e.Value.Item2 < now) l1.TryRemove(e.Key, out _);
+        }
+        l1[memoKey] = (revoked, DateTime.UtcNow.Add(L1Ttl));
+        return revoked;
+    }
 
     public string GenerateToken(string userId, string? displayName, string? email, bool emailVerified, string? role = null, string? avatarFileName = null, bool needsProfileSetup = false, string? avatarThumbnailFileName = null, string? avatarMicroFileName = null, long authVersion = 0, string? sessionId = null, bool twoFactorEnabled = false, string? slug = null)
     {
@@ -151,8 +186,12 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
 
             var expiry = jwt.ValidTo - DateTime.UtcNow;
             if (expiry > TimeSpan.Zero)
+            {
                 cache.Set(RevocationPrefix + jti, Sentinel,
                     new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = expiry });
+                // Seed L1 so this replica enforces immediately (no L2 round-trip).
+                _jtiL1[jti] = (true, DateTime.UtcNow.Add(L1Ttl));
+            }
         }
         catch
         {
@@ -163,15 +202,23 @@ public class JwtTokenService(IConfiguration configuration, IDistributedCache cac
     public bool IsRevoked(string jti) =>
         cache.Get(RevocationPrefix + jti) is not null;
 
+    public Task<bool> IsRevokedAsync(string jti, CancellationToken cancellationToken = default) =>
+        IsKeyPresentAsync(cache, _jtiL1, jti, RevocationPrefix + jti, cancellationToken);
+
     public void RevokeSession(string sessionPublicId)
     {
         var ttl = TimeSpan.FromMinutes(_expirationMinutes);
         cache.Set(SessionRevocationPrefix + sessionPublicId, Sentinel,
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = ttl });
+        // Seed L1 so this replica enforces immediately (no L2 round-trip).
+        _sessionL1[sessionPublicId] = (true, DateTime.UtcNow.Add(L1Ttl));
     }
 
     public bool IsSessionRevoked(string sessionPublicId) =>
         cache.Get(SessionRevocationPrefix + sessionPublicId) is not null;
+
+    public Task<bool> IsSessionRevokedAsync(string sessionPublicId, CancellationToken cancellationToken = default) =>
+        IsKeyPresentAsync(cache, _sessionL1, sessionPublicId, SessionRevocationPrefix + sessionPublicId, cancellationToken);
 
     public string GenerateTwoFactorPendingToken(string userPublicId)
     {
