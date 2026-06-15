@@ -284,8 +284,15 @@ The shared log-shipping volumes (`postgres-logs`, `valkey-slowlog`, `caddy-logs`
 Each telemetry signal is an independent kill switch, bound from the
 `Observability` config section and read once at process start by
 `AddSnakkObservability` (`src/aspire/Snakk.ServiceDefaults/Extensions.cs`).
+**Every Snakk service calls `AddSnakkObservability`, so the flags gate all of
+them** — `Snakk.Web`, `Snakk.Admin`, `Snakk.Auth`, `Snakk.Api`, `Snakk.Gateway`,
+`Snakk.PublicApi`, `Snakk.Realtime`, and `Snakk.Worker`. Each service ships its
+own `Observability` section in its `appsettings.json`, so a signal can be shed
+**per-service**. `Rum` is the lone exception: it lives only in `Snakk.Web` (the
+only service that maps `/bff/rum` and emits the web-vitals `<script>`), so the
+other services' sections omit it.
 Use them to shed observability cost in prod under pressure (incident, capacity
-crunch, small box) **without a code change** — flip an env var, restart the
+crunch, small box) **without a code change** — set the flag and restart the
 service.
 
 Every flag is env-overridable with the standard ASP.NET double-underscore
@@ -296,6 +303,13 @@ Observability__Tracing__Enabled=false
 Observability__Tracing__SamplingRatio=0.1
 Observability__Profiling__Enabled=false
 ```
+
+**Scope of each mechanism.** Set a flag in a service's own `appsettings.json`
+for fine-grained, per-service control. An environment variable overrides every
+process that sees it — in the single-image/supervisord deployment that is **all
+services at once**, which is the right lever for a global kill but cannot
+selectively disable one service. A `false` flag always wins over the
+appsettings default (see below).
 
 | Flag | Default | What turning it OFF does | Restart? |
 | --- | --- | --- | --- |
@@ -322,37 +336,28 @@ only at startup, so every flag takes effect on restart, not live. If live
 tracing-volume control becomes necessary, the one worth the complexity is a
 custom sampler reading `IOptionsMonitor` — everything else stays restart-gated.
 
-**Measured cost (per-signal A/B, 2026-06-14, v0.7.004, dev box, browse.js
-@10k VU, 60s ramp / 2m hold, one run per config):**
+**Measured cost — ⚠️ INVALIDATED, pending re-measurement.** The per-signal A/B
+run on 2026-06-14 (v0.7.004, browse.js @10k VU) concluded "overhead below the
+noise floor" — but that measurement was **tainted**: at the time the flags were
+wired into the config of `Snakk.Web` only, so flipping a signal "off" shed just
+Web's telemetry while the other seven services (Api, Auth, Gateway, PublicApi,
+Realtime, Worker, Admin) kept emitting traces/metrics/logs at full volume. The
+"off" arms therefore never represented a genuinely observability-free stack, and
+the numbers must not be cited. They have been removed. Re-run the A/B once the
+cross-service flags (this change) are deployed.
 
-| Config | Throughput | p95 |
-| --- | --- | --- |
-| All on (run #1, cold) | 8,035 rps | 55.7 ms |
-| Profiling off | 8,088 rps | 46.5 ms |
-| Tracing off | 8,108 rps | 50.0 ms |
-| Metrics off | 8,086 rps | 47.1 ms |
-| OtlpLogs off | 8,104 rps | 33.8 ms |
-| All off (master) | 8,129 rps | 34.1 ms |
-| **All on (run #7, warm — control)** | **8,131 rps** | **34.7 ms** |
-
-**Result: per-signal overhead is below this setup's noise floor.** Throughput
-spread across all seven runs is ~1% (browse.js has think-time, so the system
-isn't CPU-bound at 10k VU — rps is offered-load-shaped, not app-shaped). The
-p95 trend (55.7 → 34 ms) looked like an observability cost but is **box warmup**
-(JIT/GC/page-cache/PG-buffer settling): the all-on *control* re-run as run #7
-landed at 34.7 ms — identical to all-off (34.1 ms) and 21 ms below the all-on
-*cold* run #1. Run order, not the flags, drove the latency differences.
-
-This supersedes an earlier informal "~8% throughput / 3–8× latency" figure
-(2026-05-30, pre-refactor, all-signals, uncontrolled) — that did not hold up
-under a warmup-controlled measurement on v0.7.004.
-
-The flags' *value* (shed load fast, on demand) is unchanged; their steady-state
-*cost* is simply smaller than a think-time browse load at 10k VU can resolve. A
-precise per-signal number needs a CPU-bound harness: constant-arrival-rate
-(`constant-arrival-rate` executor, no think-time) at a fixed sub-saturation RPS,
-comparing p95 all-on vs each-off, **interleaved and repeated** so warmup
-averages out. Open follow-up — drop those numbers in when measured.
+**How to re-measure correctly** (the methodology stands; only the prior data was
+void): use a CPU-bound harness — `constant-arrival-rate` (no think-time) at a
+fixed sub-saturation RPS, **not** browse.js (its think-time makes throughput
+offered-load-shaped, so a real per-request cost hides under run-to-run variance
+and box warmup). Toggle the flags **globally** (via the container-wide env var,
+so every service sheds together) and compare p95/CPU all-on vs each-signal-off,
+**interleaved and repeated** so JIT/GC/page-cache/PG-buffer warmup averages out
+rather than masquerading as a signal cost (the prior run's 55.7 → 34 ms "trend"
+was warmup, proven by the all-on control re-run landing at 34.7 ms). Also
+supersedes the older informal "~8% throughput / 3–8× latency" figure
+(2026-05-30, pre-refactor, uncontrolled). Open task — drop the corrected numbers
+in here when measured.
 
 ---
 
