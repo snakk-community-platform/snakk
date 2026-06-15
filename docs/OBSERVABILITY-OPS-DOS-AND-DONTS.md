@@ -336,28 +336,50 @@ only at startup, so every flag takes effect on restart, not live. If live
 tracing-volume control becomes necessary, the one worth the complexity is a
 custom sampler reading `IOptionsMonitor` — everything else stays restart-gated.
 
-**Measured cost — ⚠️ INVALIDATED, pending re-measurement.** The per-signal A/B
-run on 2026-06-14 (v0.7.004, browse.js @10k VU) concluded "overhead below the
-noise floor" — but that measurement was **tainted**: at the time the flags were
-wired into the config of `Snakk.Web` only, so flipping a signal "off" shed just
-Web's telemetry while the other seven services (Api, Auth, Gateway, PublicApi,
-Realtime, Worker, Admin) kept emitting traces/metrics/logs at full volume. The
-"off" arms therefore never represented a genuinely observability-free stack, and
-the numbers must not be cited. They have been removed. Re-run the A/B once the
-cross-service flags (this change) are deployed.
+**Measured cost (master on vs off, 2026-06-15, v0.7.004, dev box, `volume.js`
+@3000 VU, 1m ramp + 2m hold; both arms recreate → warm → measure):**
 
-**How to re-measure correctly** (the methodology stands; only the prior data was
-void): use a CPU-bound harness — `constant-arrival-rate` (no think-time) at a
-fixed sub-saturation RPS, **not** browse.js (its think-time makes throughput
-offered-load-shaped, so a real per-request cost hides under run-to-run variance
-and box warmup). Toggle the flags **globally** (via the container-wide env var,
-so every service sheds together) and compare p95/CPU all-on vs each-signal-off,
-**interleaved and repeated** so JIT/GC/page-cache/PG-buffer warmup averages out
-rather than masquerading as a signal cost (the prior run's 55.7 → 34 ms "trend"
-was warmup, proven by the all-on control re-run landing at 34.7 ms). Also
-supersedes the older informal "~8% throughput / 3–8× latency" figure
-(2026-05-30, pre-refactor, uncontrolled). Open task — drop the corrected numbers
-in here when measured.
+| Metric | All ON | All OFF (`Observability:Enabled=false`) | Cost of obs |
+| --- | --- | --- | --- |
+| Throughput | 1,615 req/s | 1,704 req/s | **−5.5%** |
+| Journeys/s | 165.9 | 175.6 | −5.8% |
+| **p95 (overall)** | **276 ms** | **94 ms** | **2.9× higher** |
+| p95 home | 247 ms | 62 ms | 4.0× |
+| p95 discussion-detail | 303 ms | 112 ms | 2.7× |
+| Checks | 100% | 100% | — |
+
+**Result: observability is a real, sizeable cost in THIS (dev) configuration —
+~6% throughput and ~3× p95 latency.** Crucially that is the *worst case*: dev
+runs `AlwaysOnSampler` (100% traces) + EF/Redis/gRPC/ASP.NET instrumentation +
+metrics + OTel logs + **continuous Pyroscope profiling** (the single biggest
+contributor). In prod with `Tracing:SamplingRatio` low and `Profiling:Enabled=false`
+the overhead is far smaller — but this is exactly why the kill switches exist:
+under load you can shed ~3× latency by flipping `Observability:Enabled=false` and
+restarting. The cost lands mostly in latency rather than throughput because at
+3000 VU the box still has spare cores; nearer saturation the throughput gap widens.
+
+This **supersedes and corrects** the 2026-06-14 "overhead below the noise floor"
+A/B (commit `ea60b9ce`), which was invalid for TWO reasons: (1) the flags were
+wired into `Snakk.Web`'s config only, so the other seven services never shed; and
+(2) — the bigger one — **`docker compose run k6` silently reverted the flag**
+mid-test (see gotcha below), so every "off" arm actually ran obs-ON. It also
+re-confirms the original informal "~8% throughput / 3–8× latency" estimate
+(2026-05-30), which was closer to right than the "noise floor" follow-up.
+
+> ⚠️ **Testing gotcha — `docker compose run` reconciles `depends_on`.** Toggling
+> a flag means recreating `snakk` (config is read at startup) with a `-f`
+> override. But `docker compose --profile loadtest run --rm k6 …` *without*
+> `--no-deps` reconciles its `depends_on: snakk` against the **base** compose
+> config and **recreates snakk to match** (dropping the override) right as the
+> run starts — silently flipping obs back ON and adding a cold-start blip. ALWAYS
+> pass **`--no-deps`** to the k6 `run` (snakk is already up), and verify the flag
+> held by checking the container wasn't recreated (`docker inspect … StartedAt`)
+> and that app metrics actually stopped (`count by (service_name)
+> (dotnet_process_memory_working_set_bytes)` → 0 series when off).
+
+Open follow-up: per-signal breakdown (which of tracing / metrics / logs /
+profiling dominates the ~3× — Pyroscope is the prime suspect) and a saturation
+run to quantify the throughput gap at the knee.
 
 ---
 
