@@ -15,7 +15,7 @@ public static class RobotsEndpoints
                 User-agent: *
                 Allow: /
                 Disallow: /api/
-                Disallow: /Auth/
+                Disallow: /auth/
                 Disallow: /notifications
                 Disallow: /unread
                 Disallow: /my/*
