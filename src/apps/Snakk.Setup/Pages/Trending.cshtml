@@ -17,7 +17,7 @@
                        class="radio radio-primary"
                        checked="@(Model.AdaptiveVolumeWindowEnabled)"
                        onchange="toggleWindowMode(this.value)" />
-                <div>
+                <div class="min-w-0">
                     <span class="label-text font-semibold">Adaptive <span class="badge badge-primary badge-sm ml-1">Recommended</span></span>
                     <p class="text-sm text-base-content/60 mt-0.5">
                         Automatically estimates how far back to look based on your platform's activity volume.
@@ -31,7 +31,7 @@
                        class="radio radio-primary"
                        checked="@(!Model.AdaptiveVolumeWindowEnabled)"
                        onchange="toggleWindowMode(this.value)" />
-                <div>
+                <div class="min-w-0">
                     <span class="label-text font-semibold">Fixed</span>
                     <p class="text-sm text-base-content/60 mt-0.5">
                         You specify explicit lookback periods. Simple to reason about, but may need manual tuning as your platform grows.
@@ -41,25 +41,7 @@
         </div>
     </div>
 
-    <!-- Adaptive options -->
-    <div id="adaptive-fields" style="display: @(Model.AdaptiveVolumeWindowEnabled ? "block" : "none");">
-        <div class="divider">Adaptive targets</div>
-        <p class="text-sm text-base-content/60 mb-4">
-            The window is sized to contain approximately this many items. Defaults work well for most platforms.
-        </p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="form-control">
-                <label class="label"><span class="label-text">Target posts per trending window</span></label>
-                <input type="number" asp-for="TrendingTargetPosts" class="input w-full" min="50" max="10000" />
-                <label class="label"><span class="label-text-alt text-base-content/50">Default: 500</span></label>
-            </div>
-            <div class="form-control">
-                <label class="label"><span class="label-text">Target discussions per trending window</span></label>
-                <input type="number" asp-for="TrendingTargetDiscussions" class="input w-full" min="10" max="5000" />
-                <label class="label"><span class="label-text-alt text-base-content/50">Default: 100</span></label>
-            </div>
-        </div>
-    </div>
+    <!-- Adaptive options: no inputs needed — defaults (500 posts, 100 discussions) work across all platform sizes -->
 
     <!-- Fixed options -->
     <div id="fixed-fields" style="display: @(!Model.AdaptiveVolumeWindowEnabled ? "block" : "none");">
@@ -98,8 +80,6 @@
 
 <script>
 function toggleWindowMode(value) {
-    var isAdaptive = value === 'true';
-    document.getElementById('adaptive-fields').style.display = isAdaptive ? 'block' : 'none';
-    document.getElementById('fixed-fields').style.display = isAdaptive ? 'none' : 'block';
+    document.getElementById('fixed-fields').style.display = value === 'true' ? 'none' : 'block';
 }
 </script>
