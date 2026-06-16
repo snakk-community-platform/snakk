@@ -23,7 +23,9 @@
 }
 
 @section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("profile")" asp-append-version="true" />
+    <link rel="preload" href="@SnakkUrlHelper.Css("profile")" as="style" asp-append-version="true" />
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("profile")" media="print" asp-append-version="true" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="@SnakkUrlHelper.Css("profile")" asp-append-version="true" /></noscript>
 }
 
 @section LeftColumn {

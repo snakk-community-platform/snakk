@@ -7,7 +7,9 @@
 }
 
 @section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("search")" asp-append-version="true" />
+    <link rel="preload" href="@SnakkUrlHelper.Css("search")" as="style" asp-append-version="true" />
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("search")" media="print" asp-append-version="true" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="@SnakkUrlHelper.Css("search")" asp-append-version="true" /></noscript>
 }
 
 @section LeftColumn {

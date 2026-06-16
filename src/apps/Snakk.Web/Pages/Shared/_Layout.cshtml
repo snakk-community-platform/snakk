@@ -93,9 +93,10 @@
 
     @* Critical shell CSS inlined — enables correct first paint before full CSS arrives *@
     <partial name="_CriticalCss" />
-    @* Full CSS loaded non-blocking: JS converts the preload hints above into stylesheet links.
-       onload= attribute on <link> is blocked by CSP script-src — must use a nonced <script>. *@
-    <script>document.querySelectorAll('link[rel="preload"][as="style"]').forEach(function(l){var s=document.createElement('link');s.rel='stylesheet';s.href=l.href;document.head.appendChild(s);});</script>
+    @* Full CSS loaded non-blocking: preload hints (above) start the fetch early;
+       this script converts them to media='print' links so CSS applies after first paint.
+       s.onload is a JS property assignment — not a CSP-restricted HTML attribute. *@
+    <script>document.querySelectorAll('link[rel="preload"][as="style"]').forEach(function(l){var s=document.createElement('link');s.rel='stylesheet';s.media='print';s.href=l.href;s.onload=function(){this.media='all'};document.head.appendChild(s);});</script>
     <noscript>
         <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
         <link href="@SnakkUrlHelper.Css("site")" rel="stylesheet" asp-append-version="true" />
