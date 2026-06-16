@@ -103,6 +103,17 @@ Entries marked **TTL-only** have no write-path invalidation — staleness is acc
 
 ---
 
+### Activity Sparklines
+
+Sparkline data comes from `ActivityDailySnapshot`, which is written exclusively by `ActivitySnapshotWorker` (runs hourly). After each refresh, the worker calls `cache.RemoveByTagAsync("sparkline")` to sweep all entries tagged `"sparkline"`. Both entry types below carry that tag.
+
+| Store | Key pattern | Data | TTL | Invalidation |
+|---|---|---|---|---|
+| **StatisticsGrpcService** | `sparkline:{entityType}:{publicId\|"platform"}:{days}` | `SparklineResponse` — per-entity daily activity sparkline (posts + discussions per day) | 24 h | `RemoveByTagAsync("sparkline")` in `ActivitySnapshotWorker` after each hourly snapshot refresh |
+| **StatisticsGrpcService** | `sparkline:{entityType}:batch:{sortedIds}:{days}` | `SparklineBatchResponse` — batch sparklines for a sorted, comma-joined set of public IDs | 24 h | Same — `RemoveByTagAsync("sparkline")` |
+
+---
+
 ### Statistics & Trends (all TTL-only)
 
 | Store | Key pattern | Data | TTL |
@@ -117,7 +128,6 @@ Entries marked **TTL-only** have no write-path invalidation — staleness is acc
 | **StatisticsGrpcService** | `stats:trending-contributors:{hubId}:{spaceId}:{communityId}:{limit}` | `TopContributorsList` | 5 min |
 | **StatisticsGrpcService** | `stats:top-spaces-period:{period}:{hubId}:{communityId}:{limit}` | `TopActiveSpacesList` | 5 min |
 | **StatisticsGrpcService** | `stats:top-contributors-period:{period}:{hubId}:{spaceId}:{communityId}:{limit}` | `TopContributorsList` | 5 min |
-| **StatisticsGrpcService** | `sparkline:{entityType}:{publicId\|"platform"}:{days}` | `SparklineResponse` — per-entity daily activity sparkline (posts + discussions per day) | 5 min |
 | **VolumeWindowService** | `volume-window:posts` | `TimeSpan` — adaptive trending window for posts | 1 h |
 | **VolumeWindowService** | `volume-window:discussions` | `TimeSpan` — adaptive trending window for discussions | 1 h |
 
@@ -208,7 +218,7 @@ Entries where a mutation can result in stale data beyond the TTL window. Known a
 | `user-mod-roles:` | ModerationRepository | Per-user, tagged `"manage_perms_user_{userId}"` |
 | `moderators:` | ModerationGrpcService | Per-scope, tagged `"moderators"` |
 | `banners:` | BannerGrpcService | Per-scope |
-| `sparkline:` | StatisticsGrpcService | Per-entity + days, TTL-only |
+| `sparkline:` | StatisticsGrpcService | Per-entity + days, and batch variant; tagged `"sparkline"`, write-invalidated by `ActivitySnapshotWorker` |
 | `communities:public-list:` | CommunityGrpcService | Per-offset+pageSize, tagged `"communities:public-list"` |
 | `stats:` / `trending:` | StatisticsGrpcService | Aggregate, TTL-only |
 | `volume-window:` | VolumeWindowService | Aggregate, TTL-only |

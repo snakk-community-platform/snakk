@@ -33,9 +33,12 @@ public class StatisticsGrpcService(
     private static readonly HybridCacheEntryOptions PlatformStatsCacheOptions     = new() { Expiration = TimeSpan.FromSeconds(60) };
     private static readonly HybridCacheEntryOptions TwoMinCacheOptions            = new() { Expiration = TimeSpan.FromMinutes(2) };
     private static readonly HybridCacheEntryOptions FiveMinCacheOptions           = new() { Expiration = TimeSpan.FromMinutes(5) };
+    private static readonly HybridCacheEntryOptions TwentyFourHourCacheOptions   = new() { Expiration = TimeSpan.FromHours(24) };
 
     // Keep a named alias so existing callers that reference TrendingCacheOptions compile unchanged.
     private static readonly HybridCacheEntryOptions TrendingCacheOptions = TwoMinCacheOptions;
+
+    private static readonly IReadOnlyList<string> SparklineTags = ["sparkline"];
 
     // -------------------------------------------------------------------------
     // Rollup helpers
@@ -632,7 +635,6 @@ public class StatisticsGrpcService(
         var days     = Math.Clamp(request.Days, 1, 90);
         var publicId = string.IsNullOrEmpty(request.PublicId) ? null : request.PublicId;
 
-        // Aggregate: TTL-only, no write-path invalidation (data from ActivityDailySnapshot, refreshed by background worker)
         var cacheKey = $"sparkline:{request.EntityType}:{publicId ?? "platform"}:{days}";
         return cache.GetOrCreateAsync(cacheKey, async cToken =>
         {
@@ -641,29 +643,34 @@ public class StatisticsGrpcService(
             foreach (var d in data)
                 response.Days.Add(new SparklineDay { Date = d.Date.ToString("yyyy-MM-dd"), PostCount = d.PostCount, DiscussionCount = d.DiscussionCount });
             return response;
-        }, FiveMinCacheOptions, cancellationToken: ct).AsTask();
+        }, TwentyFourHourCacheOptions, tags: SparklineTags, cancellationToken: ct).AsTask();
     }
 
-    public override async Task<SparklineBatchResponse> GetActivitySparklinesBatch(
+    public override Task<SparklineBatchResponse> GetActivitySparklinesBatch(
         SparklineBatchRequest request, ServerCallContext context)
     {
         var ct         = context.CancellationToken;
         var days       = Math.Clamp(request.Days, 1, 90);
         var entityType = string.IsNullOrEmpty(request.EntityType) ? "space" : request.EntityType;
+        var sortedIds  = string.Join(",", request.PublicIds.OrderBy(x => x));
+        var cacheKey   = $"sparkline:{entityType}:batch:{sortedIds}:{days}";
 
-        var data = entityType == "community"
-            ? await activitySnapshotRepository.GetSparklinesForCommunitiesAsync(request.PublicIds, days, ct)
-            : await activitySnapshotRepository.GetSparklinesForSpacesAsync(request.PublicIds, days, ct);
-
-        var response = new SparklineBatchResponse();
-        foreach (var (publicId, sparkline) in data)
+        return cache.GetOrCreateAsync(cacheKey, async cToken =>
         {
-            var entry = new SpaceSparklineEntry { PublicId = publicId };
-            foreach (var d in sparkline)
-                entry.Days.Add(new SparklineDay { Date = d.Date.ToString("yyyy-MM-dd"), PostCount = d.PostCount, DiscussionCount = d.DiscussionCount });
-            response.Entries.Add(entry);
-        }
-        return response;
+            var data = entityType == "community"
+                ? await activitySnapshotRepository.GetSparklinesForCommunitiesAsync(request.PublicIds, days, cToken)
+                : await activitySnapshotRepository.GetSparklinesForSpacesAsync(request.PublicIds, days, cToken);
+
+            var response = new SparklineBatchResponse();
+            foreach (var (publicId, sparkline) in data)
+            {
+                var entry = new SpaceSparklineEntry { PublicId = publicId };
+                foreach (var d in sparkline)
+                    entry.Days.Add(new SparklineDay { Date = d.Date.ToString("yyyy-MM-dd"), PostCount = d.PostCount, DiscussionCount = d.DiscussionCount });
+                response.Entries.Add(entry);
+            }
+            return response;
+        }, TwentyFourHourCacheOptions, tags: SparklineTags, cancellationToken: ct).AsTask();
     }
 
     public override async Task<RecordBatchViewsResponse> RecordBatchViews(RecordBatchViewsRequest request, ServerCallContext context)
