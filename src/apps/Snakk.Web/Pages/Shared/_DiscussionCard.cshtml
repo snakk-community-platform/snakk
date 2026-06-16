@@ -513,9 +513,12 @@
                 else if (iamaPreview.Phase == 1 && iamaPreview.ScheduledEndUtc != null)
                     countdownTarget = iamaPreview.ScheduledEndUtc.ToDateTime();
 
-                <div class="sn-iama-preview shadow-layered @iamaPhaseClass">
+                <div class="sn-iama-preview @iamaPhaseClass">
                     <div class="sn-iama-header">
-                        <span class="sn-iama-phase @iamaPhaseClass">@if (iamaPreview.Phase == 1) {<span class="sn-iama-live-dot" aria-hidden="true"></span>}@iamaPhaseLabel</span>
+                                <span class="sn-iama-phase @iamaPhaseClass shadow-layered">@if (iamaPreview.Phase == 1) {
+                                    <span class="sn-iama-live-dot" aria-hidden="true"></span>
+                                }
+                                @iamaPhaseLabel</span>
                         @if (iamaPreview.IsVerified)
                         {
                             <span class="sn-iama-verified" title="@T.Card.Verified">
