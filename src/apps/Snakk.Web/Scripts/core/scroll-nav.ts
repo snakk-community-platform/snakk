@@ -22,6 +22,16 @@
     let isMobile = window.innerWidth <= MOBILE_MAX_PX;
     let snapTimer: ReturnType<typeof setTimeout> | null = null;
 
+    let headerH = 0;
+    let tabbarH = 0;
+
+    function measureDimensions(): void {
+        headerH = header!.offsetHeight || 56;
+        tabbarH = tabbar!.offsetHeight || 56;
+    }
+
+    measureDimensions();
+
     function clearSnap(): void {
         if (snapTimer !== null) {
             clearTimeout(snapTimer);
@@ -38,7 +48,6 @@
         // Keep #thread-nav bottom edge flush with the top of the tabbar.
         if (threadNav) {
             if (isMobile) {
-                const tabbarH = tabbar!.offsetHeight || 56;
                 threadNav.style.transition = transition === 'none' ? 'none' : 'bottom 200ms ease';
                 threadNav.style.bottom = Math.max(0, tabbarH - tabbarOffset) + 'px';
             } else {
@@ -58,9 +67,6 @@
     function scheduleSnap(): void {
         clearSnap();
         snapTimer = setTimeout(() => {
-            const headerH = header!.offsetHeight || 56;
-            const tabbarH = tabbar!.offsetHeight || 56;
-
             const snappedHeader = headerOffset < -headerH / 2 ? -headerH : 0;
             const snappedTabbar = tabbarOffset > tabbarH / 2 ? tabbarH : 0;
 
@@ -96,9 +102,6 @@
             return;
         }
 
-        const headerH = header!.offsetHeight || 56;
-        const tabbarH = tabbar!.offsetHeight || 56;
-
         // Scroll down (delta > 0): both hide. Scroll up (delta < 0): both show.
         headerOffset = Math.min(0, Math.max(-headerH, headerOffset - delta));
         tabbarOffset = Math.min(tabbarH, Math.max(0, tabbarOffset + delta));
@@ -114,6 +117,7 @@
     }
 
     function onResize(): void {
+        measureDimensions();
         isMobile = window.innerWidth <= MOBILE_MAX_PX;
         lastScrollY = window.scrollY;
         lastScrollHeight = document.documentElement.scrollHeight;
@@ -121,6 +125,7 @@
     }
 
     function onHtmxSwap(): void {
+        measureDimensions();
         threadNav = document.getElementById('thread-nav');
         lastScrollY = window.scrollY;
         lastScrollHeight = document.documentElement.scrollHeight;

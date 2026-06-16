@@ -9,4 +9,5 @@
 
 @plugin "daisyui" {
     themes: dark;
+    exclude: carousel, diff, dock, textrotate, swap, rating, chat, calendar, steps, toast, status, validator;
 }

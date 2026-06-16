@@ -162,6 +162,7 @@ public class DatabaseSeeder(
         await EnsureDefaultAdminExistsAsync();
         await EnsureFirstCommunityAsync();
         await BackfillMissingUserSlugsAsync();
+        await UpdateDenormalizedCountsAsync();
         if (!string.Equals(configuration["AvatarSettings:GenerateOnStartup"], "false", StringComparison.OrdinalIgnoreCase))
             await GenerateAllAvatarsAsync();
         else
@@ -296,9 +297,6 @@ public class DatabaseSeeder(
             await SeedHighVolumeDiscussionsAsync(users);
             Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Follows/reports/revisions/high-volume done.");
 
-            await UpdateDenormalizedCountsAsync();
-            Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Denormalized counts updated.");
-
             await SeedActivitySnapshotsAsync();
             await WarmPreviewCacheAsync();
 
@@ -312,6 +310,9 @@ public class DatabaseSeeder(
         {
             _context.ChangeTracker.AutoDetectChangesEnabled = true;
         }
+
+        await UpdateDenormalizedCountsAsync();
+        Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Denormalized counts updated.");
 
         await GenerateAllAvatarsAsync();
         Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Avatars generated. Total wall-clock time: {sw.Elapsed:mm\\:ss}.");

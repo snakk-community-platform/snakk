@@ -398,7 +398,7 @@ app.Use(async (context, next) =>
     var headers = context.Response.Headers;
     headers.Append("Content-Security-Policy",
         "default-src 'self'; " +
-        $"script-src 'self' 'nonce-{nonce}' https://challenges.cloudflare.com; " +
+        $"script-src 'nonce-{nonce}' 'strict-dynamic' 'unsafe-inline'; " +
         "style-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data: https:; " +
         "font-src 'self'; " +
@@ -411,6 +411,7 @@ app.Use(async (context, next) =>
     headers.Append("X-Content-Type-Options", "nosniff");
     headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
     headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
+    headers.Append("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
     await next();
 });

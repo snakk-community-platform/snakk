@@ -86,7 +86,7 @@ else
 <div class="sn-right-sticky">
     <div class="sn-right-section"
          hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
-         hx-trigger="load"
+         hx-trigger="load delay:100ms"
          hx-target="this"
          hx-swap="innerHTML">
         <div class="sn-right-title">
@@ -101,7 +101,7 @@ else
 
     <div class="sn-right-section"
          hx-get="/partials/trending-discussions?scopeType=platform&scopeId=global"
-         hx-trigger="load"
+         hx-trigger="load delay:100ms"
          hx-target="this"
          hx-swap="innerHTML">
         <div class="sn-right-title">

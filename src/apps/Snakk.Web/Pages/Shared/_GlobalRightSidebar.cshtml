@@ -9,7 +9,7 @@
                     @T.Sections.SiteStats
                 </div>
                 <div hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
-                     hx-trigger="load"
+                     hx-trigger="load delay:100ms"
                      hx-target="this"
                      hx-swap="innerHTML">
                     <div class="sn-sidebar-stats">
@@ -28,7 +28,7 @@
                     @T.Sections.ActiveSpaces
                 </div>
                 <div hx-get="/partials/trending-spaces?scopeType=platform&scopeId=global"
-                     hx-trigger="load"
+                     hx-trigger="load delay:100ms"
                      hx-target="this"
                      hx-swap="innerHTML">
                     <div class="sn-spaces-inline">
@@ -45,7 +45,7 @@
                     @T.Sections.ActiveContributors
                 </div>
                 <div hx-get="/partials/trending-contributors?scopeType=platform&scopeId=global"
-                     hx-trigger="load"
+                     hx-trigger="load delay:100ms"
                      hx-target="this"
                      hx-swap="innerHTML">
                     <div class="sn-trending-list">

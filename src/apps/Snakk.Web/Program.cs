@@ -486,16 +486,16 @@ app.Use(async (context, next) =>
     var nonce = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
     context.Items["csp-nonce"] = nonce;
 
-    // Content Security Policy — allow self, Cloudflare Turnstile, inline styles (Tailwind), WebSocket for SignalR
+    // Content Security Policy — nonce + strict-dynamic for scripts, inline styles (Tailwind), Cloudflare iframe for frame-src
     headers.Append("Content-Security-Policy",
         "default-src 'self'; " +
-        $"script-src 'self' 'nonce-{nonce}' " +
+        $"script-src 'nonce-{nonce}' " +
         "'sha256-mGe66DAvUTX2LtslKSB7rwNKH5NqWlh3dDisfTOViWQ=' " +  // theme-fouc
         "'sha256-XXIFwJMq4mgBIYUZniDHmfQdup7EYI5ezx2FQ6tL6h0=' " +  // dm-widget-css
         "'sha256-JYwMhGrKmdRCJhxCkAEKrLHlCxkVTK7LqF0YMAVN86M=' " +  // localStorage
         "'sha256-+TWV8kqoqtTguXtE0NNLnj6axNG4kYHKFSKdjqzPOpM=' " +  // social-icons
         "'sha256-hMgVN7oSRHKUA5Ioq6nqrs8+WPqKF9ftNeOsAIDlz6A=' " +  // spoiler-restore
-        "https://challenges.cloudflare.com; " +
+        "'strict-dynamic' 'unsafe-inline'; " +
         "style-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data: blob: https:; " +
         "font-src 'self'; " +
@@ -516,6 +516,7 @@ app.Use(async (context, next) =>
 
     // Restrict browser features
     headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
+    headers.Append("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
     await next();
 });
@@ -795,6 +796,7 @@ app.MapSetupBffEndpoints();
 app.MapRealtimeTokenEndpoints();
 
 // Public endpoints
+app.MapRobotsEndpoints();
 app.MapSitemapEndpoints();
 app.MapOEmbedEndpoints();
 app.MapRssFeedEndpoints();

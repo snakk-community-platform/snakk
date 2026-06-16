@@ -88,10 +88,17 @@
        For authenticated users: server already rendered the correct data-theme from the cookie.
        This script only needs to handle the "auto" case (system dark preference) and inject the
        dark CSS link. For unauthenticated users: always lofi, nothing to do. *@
-    <script id="theme-fouc-script" hx-preserve>(function(){try{var m=document.querySelector('meta[name="dark-theme-css"]');var p=m?m.getAttribute('data-theme'):'';var isDark=p==='dark'||(p==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(isDark){document.documentElement.setAttribute('data-theme','dark');var l=document.createElement('link');l.id='dark-theme-css';l.rel='stylesheet';l.href=m?m.content:'';document.head.appendChild(l);}}catch(e){}})();</script>
+    <script id="theme-fouc-script" hx-preserve="true">(function(){try{var m=document.querySelector('meta[name="dark-theme-css"]');var p=m?m.getAttribute('data-theme'):'';var isDark=p==='dark'||(p==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(isDark){document.documentElement.setAttribute('data-theme','dark');var l=document.createElement('link');l.id='dark-theme-css';l.rel='stylesheet';l.href=m?m.content:'';document.head.appendChild(l);}}catch(e){}})();</script>
 
-    <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
+    @* Critical shell CSS inlined — enables correct first paint before full CSS arrives *@
+    <partial name="_CriticalCss" />
+    @* Full CSS loaded non-blocking: JS converts the preload hints above into stylesheet links.
+       onload= attribute on <link> is blocked by CSP script-src — must use a nonced <script>. *@
+    <script>document.querySelectorAll('link[rel="preload"][as="style"]').forEach(function(l){var s=document.createElement('link');s.rel='stylesheet';s.href=l.href;document.head.appendChild(s);});</script>
+    <noscript>
+        <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
+        <link href="@SnakkUrlHelper.Css("site")" rel="stylesheet" asp-append-version="true" />
+    </noscript>
     @if (isAuth && isMessagingEnabled)
     {
         var dmWidgetCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Css("dm-widget"));
@@ -102,8 +109,8 @@
     }
     @await RenderSectionAsync("Styles", required: false)
 
-    <script id="js-htmx"         hx-preserve src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
-    <script id="js-htmx-head"    hx-preserve src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
+    <script id="js-htmx"         hx-preserve="true" src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
+    <script id="js-htmx-head"    hx-preserve="true" src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
     @if (!string.IsNullOrEmpty(Context.Request.Cookies[".Snakk.ReloginHint"]))
     {
         <meta name="snakk-relogin-wrong-password" content="@T.Relogin.ErrorWrongPassword" />
@@ -113,7 +120,7 @@
            (Not isAuth: an expired session means the user is no longer authenticated.) *@
         <script src="@SnakkUrlHelper.Js("core/relogin-modal")" asp-append-version="true" defer></script>
     }
-    <script id="js-head-bundle"  hx-preserve src="@SnakkUrlHelper.Js("bundles/head-bundle")" asp-append-version="true" defer></script>
+    <script id="js-head-bundle"  hx-preserve="true" src="@SnakkUrlHelper.Js("bundles/head-bundle")" asp-append-version="true" defer></script>
 
     @* INLINE REASON: Reads localStorage synchronously before first paint to apply
        layout/animation preferences without a flash. Replaces core/prefs.js external file. *@
@@ -303,14 +310,14 @@
     <!-- 3-column layout -->
     <div class="sn-layout">
         @await RenderSectionAsync("LeftColumn", required: false)
-        <div id="main-content" class="sn-main-body">
+        <main id="main-content" class="sn-main-body">
             @RenderBody()
             @* INLINE REASON: Synchronous restore of spoiler/adult-content reveal state
                from sessionStorage before first paint on cold loads. HTMX swaps are
                handled by components/spoiler-restore.ts (app-bundle, htmx:afterSettle) —
                keep the logic in sync with that file. *@
             <script>(function(){'use strict';var kp='snakk:spoiler-revealed:';var sel='.sn-images-spoiler[data-discussion-id],.images-display.images-spoiler[data-discussion-id]';document.querySelectorAll(sel).forEach(function(el){var id=el.dataset.discussionId;if(id&&sessionStorage.getItem(kp+id)==='1')el.classList.add('revealed');});var akp='snakk:adult-revealed:';document.querySelectorAll('.sn-link-card-thumb-adult-blur[data-discussion-id]').forEach(function(el){var id=el.dataset.discussionId;if(!id)return;if(sessionStorage.getItem(akp+id)==='1'){el.classList.add('revealed');var img=el.querySelector('.sn-link-card-img-adult-blur');if(img)img.classList.add('revealed');}});})();</script>
-        </div>
+        </main>
     </div>
 
     <meta name="signalr-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("signalr.min", isVendor: true))" />

@@ -36,6 +36,7 @@ public class SecurityHeadersMiddleware(RequestDelegate next)
             "form-action 'none'"
         });
         context.Response.Headers.Append("Content-Security-Policy", csp);
+        context.Response.Headers.Append("Cross-Origin-Opener-Policy", "same-origin");
 
         await next(context);
     }

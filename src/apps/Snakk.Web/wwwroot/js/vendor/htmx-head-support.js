@@ -1,14 +1,9 @@
 //==========================================================
 // head-support.js
 //
-// An extension to htmx 1.0 to add head tag merging.
+// An extension to add head tag merging.
 //==========================================================
 (function(){
-
-    if (htmx.version && !htmx.version.startsWith("1.")) {
-        console.warn("WARNING: You are using an htmx 1 extension with htmx " + htmx.version +
-            ".  It is recommended that you move to the version of this extension found on https://htmx.org/extensions")
-    }
 
     var api = null;
 
@@ -67,6 +62,20 @@
                             // this element already exists and should not be re-appended, so remove it from
                             // the new content map, preserving it in the DOM
                             srcToNewHeadNodes.delete(currentHeadElt.outerHTML);
+                            // outerHTML delete misses when per-request nonces differ; also match by
+                            // id or src/href so the preserved element is not re-inserted with a wrong nonce
+                            if (isPreserved) {
+                                var cId = currentHeadElt.id;
+                                var cSrc = currentHeadElt.getAttribute('src') || currentHeadElt.getAttribute('href');
+                                for (var entry of srcToNewHeadNodes.entries()) {
+                                    var candidateNode = entry[1];
+                                    var candidateSrc = candidateNode.getAttribute ? (candidateNode.getAttribute('src') || candidateNode.getAttribute('href')) : null;
+                                    if ((cId && candidateNode.id === cId) || (cSrc && candidateSrc === cSrc)) {
+                                        srcToNewHeadNodes.delete(entry[0]);
+                                        break;
+                                    }
+                                }
+                            }
                             preserved.push(currentHeadElt);
                         }
                     } else {
@@ -120,9 +129,12 @@
             api = apiRef;
 
             htmx.on('htmx:afterSwap', function(evt){
-                var serverResponse = evt.detail.xhr.response;
-                if (api.triggerEvent(document.body, "htmx:beforeHeadMerge", evt.detail)) {
-                    mergeHead(serverResponse, evt.detail.boosted ? "merge" : "append");
+                let xhr = evt.detail.xhr;
+                if (xhr) {
+                    var serverResponse = xhr.response;
+                    if (api.triggerEvent(document.body, "htmx:beforeHeadMerge", evt.detail)) {
+                        mergeHead(serverResponse, evt.detail.boosted ? "merge" : "append");
+                    }
                 }
             })
 
