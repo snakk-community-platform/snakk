@@ -30,6 +30,7 @@ public class DiscussionCreatedSpaceLatestCacheHandler(
             if (internalSpaceId is null) return;
 
             await cache.RemoveAsync($"space-latest-discussion:{internalSpaceId}", ct);
+            await cache.RemoveAsync($"space-meta:{@event.SpaceId.Value}", ct);
         }
         catch (Exception ex)
         {
@@ -53,14 +54,15 @@ public class PostCreatedSpaceLatestCacheHandler(
     {
         try
         {
-            var internalSpaceId = await context.Discussions
+            var data = await context.Discussions
                 .Where(d => d.PublicId == @event.DiscussionId.Value)
-                .Select(d => (int?)d.SpaceId)
+                .Select(d => new { InternalSpaceId = (int?)d.SpaceId, d.SpacePublicId })
                 .FirstOrDefaultAsync(ct);
 
-            if (internalSpaceId is null) return;
+            if (data is null) return;
 
-            await cache.RemoveAsync($"space-latest-discussion:{internalSpaceId}", ct);
+            await cache.RemoveAsync($"space-latest-discussion:{data.InternalSpaceId}", ct);
+            await cache.RemoveAsync($"space-meta:{data.SpacePublicId}", ct);
         }
         catch (Exception ex)
         {

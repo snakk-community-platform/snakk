@@ -8,11 +8,12 @@ namespace Snakk.Infrastructure.Services;
 
 // User-independent poll snapshot — safe to share across all viewers.
 // User vote state is fetched separately and overlaid on top.
+// Raw (unmasked) vote counts are stored so IsClosed and secret masking
+// can be derived at serve time from the cached ClosesAt timestamp.
 internal sealed record CachedPollData(
     bool AllowMultipleChoices,
     bool AllowChangeVote,
     DateTime? ClosesAt,
-    bool IsClosed,
     bool IsSecret,
     bool IsSegmented,
     string? SegmentLabel,
@@ -25,7 +26,10 @@ internal sealed record CachedPollData(
 
 public class PollService(SnakkDbContext context, HybridCache cache) : IPollService
 {
-    private static readonly HybridCacheEntryOptions PollCacheOptions = new() { Expiration = TimeSpan.FromSeconds(15) };
+    // Write-path invalidation (VoteAsync / RemoveVoteAsync) covers freshness.
+    // IsClosed and vote masking are computed at serve time from the cached ClosesAt,
+    // so the short 15s TTL is no longer needed to catch poll close transitions.
+    private static readonly HybridCacheEntryOptions PollCacheOptions = new() { Expiration = TimeSpan.FromHours(24) };
 
     public async Task<PollData?> GetPollAsync(string discussionPublicId, string? userPublicId = null, CancellationToken ct = default)
     {
@@ -38,43 +42,51 @@ public class PollService(SnakkDbContext context, HybridCache cache) : IPollServi
 
         if (cached is null) return null;
 
-        // Overlay the requesting user's own votes (not cached — always fresh)
+        // Compute close state at serve time from the cached timestamp (not baked into the cache).
+        var isClosed = cached.ClosesAt.HasValue && cached.ClosesAt.Value <= DateTime.UtcNow;
+        var maskVotes = cached.IsSecret && !isClosed;
+
+        var options = maskVotes
+            ? cached.Options.Select(o => new PollOptionData(o.Id, o.Text, 0, o.DisplayOrder)).ToList()
+            : cached.Options;
+
+        var totalVotes = maskVotes ? 0 : cached.TotalVotes;
+
+        var segmentVotes = maskVotes && cached.SegmentVotes is not null
+            ? cached.SegmentVotes.Select(s => new PollOptionSegmentData(s.OptionId, 0, 0)).ToList()
+            : cached.SegmentVotes;
+
+        // Overlay the requesting user's own votes — single JOIN, not two sequential queries.
         int? userSegmentIndex = null;
         var userVotedIds = new List<int>();
         if (!string.IsNullOrEmpty(userPublicId))
         {
-            var userId = await context.Users
-                .Where(u => u.PublicId == userPublicId && !u.IsDeleted)
-                .Select(u => u.Id)
-                .FirstOrDefaultAsync(ct);
+            var userVotes = await context.DiscussionPollVotes
+                .Where(v => cached.OptionIds.Contains(v.OptionId)
+                            && v.User.PublicId == userPublicId
+                            && !v.User.IsDeleted)
+                .Select(v => new { v.OptionId, v.SegmentIndex })
+                .ToListAsync(ct);
 
-            if (userId > 0)
-            {
-                var userVotes = await context.DiscussionPollVotes
-                    .Where(v => cached.OptionIds.Contains(v.OptionId) && v.UserId == userId)
-                    .Select(v => new { v.OptionId, v.SegmentIndex })
-                    .ToListAsync(ct);
-
-                userVotedIds = userVotes.Select(v => v.OptionId).ToList();
-                if (cached.IsSegmented)
-                    userSegmentIndex = userVotes.FirstOrDefault()?.SegmentIndex;
-            }
+            userVotedIds = userVotes.Select(v => v.OptionId).ToList();
+            if (cached.IsSegmented)
+                userSegmentIndex = userVotes.FirstOrDefault()?.SegmentIndex;
         }
 
         return new PollData(
-            cached.Options,
+            options,
             cached.AllowMultipleChoices,
             cached.AllowChangeVote,
             cached.ClosesAt,
-            cached.IsClosed,
+            isClosed,
             cached.IsSecret,
-            cached.TotalVotes,
+            totalVotes,
             userVotedIds,
             IsSegmented: cached.IsSegmented,
             SegmentLabel: cached.SegmentLabel,
             SegmentOptionA: cached.SegmentOptionA,
             SegmentOptionB: cached.SegmentOptionB,
-            SegmentVotes: cached.SegmentVotes,
+            SegmentVotes: segmentVotes,
             UserSegmentIndex: userSegmentIndex);
     }
 
@@ -101,11 +113,9 @@ public class PollService(SnakkDbContext context, HybridCache cache) : IPollServi
 
         if (poll is null) return null;
 
-        var isClosed = poll.ClosesAt.HasValue && poll.ClosesAt.Value <= DateTime.UtcNow;
-        var isSecret = !poll.VotesVisible;
         var totalVotes = poll.Options.Sum(o => o.VoteCount);
 
-        // Get segment vote counts if segmented
+        // Store raw segment vote counts — masking applied at serve time
         List<PollOptionSegmentData>? segmentVotes = null;
         if (poll.IsSegmented)
         {
@@ -121,26 +131,18 @@ public class PollService(SnakkDbContext context, HybridCache cache) : IPollServi
                 raw.Where(r => r.OptionId == oid && r.SegmentIndex == 0).Sum(r => r.Count),
                 raw.Where(r => r.OptionId == oid && r.SegmentIndex == 1).Sum(r => r.Count)
             )).ToList();
-
-            // Secret poll masking
-            if (!poll.VotesVisible && !isClosed)
-                segmentVotes = segmentVotes.Select(s => new PollOptionSegmentData(s.OptionId, 0, 0)).ToList();
         }
 
-        // When poll is secret and not yet closed, hide vote counts
-        var options = isSecret && !isClosed
-            ? poll.Options.Select(o => new PollOptionData(o.Id, o.Text, 0, o.DisplayOrder)).ToList()
-            : poll.Options.Select(o => new PollOptionData(o.Id, o.Text, o.VoteCount, o.DisplayOrder)).ToList();
-
-        if (isSecret && !isClosed)
-            totalVotes = 0;
+        // Store raw vote counts — IsClosed and secret masking applied at serve time
+        var options = poll.Options
+            .Select(o => new PollOptionData(o.Id, o.Text, o.VoteCount, o.DisplayOrder))
+            .ToList();
 
         return new CachedPollData(
             poll.AllowMultipleChoices,
             poll.AllowChangeVote,
             poll.ClosesAt,
-            isClosed,
-            isSecret,
+            !poll.VotesVisible,
             poll.IsSegmented,
             poll.SegmentLabel,
             poll.SegmentOptionA,

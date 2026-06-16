@@ -683,7 +683,7 @@ class SnakkPopup {
         // Keep title attributes on [data-popup-type] elements in sync with the
         // hover-popup preference so tooltip and popup are never shown together.
         this.syncPopupTitles();
-        document.addEventListener('htmx:afterSettle', () => this.syncPopupTitles(), false);
+        document.addEventListener('htmx:afterSettle', () => { this.dismissPopup(); this.syncPopupTitles(); }, false);
         window.addEventListener('storage', (e: StorageEvent) => {
             if (e.key === 'snakk:disable-hover-popup') this.syncPopupTitles();
         });
@@ -955,5 +955,13 @@ function initNudgePasskey(): void {
 initNudgePasskey();
 initNudgeOAuthLastUsed();
 document.addEventListener('htmx:afterSettle', () => { initNudgePasskey(); initNudgeOAuthLastUsed(); });
+
+// Reload on back-navigation so page-specific CSS injected via htmx-head-support
+// is always present. htmx:historyRestore covers HTMX-managed history; pageshow
+// with persisted:true covers the native browser back/forward cache (bfcache).
+document.addEventListener('htmx:historyRestore', () => window.location.reload());
+window.addEventListener('pageshow', (e: PageTransitionEvent) => {
+    if (e.persisted) window.location.reload();
+});
 
 })();

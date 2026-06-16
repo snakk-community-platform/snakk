@@ -1163,11 +1163,11 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<SparklineBatchResponse?> GetActivitySparklinesBatchAsync(IEnumerable<string> publicIds, int days = 7, CancellationToken ct = default)
+    public virtual async Task<SparklineBatchResponse?> GetActivitySparklinesBatchAsync(IEnumerable<string> publicIds, int days = 7, string entityType = "space", CancellationToken ct = default)
     {
         try
         {
-            var request = new SparklineBatchRequest { Days = days };
+            var request = new SparklineBatchRequest { Days = days, EntityType = entityType };
             request.PublicIds.AddRange(publicIds);
             return await statisticsClient.GetActivitySparklinesBatchAsync(request, cancellationToken: ct);
         }

@@ -1,5 +1,6 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Api.Helpers;
 using Snakk.Shared.Helpers;
 using Snakk.Api.Services;
@@ -31,8 +32,14 @@ public class DiscussionGrpcService(
     IServiceScopeFactory scopeFactory,
     IRealtimeNotifier realtimeNotifier,
     IUserRepository userRepository,
-    IDiscussionReadStateRepository readStateRepository) : DiscussionService.DiscussionServiceBase
+    IDiscussionReadStateRepository readStateRepository,
+    HybridCache cache) : DiscussionService.DiscussionServiceBase
 {
+    // Aggregate/TTL-only: count changes as new discussions are posted, so write-path
+    // invalidation is infeasible. Key includes lastVisitAt.Ticks so the count is naturally
+    // fresh on each new visit without explicit invalidation.
+    private static readonly HybridCacheEntryOptions UnreadCountCacheOptions =
+        new() { Expiration = TimeSpan.FromMinutes(2) };
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
         var ct = context.CancellationToken;
@@ -112,21 +119,23 @@ public class DiscussionGrpcService(
 
         Dictionary<string, int>? unreadCounts = null;
         var userId = currentUser.IsAuthenticated() ? currentUser.GetCurrentUserId() : null;
+
+        // Start unconditionally — independent of read-state lookups
+        var authorSlugsTask = userRepository.GetSlugsByPublicIdsAsync(authorIds, ct);
+
         if (userId is not null && items.Count > 0)
         {
             var discussionIds = items.Select(d => d.PublicId).ToList();
             var lastReadAtTask = readStateRepository.GetLastReadAtByDiscussionAsync(userId, discussionIds, ct);
             var lastVisitAtTask = userRepository.GetLastVisitAtAsync(userId, ct);
-            await Task.WhenAll(lastReadAtTask, lastVisitAtTask);
-            var lastReadAtMap = lastReadAtTask.Result;
-            var lastVisitAt = lastVisitAtTask.Result;
+            await Task.WhenAll(lastReadAtTask, lastVisitAtTask, authorSlugsTask);
 
-            var cutoffs = BuildCutoffMap(discussionIds, lastReadAtMap, lastVisitAt);
+            var cutoffs = BuildCutoffMap(discussionIds, await lastReadAtTask, await lastVisitAtTask);
             if (cutoffs.Count > 0)
                 unreadCounts = await readStateRepository.GetUnreadPostCountsAsync(cutoffs, ct);
         }
 
-        var authorSlugs = await userRepository.GetSlugsByPublicIdsAsync(authorIds, ct);
+        var authorSlugs = await authorSlugsTask;
         return PagedDiscussionListMapper.Build(pagedResult, fileStorage, authorSlugs, unreadCounts);
     }
 
@@ -366,15 +375,22 @@ public class DiscussionGrpcService(
         if (userId is null)
             return new GetUnreadDiscussionCountResponse { Count = 0 };
 
-        var lastVisitAt = await userRepository.GetLastVisitAtAsync(userId, ct);
+        var lastVisitAtTask = userRepository.GetLastVisitAtAsync(userId, ct);
+        var userSlimTask = userRepository.GetCurrentUserSlimAsync(UserId.From(userId), ct);
+        await Task.WhenAll(lastVisitAtTask, userSlimTask);
+
+        var lastVisitAt = await lastVisitAtTask;
         if (!lastVisitAt.HasValue)
             return new GetUnreadDiscussionCountResponse { Count = 0 };
 
-        var count = await searchRepository.GetUnreadDiscussionCountAsync(
-            lastVisitAt.Value,
-            userId,
-            viewerAllowsAdult: false,
-            ct);
+        var viewerAllowsAdult = (await userSlimTask)?.AllowAdultContent == true;
+
+        var count = await cache.GetOrCreateAsync<int>(
+            $"unread-count:{userId}:{lastVisitAt.Value.Ticks}",
+            async cancel => await searchRepository.GetUnreadDiscussionCountAsync(
+                lastVisitAt.Value, userId, viewerAllowsAdult, cancel),
+            UnreadCountCacheOptions,
+            cancellationToken: ct);
 
         return new GetUnreadDiscussionCountResponse { Count = count };
     }

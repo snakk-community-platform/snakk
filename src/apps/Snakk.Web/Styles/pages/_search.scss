@@ -1,0 +1,65 @@
+.sn-search-card {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+    border-radius: 0.5rem;
+    position: relative;
+    overflow: visible;
+}
+
+.sn-search-card-banner {
+    position: relative;
+    height: 4rem;
+    background: linear-gradient(135deg, var(--nav-bg), var(--breadcrumb-bg));
+    overflow: visible;
+}
+
+.sn-search-card-banner .sn-search-avatar {
+    position: absolute;
+    bottom: -1.75rem;
+    left: 1.5rem;
+    z-index: 2;
+    box-shadow: 0 0 0 3px var(--bg-primary);
+    width: 3.5rem;
+    height: 3.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--nav-bg);
+    border-radius: 0.75rem;
+    font-size: 1.5rem;
+    color: #fff;
+}
+
+.sn-search-card-banner .sn-search-name {
+    position: absolute;
+    left: 5.75rem;
+    bottom: 0.65rem;
+    z-index: 1;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.25;
+    max-width: calc(100% - 6.5rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 767.98px) {
+    .sn-search-card-banner .sn-search-avatar {
+        bottom: -1.25rem;
+        left: 1rem;
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .sn-search-card-banner .sn-search-name {
+        left: 4.75rem;
+        bottom: 0.5rem;
+        font-size: 0.875rem;
+        max-width: calc(100% - 5.25rem);
+    }
+}

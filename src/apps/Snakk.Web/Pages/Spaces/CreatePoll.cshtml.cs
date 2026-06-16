@@ -7,7 +7,7 @@ public class NewPollModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    DiscussionCreateRateLimiter rateLimiter) : NewDiscussionBaseModel(apiClient, configuration, communityContext, rateLimiter)
+    DiscussionCreateRateLimiter rateLimiter) : CreateDiscussionBaseModel(apiClient, configuration, communityContext, rateLimiter)
 {
     protected override int DiscussionType => 2;
     protected override string TypeSlug => "poll";

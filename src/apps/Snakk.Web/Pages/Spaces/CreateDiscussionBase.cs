@@ -9,11 +9,11 @@ using System.Threading.RateLimiting;
 namespace Snakk.Web.Pages.Spaces;
 
 /// <summary>
-/// Shared base for all "new discussion" type-specific pages.
-/// All pages use /new/{type}?spaceId={publicId} routing.
+/// Shared base for all "create discussion" type-specific pages.
+/// All pages use /create/{type}?spaceId={publicId} routing.
 /// Resolves space, hub, and community from the space's public ID.
 /// </summary>
-public abstract class NewDiscussionBaseModel(
+public abstract class CreateDiscussionBaseModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
@@ -127,7 +127,7 @@ public abstract class NewDiscussionBaseModel(
     }
 
     private string BuildReturnUrl()
-        => $"/new/{TypeSlug}?spaceId={Uri.EscapeDataString(SpaceId ?? "")}";
+        => $"/create/{TypeSlug}?spaceId={Uri.EscapeDataString(SpaceId ?? "")}";
 
     private async Task<IActionResult> LoadPageData()
     {

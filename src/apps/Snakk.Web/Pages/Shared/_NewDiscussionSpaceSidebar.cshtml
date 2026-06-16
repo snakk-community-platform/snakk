@@ -1,6 +1,6 @@
 @using Snakk.Web.Helpers
 @using static Snakk.Web.Helpers.DisplayHelper
-@model Snakk.Web.Pages.Spaces.NewDiscussionBaseModel
+@model Snakk.Web.Pages.Spaces.CreateDiscussionBaseModel
 @inject Snakk.Web.Services.ICommunityContext CommunityCtx
 
 <aside class="sn-right">
@@ -11,19 +11,19 @@
         {
         <div class="sn-right-section">
             <div class="flex gap-2">
-                <div class="stats shadow flex-1">
+                        <div class="stats shadow-layered-light flex-1">
                     <div class="stat">
                         <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
                         <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow flex-1">
+                        <div class="stats shadow-layered-light flex-1">
                     <div class="stat">
                         <div class="stat-title">@T.Sidebar.StatsReplies</div>
                         <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow flex-1">
+                        <div class="stats shadow-layered-light flex-1">
                     <div class="stat">
                         <div class="stat-title">@T.Sidebar.StatsFollowers</div>
                         <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>

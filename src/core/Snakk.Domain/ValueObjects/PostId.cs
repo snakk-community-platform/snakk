@@ -1,5 +1,9 @@
 namespace Snakk.Domain.ValueObjects;
 
+using System.Text.Json.Serialization;
+using Snakk.Domain.Json;
+
+[JsonConverter(typeof(PostIdJsonConverter))]
 public record PostId
 {
     public string Value { get; }

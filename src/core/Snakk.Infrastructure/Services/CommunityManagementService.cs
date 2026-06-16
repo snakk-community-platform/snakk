@@ -264,6 +264,7 @@ public class CommunityManagementService(
         }
 
         await context.SaveChangesAsync(cancellationToken);
+        await cache.RemoveByTagAsync("communities:public-list", cancellationToken);
 
         return await GetSettingsAsync(communityId, cancellationToken);
     }

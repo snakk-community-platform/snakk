@@ -344,7 +344,7 @@
                             @if (!string.IsNullOrEmpty(Model.Discussion.Type) && Model.Discussion.Type != "Standard")
                             {
                                 var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
-                                <span class="sn-card-type-badge @cssClass">@icon @label</span>
+                                <span class="sn-card-type-badge shadow-layered @cssClass">@icon @label</span>
                             }
                             @Model.Discussion!.Title
                         </h1>
@@ -1008,8 +1008,8 @@
                     if (Model.Discussion?.Type == "Iama" && Model.IamaInfo?.OfficialAnswers is { Count: > 0 } iamaOfficialAnswers)
                     {
                         iamaQuestionIds = [..iamaOfficialAnswers.Keys];
-                        iamaAnswerToQuestion = iamaOfficialAnswers.ToDictionary(kv => kv.Value, kv => kv.Key);
-                        var postById = postList.ToDictionary(p => p.PublicId);
+                        iamaAnswerToQuestion = iamaOfficialAnswers.DistinctBy(kv => kv.Value).ToDictionary(kv => kv.Value, kv => kv.Key);
+                        var postById = postList.DistinctBy(p => p.PublicId).ToDictionary(p => p.PublicId);
 
                         if (Model.Sort == "qa")
                         {
@@ -1602,19 +1602,19 @@
                         @T.Sections.SpaceStats
                     </div>
                     <div class="sn-sidebar-stats">
-                        <div class="stats shadow">
+                        <div class="stats shadow-layered-light">
                             <div class="stat">
                                 <div class="stat-title">@T.Pages.DiscStatsDiscussions</div>
                                 <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
                             </div>
                         </div>
-                        <div class="stats shadow">
+                        <div class="stats shadow-layered-light">
                             <div class="stat">
                                 <div class="stat-title">@T.Pages.DiscStatsReplies</div>
                                 <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
                             </div>
                         </div>
-                        <div class="stats shadow">
+                        <div class="stats shadow-layered-light">
                             <div class="stat">
                                 <div class="stat-title">@T.Pages.DiscStatsFollowers</div>
                                 <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
@@ -1622,7 +1622,7 @@
                         </div>
                         @if (Model.Space != null)
                         {
-                            <div class="stats shadow">
+                            <div class="stats shadow-layered-light">
                                 <div class="stat">
                                     <div class="stat-title">@T.Pages.DiscStatsActivity</div>
                                     <div class="sn-sparkline-container sn-right-sparkline"

@@ -82,41 +82,22 @@
     @{
         var darkThemeCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Css("dark-theme", isVendor: true));
     }
-    <meta name="dark-theme-css" content="@darkThemeCssUrl" />
+    <meta name="dark-theme-css" content="@darkThemeCssUrl" data-theme="@(themeCookie ?? "")" />
 
     @* INLINE REASON: Must run synchronously before first paint to prevent theme flash (FOUC).
        For authenticated users: server already rendered the correct data-theme from the cookie.
        This script only needs to handle the "auto" case (system dark preference) and inject the
        dark CSS link. For unauthenticated users: always lofi, nothing to do. *@
-    <script id="theme-fouc-script" hx-preserve nonce="@(Context.Items["csp-nonce"] as string)">
-        (function () {
-            try {
-                @if (isAuth) {
-                <text>
-                var p = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(themeCookie ?? ""));
-                var isDark = p === 'dark' || (p === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                if (isDark) {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    var l = document.createElement('link');
-                    l.id = 'dark-theme-css';
-                    l.rel = 'stylesheet';
-                    l.href = '@Html.Raw(darkThemeCssUrl)';
-                    document.head.appendChild(l);
-                }
-                </text>
-                }
-            } catch (e) { }
-        })();
-    </script>
+    <script id="theme-fouc-script" hx-preserve>(function(){try{var m=document.querySelector('meta[name="dark-theme-css"]');var p=m?m.getAttribute('data-theme'):'';var isDark=p==='dark'||(p==='auto'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(isDark){document.documentElement.setAttribute('data-theme','dark');var l=document.createElement('link');l.id='dark-theme-css';l.rel='stylesheet';l.href=m?m.content:'';document.head.appendChild(l);}}catch(e){}})();</script>
 
     <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
     <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
     @if (isAuth && isMessagingEnabled)
     {
         var dmWidgetCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Css("dm-widget"));
-        @* Non-blocking: DM widget only appears on user action, so late CSS is fine.
-           Inline onload is blocked by CSP (no unsafe-inline), so inject via nonce'd script. *@
-        <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='@Html.Raw(dmWidgetCssUrl)';document.head.appendChild(l);})();</script>
+        @* Non-blocking: DM widget only appears on user action, so late CSS is fine. *@
+        <meta name="dm-widget-css" content="@Html.Raw(dmWidgetCssUrl)" />
+        <script>(function(){var m=document.querySelector('meta[name="dm-widget-css"]');if(m){var l=document.createElement('link');l.rel='stylesheet';l.href=m.content;document.head.appendChild(l);}})();</script>
         <noscript><link rel="stylesheet" href="@SnakkUrlHelper.Css("dm-widget")" asp-append-version="true" /></noscript>
     }
     @await RenderSectionAsync("Styles", required: false)
@@ -125,7 +106,8 @@
     <script id="js-htmx-head"    hx-preserve src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
     @if (!string.IsNullOrEmpty(Context.Request.Cookies[".Snakk.ReloginHint"]))
     {
-        <script nonce="@(Context.Items["csp-nonce"] as string)">window.snakkReloginStrings={wrongPassword:@Json.Serialize(T.Relogin.ErrorWrongPassword),generic:@Json.Serialize(T.Relogin.ErrorGeneric)};</script>
+        <meta name="snakk-relogin-wrong-password" content="@T.Relogin.ErrorWrongPassword" />
+        <meta name="snakk-relogin-generic" content="@T.Relogin.ErrorGeneric" />
         @* relogin-modal only functions when the modal DOM exists, which _ReloginModal
            renders only when this hint cookie is present — gate the script the same way.
            (Not isAuth: an expired session means the user is no longer authenticated.) *@
@@ -135,7 +117,7 @@
 
     @* INLINE REASON: Reads localStorage synchronously before first paint to apply
        layout/animation preferences without a flash. Replaces core/prefs.js external file. *@
-    <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){try{var l=localStorage.getItem('snakk:discussion-list-layout');if(l==='none'){document.documentElement.classList.add('no-discussion-previews');}else if(l!=='full'){document.documentElement.classList.add('discussion-list-compact');}if(localStorage.getItem('snakk:disable-animations')==='true'){document.documentElement.classList.add('no-animations');}if(localStorage.getItem('snakk:link-preview-compact')==='true'){document.documentElement.classList.add('link-preview-compact');}var s=localStorage.getItem('snakk:sidebar-sticky');if(s==='none'){document.documentElement.classList.add('sticky-none');}else if(s!=='both'){document.documentElement.classList.add('sticky-left-only');}var cw=localStorage.getItem('snakk:content-width');if(cw){document.documentElement.style.setProperty('--content-width',cw+'rem');}}catch(e){}})();</script>
+    <script>(function(){try{var l=localStorage.getItem('snakk:discussion-list-layout');if(l==='none'){document.documentElement.classList.add('no-discussion-previews');}else if(l!=='full'){document.documentElement.classList.add('discussion-list-compact');}if(localStorage.getItem('snakk:disable-animations')==='true'){document.documentElement.classList.add('no-animations');}if(localStorage.getItem('snakk:link-preview-compact')==='true'){document.documentElement.classList.add('link-preview-compact');}var s=localStorage.getItem('snakk:sidebar-sticky');if(s==='none'){document.documentElement.classList.add('sticky-none');}else if(s!=='both'){document.documentElement.classList.add('sticky-left-only');}var cw=localStorage.getItem('snakk:content-width');if(cw){document.documentElement.style.setProperty('--content-width',cw+'rem');}}catch(e){}})();</script>
 
     <meta name="realtime-service-url" content="@(Configuration["RealtimeServiceUrl"] ?? "/realtime")" />
     @{
@@ -175,7 +157,7 @@
     }
     @* Lazy social icons: injected only when [data-platform] elements are present.
        lang-icons-src meta tag consumed by syntax-highlight (another agent wires it). *@
-    <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){function hydrateSocialIcons(){var icons=window.snakkSocialIcons;if(!icons)return;document.querySelectorAll('[data-platform] .sn-social-icon-box:not([data-si])').forEach(function(box){var el=box.closest('[data-platform]');if(!el)return;var icon=icons[el.dataset.platform];if(!icon)return;box.style.background='#'+icon.hex;box.innerHTML='<svg viewBox="'+icon.viewBox+'" fill="white" style="width:13px;height:13px;display:block">'+icon.inner+'</svg>';box.dataset.si='1';});}function loadAndHydrate(){var meta=document.querySelector('meta[name="social-icons-src"]');if(!meta||!meta.content)return;if(window.snakkSocialIcons){hydrateSocialIcons();return;}var s=document.createElement('script');s.src=meta.content;s.onload=hydrateSocialIcons;document.body.appendChild(s);}function checkAndLoad(){if(document.querySelector('[data-platform]'))loadAndHydrate();}document.addEventListener('DOMContentLoaded',checkAndLoad);document.addEventListener('htmx:afterSettle',checkAndLoad);}());</script>
+    <script>(function(){function hydrateSocialIcons(){var icons=window.snakkSocialIcons;if(!icons)return;document.querySelectorAll('[data-platform] .sn-social-icon-box:not([data-si])').forEach(function(box){var el=box.closest('[data-platform]');if(!el)return;var icon=icons[el.dataset.platform];if(!icon)return;box.style.background='#'+icon.hex;box.innerHTML='<svg viewBox="'+icon.viewBox+'" fill="white" style="width:13px;height:13px;display:block">'+icon.inner+'</svg>';box.dataset.si='1';});}function loadAndHydrate(){var meta=document.querySelector('meta[name="social-icons-src"]');if(!meta||!meta.content)return;if(window.snakkSocialIcons){hydrateSocialIcons();return;}var s=document.createElement('script');s.src=meta.content;s.onload=hydrateSocialIcons;document.body.appendChild(s);}function checkAndLoad(){if(document.querySelector('[data-platform]'))loadAndHydrate();}document.addEventListener('DOMContentLoaded',checkAndLoad);document.addEventListener('htmx:afterSettle',checkAndLoad);}());</script>
 
     @{
         var siteName = CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null
@@ -327,7 +309,7 @@
                from sessionStorage before first paint on cold loads. HTMX swaps are
                handled by components/spoiler-restore.ts (app-bundle, htmx:afterSettle) —
                keep the logic in sync with that file. *@
-            <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){'use strict';var kp='snakk:spoiler-revealed:';var sel='.sn-images-spoiler[data-discussion-id],.images-display.images-spoiler[data-discussion-id]';document.querySelectorAll(sel).forEach(function(el){var id=el.dataset.discussionId;if(id&&sessionStorage.getItem(kp+id)==='1')el.classList.add('revealed');});var akp='snakk:adult-revealed:';document.querySelectorAll('.sn-link-card-thumb-adult-blur[data-discussion-id]').forEach(function(el){var id=el.dataset.discussionId;if(!id)return;if(sessionStorage.getItem(akp+id)==='1'){el.classList.add('revealed');var img=el.querySelector('.sn-link-card-img-adult-blur');if(img)img.classList.add('revealed');}});})();</script>
+            <script>(function(){'use strict';var kp='snakk:spoiler-revealed:';var sel='.sn-images-spoiler[data-discussion-id],.images-display.images-spoiler[data-discussion-id]';document.querySelectorAll(sel).forEach(function(el){var id=el.dataset.discussionId;if(id&&sessionStorage.getItem(kp+id)==='1')el.classList.add('revealed');});var akp='snakk:adult-revealed:';document.querySelectorAll('.sn-link-card-thumb-adult-blur[data-discussion-id]').forEach(function(el){var id=el.dataset.discussionId;if(!id)return;if(sessionStorage.getItem(akp+id)==='1'){el.classList.add('revealed');var img=el.querySelector('.sn-link-card-img-adult-blur');if(img)img.classList.add('revealed');}});})();</script>
         </div>
     </div>
 

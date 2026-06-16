@@ -25,6 +25,21 @@
     });
 })();
 
+// ===== Disable History toggle =====
+(function () {
+    'use strict';
+    const toggle = document.getElementById('disable-history-toggle') as HTMLInputElement | null;
+    if (!toggle) return;
+    const COOKIE = '.Snakk.Pref.DisableHistory';
+    toggle.addEventListener('change', function () {
+        if (toggle.checked) {
+            document.cookie = `${COOKIE}=1; path=/; max-age=31536000; SameSite=Lax`;
+        } else {
+            document.cookie = `${COOKIE}=; path=/; max-age=0; SameSite=Lax`;
+        }
+    });
+})();
+
 // ===== Change Password Modal =====
 (function () {
     'use strict';

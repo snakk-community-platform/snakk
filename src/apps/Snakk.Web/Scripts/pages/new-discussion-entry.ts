@@ -232,7 +232,7 @@
     }
 
     function buildDiscussionUrl(space: SpaceResult, typeSlug: string): string {
-        return `/new/${typeSlug}?spaceId=${encodeURIComponent(space.publicId)}`;
+        return `/create/${typeSlug}?spaceId=${encodeURIComponent(space.publicId)}`;
     }
 
     function renderTypeCards(allowedTypes: number[], space: SpaceResult): void {

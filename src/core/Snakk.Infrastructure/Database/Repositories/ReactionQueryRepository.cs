@@ -24,7 +24,7 @@ public class ReactionQueryRepository(SnakkDbContext context) : IReactionQueryRep
         string userId, int offset, int pageSize, bool firstPost, CancellationToken ct = default)
     {
         var raw = await context.PostReactions
-            .Where(r => r.UserPublicId == userId && r.Post.IsFirstPost == firstPost)
+            .Where(r => r.User.PublicId == userId && r.Post.IsFirstPost == firstPost)
             .OrderByDescending(r => r.CreatedAt)
             .Skip(offset)
             .Take(pageSize + 1)

@@ -136,6 +136,9 @@ public class UserRepositoryAdapter(
     private static readonly HybridCacheEntryOptions CurrentUserCacheOptions =
         new() { Expiration = TimeSpan.FromSeconds(30) };
 
+    private static readonly HybridCacheEntryOptions LastVisitAtCacheOptions =
+        new() { Expiration = TimeSpan.FromHours(24) };
+
     public async Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId, CancellationToken ct = default)
     {
         var cacheKey = $"current-user:{publicId.Value}";
@@ -222,10 +225,14 @@ public class UserRepositoryAdapter(
             .FirstOrDefaultAsync(ct);
 
     public async Task<DateTime?> GetLastVisitAtAsync(string publicId, CancellationToken ct = default) =>
-        await context.Users
-            .Where(u => u.PublicId == publicId)
-            .Select(u => u.LastVisitAt)
-            .FirstOrDefaultAsync(ct);
+        await cache.GetOrCreateAsync<DateTime?>(
+            $"last-visit-at:{publicId}",
+            async cancel => await context.Users
+                .Where(u => u.PublicId == publicId)
+                .Select(u => u.LastVisitAt)
+                .FirstOrDefaultAsync(cancel),
+            LastVisitAtCacheOptions,
+            cancellationToken: ct);
 
     public async Task AddAsync(User user, CancellationToken ct = default)
     {

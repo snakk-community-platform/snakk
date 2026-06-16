@@ -226,8 +226,9 @@ message SparklineRequest {
 }
 
 message SparklineBatchRequest {
-  repeated string public_ids = 1; // space PublicIds
+  repeated string public_ids = 1;
   int32 days = 2;
+  string entity_type = 3; // "space" (default, backwards-compat) | "community"
 }
 
 message SpaceSparklineEntry {

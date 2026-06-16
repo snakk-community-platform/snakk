@@ -22,6 +22,19 @@
                 </label>
             </div>
 
+            <!-- Browsing History -->
+            <div id="section-history-pref" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.PrivDisableHistoryTitle</h3>
+                <label class="flex items-center gap-4 cursor-pointer">
+                    <input type="checkbox" id="disable-history-toggle" class="toggle toggle-primary"
+                           @(Model.DisableHistory ? "checked" : "") />
+                    <span>
+                        <span class="font-medium text-sm">@T.Settings.PrivDisableHistoryLabel</span>
+                        <span class="block text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivDisableHistoryHelp</span>
+                    </span>
+                </label>
+            </div>
+
             <!-- Password -->
             <div id="section-password" class="sn-settings-section">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">

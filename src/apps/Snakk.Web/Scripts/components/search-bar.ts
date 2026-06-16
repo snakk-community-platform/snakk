@@ -21,6 +21,27 @@
     const PILL_KEYS = ['type', 'sort', 'date'] as const;
     type PillKey = typeof PILL_KEYS[number];
 
+    const SEARCH_TYPE_KEY = 'snakk_search_type';
+
+    function loadSearchType(): string {
+        if (isSearchPage()) {
+            const fromUrl = new URLSearchParams(window.location.search).get('searchType')?.toLowerCase();
+            if (fromUrl) return fromUrl;
+        }
+        return localStorage.getItem(SEARCH_TYPE_KEY) ?? 'discussion';
+    }
+
+    function applySearchType(type: string): void {
+        (['sn-search-type', 'sn-search-type-d'] as const).forEach(name => {
+            const radio = document.querySelector<HTMLInputElement>(`input[name="${name}"][value="${type}"]`);
+            if (radio) radio.checked = true;
+        });
+    }
+
+    function saveSearchType(type: string): void {
+        localStorage.setItem(SEARCH_TYPE_KEY, type);
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     function isDesktop(): boolean { return window.innerWidth >= 1024; }
@@ -110,6 +131,8 @@
             input!.value = '';
             closeAll();
         }
+        applySearchType(loadSearchType());
+        updatePillLabels();
     }
 
     // ── Submit ────────────────────────────────────────────────────────────────
@@ -131,6 +154,7 @@
         const htmx = (window as any).htmx;
         if (htmx?.ajax) {
             htmx.ajax('GET', url, { target: '#main-content', swap: 'outerHTML show:window:top', headers: { 'HX-Boosted': 'true' } });
+            history.pushState(null, '', url);
         } else {
             window.location.href = url;
         }
@@ -154,8 +178,10 @@
         if (e.key === 'Enter')  { e.preventDefault(); submitSearch(); }
     });
 
-    // Mobile popup changes: sync pills
-    popup.addEventListener('change', () => {
+    // Mobile popup changes: sync pills, persist type selection
+    popup.addEventListener('change', (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        if (target.name === 'sn-search-type') saveSearchType(target.value);
         updatePillLabels();
     });
     dateRange?.addEventListener('input', updatePillLabels);
@@ -165,10 +191,11 @@
         if ((e.target as HTMLInputElement).type !== 'range') e.preventDefault();
     });
 
-    // Desktop dropdown changes: update pill labels, auto-close on radio select, refocus input
+    // Desktop dropdown changes: update pill labels, persist type selection, auto-close on radio select, refocus input
     const pillsContainer = document.querySelector<HTMLElement>('.sn-filter-pills');
     pillsContainer?.addEventListener('change', (e: Event) => {
         const target = e.target as HTMLInputElement;
+        if (target.name === 'sn-search-type-d') saveSearchType(target.value);
         updatePillLabels();
         if (target.type === 'radio') {
             const dropdownEl = target.closest<HTMLElement>('.sn-filter-dropdown');

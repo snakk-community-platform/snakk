@@ -236,6 +236,7 @@ app.MapManageContextEndpoints();
 app.MapBannerManagementEndpoints();
 app.MapMediaEndpoints();
 app.MapRealtimeInternalEndpoints();
+app.MapCacheWarmupEndpoints();
 // Sitemap moved to Snakk.Web (public-facing app)
 
 app.Run();

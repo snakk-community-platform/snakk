@@ -7,7 +7,7 @@ public class NewGalleryModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    DiscussionCreateRateLimiter rateLimiter) : NewDiscussionBaseModel(apiClient, configuration, communityContext, rateLimiter)
+    DiscussionCreateRateLimiter rateLimiter) : CreateDiscussionBaseModel(apiClient, configuration, communityContext, rateLimiter)
 {
     protected override int DiscussionType => 5;
     protected override string TypeSlug => "images";

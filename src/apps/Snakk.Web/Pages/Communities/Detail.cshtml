@@ -28,7 +28,7 @@
 
 @section LeftColumn {
 @{
-    ViewData["LeftNav.NewDiscussionUrl"] = "/new?communityId=" + Model.CommunityDetail?.PublicId;
+    ViewData["LeftNav.NewDiscussionUrl"] = "/create?communityId=" + Model.CommunityDetail?.PublicId;
 }
 <partial name="Shared/_LeftSidebar" />
 }
@@ -180,7 +180,7 @@
 <!-- Right Column -->
 <aside class="sn-right">
 @{
-    ViewData["RightPane.NewDiscussionUrl"] = "/new?communityId=" + Model.CommunityDetail?.PublicId;
+    ViewData["RightPane.NewDiscussionUrl"] = "/create?communityId=" + Model.CommunityDetail?.PublicId;
     ViewData["RightPane.Actions"] = new[] { "feed", "share", "manage" };
     ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/feed";
     ViewData["RightPane.ShareTitle"] = Model.CommunityDetail?.Name ?? T.Pages.CommDetailFallbackTitle;
@@ -199,19 +199,19 @@
                 @T.Sections.CommunityStats
             </div>
             <div class="sn-sidebar-stats">
-                <div class="stats shadow">
+                <div class="stats shadow-layered-light">
                     <div class="stat">
                         <div class="stat-title">@T.Pages.CommDetailStatsDiscussions</div>
                         <div class="stat-value">@FormatCount(Model.InlineCommunityStats.DiscussionCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow">
+                        <div class="stats shadow-layered-light">
                     <div class="stat">
                         <div class="stat-title">@T.Pages.CommDetailStatsReplies</div>
                         <div class="stat-value">@FormatCount(Model.InlineCommunityStats.ReplyCount)</div>
                     </div>
                 </div>
-                <div class="stats shadow">
+                        <div class="stats shadow-layered-light">
                     <div class="stat">
                         <div class="stat-title">@T.Pages.CommDetailStatsActivity</div>
                         <div class="sn-sparkline-container sn-right-sparkline"

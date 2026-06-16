@@ -19,8 +19,11 @@
                 <div id="sudo-oauth-buttons" class="flex flex-col gap-2"></div>
             </div>
             <div id="sudo-password-section">
-                <input type="password" id="sudo-password" class="input w-full"
-                       placeholder="@T.Settings.PrivCurrentPwdPlaceholder" autocomplete="current-password" />
+                <form id="sudo-password-form">
+                    <input type="password" id="sudo-password" class="input w-full"
+                           placeholder="@T.Settings.PrivCurrentPwdPlaceholder" autocomplete="current-password" />
+                    <button type="submit" hidden disabled aria-hidden="true"></button>
+                </form>
             </div>
             <p id="sudo-auth-status" class="text-sm mt-2 hidden"></p>
         </div>

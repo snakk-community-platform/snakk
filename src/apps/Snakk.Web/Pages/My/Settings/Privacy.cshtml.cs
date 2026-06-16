@@ -8,6 +8,7 @@ namespace Snakk.Web.Pages.My.Settings;
 public class PrivacyModel(SnakkApiClient apiClient, IConfiguration configuration, IOptions<OAuthProvidersOptions> oauthOptions) : PageModel
 {
     public bool HidePresence { get; private set; }
+    public bool DisableHistory { get; private set; }
     public bool PasskeysEnabled => configuration.GetValue<bool>("Features:PasskeysEnabled", true);
     public bool TwoFactorEnabled => configuration.GetValue<bool>("Features:TwoFactorEnabled", true);
     public bool OAuthProvidersEnabled => oauthOptions.Value.HasAny;
@@ -26,6 +27,7 @@ public class PrivacyModel(SnakkApiClient apiClient, IConfiguration configuration
         ErrorCode = error;
         var me = await apiClient.GetCurrentUserAsync();
         HidePresence = me?.HidePresence ?? false;
+        DisableHistory = Request.Cookies[".Snakk.Pref.DisableHistory"] == "1";
         return Page();
     }
 }

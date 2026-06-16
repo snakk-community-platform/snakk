@@ -10,6 +10,7 @@
     string A(string href) => path == href ? " active" : "";
     string AEnd(string suffix) => path.EndsWith(suffix) ? " active" : "";
 
+    var disableHistory = ViewContext.HttpContext.Request.Cookies[".Snakk.Pref.DisableHistory"] == "1";
     var isSingleCommunity = !CommunityContext.IsMultiCommunityEnabled;
     var communityHref = isSingleCommunity ? "/c" : "/communities";
     var communityLabel = isSingleCommunity ? T.Nav.Community : T.Nav.Communities;
@@ -101,6 +102,8 @@
                             <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span>
                         }
                     </a>
+                    @if (!disableHistory)
+                    {
                     <a href="/my/history" class="sn-nav-item@(A("/my/history"))">
                         <span class="icon icon-clock" aria-hidden="true"></span>
                         @T.Nav.History
@@ -109,6 +112,7 @@
                             <span class="icon icon-lock-closed sn-nav-lock" aria-hidden="true"></span>
                         }
                     </a>
+                    }
                     <a href="/my/reactions" class="sn-nav-item@(A("/my/reactions"))">
                         <span class="icon icon-emoji-happy" aria-hidden="true"></span>
                         @T.Nav.Reactions

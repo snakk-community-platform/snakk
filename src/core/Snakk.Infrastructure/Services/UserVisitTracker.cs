@@ -22,7 +22,7 @@ public class UserVisitTracker(HybridCache hybridCache, IServiceScopeFactory scop
             {
                 using var scope = scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<SnakkDbContext>();
-                await UpdateVisitTimestampsAsync(db, userId, token);
+                await UpdateVisitTimestampsAsync(db, userId, hybridCache, token);
                 return true;
             },
             CacheOptions,
@@ -42,9 +42,11 @@ public class UserVisitTracker(HybridCache hybridCache, IServiceScopeFactory scop
             .ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.LastVisitAt, now)
                 .SetProperty(u => u.CurrentVisitActiveAt, now), ct);
+
+        await hybridCache.RemoveAsync($"last-visit-at:{userId}", ct);
     }
 
-    private static async Task UpdateVisitTimestampsAsync(SnakkDbContext db, string userId, CancellationToken ct)
+    private static async Task UpdateVisitTimestampsAsync(SnakkDbContext db, string userId, HybridCache cache, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var user = await db.Users
@@ -80,6 +82,8 @@ public class UserVisitTracker(HybridCache hybridCache, IServiceScopeFactory scop
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(u => u.LastVisitAt, newLastVisitAt)
                     .SetProperty(u => u.CurrentVisitActiveAt, now), ct);
+
+            await cache.RemoveAsync($"last-visit-at:{userId}", ct);
         }
         else
         {

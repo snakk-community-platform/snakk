@@ -258,7 +258,9 @@ interface NotificationsResponse {
         if ((window as any).currentUserId) {
             loadNotificationCount();
             loadNotifications();
-            loadDmUnreadCount();
+            if (document.body.dataset.messaging === '1') {
+                loadDmUnreadCount();
+            }
         }
 
         // Update theme toggle button icon with current state

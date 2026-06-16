@@ -1669,6 +1669,8 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
         // The deleted discussion may be the cached "latest" for its space — that entry is
         // write-invalidated with a very long TTL, so a missed removal would persist for months.
         await _cache.RemoveAsync($"space-latest-discussion:{discussion.SpaceId}", ct);
+        await _cache.RemoveAsync($"preview:link:{discussionPublicId}", ct);
+        await _cache.RemoveAsync($"preview:images:{discussionPublicId}", ct);
 
         await LogModerationActionAsync(
             moderatorPublicId,

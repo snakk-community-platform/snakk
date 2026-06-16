@@ -22,7 +22,10 @@
     const form      = document.getElementById('relogin-form') as HTMLFormElement | null;
     const errorEl   = document.getElementById('relogin-error') as HTMLElement | null;
     const submitBtn = document.getElementById('relogin-submit') as HTMLButtonElement | null;
-    const strings   = (window as any).snakkReloginStrings ?? {};
+    const strings = {
+        wrongPassword: document.querySelector<HTMLMetaElement>('meta[name="snakk-relogin-wrong-password"]')?.content ?? '',
+        generic:       document.querySelector<HTMLMetaElement>('meta[name="snakk-relogin-generic"]')?.content ?? '',
+    };
 
     form?.addEventListener('submit', async (e) => {
         e.preventDefault();

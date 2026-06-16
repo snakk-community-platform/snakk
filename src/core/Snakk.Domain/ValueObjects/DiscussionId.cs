@@ -1,5 +1,9 @@
 namespace Snakk.Domain.ValueObjects;
 
+using System.Text.Json.Serialization;
+using Snakk.Domain.Json;
+
+[JsonConverter(typeof(DiscussionIdJsonConverter))]
 public record DiscussionId
 {
     public string Value { get; }

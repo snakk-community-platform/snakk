@@ -616,7 +616,7 @@ public class StatisticsGrpcService(
         return userStats;
     }
 
-    public override async Task<SparklineResponse> GetActivitySparkline(SparklineRequest request, ServerCallContext context)
+    public override Task<SparklineResponse> GetActivitySparkline(SparklineRequest request, ServerCallContext context)
     {
         var ct = context.CancellationToken;
         var entityType = request.EntityType switch
@@ -632,40 +632,35 @@ public class StatisticsGrpcService(
         var days     = Math.Clamp(request.Days, 1, 90);
         var publicId = string.IsNullOrEmpty(request.PublicId) ? null : request.PublicId;
 
-        var data = await activitySnapshotRepository.GetSparklineAsync(entityType, publicId, days, ct);
-
-        var response = new SparklineResponse();
-        foreach (var d in data)
+        // Aggregate: TTL-only, no write-path invalidation (data from ActivityDailySnapshot, refreshed by background worker)
+        var cacheKey = $"sparkline:{request.EntityType}:{publicId ?? "platform"}:{days}";
+        return cache.GetOrCreateAsync(cacheKey, async cToken =>
         {
-            response.Days.Add(new SparklineDay
-            {
-                Date            = d.Date.ToString("yyyy-MM-dd"),
-                PostCount       = d.PostCount,
-                DiscussionCount = d.DiscussionCount
-            });
-        }
-        return response;
+            var data = await activitySnapshotRepository.GetSparklineAsync(entityType, publicId, days, cToken);
+            var response = new SparklineResponse();
+            foreach (var d in data)
+                response.Days.Add(new SparklineDay { Date = d.Date.ToString("yyyy-MM-dd"), PostCount = d.PostCount, DiscussionCount = d.DiscussionCount });
+            return response;
+        }, FiveMinCacheOptions, cancellationToken: ct).AsTask();
     }
 
     public override async Task<SparklineBatchResponse> GetActivitySparklinesBatch(
         SparklineBatchRequest request, ServerCallContext context)
     {
-        var ct   = context.CancellationToken;
-        var days = Math.Clamp(request.Days, 1, 90);
-        var data = await activitySnapshotRepository.GetSparklinesForSpacesAsync(
-            request.PublicIds, days, ct);
+        var ct         = context.CancellationToken;
+        var days       = Math.Clamp(request.Days, 1, 90);
+        var entityType = string.IsNullOrEmpty(request.EntityType) ? "space" : request.EntityType;
+
+        var data = entityType == "community"
+            ? await activitySnapshotRepository.GetSparklinesForCommunitiesAsync(request.PublicIds, days, ct)
+            : await activitySnapshotRepository.GetSparklinesForSpacesAsync(request.PublicIds, days, ct);
 
         var response = new SparklineBatchResponse();
         foreach (var (publicId, sparkline) in data)
         {
             var entry = new SpaceSparklineEntry { PublicId = publicId };
             foreach (var d in sparkline)
-                entry.Days.Add(new SparklineDay
-                {
-                    Date            = d.Date.ToString("yyyy-MM-dd"),
-                    PostCount       = d.PostCount,
-                    DiscussionCount = d.DiscussionCount
-                });
+                entry.Days.Add(new SparklineDay { Date = d.Date.ToString("yyyy-MM-dd"), PostCount = d.PostCount, DiscussionCount = d.DiscussionCount });
             response.Entries.Add(entry);
         }
         return response;

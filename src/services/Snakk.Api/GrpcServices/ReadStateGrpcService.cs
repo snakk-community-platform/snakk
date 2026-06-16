@@ -65,32 +65,16 @@ public class ReadStateGrpcService(
         var ct = context.CancellationToken;
         var userId = RequireAuth();
 
-        var processed = 0;
+        var states = request.Items
+            .Select(item => DiscussionReadState.Create(
+                userId,
+                DiscussionId.From(item.DiscussionId),
+                PostId.From(item.LastReadPostId)))
+            .ToList();
 
-        foreach (var item in request.Items)
-        {
-            try
-            {
-                var discussionId = DiscussionId.From(item.DiscussionId);
-                var postId = PostId.From(item.LastReadPostId);
+        await readStateRepository.BatchSaveAsync(states, ct);
 
-                var readState = await readStateRepository.GetAsync(userId, discussionId, ct);
-
-                if (readState is null)
-                    readState = DiscussionReadState.Create(userId, discussionId, postId);
-                else
-                    readState.MarkAsRead(postId);
-
-                await readStateRepository.SaveAsync(readState, ct);
-                processed++;
-            }
-            catch
-            {
-                continue;
-            }
-        }
-
-        return new BatchMarkAsReadResponse { Success = true, Processed = processed };
+        return new BatchMarkAsReadResponse { Success = true, Processed = states.Count };
     }
 
     public override async Task<MarkVisitAsReadResponse> MarkVisitAsRead(MarkVisitAsReadRequest request, ServerCallContext context)

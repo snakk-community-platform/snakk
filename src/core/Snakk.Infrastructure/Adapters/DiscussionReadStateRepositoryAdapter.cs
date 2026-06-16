@@ -1,15 +1,28 @@
 namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 
-public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : IDiscussionReadStateRepository
+public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext, HybridCache cache) : IDiscussionReadStateRepository
 {
+    private static readonly HybridCacheEntryOptions _readStateCacheOptions =
+        new() { Expiration = TimeSpan.FromHours(24) };
+
     public async Task<DiscussionReadState?> GetAsync(UserId userId, DiscussionId discussionId, CancellationToken ct = default)
+    {
+        return await cache.GetOrCreateAsync<DiscussionReadState?>(
+            $"read-state:{userId.Value}:{discussionId.Value}",
+            async cancel => await FetchReadStateAsync(userId, discussionId, cancel),
+            _readStateCacheOptions,
+            cancellationToken: ct);
+    }
+
+    private async Task<DiscussionReadState?> FetchReadStateAsync(UserId userId, DiscussionId discussionId, CancellationToken ct)
     {
         var entity = await dbContext.DiscussionReadStates
             .FirstOrDefaultAsync(rs =>
@@ -56,6 +69,7 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
         }
 
         await dbContext.SaveChangesAsync(ct);
+        await cache.RemoveAsync($"read-state:{readState.UserId.Value}:{readState.DiscussionId.Value}", ct);
     }
 
     public async Task BatchSaveAsync(IEnumerable<DiscussionReadState> readStates, CancellationToken ct = default)
@@ -93,6 +107,8 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
         }
 
         await dbContext.SaveChangesAsync(ct);
+        await Task.WhenAll(states.Select(s =>
+            cache.RemoveAsync($"read-state:{s.UserId.Value}:{s.DiscussionId.Value}", ct).AsTask()));
     }
 
     public async Task<List<ReadStateWithPostNumber>> GetReadStatesForDiscussionsAsync(
@@ -100,41 +116,28 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext) : ID
         List<string> discussionIds,
         CancellationToken ct = default)
     {
-        var readStates = await dbContext.DiscussionReadStates
-            .Where(rs =>
-                rs.UserId == userId.Value
-                && discussionIds.Contains(rs.DiscussionId))
-            .ToListAsync(ct);
-
-        var results = new List<ReadStateWithPostNumber>();
-
-        foreach (var readState in readStates)
-        {
-            if (readState.LastReadPostId is null)
-                continue;
-
-            // Calculate post number by counting posts created before or at the LastReadPost
-            var lastReadPost = await dbContext.Posts
-                .Where(p =>
-                    p.PublicId == readState.LastReadPostId
-                    && p.Discussion.PublicId == readState.DiscussionId)
-                .Select(p => p.CreatedAt)
-                .FirstOrDefaultAsync(ct);
-
-            if (lastReadPost == default)
-                continue;
-
-            var postNumber = await dbContext.Posts
-                .Where(p =>
-                    p.Discussion.PublicId == readState.DiscussionId
+        // Single query: join read states to last-read post, then count posts up to that timestamp.
+        // Replaces the prior N+1 pattern (1 SELECT + 2 queries per discussion row).
+        var results = await (
+            from rs in dbContext.DiscussionReadStates
+            where rs.UserId == userId.Value
+                  && discussionIds.Contains(rs.DiscussionId)
+                  && rs.LastReadPostId != null
+            join lrp in dbContext.Posts on rs.LastReadPostId equals lrp.PublicId
+            where lrp.DiscussionPublicId == rs.DiscussionId
+            select new
+            {
+                rs.DiscussionId,
+                PostNumber = dbContext.Posts.Count(p =>
+                    p.DiscussionPublicId == rs.DiscussionId
                     && !p.IsDeleted
-                    && p.CreatedAt <= lastReadPost)
-                .CountAsync(ct);
+                    && p.CreatedAt <= lrp.CreatedAt)
+            }
+        ).ToListAsync(ct);
 
-            results.Add(new ReadStateWithPostNumber(readState.DiscussionId, postNumber));
-        }
-
-        return results;
+        return results
+            .Select(r => new ReadStateWithPostNumber(r.DiscussionId, r.PostNumber))
+            .ToList();
     }
 
     public async Task<Dictionary<string, DateTime>> GetLastReadAtByDiscussionAsync(

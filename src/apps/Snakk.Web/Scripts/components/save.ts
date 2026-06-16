@@ -92,6 +92,59 @@
         if (labelEl) labelEl.textContent = isSaved ? 'Saved' : 'Save';
     }
 
+    // On every page (re)load, reflect the true saved state so that the hardcoded
+    // data-saved="false" template default never causes a click to incorrectly unsave.
+    async function initSaveButtonStates(): Promise<void> {
+        const btns = Array.from(
+            document.querySelectorAll<HTMLElement>('[data-action="toggle-save-discussion"]')
+        );
+        if (btns.length === 0) return;
+        if (!((window as any).currentUserId)) return;
+
+        const cache = (window as any).SnakkSaveCache;
+
+        // Collect which IDs need a live fetch (not in cache yet)
+        const needFetch = btns.filter(b => {
+            const id = b.dataset.discussionId;
+            return id && cache?.isDiscussionSaved(id) === null;
+        });
+
+        if (needFetch.length > 0) {
+            try {
+                const res = await fetch('/bff/saves/discussion-ids', { credentials: 'include' });
+                if (res.ok) {
+                    const data = await res.json() as { publicIds: string[] };
+                    const savedSet = new Set(data.publicIds ?? []);
+                    // Seed the cache for every ID we fetched
+                    btns.forEach(b => {
+                        const id = b.dataset.discussionId;
+                        if (id) cache?.setDiscussionSaved(id, savedSet.has(id));
+                    });
+                }
+            } catch { /* ignore — buttons stay at default state */ }
+        }
+
+        // Update all buttons from cache
+        btns.forEach(b => {
+            const id = b.dataset.discussionId;
+            if (!id) return;
+            const isSaved = cache?.isDiscussionSaved(id);
+            if (isSaved !== null && isSaved !== undefined) setSaveState(b, isSaved);
+        });
+    }
+
+    function setupInit(): void {
+        void initSaveButtonStates();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupInit);
+    } else {
+        setupInit();
+    }
+
+    document.addEventListener('htmx:afterSettle', setupInit);
+
     // Global event delegation for save actions
     document.addEventListener('click', async (e) => {
         const target = e.target as HTMLElement;

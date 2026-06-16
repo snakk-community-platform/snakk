@@ -3,6 +3,25 @@
 
 @if (Model != null && Model.Any())
 {
+    <script>
+    (function () {
+        var dismissed = [];
+        for (var i = 0; i < localStorage.length; i++) {
+            var k = localStorage.key(i);
+            if (k && k.indexOf('banner-dismissed-') === 0 && localStorage.getItem(k)) {
+                dismissed.push(k.slice('banner-dismissed-'.length));
+            }
+        }
+        if (dismissed.length) {
+            var css = dismissed.map(function (id) {
+                return '[data-banner-id="' + id.replace(/"/g, '\\"') + '"] { display: none !important; }';
+            }).join('');
+            var s = document.createElement('style');
+            s.textContent = css;
+            document.head.appendChild(s);
+        }
+    })();
+    </script>
     <div class="banner-banners mb-4">
         @foreach (var banner in Model)
         {
