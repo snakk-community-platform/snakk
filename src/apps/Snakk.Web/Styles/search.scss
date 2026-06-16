@@ -1,0 +1,5 @@
+// Search page CSS — lazy-loaded on the search results page only.
+// Extracted from site.scss to reduce payload on all other pages.
+// Loaded via @section Styles in Pages/Search.cshtml.
+
+@use 'pages/search';

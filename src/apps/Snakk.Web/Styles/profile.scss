@@ -1,0 +1,6 @@
+// Profile page CSS — lazy-loaded on user profile pages only.
+// Extracted from site.scss to reduce payload on all other pages.
+// Loaded via @section Styles in Pages/Users/Profile.cshtml.
+
+@use 'pages/profile';
+@use 'pages/stats-chart';

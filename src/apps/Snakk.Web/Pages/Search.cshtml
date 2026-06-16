@@ -6,6 +6,10 @@
     ViewData["Title"] = string.IsNullOrEmpty(Model.Q) ? T.Pages.SearchTitle : $"{T.Pages.SearchResultsFor}{Model.Q}";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("search")" asp-append-version="true" />
+}
+
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />
 }

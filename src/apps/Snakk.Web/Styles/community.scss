@@ -1,0 +1,5 @@
+// Community page CSS — lazy-loaded on community pages only.
+// Extracted from site.scss to reduce payload on all other pages.
+// Loaded via @section Styles in Pages/Communities/Detail.cshtml and Index.cshtml.
+
+@use 'pages/community';

@@ -31,6 +31,10 @@
     }
 }
 
+@section Styles {
+    <link rel="stylesheet" href="@SnakkUrlHelper.Css("hub")" asp-append-version="true" />
+}
+
 @if (Model.Require2FAGate)
 {
     <partial name="_Require2FAGate" />
