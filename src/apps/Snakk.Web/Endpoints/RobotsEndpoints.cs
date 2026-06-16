@@ -16,8 +16,9 @@ public static class RobotsEndpoints
                 Allow: /
                 Disallow: /api/
                 Disallow: /Auth/
-                Disallow: /u/*/settings
                 Disallow: /notifications
+                Disallow: /unread
+                Disallow: /my/*
 
                 # Sitemap
                 Sitemap: {baseUrl}/sitemap.xml

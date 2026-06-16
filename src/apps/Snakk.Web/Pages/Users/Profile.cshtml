@@ -273,22 +273,6 @@
     var hasModSection = (Model.Profile?.IsGlobalAdmin == true)
         || communityRoles.Count > 0 || hubRoles.Count > 0 || spaceRoles.Count > 0;
 
-    string ModAccessBadgeClass(string? level) => level switch
-    {
-        "public" => "badge-success",
-        "registered" => "badge-info",
-        "members" => "badge-warning",
-        "unlisted" => "badge-ghost",
-        _ => "badge-ghost"
-    };
-    string ModAccessLabel(string? level) => level switch
-    {
-        "public" => T.Pages.ProfileModRolesAccessPublic,
-        "registered" => T.Pages.ProfileModRolesAccessRegistered,
-        "members" => T.Pages.ProfileModRolesAccessMembers,
-        "unlisted" => T.Pages.ProfileModRolesAccessUnlisted,
-        _ => ""
-    };
 }
 <div class="sn-right-sticky">
     <partial name="Shared/_RightActionPane" />

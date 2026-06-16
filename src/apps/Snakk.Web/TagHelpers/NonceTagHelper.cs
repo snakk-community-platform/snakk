@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Razor.TagHelpers;
 namespace Snakk.Web.TagHelpers;
 
 [HtmlTargetElement("script")]
+[HtmlTargetElement("link", Attributes = "as")]
 public class NonceTagHelper : TagHelper
 {
     [ViewContext]
@@ -13,6 +14,10 @@ public class NonceTagHelper : TagHelper
 
     public override void Process(TagHelperContext context, TagHelperOutput output)
     {
+        if (output.TagName == "link" &&
+            output.Attributes["as"]?.Value?.ToString() != "script")
+            return;
+
         if (ViewContext.HttpContext.Items.TryGetValue("csp-nonce", out var nonce) && nonce is string nonceStr)
             output.Attributes.SetAttribute("nonce", nonceStr);
     }

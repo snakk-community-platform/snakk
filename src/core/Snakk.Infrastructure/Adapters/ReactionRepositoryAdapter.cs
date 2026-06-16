@@ -23,7 +23,7 @@ public class ReactionRepositoryAdapter(
                 && r.PostPublicId == postId.Value
                 && r.TypeId == typeId)
             .Select(r => new ReactionProjection(
-                r.PublicId, r.PostPublicId, r.UserPublicId,
+                r.PublicId, r.PostPublicId!, r.UserPublicId!,
                 r.TypeId, r.CreatedAt))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
@@ -36,7 +36,7 @@ public class ReactionRepositoryAdapter(
                 r.UserPublicId == userId.Value
                 && r.PostPublicId == postId.Value)
             .Select(r => new ReactionProjection(
-                r.PublicId, r.PostPublicId, r.UserPublicId,
+                r.PublicId, r.PostPublicId!, r.UserPublicId!,
                 r.TypeId, r.CreatedAt))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
@@ -47,7 +47,7 @@ public class ReactionRepositoryAdapter(
         var projections = await context.PostReactions
             .Where(r => r.PostPublicId == postId.Value)
             .Select(r => new ReactionProjection(
-                r.PublicId, r.PostPublicId, r.UserPublicId,
+                r.PublicId, r.PostPublicId!, r.UserPublicId!,
                 r.TypeId, r.CreatedAt))
             .ToListAsync(ct);
 

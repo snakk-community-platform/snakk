@@ -13,10 +13,10 @@
 
   <ItemGroup>
     <!-- PostgreSQL (DB connection test) -->
-    <PackageReference Include="Npgsql" Version="10.0.2" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
     <!-- JWT generation for auto-login -->
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
-    <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.9" />
   </ItemGroup>
 
   <!-- Build Tailwind CSS before build (skip in Docker where CSS is pre-built) -->

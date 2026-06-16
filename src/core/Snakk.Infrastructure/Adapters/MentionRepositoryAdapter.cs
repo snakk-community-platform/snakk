@@ -18,7 +18,7 @@ public class MentionRepositoryAdapter(
         var projections = await context.PostMentions
             .Where(m => m.PostPublicId == postId.Value)
             .Select(m => new MentionProjection(
-                m.PublicId, m.PostPublicId, m.MentionedUserPublicId, m.CreatedAt))
+                m.PublicId, m.PostPublicId!, m.MentionedUserPublicId!, m.CreatedAt))
             .ToListAsync(ct);
 
         return projections.Select(p => p.ToDomain());

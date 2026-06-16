@@ -13,10 +13,10 @@
     <PackageReference Include="Blazor-ApexCharts" Version="6.1.0" />
 
     <!-- JWT Authentication -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
-    <PackageReference Include="MudBlazor" Version="9.4.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
-    <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+    <PackageReference Include="MudBlazor" Version="9.5.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.9" />
 
     <!-- gRPC -->
     <PackageReference Include="Grpc.Net.Client" Version="2.80.0" />

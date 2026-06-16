@@ -102,7 +102,11 @@
 
                 for (const newNode of nodesToAppend) {
                     log("adding: ", newNode);
-                    var newElt = document.createRange().createContextualFragment(newNode.outerHTML);
+                    // Strip nonce attributes before inserting: per-request nonces from the new page
+                    // won't match the current page's CSP nonce. Without a nonce attribute,
+                    // strict-dynamic applies — trusted scripts (like this one) can insert freely.
+                    var nodeHtml = newNode.outerHTML.replace(/\s+nonce="[^"]*"/gi, '');
+                    var newElt = document.createRange().createContextualFragment(nodeHtml);
                     log(newElt);
                     if (api.triggerEvent(document.body, "htmx:addingHeadElement", {headElement: newElt}) !== false) {
                         currentHead.appendChild(newElt);

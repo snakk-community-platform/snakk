@@ -77,7 +77,7 @@ public class AuthenticationUseCase(
         }
 
         // Check if display name is available
-        var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(displayName);
+        var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(displayName!);
 
         // Hash password
         var passwordHash = passwordHasher.HashPassword(password);

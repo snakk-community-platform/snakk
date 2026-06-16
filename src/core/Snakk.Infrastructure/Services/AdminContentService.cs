@@ -247,9 +247,9 @@ public class AdminContentService(
                     Slug = s.Slug,
                     Name = s.Name,
                     Description = s.Description,
-                    HubSlug = s.HubSlug,
-                    HubName = s.HubName,
-                    CommunitySlug = s.CommunitySlug,
+                    HubSlug = s.HubSlug!,
+                    HubName = s.HubName!,
+                    CommunitySlug = s.CommunitySlug!,
                     DiscussionCount = s.Discussions.Count,
                     CreatedAt = s.CreatedAt
                 })

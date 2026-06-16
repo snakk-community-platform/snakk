@@ -20,7 +20,7 @@ public class SpaceRepositoryAdapter(
         var projection = await context.Spaces
             .Where(s => s.Id == id)
             .Select(s => new SpaceProjection(
-                s.PublicId, s.HubPublicId, s.Name, s.Slug, s.Description,
+                s.PublicId, s.HubPublicId!, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
@@ -35,7 +35,7 @@ public class SpaceRepositoryAdapter(
         var projection = await context.Spaces
             .Where(s => s.PublicId == publicId.Value)
             .Select(s => new SpaceProjection(
-                s.PublicId, s.HubPublicId, s.Name, s.Slug, s.Description,
+                s.PublicId, s.HubPublicId!, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
@@ -50,7 +50,7 @@ public class SpaceRepositoryAdapter(
         var projection = await context.Spaces
             .Where(s => s.Slug == slug && s.HubSlug == hubSlug)
             .Select(s => new SpaceProjection(
-                s.PublicId, s.HubPublicId, s.Name, s.Slug, s.Description,
+                s.PublicId, s.HubPublicId!, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,
@@ -83,7 +83,7 @@ public class SpaceRepositoryAdapter(
     {
         var projections = await context.Spaces
             .Select(s => new SpaceProjection(
-                s.PublicId, s.HubPublicId, s.Name, s.Slug, s.Description,
+                s.PublicId, s.HubPublicId!, s.Name, s.Slug, s.Description,
                 s.AllowAnonymousReading, s.RequireEmailConfirmation,
                 s.CreatedAt, s.LastModifiedAt,
                 s.AvatarFileName, s.AvatarThumbnailFileName, s.AvatarMicroFileName, s.AvatarRevision,

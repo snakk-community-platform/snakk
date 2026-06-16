@@ -22,7 +22,7 @@ public class FollowRepositoryAdapter(
                 && f.Discussion != null
                 && f.DiscussionPublicId == discussionId.Value)
             .Select(f => new FollowProjection(
-                f.PublicId, f.UserPublicId, f.TargetTypeId,
+                f.PublicId, f.UserPublicId!, f.TargetTypeId,
                 f.DiscussionPublicId,
                 f.SpacePublicId,
                 f.FollowedUserPublicId,
@@ -39,7 +39,7 @@ public class FollowRepositoryAdapter(
                 && f.Space != null
                 && f.SpacePublicId == spaceId.Value)
             .Select(f => new FollowProjection(
-                f.PublicId, f.UserPublicId, f.TargetTypeId,
+                f.PublicId, f.UserPublicId!, f.TargetTypeId,
                 f.DiscussionPublicId,
                 f.SpacePublicId,
                 f.FollowedUserPublicId,
@@ -56,7 +56,7 @@ public class FollowRepositoryAdapter(
                 && f.FollowedUser != null
                 && f.FollowedUserPublicId == followedUserId.Value)
             .Select(f => new FollowProjection(
-                f.PublicId, f.UserPublicId, f.TargetTypeId,
+                f.PublicId, f.UserPublicId!, f.TargetTypeId,
                 f.DiscussionPublicId,
                 f.SpacePublicId,
                 f.FollowedUserPublicId,

@@ -109,7 +109,7 @@ public class PostTests
         post.ClearDomainEvents(); // Clear creation event
 
         // Act
-        post.UpdateContent("updated content", "<p>updated content</p>", editorUserId);
+        post.UpdateContent("updated content", "<p>updated content</p>", editorUserId!);
 
         // Assert
         await Assert.That(post.Content).IsEqualTo("updated content");
