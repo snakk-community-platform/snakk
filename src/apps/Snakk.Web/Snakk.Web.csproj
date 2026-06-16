@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Configurations>Debug;Release</Configurations>
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <TypeScriptToolsVersion>5.7</TypeScriptToolsVersion>
   </PropertyGroup>
 
   <ItemGroup>
