@@ -133,7 +133,7 @@
     <div class="sn-card-header">
         @if (Model.ShowUser)
         {
-            <img src="@discussion.Author.AvatarMicroUrl" alt="" class="sn-card-avatar shadow-layered" width="20" height="20" loading="lazy" decoding="async" />
+            <img src="@discussion.Author.AvatarMicroUrl" alt="" class="sn-card-avatar shadow-layered" width="20" height="20" loading="@(Model.IsFirst ? "eager" : "lazy")" decoding="async" />
             @if (string.IsNullOrEmpty(discussion.Author.PublicId))
             {
                 <span class="sn-card-author">@T.Card.DeletedUser</span>
