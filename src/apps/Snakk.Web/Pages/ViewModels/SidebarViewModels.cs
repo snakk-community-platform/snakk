@@ -68,3 +68,8 @@ public record SidebarModeratorsVM(
     GetModeratorsResponse? Moderators,
     string ModeratorsPageUrl,
     string CacheSource);
+
+public record GlobalRightSidebarVM(
+    SidebarPlatformStatsVM? Stats,
+    SidebarTrendingSpacesVM? TrendingSpaces,
+    SidebarTrendingContributorsVM? TrendingContributors);

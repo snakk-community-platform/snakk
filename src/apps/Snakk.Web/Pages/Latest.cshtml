@@ -71,7 +71,7 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.LatestAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.LatestAboutDesc;
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />
 
 @section Scripts {
     @if (Model.LatestDiscussions?.Items != null && Model.LatestDiscussions.Items.Any())

@@ -64,7 +64,7 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.IndexAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.IndexAboutDesc;
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />
 
 @section Scripts {
     <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>

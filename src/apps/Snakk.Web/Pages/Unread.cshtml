@@ -1,4 +1,4 @@
-@page "/unread"
+page "/unread"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using static Snakk.Web.Helpers.DisplayHelper
@@ -82,7 +82,7 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.UnreadAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.UnreadAboutDesc;
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />
 
 @section Scripts {
     @if (Model.Discussions?.Items != null && Model.Discussions.Items.Any())

@@ -197,7 +197,7 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.FollowingAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.FollowingAboutDesc;
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />
 
 @section Scripts {
 <script src="@SnakkUrlHelper.Js("pages/following")" asp-append-version="true"></script>

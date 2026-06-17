@@ -1,4 +1,4 @@
-@page
+page
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @model SearchModel
@@ -8,7 +8,7 @@
 
 @section Styles {
     <link rel="preload" href="@SnakkUrlHelper.Css("search")" as="style" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("search")" media="print" asp-append-version="true" onload="this.media='all'" />
+    <script>(function(){var p=document.currentScript.previousElementSibling;if(p){var s=document.createElement('link');s.rel='stylesheet';s.media='print';s.href=p.href;s.onload=function(){this.media='all'};document.head.appendChild(s);}})();</script>
     <noscript><link rel="stylesheet" href="@SnakkUrlHelper.Css("search")" asp-append-version="true" /></noscript>
 }
 
@@ -51,7 +51,7 @@
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/create";
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />
 
 @section Scripts {
     <script src="@SnakkUrlHelper.Js("pages/search-page")" asp-append-version="true" defer></script>

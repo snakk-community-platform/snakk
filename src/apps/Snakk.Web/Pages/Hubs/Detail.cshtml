@@ -33,7 +33,7 @@
 
 @section Styles {
     <link rel="preload" href="@SnakkUrlHelper.Css("hub")" as="style" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("hub")" media="print" asp-append-version="true" onload="this.media='all'" />
+    <script>(function(){var p=document.currentScript.previousElementSibling;if(p){var s=document.createElement('link');s.rel='stylesheet';s.media='print';s.href=p.href;s.onload=function(){this.media='all'};document.head.appendChild(s);}})();</script>
     <noscript><link rel="stylesheet" href="@SnakkUrlHelper.Css("hub")" asp-append-version="true" /></noscript>
 }
 

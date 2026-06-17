@@ -1,4 +1,4 @@
-@page "/create"
+page "/create"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
@@ -72,6 +72,6 @@
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/create";
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />
 
 <script src="@SnakkUrlHelper.Js("pages/new-discussion-entry")" asp-append-version="true"></script>

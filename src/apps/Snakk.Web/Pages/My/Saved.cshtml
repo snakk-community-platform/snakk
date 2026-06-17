@@ -141,7 +141,7 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.SavedHeading;
     ViewData["RightPane.AboutDescription"] = T.Pages.SavedAboutDesc;
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />
 
 @section Scripts {
 <script src="@SnakkUrlHelper.Js("pages/saved")" asp-append-version="true"></script>

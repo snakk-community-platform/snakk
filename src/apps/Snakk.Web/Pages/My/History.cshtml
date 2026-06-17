@@ -58,7 +58,7 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.HistoryHeading;
     ViewData["RightPane.AboutDescription"] = T.Pages.HistoryAboutDesc;
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />
 
 <script src="@SnakkUrlHelper.Js("components/card-animations")" asp-append-version="true"></script>
 <script src="@SnakkUrlHelper.Js("services/read-history")" asp-append-version="true"></script>
