@@ -40,7 +40,7 @@
     "@microsoft/signalr": "^10.0.0",
     "@tailwindcss/cli": "^4.3.0",
     "@types/dompurify": "^3.2.0",
-    "@types/node": "^25.9.2",
+    "@types/node": "^25.9.3",
     "bootstrap-icons": "^1.13.1",
     "concurrently": "^10.0.3",
     "daisyui": "^5.5.23",
