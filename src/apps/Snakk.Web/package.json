@@ -38,7 +38,7 @@
   "type": "commonjs",
   "devDependencies": {
     "@microsoft/signalr": "^10.0.0",
-    "@tailwindcss/cli": "^4.3.0",
+    "@tailwindcss/cli": "^4.3.1",
     "@types/dompurify": "^3.2.0",
     "@types/node": "^25.9.2",
     "bootstrap-icons": "^1.13.1",
