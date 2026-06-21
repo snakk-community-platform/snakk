@@ -1,8 +1,10 @@
-@using Snakk.Web.Helpers
+﻿@using Snakk.Web.Helpers
 @using static Snakk.Web.Helpers.DisplayHelper
 @model Snakk.Web.Pages.Spaces.CreateDiscussionBaseModel
 @inject Snakk.Web.Services.ICommunityContext CommunityCtx
 
+@if (!DeviceDetection.IsMobile(Context))
+{
 <aside class="sn-right">
 <div class="sn-right-sticky">
     <div class="sn-right-body">
@@ -10,23 +12,23 @@
         @if (Model.SpaceStats != null)
         {
         <div class="sn-right-section">
-            <div class="flex gap-2">
-                        <div class="stats shadow-layered-light flex-1">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
-                        <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
+            <div class="sn-flex sn-gap-2">
+                        <div class="sn-stats sn-shadow-layered-light sn-flex-1">
+                    <div class="sn-stat">
+                        <div class="sn-stat-title">@T.Sidebar.StatsDiscussions</div>
+                        <div class="sn-stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
                     </div>
                 </div>
-                        <div class="stats shadow-layered-light flex-1">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsReplies</div>
-                        <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
+                        <div class="sn-stats sn-shadow-layered-light sn-flex-1">
+                    <div class="sn-stat">
+                        <div class="sn-stat-title">@T.Sidebar.StatsReplies</div>
+                        <div class="sn-stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
                     </div>
                 </div>
-                        <div class="stats shadow-layered-light flex-1">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsFollowers</div>
-                        <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
+                        <div class="sn-stats sn-shadow-layered-light sn-flex-1">
+                    <div class="sn-stat">
+                        <div class="sn-stat-title">@T.Sidebar.StatsFollowers</div>
+                        <div class="sn-stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
                     </div>
                 </div>
             </div>
@@ -40,7 +42,7 @@
             </div>
             @if (!string.IsNullOrEmpty(Model.Space.Description))
             {
-                <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
+                <p class="sn-text-sm sn-mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
             }
         </div>
 
@@ -53,10 +55,10 @@
             </div>
             <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                              htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
-                <div class="flex flex-col gap-2">
-                    <div class="skeleton h-3 w-3/4"></div>
-                    <div class="skeleton h-3 w-2/3"></div>
-                    <div class="skeleton h-3 w-1/2"></div>
+                <div class="sn-rules-skeleton">
+                    <div class="sn-skeleton h-3 w-3/4"></div>
+                    <div class="sn-skeleton h-3 w-2/3"></div>
+                    <div class="sn-skeleton h-3 w-1/2"></div>
                 </div>
             </inline-or-htmx>
         </div>
@@ -69,10 +71,10 @@
             </div>
             <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                              htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(CommunityCtx, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
-                <div class="grid grid-cols-8 gap-1">
-                    <div class="skeleton rounded-full aspect-square w-full"></div>
-                    <div class="skeleton rounded-full aspect-square w-full"></div>
-                    <div class="skeleton rounded-full aspect-square w-full"></div>
+                <div class="sn-grid sn-grid-cols-8 sn-gap-1">
+                    <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                    <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                    <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
                 </div>
             </inline-or-htmx>
         </div>
@@ -80,3 +82,4 @@
     </div>
 </div>
 </aside>
+}

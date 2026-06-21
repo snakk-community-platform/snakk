@@ -97,7 +97,7 @@
             if (!toolbar) return;
 
             const btn = document.createElement('button');
-            btn.className = 'subtle-btn';
+            btn.className = 'sn-subtle-btn';
             btn.title = 'Accept as answer';
             btn.textContent = '✅';
             btn.addEventListener('click', async () => {
@@ -125,7 +125,7 @@
             .then(r => r.ok ? r.json() : null)
             .then(data => {
                 if (!data) return;
-                const colors = ['var(--link-primary)', 'var(--text-tertiary)', 'oklch(0.6 0.15 50)'];
+                const colors = ['var(--sn-link-primary)', 'var(--text-tertiary)', 'oklch(0.6 0.15 50)'];
                 addDebatePositionPicker(data.positions, colors);
             })
             .catch(() => {});
@@ -141,8 +141,8 @@
         const picker = document.createElement('div');
         picker.className = 'debate-position-picker';
         picker.innerHTML =
-            '<div class="text-sm font-medium mb-1">⚖ Choose your position</div>' +
-            '<p class="text-xs text-base-content/50 mb-3">' +
+            '<div class="sn-text-sm sn-font-medium sn-mb-1">⚖ Choose your position</div>' +
+            '<p class="sn-text-xs sn-text-base-content\\/50 sn-mb-3">' +
                 'This is a debate. Every reply must declare a position so readers ' +
                 'can follow who stands where. Pick the position that best represents ' +
                 'your reply — it will be shown as a label on your post. You can change ' +
@@ -242,7 +242,7 @@
             if (!toolbar) return;
 
             const btn = document.createElement('button');
-            btn.className = 'subtle-btn';
+            btn.className = 'sn-subtle-btn';
             btn.title = 'Mark as journal update';
             btn.textContent = '📓';
             btn.addEventListener('click', async () => {
@@ -278,7 +278,7 @@
                     img.src = img.dataset.deferredSrc!;
                     img.removeAttribute('data-deferred-src');
                 });
-                spoilerContainer!.classList.add('revealed');
+                spoilerContainer!.classList.add('sn-revealed');
                 if (storageKey) sessionStorage.setItem(storageKey, '1');
                 requestAnimationFrame(() => initCompareSliderPosition());
             }
@@ -286,7 +286,7 @@
             // spoiler-restore.ts may have added .revealed synchronously before
             // paint. In that case just load the deferred images; no class
             // toggle, no flash.
-            if (spoilerContainer.classList.contains('revealed')) {
+            if (spoilerContainer.classList.contains('sn-revealed')) {
                 revealSpoiler();
             } else {
                 // Preload images on hover so reveal is instant
@@ -776,10 +776,10 @@
         const labelRemember = (container.dataset.promptRemember || 'Always allow content from {0}').replace('{0}', domain);
 
         const prompt = document.createElement('div');
-        prompt.className = 'link-embed-prompt';
+        prompt.className = 'sn-link-embed-prompt';
 
         const body = document.createElement('p');
-        body.className = 'link-embed-prompt-body';
+        body.className = 'sn-link-embed-prompt-body';
         body.textContent = bodyPattern.replace('{0}', domain);
         prompt.appendChild(body);
 
@@ -788,23 +788,23 @@
 
         const noBtn = document.createElement('button');
         noBtn.type = 'button';
-        noBtn.className = 'btn btn-outline btn-sm';
+        noBtn.className = 'sn-btn sn-btn-outline sn-btn-sm';
         noBtn.textContent = labelNo;
 
         const yesGroup = document.createElement('div');
         yesGroup.className = 'link-embed-prompt-yes-group';
 
         const rememberLabel = document.createElement('label');
-        rememberLabel.className = 'link-embed-prompt-remember';
+        rememberLabel.className = 'sn-link-embed-prompt-remember';
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.className = 'toggle toggle-sm toggle-primary';
+        checkbox.className = 'sn-toggle sn-toggle-sm sn-toggle-primary';
         rememberLabel.appendChild(checkbox);
         rememberLabel.append(' ' + labelRemember);
 
         const yesBtn = document.createElement('button');
         yesBtn.type = 'button';
-        yesBtn.className = 'btn btn-primary btn-sm';
+        yesBtn.className = 'sn-btn sn-btn-primary sn-btn-sm';
         yesBtn.textContent = labelYes;
 
         yesGroup.appendChild(rememberLabel);
@@ -829,7 +829,7 @@
             const labelSettings = container.dataset.deniedSettings || 'browser settings';
 
             const msg = document.createElement('p');
-            msg.className = 'link-embed-denied-msg';
+            msg.className = 'sn-link-embed-denied-msg';
             const parts = msgPattern.replace('{0}', domain).split('{1}');
             msg.append(parts[0] || '');
             const a = document.createElement('a');

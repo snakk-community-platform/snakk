@@ -31,12 +31,6 @@
     }
 }
 
-@section Styles {
-    <link rel="preload" href="@SnakkUrlHelper.Css("hub")" as="style" asp-append-version="true" />
-    <script>(function(){var p=document.currentScript.previousElementSibling;if(p){var s=document.createElement('link');s.rel='stylesheet';s.media='print';s.href=p.href;s.onload=function(){this.media='all'};document.head.appendChild(s);}})();</script>
-    <noscript><link rel="stylesheet" href="@SnakkUrlHelper.Css("hub")" asp-append-version="true" /></noscript>
-}
-
 @if (Model.Require2FAGate)
 {
     <partial name="_Require2FAGate" />
@@ -71,13 +65,13 @@ else
         <div class="sn-breadcrumb-bar sn-breadcrumb-bar--colored" style="background-image: @HubGradient(Model.Hub.PublicId, 45)">
             @if (Model.ShowCommunityInBreadcrumb)
             {
-                <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
+                <a href="/c/@Model.Community.CommunitySlug" class="sn-badge sn-badge-ghost sn-badge-sm"
                    data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
                    data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
             }
             else if (!Model.Community.IsMultiCommunityEnabled)
             {
-                <a href="/c" class="badge badge-ghost badge-sm"
+                <a href="/c" class="sn-badge sn-badge-ghost sn-badge-sm"
                    data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
                    data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
             }
@@ -97,10 +91,12 @@ else
             <!-- Spaces -->
             @if (Model.Spaces?.Items != null && Model.Spaces.Items.Any())
             {
-                <h2 class="sn-section-title">
-                    <span class="icon icon-archive-layers" aria-hidden="true"></span>
-                    @T.Pages.HubDetailSpacesHeading
-                </h2>
+                <div class="sn-section-header">
+                    <h2 class="sn-section-title">
+                        <span class="icon icon-archive-layers" aria-hidden="true"></span>
+                        @T.Pages.HubDetailSpacesHeading
+                    </h2>
+                </div>
                 <div class="sn-space-list-grid">
                     @foreach (var space in Model.Spaces.Items)
                     {
@@ -122,11 +118,11 @@ else
                                 }
                                 <div class="sn-space-list-stat-row">
                                     <div class="sn-community-stat-pill">
-                                        <span class="sn-community-stat-value">@FormatCount(space.DiscussionCount)</span>
+                                        <span class="sn-community-sn-stat-value">@FormatCount(space.DiscussionCount)</span>
                                         <span class="sn-community-stat-label">@T.Pages.HubDetailLabelDiscussions</span>
                                     </div>
                                     <div class="sn-community-stat-pill">
-                                        <span class="sn-community-stat-value">@FormatCount(space.ReplyCount)</span>
+                                        <span class="sn-community-sn-stat-value">@FormatCount(space.ReplyCount)</span>
                                         <span class="sn-community-stat-label">@T.Pages.HubDetailLabelReplies</span>
                                     </div>
                                     @if (Model.SpaceSparklineJson.TryGetValue(space.PublicId, out var sparkJson))
@@ -143,10 +139,12 @@ else
             }
 
             <!-- Active Discussions -->
-            <h2 class="sn-section-title">
-                <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
-                @T.Pages.HubDetailActiveDiscussionsHeading
-            </h2>
+            <div class="sn-section-header">
+                <h2 class="sn-section-title">
+                    <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
+                    @T.Pages.HubDetailActiveDiscussionsHeading
+                </h2>
+            </div>
 
             @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
             {
@@ -170,7 +168,7 @@ else
                              hx-swap="outerHTML"
                              hx-target="this"
                              hx-push-url="false"
-                             class="py-2">
+                             class="sn-py-2">
                             <partial name="Shared/_DiscussionSkeleton" />
                         </div>
                     }
@@ -184,6 +182,8 @@ else
     </div>
 
     <!-- Right Column -->
+    @if (!DeviceDetection.IsMobile(HttpContext))
+    {
     <aside class="sn-right">
         @{
             ViewData["RightPane.NewDiscussionUrl"] = "/create?hubId=" + Model.Hub.PublicId;
@@ -205,21 +205,21 @@ else
                             @T.Sections.HubStats
                         </div>
                         <div class="sn-sidebar-stats">
-                            <div class="stats shadow-layered-light">
-                                <div class="stat">
-                                    <div class="stat-title">@T.Pages.HubDetailStatsDiscussions</div>
-                                    <div class="stat-value">@FormatCount(Model.HubStats.DiscussionCount)</div>
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.HubDetailStatsDiscussions</div>
+                                    <div class="sn-stat-value">@FormatCount(Model.HubStats.DiscussionCount)</div>
                                 </div>
                             </div>
-                            <div class="stats shadow-layered-light">
-                                <div class="stat">
-                                    <div class="stat-title">@T.Pages.HubDetailStatsReplies</div>
-                                    <div class="stat-value">@FormatCount(Model.HubStats.ReplyCount)</div>
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.HubDetailStatsReplies</div>
+                                    <div class="sn-stat-value">@FormatCount(Model.HubStats.ReplyCount)</div>
                                 </div>
                             </div>
-                            <div class="stats shadow-layered-light">
-                                <div class="stat">
-                                    <div class="stat-title">@T.Pages.HubDetailStatsActivity</div>
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.HubDetailStatsActivity</div>
                                     <div class="sn-sparkline-container sn-right-sparkline"
                                          data-sparkline-type="hub"
                                          data-sparkline-id="@Model.Hub.PublicId"
@@ -238,7 +238,7 @@ else
                     </div>
                     @if (!string.IsNullOrEmpty(Model.Hub.Description))
                     {
-                        <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Hub.Description</p>
+                        <p class="sn-text-sm sn-mb-3" style="color: var(--text-secondary)">@Model.Hub.Description</p>
                     }
                 </div>
 
@@ -253,10 +253,10 @@ else
                         <inline-or-htmx partial="Shared/Sidebar/_HubRules"
                                         model="Model.InlineHubRules"
                                         htmx-url="/partials/hub-rules?hubId=@Model.Hub.PublicId&rev=@Model.Hub.RulesRevision">
-                            <div class="flex flex-col gap-2">
-                                <div class="skeleton h-3 w-3/4"></div>
-                                <div class="skeleton h-3 w-2/3"></div>
-                                <div class="skeleton h-3 w-1/2"></div>
+                            <div class="sn-sidebar-skeleton-list">
+                                <div class="sn-skeleton h-3 w-3/4"></div>
+                                <div class="sn-skeleton h-3 w-2/3"></div>
+                                <div class="sn-skeleton h-3 w-1/2"></div>
                             </div>
                         </inline-or-htmx>
                     </div>
@@ -269,16 +269,16 @@ else
                         @T.Pages.HubDetailModerators
                         @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
                         {
-                            <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
+                            <span class="sn-text-xs sn-font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
                         }
                     </div>
                     <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                                     model="Model.InlineModerators"
                                     htmx-url="/partials/moderators?scopeType=Hub&scopeId=@Model.Hub.PublicId&moderatorsUrl=@(SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug))/moderators&rev=@Model.Hub.TeamRevision">
-                        <div class="grid grid-cols-8 gap-1">
-                            <div class="skeleton rounded-full aspect-square w-full"></div>
-                            <div class="skeleton rounded-full aspect-square w-full"></div>
-                            <div class="skeleton rounded-full aspect-square w-full"></div>
+                        <div class="sn-grid sn-grid-cols-8 sn-gap-1">
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
                         </div>
                     </inline-or-htmx>
                 </div>
@@ -311,7 +311,7 @@ else
 
                                         <a href="@trendUrl" class="sn-trending-discussion">
                                             <div class="sn-trending-discussion-header">
-                                                <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" class="shadow-layered" loading="lazy" decoding="async" />
+                                                <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" class="sn-shadow-layered" loading="lazy" decoding="async" />
                                                 <span>@d.Author.DisplayName</span>
                                             </div>
                                             <div class="sn-trending-discussion-title-row">
@@ -336,7 +336,7 @@ else
                                     {
                                         <a href="@SnakkUrlHelper.UserProfile(c.Slug)" class="sn-trending-contributor"
                                            data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
-                                            <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square shadow-layered" width="28" height="28" loading="lazy" decoding="async" />
+                                            <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square sn-shadow-layered" width="28" height="28" loading="lazy" decoding="async" />
                                             <span class="sn-trending-contributor-name">@c.DisplayName</span>
                                             <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
                                                 <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
@@ -352,6 +352,7 @@ else
             </div>
         </div>
     </aside>
+    }
 
     @section Scripts {
         <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>

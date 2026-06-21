@@ -42,8 +42,8 @@
     <div class="sn-right-action-box">
     @if (!isNewPage)
     {
-    <a href="@newDiscussionUrl" id="rp-new-discussion" class="btn btn-primary btn-sm w-full justify-center shadow-layered">
-        <span class="icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") w-3.5 h-3.5" aria-hidden="true"></span>
+    <a href="@newDiscussionUrl" id="rp-new-discussion" class="sn-btn sn-btn-primary sn-btn-sm sn-w-full sn-justify-center sn-shadow-layered">
+        <span class="sn-icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") sn-icon--xs" aria-hidden="true"></span>
         @T.Actions.NewDiscussion
     </a>
     }
@@ -55,19 +55,19 @@
             }
             @if (actions.Contains("share"))
             {
-                <div class="dropdown dropdown-end">
-                    <button tabindex="0" class="btn btn-outline btn-sm" aria-label="@T.Actions.Share"
+                <div class="sn-dropdown">
+                    <button id="share-dropdown-btn" type="button" class="sn-btn sn-btn-outline sn-btn-sm" aria-label="@T.Actions.Share"
+                            popovertarget="sn-share-panel"
                             hx-boost="false"
                             hx-get="/partials/share-menu?url=@shareUrlEsc&title=@shareTitleEsc&isPublic=@(shareIsPublic ? "true" : "false")"
-                            hx-trigger="focus once"
-                            hx-target="#share-menu-list"
+                            hx-trigger="click once"
+                            hx-target="#sn-share-panel"
                             hx-swap="innerHTML">
-                        <span class="icon icon-share w-3.5 h-3.5" aria-hidden="true"></span>
+                        <span class="sn-icon icon-share sn-icon--xs" aria-hidden="true"></span>
                         <span>@T.Actions.Share</span>
                     </button>
-                    <ul id="share-menu-list" tabindex="0"
-                        class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-56 z-200">
-                        <li><span class="text-sm opacity-40 px-2">...</span></li>
+                    <ul id="sn-share-panel" popover class="sn-dropdown-panel sn-menu w-56">
+                        <li><span class="sn-text-sm opacity-40 sn-px-2">...</span></li>
                     </ul>
                 </div>
             }
@@ -75,15 +75,15 @@
             {
                 @if (isAuth)
                 {
-                    <button type="button" class="btn btn-outline btn-sm rp-subscribe-btn" data-action="@subscribeAction" @Html.Raw(subscribeAttrHtml)>
-                        <span class="icon icon-bell w-3.5 h-3.5" aria-hidden="true"></span>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm rp-subscribe-btn" data-action="@subscribeAction" @Html.Raw(subscribeAttrHtml)>
+                        <span class="sn-icon icon-bell sn-icon--xs" aria-hidden="true"></span>
                         <span>@T.Actions.Subscribe</span>
                     </button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-outline btn-sm" data-modal-open="guest-nudge-modal">
-                        <span class="icon icon-lock-closed w-3.5 h-3.5" aria-hidden="true"></span>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-modal-open="guest-nudge-modal">
+                        <span class="sn-icon icon-lock-closed sn-icon--xs" aria-hidden="true"></span>
                         <span>@T.Actions.Subscribe</span>
                     </button>
                 }
@@ -92,43 +92,43 @@
             {
                 @if (isAuth)
                 {
-                    <button type="button" class="btn btn-outline btn-sm" data-action="toggle-save-discussion" data-discussion-id="@saveDiscussionId" data-saved="false">
-                        <span class="icon icon-bookmark w-3.5 h-3.5" aria-hidden="true"></span>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-action="toggle-save-discussion" data-discussion-id="@saveDiscussionId" data-saved="false">
+                        <span class="sn-icon icon-bookmark sn-icon--xs" aria-hidden="true"></span>
                         <span>@T.Actions.Save</span>
                     </button>
                 }
                 else
                 {
-                    <button type="button" class="btn btn-outline btn-sm" data-modal-open="guest-nudge-modal">
-                        <span class="icon icon-lock-closed w-3.5 h-3.5" aria-hidden="true"></span>
+                    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm" data-modal-open="guest-nudge-modal">
+                        <span class="sn-icon icon-lock-closed sn-icon--xs" aria-hidden="true"></span>
                         <span>@T.Actions.Save</span>
                     </button>
                 }
             }
             @if (actions.Contains("follows") && isAuth)
             {
-                <a href="/my/follows/spaces" class="btn btn-outline btn-sm">
-                    <span class="icon icon-users-group w-3.5 h-3.5" aria-hidden="true"></span>
+                <a href="/my/follows/spaces" class="sn-btn sn-btn-outline sn-btn-sm">
+                    <span class="sn-icon icon-users-group sn-icon--xs" aria-hidden="true"></span>
                     <span>@T.Actions.ManageFollows</span>
                 </a>
             }
             @if (actions.Contains("follow-user"))
             {
                 <div id="profile-actions">
-                    <div class="skeleton h-8 w-24"></div>
+                    <div class="sn-skeleton sn-h-8 w-24"></div>
                 </div>
             }
             @if (actions.Contains("manage") && !string.IsNullOrEmpty(manageUrl) && canManage)
             {
-                <a href="@manageUrl" class="btn btn-outline btn-sm">
-                    <span class="icon icon-cog w-3.5 h-3.5" aria-hidden="true"></span>
+                <a href="@manageUrl" class="sn-btn sn-btn-outline sn-btn-sm">
+                    <span class="sn-icon icon-cog sn-icon--xs" aria-hidden="true"></span>
                     <span>@T.Actions.Manage</span>
                 </a>
             }
             @if (actions.Contains("clear-history"))
             {
-                <button type="button" id="history-clear-btn" class="btn btn-outline btn-sm">
-                    <span class="icon icon-trash w-3.5 h-3.5" aria-hidden="true"></span>
+                <button type="button" id="history-clear-btn" class="sn-btn sn-btn-outline sn-btn-sm">
+                    <span class="sn-icon icon-trash sn-icon--xs" aria-hidden="true"></span>
                     <span>@T.Actions.ClearHistory</span>
                 </button>
             }
@@ -137,8 +137,8 @@
                 <button type="button" id="unread-mark-read-btn"
                         hx-post="/bff/me/mark-all-read"
                         hx-swap="none"
-                        class="btn btn-outline btn-sm">
-                    <span class="icon icon-check w-3.5 h-3.5" aria-hidden="true"></span>
+                        class="sn-btn sn-btn-outline sn-btn-sm">
+                    <span class="sn-icon icon-check sn-icon--xs" aria-hidden="true"></span>
                     <span>@T.Pages.UnreadMarkAllRead</span>
                 </button>
             }
@@ -149,22 +149,22 @@
 @if (!isNewPage)
 {
 @* FAB shown when New Discussion button scrolls out of view (only in non-default sticky modes) *@
-<div id="new-discussion-fab" class="fab fab-flower fab-collapsed">
-    <a href="@newDiscussionUrl" class="btn btn-circle btn-lg btn-primary" aria-label="@T.Actions.NewDiscussion">
-        <span class="icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") w-5 h-5" aria-hidden="true"></span>
+<div id="new-discussion-fab" class="fab fab-flower sn-fab-collapsed">
+    <a href="@newDiscussionUrl" class="sn-btn sn-btn-circle sn-btn-lg sn-btn-primary" aria-label="@T.Actions.NewDiscussion">
+        <span class="sn-icon @(!isAuth ? "icon-lock-closed" : "icon-new-discussion") sn-icon--md" aria-hidden="true"></span>
     </a>
 </div>
 }
 
 @if (!isAuth)
 {
-<dialog id="guest-nudge-modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box max-w-sm text-center flex flex-col items-center gap-3">
+<dialog id="guest-nudge-modal" class="sn-modal">
+    <div class="sn-nudge-modal-body">
         <form method="dialog">
-            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+            <button class="sn-btn sn-btn-sm sn-btn-circle sn-btn-ghost absolute right-2 top-2">✕</button>
         </form>
         <div class="sn-nudge-icon">
-            <span class="icon icon-lock-closed w-6 h-6" aria-hidden="true"></span>
+            <span class="sn-icon icon-lock-closed w-6 h-6" aria-hidden="true"></span>
         </div>
         <h3 class="sn-nudge-title">@T.Nudge.Title</h3>
         <p class="sn-nudge-body">@T.Nudge.Body</p>
@@ -175,42 +175,42 @@
                 @if (oauth.Google)
                 {
                     <a href="@googleUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Google">
-                        <span class="icon icon-brand-google w-4 h-4" aria-hidden="true"></span>
+                        <span class="sn-icon icon-brand-google" aria-hidden="true"></span>
                         <span class="oauth-text-full">@T.Nudge.ContinueGoogle</span><span class="oauth-text-short">Google</span>
                     </a>
                 }
                 @if (oauth.GitHub)
                 {
                     <a href="@githubUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="GitHub">
-                        <span class="icon icon-brand-github w-4 h-4" aria-hidden="true"></span>
+                        <span class="sn-icon icon-brand-github" aria-hidden="true"></span>
                         <span class="oauth-text-full">@T.Nudge.ContinueGitHub</span><span class="oauth-text-short">GitHub</span>
                     </a>
                 }
                 @if (oauth.Discord)
                 {
                     <a href="@discordUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Discord">
-                        <span class="icon icon-brand-discord w-4 h-4" aria-hidden="true"></span>
+                        <span class="sn-icon icon-brand-discord" aria-hidden="true"></span>
                         <span class="oauth-text-full">@T.Nudge.ContinueDiscord</span><span class="oauth-text-short">Discord</span>
                     </a>
                 }
                 @if (oauth.Facebook)
                 {
                     <a href="@facebookUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Facebook">
-                        <span class="icon icon-brand-facebook w-4 h-4" aria-hidden="true"></span>
+                        <span class="sn-icon icon-brand-facebook" aria-hidden="true"></span>
                         <span class="oauth-text-full">@T.Nudge.ContinueFacebook</span><span class="oauth-text-short">Facebook</span>
                     </a>
                 }
                 @if (oauth.Microsoft)
                 {
                     <a href="@microsoftUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Microsoft">
-                        <span class="icon icon-brand-microsoft w-4 h-4 shrink-0" aria-hidden="true"></span>
+                        <span class="sn-icon icon-brand-microsoft" aria-hidden="true"></span>
                         <span class="oauth-text-full">@T.Nudge.ContinueMicrosoft</span><span class="oauth-text-short">Microsoft</span>
                     </a>
                 }
                 @if (oauth.Steam)
                 {
                     <a href="@steamUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Steam">
-                        <span class="icon icon-brand-steam w-4 h-4 shrink-0" aria-hidden="true"></span>
+                        <span class="sn-icon icon-brand-steam" aria-hidden="true"></span>
                         <span class="oauth-text-full">@T.Nudge.ContinueSteam</span><span class="oauth-text-short">Steam</span>
                     </a>
                 }
@@ -218,11 +218,11 @@
             <div class="sn-nudge-divider"><span>@T.Nudge.Or</span></div>
         }
 
-        <a href="@registerUrl" class="btn btn-primary btn-sm w-full" hx-boost="false">@T.Nudge.SignUpEmail</a>
+        <a href="@registerUrl" class="sn-btn sn-btn-primary sn-btn-sm sn-w-full" hx-boost="false">@T.Nudge.SignUpEmail</a>
         <p class="sn-nudge-login-link">
             @T.Nudge.AlreadyAccount <a href="@loginUrl" hx-boost="false">@T.Nudge.LogIn</a>
         </p>
     </div>
-    <form method="dialog" class="modal-backdrop"><button>@T.Nudge.Close</button></form>
+    <form method="dialog" class="sn-modal-backdrop-overlay"><button>@T.Nudge.Close</button></form>
 </dialog>
 }

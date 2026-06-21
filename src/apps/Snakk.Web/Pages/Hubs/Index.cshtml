@@ -9,10 +9,10 @@
     var apiBaseUrl = Configuration["ApiBaseUrl"] ?? "https://localhost:17101";
 }
 
-<div class="max-w-[90rem] mx-auto px-4 py-8">
+<div class="max-w-[90rem] sn-mx-auto sn-px-4 sn-py-8">
     <!-- Page Header with Stats -->
     <div class="page-header">
-        <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div class="sn-page-header-row">
             <div>
                 <h1>@T.Pages.HubsIndexHeading</h1>
                 <p>@T.Pages.HubsIndexSubheading</p>
@@ -20,25 +20,25 @@
             @if (User.Identity?.IsAuthenticated == true && !string.IsNullOrEmpty(Model.Community.CommunitySlug))
             {
                 <div class="flex-shrink-0">
-                    <a href="@SnakkUrlHelper.ManageCommunity(Model.Community)" class="btn btn-primary">@T.Pages.HubsIndexManageCommunity</a>
+                    <a href="@SnakkUrlHelper.ManageCommunity(Model.Community)" class="sn-btn sn-btn-primary">@T.Pages.HubsIndexManageCommunity</a>
                 </div>
             }
             @*
             @if (Model.PlatformStats != null || Model.CommunityStats != null)
             {
-                <div class="w-full lg:w-80 flex-shrink-0">
+                <div class="sn-w-full sn-lg:w-80 flex-shrink-0">
                     <div class="stats-panel">
                         <div class="stats-grid">
                             <div class="stat-item">
-                                <span class="stat-value">@Model.SpaceCount</span>
+                                <span class="sn-stat-value">@Model.SpaceCount</span>
                                 <span class="stat-label">Spaces</span>
                             </div>
                             <div class="stat-item">
-                                <span class="stat-value">@Model.DiscussionCount</span>
+                                <span class="sn-stat-value">@Model.DiscussionCount</span>
                                 <span class="stat-label">Discussions</span>
                             </div>
                             <div class="stat-item">
-                                <span class="stat-value">@Model.ReplyCount</span>
+                                <span class="sn-stat-value">@Model.ReplyCount</span>
                                 <span class="stat-label">Replies</span>
                             </div>
                         </div>
@@ -50,12 +50,12 @@
     </div>
 
     <!-- Two Column Layout -->
-    <div class="flex flex-col lg:flex-row gap-3">
+    <div class="sn-hubs-layout">
         <!-- Left Column: Hubs -->
-        <div class="flex-1 min-w-0">
+        <div class="sn-flex-1 sn-min-w-0">
             @if (Model.Hubs?.Items == null || !Model.Hubs.Items.Any())
             {
-                <div class="clean-card">
+                <div class="sn-clean-card">
                     <div class="empty-state-simple">
                         <h3>@T.Pages.HubsIndexEmptyTitle</h3>
                         <p>@T.Pages.HubsIndexEmptyBody</p>
@@ -64,19 +64,19 @@
             }
             else
             {
-                <div class="flex flex-col gap-4">
+                <div class="sn-hub-list">
                     @foreach (var hub in Model.Hubs.Items)
                     {
-                        <a href="@SnakkUrlHelper.Hub(Model.Community, hub.Slug)" class="category-card">
-                            <div class="flex items-start gap-3">
-                                <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" width="40" height="40" class="w-10 h-10 rounded-full flex-shrink-0" />
-                                <div class="flex-1 min-w-0">
-                                    <h2 class="category-title">@hub.Name</h2>
+                        <a href="@SnakkUrlHelper.Hub(Model.Community, hub.Slug)" class="sn-category-card">
+                            <div class="sn-hub-card-body">
+                                <img src="@SnakkUrlHelper.HubAvatar(hub.PublicId)" alt="" width="40" height="40" class="sn-avatar flex-shrink-0" />
+                                <div class="sn-flex-1 sn-min-w-0">
+                                    <h2 class="sn-category-title">@hub.Name</h2>
                                     @if (!string.IsNullOrEmpty(hub.Description))
                                     {
-                                        <p class="category-description line-clamp-2">@hub.Description</p>
+                                        <p class="sn-category-description line-clamp-2">@hub.Description</p>
                                     }
-                                    <div class="entity-stats mt-2">
+                                    <div class="entity-stats sn-mt-2">
                                         <span>@hub.SpaceCount @T.Pages.HubsIndexSpacesLabel</span>
                                         <span class="entity-stats-separator">·</span>
                                         <span>@hub.DiscussionCount @T.Pages.HubsIndexDiscussionsLabel</span>
@@ -91,18 +91,18 @@
 
                 @if (Model.Hubs.Offset > 0 || Model.Hubs.HasMoreItems)
                 {
-                    <div class="flex justify-center gap-2 mt-8">
+                    <div class="sn-pagination-row--index">
                         @if (Model.Hubs.Offset > 0)
                         {
                             <a href="/hubs?offset=@(Math.Max(0, Model.Hubs.Offset - Model.Hubs.PageSize))"
-                               class="btn btn-ghost btn-sm">
+                               class="sn-btn sn-btn-ghost sn-btn-sm">
                                 @T.Pages.HubsIndexPrevious
                             </a>
                         }
                         @if (Model.Hubs.HasMoreItems)
                         {
                             <a href="/hubs?offset=@(Model.Hubs.Offset + Model.Hubs.PageSize)"
-                               class="btn btn-ghost btn-sm">
+                               class="sn-btn sn-btn-ghost sn-btn-sm">
                                 @T.Pages.HubsIndexNext
                             </a>
                         }
@@ -112,7 +112,7 @@
         </div>
 
         <!-- Right Column: Trending -->
-        <aside class="w-full lg:w-80 xl:w-96 flex-shrink-0" hx-push-url="false">
+        <aside class="sn-w-full sn-lg:w-80 xl:w-96 flex-shrink-0" hx-push-url="false">
             @if (Model.ShowTrendingSpaces)
             {
                 <div class="sidebar-section">
@@ -120,10 +120,10 @@
                     <inline-or-htmx partial="Shared/Sidebar/_TrendingSpaces"
                                      model="Model.InlineTrendingSpaces"
                                      htmx-url="/partials/trending-spaces?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
-                        <div class="flex flex-col gap-3">
-                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
-                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
-                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        <div class="sn-sidebar-skeleton-list--index">
+                            <div class="sn-sidebar-skeleton-row"><div class="sn-skeleton h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 sn-w-full"></div><div class="sn-skeleton h-3 w-3/4 sn-mt-1"></div></div></div>
+                            <div class="sn-sidebar-skeleton-row"><div class="sn-skeleton h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 w-5/6"></div><div class="sn-skeleton h-3 w-2/3 sn-mt-1"></div></div></div>
+                            <div class="sn-sidebar-skeleton-row"><div class="sn-skeleton h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 sn-w-full"></div><div class="sn-skeleton h-3 w-1/2 sn-mt-1"></div></div></div>
                         </div>
                     </inline-or-htmx>
                 </div>
@@ -136,10 +136,10 @@
                     <inline-or-htmx partial="Shared/Sidebar/_TrendingDiscussions"
                                      model="Model.InlineTrendingDiscussions"
                                      htmx-url="/partials/trending-discussions?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
-                        <div class="flex flex-col gap-3">
-                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
-                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
-                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        <div class="sn-sidebar-skeleton-list--index">
+                            <div class="sn-sidebar-skeleton-row"><div class="sn-skeleton h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 sn-w-full"></div><div class="sn-skeleton h-3 w-3/4 sn-mt-1"></div></div></div>
+                            <div class="sn-sidebar-skeleton-row"><div class="sn-skeleton h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 w-5/6"></div><div class="sn-skeleton h-3 w-2/3 sn-mt-1"></div></div></div>
+                            <div class="sn-sidebar-skeleton-row"><div class="sn-skeleton h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 sn-w-full"></div><div class="sn-skeleton h-3 w-1/2 sn-mt-1"></div></div></div>
                         </div>
                     </inline-or-htmx>
                 </div>
@@ -152,10 +152,10 @@
                     <inline-or-htmx partial="Shared/Sidebar/_TrendingContributors"
                                      model="Model.InlineTrendingContributors"
                                      htmx-url="/partials/trending-contributors?scopeType=@Model.SidebarScopeType&scopeId=@Model.SidebarScopeId">
-                        <div class="flex flex-col gap-3">
-                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
-                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
-                            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-1/2 mt-1"></div></div></div>
+                        <div class="sn-sidebar-skeleton-list--index">
+                            <div class="sn-sidebar-skeleton-row"><div class="sn-skeleton h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 sn-w-full"></div><div class="sn-skeleton h-3 w-1/2 sn-mt-1"></div></div></div>
+                            <div class="sn-sidebar-skeleton-row"><div class="sn-skeleton h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 w-5/6"></div><div class="sn-skeleton h-3 w-2/3 sn-mt-1"></div></div></div>
+                            <div class="sn-sidebar-skeleton-row"><div class="sn-skeleton h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 sn-w-full"></div><div class="sn-skeleton h-3 w-1/2 sn-mt-1"></div></div></div>
                         </div>
                     </inline-or-htmx>
                 </div>

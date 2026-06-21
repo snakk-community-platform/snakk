@@ -26,6 +26,7 @@ public class FeedModel(
 
     public async Task OnGetAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         var statsData = prefetchCache.ResolveOrPrefetch(
             "platform-stats:platform:global",

@@ -19,7 +19,7 @@
             const sel = '.sn-images-spoiler[data-discussion-id],.images-display.images-spoiler[data-discussion-id]';
             document.querySelectorAll<HTMLElement>(sel).forEach((el) => {
                 const id = el.dataset.discussionId;
-                if (id && sessionStorage.getItem(kp + id) === '1') el.classList.add('revealed');
+                if (id && sessionStorage.getItem(kp + id) === '1') el.classList.add('sn-revealed');
             });
 
             const akp = 'snakk:adult-revealed:';
@@ -27,9 +27,9 @@
                 const id = el.dataset.discussionId;
                 if (!id) return;
                 if (sessionStorage.getItem(akp + id) === '1') {
-                    el.classList.add('revealed');
+                    el.classList.add('sn-revealed');
                     const img = el.querySelector('.sn-link-card-img-adult-blur');
-                    if (img) img.classList.add('revealed');
+                    if (img) img.classList.add('sn-revealed');
                 }
             });
         } catch { /* sessionStorage unavailable — nothing to restore */ }

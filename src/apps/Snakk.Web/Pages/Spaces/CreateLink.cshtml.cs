@@ -11,6 +11,7 @@ public class NewLinkModel(
 {
     protected override int DiscussionType => 4;
     protected override string TypeSlug => "link";
+    protected override void PreloadPageCss() { base.PreloadPageCss(); Preload("type-link"); }
 
     [BindProperty] public string? LinkUrl { get; set; }
 

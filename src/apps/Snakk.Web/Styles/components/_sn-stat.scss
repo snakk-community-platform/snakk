@@ -1,0 +1,64 @@
+// ============================================
+// Stat panel — replaces daisyUI .stats, .stat, .stat-title, .stat-value, .stat-desc, .stat-figure
+// Dual selectors: sn-stats* (new) and stats* (migration shim)
+// ============================================
+
+.sn-stats {
+    display: flex;
+    flex-wrap: wrap;
+    border-radius: var(--radius-lg);
+}
+
+.sn-stat {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: var(--space-8) var(--space-10);
+    gap: 0;
+}
+
+.sn-stat-title {
+    font-size: var(--font-size-ui);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.sn-stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.sn-stat-desc {
+    font-size: var(--font-size-sm);
+    white-space: nowrap;
+}
+
+.sn-stat-figure {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.sn-stat-actions {
+    display: flex;
+    gap: var(--space-4);
+    margin-top: var(--space-2);
+}
+
+.sn-stat-title {
+    color: var(--text-tertiary);
+}
+
+.sn-stat-value {
+    color: var(--text-primary);
+}
+
+.sn-stat-desc {
+    color: var(--text-tertiary);
+}
+
+.sn-stat-figure {
+    color: var(--text-tertiary);
+}
+

@@ -108,11 +108,20 @@ public static class SnakkUrlHelper
     public static string UserAvatarThumbnail(string publicId, int revision = 0, string? avatarFileName = null, string? avatarThumbnailFileName = null)
         => AvatarHelper.GetAvatarThumbnailUrl(publicId, AvatarEntityType.User, revision, avatarFileName, avatarThumbnailFileName);
 
+    public static string UserAvatarMicro(string publicId, int revision = 0, string? avatarFileName = null, string? avatarMicroFileName = null)
+        => AvatarHelper.GetAvatarMicroUrl(publicId, AvatarEntityType.User, revision, avatarFileName, avatarMicroFileName);
+
     public static string Css(string filename, bool isVendor = false)
     {
         var extension = filename.EndsWith(".css") ? "" : ".css";
         var folder = isVendor ? "vendor" : "dist";
         return $"/css/{folder}/{filename}{extension}";
+    }
+
+    public static string Feature(string feature)
+    {
+        var extension = feature.EndsWith(".css") ? "" : ".css";
+        return $"/css/features/{feature}{extension}";
     }
 
     public static string Js(string filename, bool isVendor = false)

@@ -7,10 +7,10 @@
     function setBadge(badge: HTMLElement, count: number): void {
         if (count > 0) {
             badge.textContent = count > 99 ? '99+' : String(count);
-            badge.classList.remove('hidden');
+            badge.classList.remove('sn-hidden');
         } else {
             badge.textContent = '';
-            badge.classList.add('hidden');
+            badge.classList.add('sn-hidden');
         }
     }
 
@@ -22,7 +22,7 @@
             if (href.endsWith('/rules')) active = path.endsWith('/rules');
             else if (href.endsWith('/moderators')) active = path.endsWith('/moderators');
             else active = path === href;
-            a.classList.toggle('active', active);
+            a.classList.toggle('sn-active', active);
         });
     }
 

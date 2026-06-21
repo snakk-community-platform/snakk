@@ -15,7 +15,7 @@
 }
 
 @section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
+    <partial name="Shared/_LeftSidebar" />
 }
 
 <div class="sn-center">
@@ -27,29 +27,30 @@
         else
         {
             <div class="sn-section-header">
-            <h2 class="sn-section-title">
-                <span class="icon icon-emoji-happy" aria-hidden="true"></span>
-                @T.Pages.ReactionsHeading
-            </h2>
+                <h2 class="sn-section-title">
+                    <span class="sn-icon icon-emoji-happy" aria-hidden="true"></span>
+                    @T.Pages.ReactionsHeading
+                </h2>
 
-            <div class="sn-tabs">
-                <a href="/my/reactions/discussions" class="sn-tab @(isDiscussionsTab ? "active" : "")">
-                    @T.Pages.ReactionsTabDiscussions
-                </a>
-                <a href="/my/reactions/posts" class="sn-tab @(!isDiscussionsTab ? "active" : "")">
-                    @T.Pages.ReactionsTabPosts
-                </a>
+                <div class="sn-tabs">
+                    <a href="/my/reactions/discussions" class="sn-tab @(isDiscussionsTab ? "sn-active" : "")">
+                        @T.Pages.ReactionsTabDiscussions
+                    </a>
+                    <a href="/my/reactions/posts" class="sn-tab @(!isDiscussionsTab ? "sn-active" : "")">
+                        @T.Pages.ReactionsTabPosts
+                    </a>
+                </div>
+
+                <p class="sn-section-description">@T.Pages.ReactionsDescription</p>
             </div>
-            </div>
-            <p class="sn-section-description">@T.Pages.ReactionsDescription</p>
 
             var hasItems = isDiscussionsTab ? Model.Discussions.Any() : Model.Items.Any();
             @if (!hasItems)
             {
-                <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
-                    <span class="icon icon-emoji-happy h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="sn-icon icon-emoji-happy sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
                     <p>@T.Pages.ReactionsEmpty</p>
-                    <p class="mt-1 text-xs opacity-70">
+                    <p class="sn-mt-1 sn-text-xs opacity-70">
                         @(isDiscussionsTab ? T.Pages.ReactionsEmptyHintD : T.Pages.ReactionsEmptyHintP)
                     </p>
                 </div>
@@ -70,18 +71,18 @@
                              hx-swap="outerHTML"
                              hx-target="this"
                              hx-push-url="false"
-                             class="py-2">
+                             class="sn-py-2">
                             @for (var i = 0; i < 3; i++)
                             {
                                 <div class="sn-card" style="opacity: 0.5">
                                     <div class="sn-card-header">
-                                        <div class="skeleton h-3 w-16 rounded"></div>
-                                        <div class="skeleton h-4 w-4 rounded-full"></div>
-                                        <div class="skeleton h-3 w-20 rounded"></div>
+                                        <div class="sn-skeleton h-3 sn-w-16 sn-rounded"></div>
+                                        <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                        <div class="sn-skeleton h-3 w-20 sn-rounded"></div>
                                     </div>
-                                    <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                    <div class="sn-card-stats mt-2">
-                                        <div class="skeleton h-3 w-24 rounded"></div>
+                                    <div class="sn-skeleton sn-h-4 w-3/4 sn-rounded sn-mt-2"></div>
+                                    <div class="sn-card-stats sn-mt-2">
+                                        <div class="sn-skeleton h-3 w-24 sn-rounded"></div>
                                     </div>
                                 </div>
                             }
@@ -108,17 +109,17 @@
                              hx-swap="outerHTML"
                              hx-target="this"
                              hx-push-url="false"
-                             class="py-2">
+                             class="sn-py-2">
                             @for (var i = 0; i < 3; i++)
                             {
                                 <div class="sn-card" style="opacity: 0.5">
                                     <div class="sn-card-header">
-                                        <div class="skeleton h-4 w-4 rounded-full"></div>
-                                        <div class="skeleton h-3 w-20 rounded"></div>
-                                        <div class="skeleton h-3 w-16 rounded"></div>
+                                        <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                        <div class="sn-skeleton h-3 w-20 sn-rounded"></div>
+                                        <div class="sn-skeleton h-3 sn-w-16 sn-rounded"></div>
                                     </div>
-                                    <div class="skeleton h-4 w-3/4 rounded mt-1"></div>
-                                    <div class="skeleton h-3 w-full rounded mt-1"></div>
+                                    <div class="sn-skeleton sn-h-4 w-3/4 sn-rounded sn-mt-1"></div>
+                                    <div class="sn-skeleton h-3 sn-w-full sn-rounded sn-mt-1"></div>
                                 </div>
                             }
                         </div>
@@ -133,64 +134,67 @@
     </div>
 </div>
 
+@if (!DeviceDetection.IsMobile(HttpContext))
+{
 <aside class="sn-right">
-@{
-    ViewData["RightPane.NewDiscussionUrl"] = "/create";
-    ViewData["RightPane.AboutTitle"] = T.Pages.ReactionsAboutTitle;
-    ViewData["RightPane.AboutDescription"] = T.Pages.ReactionsAboutDesc;
-}
-<div class="sn-right-sticky">
-    <partial name="Shared/_RightActionPane" />
-    <div class="sn-right-body">
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            @T.Sections.SiteStats
-        </div>
-        <div hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
-             hx-trigger="load delay:100ms"
-             hx-target="this"
-             hx-swap="innerHTML">
-            <div class="grid grid-cols-2 gap-3">
-                <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-16"></div></div>
-                <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-10"></div></div>
+    @{
+        ViewData["RightPane.NewDiscussionUrl"] = "/create";
+        ViewData["RightPane.AboutTitle"] = T.Pages.ReactionsAboutTitle;
+        ViewData["RightPane.AboutDescription"] = T.Pages.ReactionsAboutDesc;
+    }
+    <div class="sn-right-sticky">
+        <partial name="Shared/_RightActionPane" />
+        <div class="sn-right-body">
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="sn-icon icon-chart-bar" aria-hidden="true"></span>
+                    @T.Sections.SiteStats
+                </div>
+                <div hx-get="/partials/platform-stats?scopeType=platform&scopeId=global"
+                     hx-trigger="load delay:100ms"
+                     hx-target="this"
+                     hx-swap="innerHTML">
+                    <div class="sn-grid sn-grid-cols-2 sn-gap-3">
+                        <div><div class="sn-skeleton h-5 sn-w-8 sn-mb-1"></div><div class="sn-skeleton h-3 sn-w-16"></div></div>
+                        <div><div class="sn-skeleton h-5 sn-w-8 sn-mb-1"></div><div class="sn-skeleton h-3 w-10"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <partial name="Shared/_RightAboutSection" />
+
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="sn-icon icon-archive-layers" aria-hidden="true"></span>
+                    @T.Sections.ActiveSpaces
+                </div>
+                <div hx-get="/partials/trending-spaces?scopeType=platform&scopeId=global"
+                     hx-trigger="load delay:100ms"
+                     hx-target="this"
+                     hx-swap="innerHTML">
+                    <div class="sn-skeleton-list--reactions">
+                        <div class="sn-skeleton-list-item"><div class="sn-skeleton sn-h-8 sn-w-8 sn-shrink-0 sn-rounded"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 sn-w-full"></div><div class="sn-skeleton h-3 w-3/4 sn-mt-1"></div></div></div>
+                        <div class="sn-skeleton-list-item"><div class="sn-skeleton sn-h-8 sn-w-8 sn-shrink-0 sn-rounded"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 w-5/6"></div><div class="sn-skeleton h-3 w-2/3 sn-mt-1"></div></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="sn-icon icon-users-group" aria-hidden="true"></span>
+                    @T.Sections.ActiveContributors
+                </div>
+                <div hx-get="/partials/trending-contributors?scopeType=platform&scopeId=global"
+                     hx-trigger="load delay:100ms"
+                     hx-target="this"
+                     hx-swap="innerHTML">
+                    <div class="sn-skeleton-list--reactions">
+                        <div class="sn-skeleton-list-item"><div class="sn-skeleton sn-h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 sn-w-full"></div><div class="sn-skeleton h-3 w-3/4 sn-mt-1"></div></div></div>
+                        <div class="sn-skeleton-list-item"><div class="sn-skeleton sn-h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton h-3 w-5/6"></div><div class="sn-skeleton h-3 w-2/3 sn-mt-1"></div></div></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-
-    <partial name="Shared/_RightAboutSection" />
-
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-archive-layers" aria-hidden="true"></span>
-            @T.Sections.ActiveSpaces
-        </div>
-        <div hx-get="/partials/trending-spaces?scopeType=platform&scopeId=global"
-             hx-trigger="load delay:100ms"
-             hx-target="this"
-             hx-swap="innerHTML">
-            <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
-                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-users-group" aria-hidden="true"></span>
-            @T.Sections.ActiveContributors
-        </div>
-        <div hx-get="/partials/trending-contributors?scopeType=platform&scopeId=global"
-             hx-trigger="load delay:100ms"
-             hx-target="this"
-             hx-swap="innerHTML">
-            <div class="flex flex-col gap-3">
-                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
-                <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
-            </div>
-        </div>
-    </div>
-    </div>
-</div>
 </aside>
+}

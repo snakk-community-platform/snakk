@@ -62,9 +62,9 @@
             btn.title = newPinned ? 'Unpin' : 'Pin';
             btn.setAttribute('aria-label', newPinned ? 'Unpin conversation' : 'Pin conversation');
 
-            const icon = btn.querySelector('.icon');
+            const icon = btn.querySelector('.sn-icon');
             if (icon) {
-                icon.className = `icon ${newPinned ? 'icon-bookmark' : 'icon-bookmark-alt'} h-3.5 w-3.5`;
+                icon.className = `sn-icon ${newPinned ? 'icon-bookmark' : 'icon-bookmark-alt'} sn-h-3.5 sn-w-3.5`;
             }
 
             const row = btn.closest<HTMLElement>('.dm-conv-row');

@@ -639,7 +639,7 @@ function showLinkDialog(editor: Editor): void {
             <input type="url" class="link-dialog-url" placeholder="https://example.com" />
         </div>
         <div class="link-dialog-field">
-            <label>Link text <span class="text-muted">(optional)</span></label>
+            <label>Link text <span class="sn-text-muted">(optional)</span></label>
             <input type="text" class="link-dialog-text" placeholder="Display text" />
         </div>
         <div class="link-dialog-actions">
@@ -2022,10 +2022,10 @@ function createImagePickerWidget(
     const layoutRow = document.createElement('div');
     layoutRow.className = 'image-modal-layout-row';
     const layoutLabel = document.createElement('div');
-    layoutLabel.className = 'text-sm font-medium mb-2';
+    layoutLabel.className = 'sn-text-sm sn-font-medium sn-mb-2';
     layoutLabel.textContent = T.editor.layout;
     const layoutPicker = document.createElement('div');
-    layoutPicker.className = 'flex flex-wrap gap-2';
+    layoutPicker.className = 'sn-flex sn-flex-wrap sn-gap-2';
     LAYOUTS_MODAL.forEach(({ value, label, glp }) => {
         const lbl = document.createElement('label');
         lbl.className = 'images-layout-option' + (value === modalLayout ? ' images-layout-active' : '');
@@ -2034,7 +2034,7 @@ function createImagePickerWidget(
         preview.className = 'images-layout-preview';
         preview.innerHTML = glp;
         const caption = document.createElement('span');
-        caption.className = 'text-xs mt-1';
+        caption.className = 'sn-text-xs sn-mt-1';
         caption.textContent = label;
         lbl.appendChild(preview);
         lbl.appendChild(caption);
@@ -4730,16 +4730,16 @@ function createBlockAdder(editor: Editor, editorRoot: HTMLElement): void {
             const helpIcon = '<span class="icon icon-question-circle" style="width:14px;height:14px" aria-hidden="true"></span>';
 
             const modeJoin = document.createElement('div');
-            modeJoin.className = 'join';
+            modeJoin.className = 'sn-join';
 
             const visualBtn = document.createElement('button');
             visualBtn.type = 'button';
-            visualBtn.className = 'join-item md-mode-btn';
+            visualBtn.className = 'sn-join-item md-mode-btn';
             visualBtn.innerHTML = eyeIcon + ' Visual';
 
             const sourceBtn = document.createElement('button');
             sourceBtn.type = 'button';
-            sourceBtn.className = 'join-item md-mode-btn';
+            sourceBtn.className = 'sn-join-item md-mode-btn';
             sourceBtn.innerHTML = codeIcon + ' Source';
 
             modeJoin.appendChild(visualBtn);

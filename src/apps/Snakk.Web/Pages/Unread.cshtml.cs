@@ -20,6 +20,7 @@ public class UnreadModel(
 
     public async Task OnGetAsync(string? cursor = null, CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         IsAuthenticated = HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
         if (!IsAuthenticated) return;

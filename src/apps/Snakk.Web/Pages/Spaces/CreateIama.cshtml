@@ -1,4 +1,4 @@
-@page "/create/iama"
+﻿@page "/create/iama"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
@@ -13,37 +13,33 @@
     ViewData["NewDiscussion.EditorHeight"] = "150px";
 }
 
-@section ExtraStyles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("type-iama")" asp-append-version="true" />
-}
-
 @section ExtraFormFields {
     <!-- Verification note -->
-    <div class="space-y-2">
-        <label class="text-sm font-medium">@T.Pages.SpacesNewIamaVerifLabel</label>
+    <div class="sn-space-y-2">
+        <label class="sn-text-sm sn-font-medium">@T.Pages.SpacesNewIamaVerifLabel</label>
         <textarea name="IamaVerificationNote" id="iama-verif-content" style="display:none">@Model.IamaVerificationNote</textarea>
         <div id="iama-verif-editor-container" data-placeholder="@T.Pages.SpacesNewIamaVerifPh">
-            <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:100px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+            <div class="sn-editor-skeleton"><div class="sn-editor-skeleton-toolbar"><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div></div><div class="sn-editor-skeleton-body" style="min-height:100px"><div class="sn-skeleton-line w-3/4"></div><div class="sn-skeleton-line w-1/2"></div></div></div>
         </div>
-        <p class="text-xs text-base-content/50">@T.Pages.SpacesNewIamaVerifHelp</p>
+        <p class="sn-text-xs sn-text-muted">@T.Pages.SpacesNewIamaVerifHelp</p>
     </div>
 
     <!-- Schedule toggle -->
-    <div class="space-y-3">
-        <label class="flex items-center gap-2 text-sm cursor-pointer">
-            <input type="checkbox" name="IamaIsScheduled" value="true" class="checkbox checkbox-sm"
+    <div class="sn-space-y-3">
+        <label class="sn-schedule-toggle-label">
+            <input type="checkbox" name="IamaIsScheduled" value="true" class="sn-checkbox sn-checkbox-sm"
                    id="iama-scheduled-toggle" />
             @T.Pages.SpacesNewIamaScheduleToggle
         </label>
 
-        <div id="iama-schedule-fields" class="hidden space-y-3 pl-6 border-l-2 border-base-content/10">
+        <div id="iama-schedule-fields" class="sn-hidden sn-space-y-3 sn-pl-6 sn-border-l-2 sn-border">
             <div>
-                <label class="text-sm text-base-content/70" for="iama-start">@T.Pages.SpacesNewIamaStartLabel <span class="text-error">*</span></label>
-                <input type="datetime-local" name="IamaScheduledStart" id="iama-start" class="input input-sm w-full max-w-xs mt-1" />
+                <label class="sn-text-sm sn-text-muted" for="iama-start">@T.Pages.SpacesNewIamaStartLabel <span class="sn-text-error">*</span></label>
+                <input type="datetime-local" name="IamaScheduledStart" id="iama-start" class="sn-input sn-input-sm sn-w-full sn-max-w-xs sn-mt-1" />
             </div>
             <div>
-                <label class="text-sm text-base-content/70" for="iama-end">@T.Pages.SpacesNewIamaEndLabel</label>
-                <input type="datetime-local" name="IamaScheduledEnd" id="iama-end" class="input input-sm w-full max-w-xs mt-1" />
+                <label class="sn-text-sm sn-text-muted" for="iama-end">@T.Pages.SpacesNewIamaEndLabel</label>
+                <input type="datetime-local" name="IamaScheduledEnd" id="iama-end" class="sn-input sn-input-sm sn-w-full sn-max-w-xs sn-mt-1" />
             </div>
         </div>
     </div>
@@ -52,7 +48,7 @@
 @section EditorContainer {
     <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
     <div id="editor-container" data-placeholder="@T.Pages.SpacesNewIamaEditorPh">
-        <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+        <div class="sn-editor-skeleton"><div class="sn-editor-skeleton-toolbar"><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div></div><div class="sn-editor-skeleton-body" style="min-height:150px"><div class="sn-skeleton-line w-3/4"></div><div class="sn-skeleton-line w-1/2"></div></div></div>
     </div>
 }
 
@@ -60,21 +56,21 @@
     <script src="@SnakkUrlHelper.Js("pages/new-iama")" asp-append-version="true" defer></script>
 }
 
-<div class="mt-8 border-t border-base-content/10 pt-6">
-    <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewIamaHowHeading</h3>
-    <div class="text-sm text-base-content/60 space-y-3">
+<div class="sn-iama-guide-section">
+    <h3 class="sn-section-label--createiama">@T.Pages.SpacesNewIamaHowHeading</h3>
+    <div class="sn-iama-guide-body">
         <p>@T.Pages.SpacesNewIamaIntro</p>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewIamaHostLabel</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-font-medium sn-text-muted sn-mb-1">@T.Pages.SpacesNewIamaHostLabel</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@Html.Raw(T.Pages.SpacesNewIamaHost1Html)</li>
                 <li>@Html.Raw(T.Pages.SpacesNewIamaHost2Html)</li>
                 <li>@T.Pages.SpacesNewIamaHost3</li>
             </ul>
         </div>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-font-medium sn-text-muted sn-mb-1">@T.Pages.SpacesNewTips</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@T.Pages.SpacesNewIamaTip1</li>
                 <li>@T.Pages.SpacesNewIamaTip2</li>
                 <li>@T.Pages.SpacesNewIamaTip3</li>
@@ -83,3 +79,4 @@
         </div>
     </div>
 </div>
+

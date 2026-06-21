@@ -1,14 +1,10 @@
-page "/create"
+@page "/create"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.CreateDiscussionModel
 @{
     ViewData["Title"] = T.Pages.NewDiscussionTitle;
-}
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion")" asp-append-version="true" />
 }
 
 @section LeftColumn {
@@ -24,14 +20,14 @@ page "/create"
 
 <div class="sn-center">
     <div class="sn-center-inner">
-        <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">@T.Pages.NewDiscussionHeading</h1>
+        <div class="sn-max-w-3xl sn-py-8">
+            <h1 class="sn-create-discussion-heading">@T.Pages.NewDiscussionHeading</h1>
 
             <!-- Space Selector -->
-            <div class="mb-6">
-                <label class="text-sm font-medium text-base-content/70 mb-2 block">@T.Pages.NewDiscussionSpaceLabel <span class="text-error">*</span></label>
+            <div class="sn-mb-6">
+                <label class="sn-section-label--creatediscussion">@T.Pages.NewDiscussionSpaceLabel <span class="sn-text-error">*</span></label>
                 <div id="space-selector"
-                     class="relative"
+                     class="sn-relative"
                      data-scope-hub-id="@(Model.ScopeHubId ?? "")"
                      data-scope-community-id="@(Model.ScopeCommunityId ?? "")"
                      data-scope-hub-name="@(Model.ScopeHubName ?? "")"
@@ -40,7 +36,7 @@ page "/create"
                     <div>
                         <input type="text"
                                id="space-search-input"
-                               class="input w-full"
+                               class="sn-input sn-w-full"
                                placeholder="@T.Pages.NewDiscussionSearchPh"
                                autocomplete="off" />
                         <input type="hidden" id="selected-space-id" />
@@ -50,20 +46,20 @@ page "/create"
                     </div>
 
                     <!-- Dropdown -->
-                    <div id="space-dropdown" class="absolute z-50 w-full mt-1 bg-base-100 border border-base-content/10 rounded-lg shadow-lg max-h-64 overflow-y-auto hidden">
+                    <div id="space-dropdown" class="sn-space-search-dropdown sn-hidden">
                     </div>
                 </div>
             </div>
 
             <!-- Type Picker (shown after space is selected) -->
-            <div id="type-picker-section" class="hidden">
-                <p class="text-sm text-base-content/60 mb-4">@T.Pages.NewDiscussionTypePrompt</p>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="type-cards">
+            <div id="type-picker-section" class="sn-hidden">
+                <p class="sn-create-discussion-type-prompt">@T.Pages.NewDiscussionTypePrompt</p>
+                <div class="sn-grid sn-grid-cols-1 sn-sm:grid-cols-2 sn-gap-3" id="type-cards">
                 </div>
             </div>
 
-            <div class="mt-6">
-                <button type="button" class="btn btn-ghost btn-sm" data-action="go-back">@T.Pages.NewDiscussionCancel</button>
+            <div class="sn-mt-6">
+                <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm" data-action="go-back">@T.Pages.NewDiscussionCancel</button>
             </div>
         </div>
     </div>

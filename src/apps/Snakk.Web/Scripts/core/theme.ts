@@ -1,8 +1,9 @@
 /**
  * Theme Management
  * Manages light/dark/auto theme preferences with system theme detection.
- * Critical theme detection (data-theme + dark CSS) is inlined in _Layout.cshtml <head>.
- * This deferred script handles: toggle UI, system listener, dynamic CSS load/unload.
+ * Dark theme is CSS-variable-based ([data-theme="dark"] in _variables.scss) — no separate stylesheet.
+ * Critical FOUC prevention (sets data-theme="dark" for auto/dark users) is inlined in _Layout.cshtml <head>.
+ * This deferred script handles: toggle UI, system theme listener, preference persistence.
  */
 
 // ============================================================================
@@ -35,7 +36,6 @@ interface SnakkTheme {
     const THEME_KEY = 'snakk_theme_preference';
     const LIGHT_THEME: DaisyUITheme = 'lofi';
     const DARK_THEME: DaisyUITheme = 'dark';
-    const DARK_THEME_CSS_ID = 'dark-theme-css';
 
     // Theme preferences: 'light', 'dark', 'auto'
     const PREF_LIGHT: ThemePreference = 'light';
@@ -63,30 +63,6 @@ interface SnakkTheme {
             const maxAge = 365 * 24 * 60 * 60;
             document.cookie = `${THEME_COOKIE}=${pref}; path=/; max-age=${maxAge}; samesite=lax; secure`;
         }
-    }
-
-    // Get dark theme CSS URL from meta tag (set by _Layout.cshtml with version hash)
-    function getDarkThemeCssUrl(): string {
-        const meta = document.querySelector('meta[name="dark-theme-css"]');
-        return meta?.getAttribute('content') ?? '/css/vendor/dark-theme.css';
-    }
-
-    // Load dark theme CSS stylesheet into <head>
-    function loadDarkThemeCSS(): void {
-        // Already loaded (either by document.write in <head> or by a previous toggle)
-        if (document.getElementById(DARK_THEME_CSS_ID)) return;
-
-        const link = document.createElement('link');
-        link.id = DARK_THEME_CSS_ID;
-        link.rel = 'stylesheet';
-        link.href = getDarkThemeCssUrl();
-        document.head.appendChild(link);
-    }
-
-    // Remove dark theme CSS stylesheet from <head>
-    function unloadDarkThemeCSS(): void {
-        const link = document.getElementById(DARK_THEME_CSS_ID);
-        if (link) link.remove();
     }
 
     const snakkTheme: SnakkTheme = {
@@ -125,17 +101,10 @@ interface SnakkTheme {
             return preference === PREF_DARK ? DARK_THEME : LIGHT_THEME;
         },
 
-        // Apply theme to document and load/unload dark CSS as needed
+        // Apply theme to document — dark is CSS-variable-based, just flip data-theme
         applyTheme(): void {
             const theme = this.getEffectiveTheme();
             document.documentElement.setAttribute('data-theme', theme);
-
-            if (theme === DARK_THEME) {
-                loadDarkThemeCSS();
-            } else {
-                unloadDarkThemeCSS();
-            }
-
             this.updateToggleButton();
         },
 
@@ -169,20 +138,20 @@ interface SnakkTheme {
             let icon: string;
             let text: string;
 
-            const toggleIndicator = '<span class="icon icon-theme-toggle h-4 w-4 ml-auto opacity-60" aria-hidden="true"></span>';
+            const toggleIndicator = '<span class="sn-icon icon-theme-toggle sn-h-4 sn-w-4 sn-ml-auto sn-opacity-60" aria-hidden="true"></span>';
 
             switch (preference) {
                 case PREF_LIGHT:
-                    icon = '<span class="icon icon-sun h-4 w-4" aria-hidden="true"></span>';
+                    icon = '<span class="sn-icon icon-sun sn-h-4 sn-w-4" aria-hidden="true"></span>';
                     text = 'Light mode';
                     break;
                 case PREF_DARK:
-                    icon = '<span class="icon icon-moon h-4 w-4" aria-hidden="true"></span>';
+                    icon = '<span class="sn-icon icon-moon sn-h-4 sn-w-4" aria-hidden="true"></span>';
                     text = 'Dark mode';
                     break;
                 case PREF_AUTO:
                 default:
-                    icon = '<span class="icon icon-theme-auto h-4 w-4" aria-hidden="true"></span>';
+                    icon = '<span class="sn-icon icon-theme-auto sn-h-4 sn-w-4" aria-hidden="true"></span>';
                     text = 'Auto mode';
                     break;
             }
@@ -210,10 +179,19 @@ interface SnakkTheme {
         },
 
         init(): void {
-            // The inline pre-paint script in _Layout.cshtml already set data-theme and
-            // injected the dark CSS link if needed. Re-running applyTheme() here is a
-            // safe idempotent sync that also covers the case where the inline script
-            // didn't run (e.g. CSP block) or localStorage changed across tabs.
+            // Sync cookie from localStorage for authenticated users whose cookie may be
+            // missing (e.g. cleared cookies, or preference set before login).
+            // This ensures the server sees the correct preference on the next F5.
+            if (isLoggedIn() && !readThemeCookie()) {
+                const stored = localStorage.getItem(THEME_KEY);
+                if (stored === 'light' || stored === 'dark' || stored === 'auto') {
+                    persistTheme(stored as ThemePreference);
+                }
+            }
+
+            // The inline pre-paint script in _Layout.cshtml already set data-theme for
+            // the "auto" case. Re-running applyTheme() is an idempotent sync that also
+            // covers CSP-blocked inline scripts and localStorage changed across tabs.
             this.applyTheme();
 
             // Setup listener for system theme changes

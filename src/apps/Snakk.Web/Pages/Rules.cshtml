@@ -1,4 +1,4 @@
-﻿@page "/rules"
+@page "/rules"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
@@ -18,22 +18,22 @@
             <span class="icon icon-shield-check" aria-hidden="true"></span>
             @T.Pages.RulesHeading
         </h2>
-        <p class="text-sm mb-6" style="color: var(--text-secondary)">@T.Pages.RulesLead</p>
+        <p class="sn-text-sm sn-mb-6" style="color: var(--text-secondary)">@T.Pages.RulesLead</p>
 
         @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
         {
-            <p class="text-sm" style="color: var(--text-tertiary)">@T.Pages.RulesEmpty</p>
+            <p class="sn-text-sm" style="color: var(--text-tertiary)">@T.Pages.RulesEmpty</p>
         }
         else
         {
-            <div class="flex flex-col gap-6">
+            <div class="sn-rules-list">
                 @foreach (var (rule, index) in Model.Rules.Rules.Select((r, i) => (r, i)))
                 {
-                    <div class="flex gap-4 items-start">
-                        <span class="text-5xl font-black leading-none select-none shrink-0 w-14 text-right" style="color: var(--text-primary); opacity: 0.08">@(index + 1)</span>
-                        <div class="pt-1 min-w-0">
-                            <p class="text-sm font-semibold mb-1" style="color: var(--text-primary)">@rule.Title</p>
-                            <p class="text-sm" style="color: var(--text-secondary)">@rule.Description</p>
+                    <div class="sn-rule-item">
+                        <span class="sn-text-5xl sn-font-black leading-none sn-select-none sn-shrink-0 w-14 sn-text-right" style="color: var(--text-primary); opacity: 0.08">@(index + 1)</span>
+                        <div class="sn-pt-1 sn-min-w-0">
+                            <p class="sn-rule-title--rules" style="color: var(--text-primary)">@rule.Title</p>
+                            <p class="sn-text-sm" style="color: var(--text-secondary)">@rule.Description</p>
                         </div>
                     </div>
                 }

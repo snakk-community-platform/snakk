@@ -1,13 +1,13 @@
-﻿@page
+@page
 @model NotFoundModel
 @{
     ViewData["Title"] = T.Pages.NotFoundTitle;
 }
 
-<div class="flex flex-col items-center justify-center text-center px-4 py-16" style="grid-column: 1 / -1; min-height: calc(100vh - 3.5rem);">
-    <img src="/img/logo-square.webp" alt="" width="120" height="120" class="mb-4" />
-    <div class="text-7xl font-extrabold leading-none mb-1 tracking-tight" style="color: var(--text-tertiary); opacity: 0.15;">404</div>
-    <h1 class="text-2xl font-bold mb-2">@T.Pages.NotFoundHeading</h1>
-    <p class="text-base-content/60 mb-8 max-w-sm">@T.Pages.NotFoundBody</p>
-    <a href="/" class="btn btn-primary btn-sm">@T.Pages.NotFoundBack</a>
+<div class="sn-not-found-container" style="grid-column: 1 / -1; min-height: calc(100vh - 3.5rem);">
+    <img src="/img/logo-square.webp" alt="" width="120" height="120" class="sn-mb-4" />
+    <div class="sn-text-7xl sn-font-extrabold leading-none sn-mb-1 tracking-tight" style="color: var(--text-tertiary); opacity: 0.15;">404</div>
+    <h1 class="sn-not-found-heading">@T.Pages.NotFoundHeading</h1>
+    <p class="sn-not-found-body">@T.Pages.NotFoundBody</p>
+    <a href="/" class="sn-btn sn-btn-primary sn-btn-sm">@T.Pages.NotFoundBack</a>
 </div>

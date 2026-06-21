@@ -111,6 +111,23 @@ interface SnakkConfig {
     };
 }
 
+// Add new message types here as the app grows
+type SnakkBroadcastMessage =
+    | { type: 'auth:relogin-success' }
+    | { type: 'auth:logout' }
+    | { type: 'auth:stay-logged-out' }
+    | { type: 'profile:avatar-changed'; url: string }
+    | { type: 'profile:display-name-changed'; displayName: string }
+    | { type: 'pref:content-width-changed'; value: number };
+
+interface SnakkBroadcastAPI {
+    send(msg: SnakkBroadcastMessage): void;
+    on<T extends SnakkBroadcastMessage['type']>(
+        type: T,
+        handler: (msg: Extract<SnakkBroadcastMessage, { type: T }>) => void
+    ): () => void;
+}
+
 interface SnakkActionsAPI {
     on(action: string, handler: (el: HTMLElement, event: Event) => void): void;
     onAll(handlers: Record<string, (el: HTMLElement, event: Event) => void>): void;
@@ -141,6 +158,9 @@ interface SnakkNewDiscussionAPI {
 }
 
 interface Window {
+    // Cross-tab messaging
+    SnakkBroadcast: SnakkBroadcastAPI;
+
     // Action delegation
     SnakkActions: SnakkActionsAPI;
 

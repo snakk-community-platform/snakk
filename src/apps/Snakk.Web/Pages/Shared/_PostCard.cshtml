@@ -28,7 +28,7 @@
                data-popup-name="@Model.AuthorDisplayName">@Model.AuthorDisplayName</a>
         }
         <span class="sn-card-dot">&middot;</span>
-        <div class="tooltip tooltip-bottom" data-tip="@T.Card.CreatedAt @FormatFullDateTime(Model.CreatedAt)">
+        <div class="sn-tooltip tooltip-bottom" data-tip="@T.Card.CreatedAt @FormatFullDateTime(Model.CreatedAt)">
             <time class="sn-card-time" datetime="@Model.CreatedAt.ToString("o")">@FormatRelativeTime(Model.CreatedAt)</time>
         </div>
         @if (Model.ReactionEmoji != null)
@@ -38,7 +38,7 @@
         }
         @if (Model.UnsaveId != null)
         {
-            <button type="button" class="btn btn-xs shrink-0"
+            <button type="button" class="sn-btn sn-btn-xs sn-shrink-0"
                     style="background-color: oklch(0.65 0.18 45); border-color: oklch(0.65 0.18 45); color: white;"
                     data-action="unsave-from-list"
                     data-unsave-type="post"
@@ -64,8 +64,8 @@
         }
     </div>
 
-    <div class="sn-card-title-row">
-        <div class="sn-card-title">
+    <div class="sn-card-heading-row">
+        <div class="sn-card-heading">
             <a href="@postUrl">@Model.DiscussionTitle</a>
         </div>
     </div>
@@ -73,7 +73,7 @@
     @if (!string.IsNullOrEmpty(Model.ContentExcerpt))
     {
         <div class="sn-card-excerpt">
-            <div class="sn-post-preview prose prose-sm">@Html.SanitizedRaw(Model.ContentExcerpt)</div>
+            <div class="sn-post-preview sn-prose prose-sm">@Html.SanitizedRaw(Model.ContentExcerpt)</div>
         </div>
     }
 </article>

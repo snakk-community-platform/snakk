@@ -4,8 +4,11 @@
 
 .activity-item {
     display: flex;
-    gap: 1rem;
-    padding: 1rem;
+    gap: var(--space-8);
+    padding: var(--space-8);
+}
+
+.activity-item {
     border-bottom: 1px solid var(--border-primary);
 
     &:last-child {
@@ -17,14 +20,17 @@
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: var(--border-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
     flex-shrink: 0;
+}
+
+.activity-avatar {
+    background: var(--border-primary);
+    color: var(--text-secondary);
 }
 
 .activity-content {
@@ -33,13 +39,19 @@
 }
 
 .activity-text {
-    font-size: 0.875rem;
+    font-size: var(--font-size-base);
+    margin-bottom: var(--space-2);
+
+    a {
+        font-weight: 500;
+    }
+}
+
+.activity-text {
     color: var(--text-primary);
-    margin-bottom: 0.25rem;
 
     a {
         color: var(--text-primary);
-        font-weight: 500;
 
         &:hover {
             color: var(--link-primary);
@@ -48,7 +60,10 @@
 }
 
 .activity-time {
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
+}
+
+.activity-time {
     color: var(--text-tertiary);
 }
 
@@ -59,10 +74,13 @@
 .typing-indicator-subtle {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8125rem;
+    gap: var(--space-4);
+    font-size: var(--font-size-ui);
+    padding: var(--space-4) 0;
+}
+
+.typing-indicator-subtle {
     color: var(--text-tertiary);
-    padding: 0.5rem 0;
 }
 
 .typing-dots-subtle {
@@ -74,6 +92,9 @@
     width: 4px;
     height: 4px;
     border-radius: 50%;
+}
+
+.typing-dot-subtle {
     background: var(--border-subtle);
     animation: typing-subtle 1.4s infinite ease-in-out;
 

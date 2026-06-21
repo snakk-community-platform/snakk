@@ -1374,12 +1374,14 @@
   },
   "relogin": {
     "title": "Sesjonen er utløpt",
-    "subtitle": "Sesjonen din er utløpt. Skriv inn passordet ditt for å fortsette.",
+    "subtitle": "Vennligst logg inn for å fortsette.",
+    "inactivitySubtitle": "Du ble logget ut på grunn av inaktivitet.",
     "passwordPlaceholder": "Passord",
     "submit": "Logg inn igjen",
-    "otherAccount": "Bruk en annen konto",
+    "stayLoggedOut": "Forbli utlogget",
     "errorWrongPassword": "Feil passord. Prøv igjen.",
-    "errorGeneric": "Noe gikk galt. Prøv igjen."
+    "errorGeneric": "Noe gikk galt. Prøv igjen.",
+    "errorFullExpired": "Sesjonen er helt utløpt. Bruk en annen påloggingsmetode."
   },
   "roles": {
     "globalAdmin": "Admin"

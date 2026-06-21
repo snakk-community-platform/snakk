@@ -1,11 +1,7 @@
-@page "/help/{slug?}"
+﻿@page "/help/{slug?}"
 @model HelpModel
 @{
     ViewData["Title"] = Model.ArticleTitle + T.Pages.HelpTitleSuffix;
-}
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("help")" asp-append-version="true" />
 }
 
 @section LeftColumn {
@@ -15,23 +11,25 @@
 <!-- Center Column -->
 <div class="sn-center">
     <div id="help-main" class="sn-center-inner">
-        <h2 class="sn-section-title">
-            <span class="icon icon-question-circle" aria-hidden="true"></span>
-            @T.Pages.HelpHeading
-        </h2>
-        <article class="help-content">
+        <div class="sn-section-header">
+            <h2 class="sn-section-title">
+                <span class="icon icon-question-circle" aria-hidden="true"></span>
+                @T.Pages.HelpHeading
+            </h2>
+        </div>
+        <article class="sn-help-content">
             @if (!string.IsNullOrEmpty(Model.SectionTitle))
             {
-                <div class="help-article-category">@Model.SectionTitle</div>
+                <div class="sn-help-article-category">@Model.SectionTitle</div>
             }
             <h1>@Model.ArticleTitle</h1>
-            <div class="prose">
+            <div class="sn-prose">
                 @Html.SanitizedRaw(Model.RenderedHtml)
             </div>
         </article>
         @if (Model.PrevArticle is not null || Model.NextArticle is not null)
         {
-            <nav class="help-article-nav" aria-label="@T.Pages.HelpArticleNav">
+            <nav class="sn-help-article-nav" aria-label="@T.Pages.HelpArticleNav">
                 <div>
                     @if (Model.PrevArticle is not null)
                     {
@@ -42,9 +40,9 @@
                            hx-select-oob="#help-sidebar-nav"
                            hx-swap="outerHTML"
                            hx-push-url="true"
-                           class="help-article-nav-link">
-                            <span class="help-article-nav-label">← @T.Pages.HelpPrev</span>
-                            <span class="help-article-nav-title">@Model.PrevArticle.Title</span>
+                           class="sn-help-article-nav-link">
+                            <span class="sn-help-article-nav-label">← @T.Pages.HelpPrev</span>
+                            <span class="sn-help-article-nav-title">@Model.PrevArticle.Title</span>
                         </a>
                     }
                 </div>
@@ -58,9 +56,9 @@
                            hx-select-oob="#help-sidebar-nav"
                            hx-swap="outerHTML"
                            hx-push-url="true"
-                           class="help-article-nav-link help-article-nav-link--next">
-                            <span class="help-article-nav-label">@T.Pages.HelpNext →</span>
-                            <span class="help-article-nav-title">@Model.NextArticle.Title</span>
+                           class="sn-help-article-nav-link sn-help-article-nav-link--next">
+                            <span class="sn-help-article-nav-label">@T.Pages.HelpNext →</span>
+                            <span class="sn-help-article-nav-title">@Model.NextArticle.Title</span>
                         </a>
                     }
                 </div>
@@ -70,6 +68,8 @@
 </div>
 
 <!-- Right Column -->
+@if (!DeviceDetection.IsMobile(HttpContext))
+{
 <aside class="sn-right">
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/create";
@@ -81,21 +81,21 @@
     {
         <div class="sn-right-section">
             <div class="sn-right-title">@T.Pages.HelpInThisArticle</div>
-            <nav class="help-toc">
+            <nav class="sn-help-toc">
                 @foreach (var (id, text) in Model.TableOfContents)
                 {
-                    <a href="#@id" class="help-toc-item">@text</a>
+                    <a href="#@id" class="sn-help-toc-item">@text</a>
                 }
             </nav>
         </div>
     }
     <div class="sn-right-section">
         <div class="sn-right-title">@T.Pages.HelpCenterTitle</div>
-        <nav id="help-sidebar-nav" class="help-sidebar">
+        <nav id="help-sidebar-nav" class="sn-help-sidebar">
             @foreach (var s in Model.Sections)
             {
-                <div class="help-section">
-                    <div class="help-section-title">@s.Title</div>
+                <div class="sn-help-section">
+                    <div class="sn-help-section-title">@s.Title</div>
                     @foreach (var article in s.Items)
                     {
                         <a href="/help/@article.Slug"
@@ -105,7 +105,7 @@
                            hx-select-oob="#help-sidebar-nav"
                            hx-swap="outerHTML"
                            hx-push-url="true"
-                           class="help-nav-item @(article.Slug == Model.Slug ? "help-nav-active" : "")">
+                           class="sn-help-nav-item @(article.Slug == Model.Slug ? "sn-help-nav-active" : "")">
                             @article.Title
                         </a>
                     }
@@ -116,3 +116,4 @@
     </div>
 </div>
 </aside>
+}

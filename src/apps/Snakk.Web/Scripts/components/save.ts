@@ -84,8 +84,8 @@
         btn.dataset.saved = isSaved ? 'true' : 'false';
         btn.setAttribute('aria-pressed', isSaved ? 'true' : 'false');
         btn.title = isSaved ? 'Unsave' : 'Save';
-        btn.classList.toggle('is-saved', isSaved);
-        btn.classList.toggle('btn-primary', isSaved);
+        btn.classList.toggle('sn-is-saved', isSaved);
+        btn.classList.toggle('sn-btn-primary', isSaved);
 
         // Update visible text label if present (e.g. action pane "Save" button)
         const labelEl = btn.querySelector<HTMLElement>('span:not([aria-hidden])');

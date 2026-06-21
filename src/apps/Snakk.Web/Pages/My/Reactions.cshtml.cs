@@ -24,6 +24,7 @@ public class ReactionsModel(
 
     public async Task<IActionResult> OnGetAsync(string? tab, CancellationToken cancellationToken)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         if (Request.Query.TryGetValue("tab", out var queryTab) && !string.IsNullOrEmpty(queryTab))
             return RedirectToPage(new { tab = queryTab.ToString() });

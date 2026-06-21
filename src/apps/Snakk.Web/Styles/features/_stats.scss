@@ -8,7 +8,7 @@
 .stats-grid {
     display: flex;
     justify-content: space-around;
-    gap: 1rem;
+    gap: var(--space-8);
 }
 
 .stat-item {
@@ -19,22 +19,31 @@
 }
 
 .stat-value {
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     font-weight: 700;
-    color: var(--text-primary);
     line-height: 1.2;
+}
+
+.stat-value {
+    color: var(--text-primary);
+}
+
+.stat-icon {
+    flex-shrink: 0;
 }
 
 .stat-icon {
     color: var(--text-tertiary);
-    flex-shrink: 0;
 }
 
 .stat-label {
-    font-size: 1rem;
-    color: var(--text-tertiary);
+    font-size: var(--font-size-md);
     text-transform: uppercase;
     letter-spacing: 0.02em;
+}
+
+.stat-label {
+    color: var(--text-tertiary);
 }
 
 // ============================================
@@ -44,11 +53,15 @@
 .entity-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
-    font-size: 0.75rem;
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
+}
+
+.entity-stats {
     color: var(--text-tertiary);
 }
 
 .entity-stats-separator {
     color: var(--border-subtle);
 }
+

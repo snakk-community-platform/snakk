@@ -24,7 +24,7 @@
 
     function resetBar(b: HTMLElement): void {
         generation++;
-        b.classList.remove('active');
+        b.classList.remove('sn-active');
         // Force scaleX(1) inline — CSS can't reliably transition from an interrupted animation
         b.style.transform = 'scaleX(1)';
         b.classList.add('complete');
@@ -64,7 +64,7 @@
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     if (gen === generation) {
-                        b.classList.add('active');
+                        b.classList.add('sn-active');
                     }
                 });
             });
@@ -105,7 +105,7 @@
         const b = getBar();
         if (!b) return;
         generation++;
-        b.classList.remove('active', 'complete');
+        b.classList.remove('sn-active', 'complete');
         b.style.transform = '';
         startTime = null;
     });

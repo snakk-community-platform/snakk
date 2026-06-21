@@ -344,8 +344,8 @@ public class AuthenticationUseCase(
         if (suggestedDisplayName != trimmed)
             return Result.Failure($"Display name '{trimmed}' is taken. Try '{suggestedDisplayName}' instead.");
 
-        // Check historical uniqueness (name was never used by anyone)
-        if (await displayNameHistoryRepository.WasNameEverUsedAsync(trimmed))
+        // Check historical uniqueness (name was never used by anyone else)
+        if (await displayNameHistoryRepository.WasNameEverUsedAsync(trimmed, user.PublicId.Value))
             return Result.Failure($"The display name '{trimmed}' was previously used and cannot be reused.");
 
         // Record history before changing
@@ -547,6 +547,30 @@ public class AuthenticationUseCase(
     {
         await refreshTokenRepository.RevokeAllForUserAsync(userId);
         return Result.Success();
+    }
+
+    public async Task<Result<(User user, RefreshToken newRefreshToken)>> ReloginWithRefreshTokenAsync(
+        string refreshTokenValue, string password)
+    {
+        var refreshToken = await refreshTokenRepository.GetByValueAsync(refreshTokenValue);
+
+        if (refreshToken is null || !refreshToken.IsActive)
+            return Result<(User, RefreshToken)>.Failure("Invalid refresh token");
+
+        var user = await userRepository.GetByPublicIdAsync(refreshToken.UserId);
+        if (user is null)
+            return Result<(User, RefreshToken)>.Failure("User not found");
+
+        if (!user.HasPassword() || !passwordHasher.VerifyPassword(password, user.PasswordHash!))
+            return Result<(User, RefreshToken)>.Failure("Incorrect password");
+
+        var revokedToken = refreshToken.Revoke();
+        await refreshTokenRepository.UpdateAsync(revokedToken);
+
+        var newRefreshToken = RefreshToken.Create(refreshToken.UserId, expirationDays: 30);
+        await refreshTokenRepository.AddAsync(newRefreshToken);
+
+        return Result<(User, RefreshToken)>.Success((user, newRefreshToken));
     }
 
     // ─── Social Links ────────────────────────────────────────────────────────

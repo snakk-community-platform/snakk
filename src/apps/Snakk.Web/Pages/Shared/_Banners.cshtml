@@ -22,31 +22,31 @@
         }
     })();
     </script>
-    <div class="banner-banners mb-4">
+    <div class="banner-banners sn-mb-4">
         @foreach (var banner in Model)
         {
             var alertClass = banner.Type switch
             {
-                "Critical" => "alert-error",
-                "Warning" => "alert-warning",
-                _ => "alert-info"
+                "Critical" => "sn-alert-error",
+                "Warning" => "sn-alert-warning",
+                _ => "sn-alert-info"
             };
 
-            <div class="alert @alertClass mb-2 banner-banner"
+            <div class="sn-alert @alertClass sn-mb-2 banner-banner"
                  data-banner-id="@banner.PublicId"
                  data-dismissible="@banner.IsDismissible.ToString().ToLower()">
-                <div class="flex-1">
+                <div class="sn-flex-1">
                     @if (!string.IsNullOrEmpty(banner.Title))
                     {
-                        <h3 class="font-bold text-sm">@banner.Title</h3>
+                        <h3 class="sn-font-bold sn-text-sm">@banner.Title</h3>
                     }
-                    <div class="prose prose-sm max-w-none banner-content">
+                    <div class="sn-prose sn-prose-sm sn-max-w-none banner-content">
                         @Html.SanitizedRaw(banner.RenderedContent)
                     </div>
                 </div>
                 @if (banner.IsDismissible)
                 {
-                    <button class="btn btn-sm btn-ghost banner-dismiss self-start shrink-0 ml-auto"
+                    <button class="sn-btn sn-btn-sm sn-btn-ghost banner-dismiss self-start sn-shrink-0 sn-ml-auto"
                             data-action="dismiss-banner"
                             data-banner-id="@banner.PublicId"
                             aria-label="@T.Banners.Dismiss">

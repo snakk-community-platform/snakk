@@ -12,12 +12,12 @@
             <!-- Presence & Visibility -->
             <div id="section-presence" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.PrivPresenceTitle</h3>
-                <label class="flex items-center gap-4 cursor-pointer">
-                    <input type="checkbox" id="hide-presence-toggle" class="toggle toggle-primary"
+                <label class="sn-settings-toggle-label--privacy">
+                    <input type="checkbox" id="hide-presence-toggle" class="sn-toggle sn-toggle-primary"
                            @(Model.HidePresence ? "checked" : "") />
                     <span>
-                        <span class="font-medium text-sm">@T.Settings.PrivPresenceLabel</span>
-                        <span class="block text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivPresenceHelp</span>
+                        <span class="sn-font-medium sn-text-sm">@T.Settings.PrivPresenceLabel</span>
+                        <span class="sn-block sn-text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivPresenceHelp</span>
                     </span>
                 </label>
             </div>
@@ -25,12 +25,12 @@
             <!-- Browsing History -->
             <div id="section-history-pref" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.PrivDisableHistoryTitle</h3>
-                <label class="flex items-center gap-4 cursor-pointer">
-                    <input type="checkbox" id="disable-history-toggle" class="toggle toggle-primary"
+                <label class="sn-settings-toggle-label--privacy">
+                    <input type="checkbox" id="disable-history-toggle" class="sn-toggle sn-toggle-primary"
                            @(Model.DisableHistory ? "checked" : "") />
                     <span>
-                        <span class="font-medium text-sm">@T.Settings.PrivDisableHistoryLabel</span>
-                        <span class="block text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivDisableHistoryHelp</span>
+                        <span class="sn-font-medium sn-text-sm">@T.Settings.PrivDisableHistoryLabel</span>
+                        <span class="sn-block sn-text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivDisableHistoryHelp</span>
                     </span>
                 </label>
             </div>
@@ -39,12 +39,12 @@
             <div id="section-password" class="sn-settings-section">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
                     <span>@T.Settings.PrivPasswordTitle</span>
-                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                    <span class="icon icon-lock-closed sn-w-4 sn-h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
                 </h3>
-                <p class="text-sm mb-3" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-3" style="color: var(--text-tertiary)">
                     @T.Settings.PrivPasswordHelp
                 </p>
-                <button type="button" id="open-change-password" class="btn btn-primary btn-sm">@T.Settings.PrivChangePwdBtn</button>
+                <button type="button" id="open-change-password" class="sn-btn sn-btn-primary sn-btn-sm">@T.Settings.PrivChangePwdBtn</button>
             </div>
 
             @if (Model.PasskeysEnabled)
@@ -53,23 +53,23 @@
             <div id="section-passkeys" class="sn-settings-section">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
                     <span>@T.Settings.PrivPasskeyTitle</span>
-                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                    <span class="icon icon-lock-closed sn-w-4 sn-h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
                 </h3>
-                <p class="text-sm mb-2" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-2" style="color: var(--text-tertiary)">
                     @T.Settings.PrivPasskeyHelp
                 </p>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.PrivPasskey2faNote
                 </p>
-                <div id="passkey-list" class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
-                    <div class="flex justify-center py-4">
-                        <span class="loading loading-spinner loading-md"></span>
+                <div id="passkey-list" class="sn-settings-list-container" style="background:var(--bg-tertiary);color:var(--text-primary);">
+                    <div class="sn-settings-loader">
+                        <span class="sn-spinner sn-loading-md"></span>
                     </div>
                 </div>
-                <div id="passkey-add-area" class="mt-4" style="display:none">
-                    <button type="button" id="open-passkey-modal" class="btn btn-primary btn-sm">@T.Settings.PrivPasskeyAdd</button>
+                <div id="passkey-add-area" class="sn-mt-4" style="display:none">
+                    <button type="button" id="open-passkey-modal" class="sn-btn sn-btn-primary sn-btn-sm">@T.Settings.PrivPasskeyAdd</button>
                 </div>
-                <p id="passkey-status" class="text-sm mt-2 hidden"></p>
+                <p id="passkey-status" class="sn-text-sm sn-mt-2 sn-hidden"></p>
             </div>
             }
 
@@ -79,45 +79,45 @@
             <div id="two-factor-section" class="sn-settings-section">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
                     <span>@T.Settings.Priv2faTitle</span>
-                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                    <span class="icon icon-lock-closed sn-w-4 sn-h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
                 </h3>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.Priv2faHelp
                 </p>
-                <div id="2fa-loading" class="flex justify-center py-4">
-                    <span class="loading loading-spinner loading-md"></span>
+                <div id="2fa-loading" class="sn-settings-loader">
+                    <span class="sn-spinner sn-loading-md"></span>
                 </div>
-                <div id="2fa-status" class="hidden">
-                    <div id="2fa-state-disabled" class="hidden">
-                        <button type="button" id="2fa-setup-btn" class="btn btn-primary btn-sm">@T.Settings.Priv2faEnableBtn</button>
+                <div id="2fa-status" class="sn-hidden">
+                    <div id="2fa-state-disabled" class="sn-hidden">
+                        <button type="button" id="2fa-setup-btn" class="sn-btn sn-btn-primary sn-btn-sm">@T.Settings.Priv2faEnableBtn</button>
                     </div>
-                    <div id="2fa-state-enabled" class="hidden">
-                        <div class="callout-node-view callout-node-success mb-4 text-sm" style="border-left:none">
-                            <span class="icon icon-shield-check w-4 h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-success,#10b981)"></span>
+                    <div id="2fa-state-enabled" class="sn-hidden">
+                        <div class="callout-node-view callout-node-success sn-mb-4 sn-text-sm" style="border-left:none">
+                            <span class="icon icon-shield-check sn-w-4 sn-h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-success,#10b981)"></span>
                             <span>@T.Settings.Priv2faEnabledCallout</span>
                         </div>
-                        <div class="rounded-lg border border-base-300 overflow-hidden mb-4" style="background:var(--bg-tertiary);color:var(--text-primary);">
+                        <div class="sn-settings-list-container sn-mb-4" style="background:var(--bg-tertiary);color:var(--text-primary);">
                             <div class="sn-device-item">
                                 <div class="sn-device-info">
-                                    <p id="2fa-backup-status" class="text-sm sn-device-meta"></p>
+                                    <p id="2fa-backup-status" class="sn-text-sm sn-device-meta"></p>
                                 </div>
                                 <button type="button" id="2fa-regen-btn" class="sn-device-revoke sn-device-revoke--success">@T.Settings.Priv2faRegenBtn</button>
                             </div>
                         </div>
                         <!-- Trusted Devices -->
                         <div id="devices-section">
-                            <h4 class="text-sm font-semibold mb-1">@T.Settings.PrivDevicesTitle</h4>
-                            <p class="text-sm mb-3" style="color: var(--text-tertiary)">
+                            <h4 class="sn-section-label--privacy">@T.Settings.PrivDevicesTitle</h4>
+                            <p class="sn-text-sm sn-mb-3" style="color: var(--text-tertiary)">
                                 @T.Settings.PrivDevicesHelp
                             </p>
-                            <div id="devices-list" class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
-                                <div class="flex justify-center py-4">
-                                    <span class="loading loading-spinner loading-md"></span>
+                            <div id="devices-list" class="sn-settings-list-container" style="background:var(--bg-tertiary);color:var(--text-primary);">
+                                <div class="sn-settings-loader">
+                                    <span class="sn-spinner sn-loading-md"></span>
                                 </div>
                             </div>
                         </div>
-                        <div class="mt-6">
-                            <button type="button" id="2fa-disable-btn" class="btn btn-error btn-sm">@T.Settings.Priv2faDisableBtn</button>
+                        <div class="sn-mt-6">
+                            <button type="button" id="2fa-disable-btn" class="sn-btn sn-btn-error sn-btn-sm">@T.Settings.Priv2faDisableBtn</button>
                         </div>
                     </div>
                 </div>
@@ -130,35 +130,35 @@
             <div id="section-connected-accounts" class="sn-settings-section">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
                     <span>@T.Settings.ConnAccHeading</span>
-                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
+                    <span class="icon icon-lock-closed sn-w-4 sn-h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default"></span>
                 </h3>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.ConnAccIntro
                 </p>
                 @if (Model.ErrorCode == "LAST_AUTH_METHOD")
                 {
-                    <div class="callout-node-view callout-node-warning mb-4 text-sm" style="border-left:none">
+                    <div class="callout-node-view callout-node-warning sn-mb-4 sn-text-sm" style="border-left:none">
                         <span class="callout-node-icon">⚠️</span>
                         <span>@T.Settings.ConnAccLastAuthMethodError</span>
                     </div>
                 }
                 else if (Model.ErrorCode == "PROVIDER_TAKEN_BY_OTHER")
                 {
-                    <div class="callout-node-view callout-node-error mb-4 text-sm" style="border-left:none">
-                        <span class="icon icon-x-circle w-4 h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-error,#ef4444)"></span>
+                    <div class="callout-node-view callout-node-error sn-mb-4 sn-text-sm" style="border-left:none">
+                        <span class="icon icon-x-circle sn-w-4 sn-h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-error,#ef4444)"></span>
                         <span>@T.Settings.ConnAccProviderTakenError</span>
                     </div>
                 }
                 else if (!string.IsNullOrEmpty(Model.ErrorCode))
                 {
-                    <div class="callout-node-view callout-node-error mb-4 text-sm" style="border-left:none">
-                        <span class="icon icon-x-circle w-4 h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-error,#ef4444)"></span>
+                    <div class="callout-node-view callout-node-error sn-mb-4 sn-text-sm" style="border-left:none">
+                        <span class="icon icon-x-circle sn-w-4 sn-h-4" aria-hidden="true" style="flex-shrink:0;margin-top:0.125rem;color:var(--accent-error,#ef4444)"></span>
                         <span>@T.Settings.ConnAccConnectFailed</span>
                     </div>
                 }
-                <div id="connected-accounts-list" class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
-                    <div class="flex justify-center py-4">
-                        <span class="loading loading-spinner loading-md"></span>
+                <div id="connected-accounts-list" class="sn-settings-list-container" style="background:var(--bg-tertiary);color:var(--text-primary);">
+                    <div class="sn-settings-loader">
+                        <span class="sn-spinner sn-loading-md"></span>
                     </div>
                 </div>
             </div>
@@ -167,36 +167,36 @@
             <!-- Active Sessions -->
             <div id="section-sessions" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.SecSessionsTitle</h3>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.SecSessionsIntro
                 </p>
-                <div class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
-                    <div id="sessions-loading" class="flex justify-center py-4">
-                        <span class="loading loading-spinner loading-md"></span>
+                <div class="sn-settings-list-container" style="background:var(--bg-tertiary);color:var(--text-primary);">
+                    <div id="sessions-loading" class="sn-settings-loader">
+                        <span class="sn-spinner sn-loading-md"></span>
                     </div>
-                    <div id="sessions-list" class="hidden"></div>
-                    <p id="sessions-empty" class="hidden text-sm px-4 py-3" style="color: var(--text-tertiary)">
+                    <div id="sessions-list" class="sn-hidden"></div>
+                    <p id="sessions-empty" class="sn-settings-empty-state sn-hidden" style="color: var(--text-tertiary)">
                         @T.Settings.SecSessionsEmpty
                     </p>
                 </div>
-                <div id="sessions-actions" class="hidden mt-4">
-                    <button type="button" class="btn btn-ghost btn-sm" style="color: var(--text-tertiary)" id="revoke-all-sessions-btn">
+                <div id="sessions-actions" class="sn-hidden sn-mt-4">
+                    <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm" style="color: var(--text-tertiary)" id="revoke-all-sessions-btn">
                         @T.Settings.SecSessionsRevokeAllBtn
                     </button>
                 </div>
-                <p id="sessions-status" class="text-sm mt-2 hidden"></p>
+                <p id="sessions-status" class="sn-text-sm sn-mt-2 sn-hidden"></p>
             </div>
 
             <!-- Security Log -->
             <div id="section-security-log" class="sn-settings-section">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
                     <span>@T.Settings.SecLogTitle</span>
-                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNoteView" style="color:var(--text-tertiary);cursor:default"></span>
+                    <span class="icon icon-lock-closed sn-w-4 sn-h-4" title="@T.Settings.PrivSudoNoteView" style="color:var(--text-tertiary);cursor:default"></span>
                 </h3>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.SecLogIntro
                 </p>
-                <button type="button" class="btn btn-primary btn-sm" id="view-security-log-btn">
+                <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" id="view-security-log-btn">
                     @T.Settings.SecLogViewBtn
                 </button>
             </div>
@@ -205,30 +205,30 @@
             <div id="section-data-export" class="sn-settings-section">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
                     <span>@T.Settings.DataExportTitle</span>
-                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
+                    <span class="icon icon-lock-closed sn-w-4 sn-h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
                 </h3>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.DataExportDescription
                 </p>
-                <button type="button" class="btn btn-primary btn-sm" id="download-data-btn">
+                <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" id="download-data-btn">
                     @T.Settings.DataExportButton
                 </button>
-                <p id="download-data-status" class="text-sm mt-2 hidden" role="status"></p>
+                <p id="download-data-status" class="sn-text-sm sn-mt-2 sn-hidden" role="status"></p>
             </div>
 
             <!-- Danger Zone -->
             <div id="section-danger-zone" class="sn-settings-section" style="border-color: var(--color-error-light, rgba(239,68,68,.2))">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center;color:var(--color-error)">
-                    <span class="flex items-center gap-1.5">
+                    <span class="sn-flex sn-items-center sn-gap-1\.5">
                         <span class="icon icon-trash" aria-hidden="true"></span>
                         @T.Settings.DangerZoneTitle
                     </span>
-                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
+                    <span class="icon icon-lock-closed sn-w-4 sn-h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
                 </h3>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.DangerZoneDescription
                 </p>
-                <button type="button" class="btn btn-error btn-sm" id="delete-account-btn">
+                <button type="button" class="sn-btn sn-btn-error sn-btn-sm" id="delete-account-btn">
                     @T.Settings.DangerZoneDeleteButton
                 </button>
             </div>
@@ -242,30 +242,30 @@
 <partial name="Shared/_SudoModals" />
 
 <!-- Delete Account Confirmation -->
-<div id="modal-delete-account" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-delete-account-title">
+<div id="modal-delete-account" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-delete-account-title">
     <div class="sn-modal" style="max-width:28rem">
         <div class="sn-modal-header">
             <span id="modal-delete-account-title" style="color:var(--color-error)">@T.Settings.DeleteAccountModalTitle</span>
             <button type="button" class="sn-modal-close" id="delete-account-modal-cancel-x" aria-label="Close">✕</button>
         </div>
         <div class="sn-modal-body" style="flex-direction:column">
-            <p class="text-sm mb-3" style="color: var(--color-error); font-weight: 600">
+            <p class="sn-text-sm sn-mb-3" style="color: var(--color-error); font-weight: 600">
                 @T.Settings.DeleteAccountModalWarning
             </p>
-            <p class="text-sm mb-3" style="color: var(--text-tertiary)">
+            <p class="sn-text-sm sn-mb-3" style="color: var(--text-tertiary)">
                 @T.Settings.DeleteAccountModalConfirmPrompt
             </p>
             <input type="email"
                    id="delete-account-confirm-input"
-                   class="input w-full"
+                   class="sn-input sn-w-full"
                    placeholder="@T.Settings.DeleteAccountModalConfirmPlaceholder"
                    autocomplete="email"
                    spellcheck="false" />
-            <p id="delete-account-modal-status" class="text-sm mt-2 hidden" role="alert"></p>
+            <p id="delete-account-modal-status" class="sn-text-sm sn-mt-2 sn-hidden" role="alert"></p>
         </div>
         <div class="sn-modal-footer">
             <button type="button" class="sn-modal-cancel" id="delete-account-modal-cancel">@T.Common.Cancel</button>
-            <button type="button" class="btn btn-error btn-sm" id="delete-account-modal-submit" disabled>
+            <button type="button" class="sn-btn sn-btn-error sn-btn-sm" id="delete-account-modal-submit" disabled>
                 @T.Settings.DangerZoneDeleteButton
             </button>
         </div>
@@ -273,19 +273,19 @@
 </div>
 
 <!-- Change Password -->
-<div id="modal-change-password" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-pwd-title">
+<div id="modal-change-password" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-pwd-title">
     <div class="sn-modal" style="max-width:28rem">
         <div class="sn-modal-header">
             <span id="modal-pwd-title">@T.Settings.PrivPasswordTitle</span>
             <button type="button" class="sn-modal-close" data-modal="modal-change-password" aria-label="Close">✕</button>
         </div>
         <div class="sn-modal-body" style="flex-direction:column">
-            <form id="change-password-form" class="flex flex-col gap-3 w-full">
-                <input type="password" name="newPassword" class="input w-full"
+            <form id="change-password-form" class="sn-settings-form sn-w-full">
+                <input type="password" name="newPassword" class="sn-input sn-w-full"
                        placeholder="@T.Settings.PrivNewPwdPlaceholder" autocomplete="new-password" />
-                <input type="password" name="confirmPassword" class="input w-full"
+                <input type="password" name="confirmPassword" class="sn-input sn-w-full"
                        placeholder="@T.Settings.PrivConfirmPwdPlaceholder" autocomplete="new-password" />
-                <p id="change-password-status" class="text-sm hidden"></p>
+                <p id="change-password-status" class="sn-text-sm sn-hidden"></p>
             </form>
         </div>
         <div class="sn-modal-footer">
@@ -298,37 +298,37 @@
 @if (Model.TwoFactorEnabled)
 {
 <!-- Enable 2FA -->
-<div id="modal-2fa-enable" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-enable-title">
+<div id="modal-2fa-enable" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-enable-title">
     <div class="sn-modal" style="max-width:38rem">
         <div class="sn-modal-header">
             <span id="modal-2fa-enable-title">@T.Settings.Priv2faEnableBtn</span>
             <button type="button" class="sn-modal-close" data-modal="modal-2fa-enable" aria-label="Close">✕</button>
         </div>
         <div class="sn-modal-body" style="flex-direction:column;align-items:center">
-            <p class="text-sm mb-4 w-full" style="color: var(--text-tertiary)">@T.Settings.Priv2faSetupInstructions</p>
-            <img id="2fa-qr-img" src="" alt="QR code" class="w-44 h-44 rounded border border-base-300 mb-3" />
-            <div class="rounded border border-base-300 p-3 mb-5 w-full" style="background:var(--bg-tertiary);color:var(--text-primary);">
-                <div class="flex items-center justify-between mb-1">
-                    <p class="text-xs font-medium" style="color:#666">@T.Settings.Priv2faManualKeyLabel</p>
-                    <button type="button" id="2fa-copy-secret-btn" class="btn btn-ghost btn-xs">Copy</button>
+            <p class="sn-text-sm sn-mb-4 sn-w-full" style="color: var(--text-tertiary)">@T.Settings.Priv2faSetupInstructions</p>
+            <img id="2fa-qr-img" src="" alt="QR code" class="sn-w-44 sn-h-44 sn-rounded sn-border sn-border-base-300 sn-mb-3" />
+            <div class="sn-2fa-manual-key-container sn-w-full" style="background:var(--bg-tertiary);color:var(--text-primary);">
+                <div class="sn-2fa-manual-key-header">
+                    <p class="sn-text-xs sn-font-medium" style="color:#666">@T.Settings.Priv2faManualKeyLabel</p>
+                    <button type="button" id="2fa-copy-secret-btn" class="sn-btn sn-btn-ghost sn-btn-xs">Copy</button>
                 </div>
-                <code id="2fa-manual-key" class="font-mono text-sm break-all select-all block"></code>
+                <code id="2fa-manual-key" class="sn-font-mono sn-text-sm break-all select-all sn-block"></code>
             </div>
-            <div class="flex gap-2 justify-center">
+            <div class="sn-2fa-totp-digits">
                 <input type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code"
-                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                       class="enable-2fa-totp-digit sn-input sn-text-center sn-font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
                 <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
-                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                       class="enable-2fa-totp-digit sn-input sn-text-center sn-font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
                 <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
-                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                       class="enable-2fa-totp-digit sn-input sn-text-center sn-font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
                 <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
-                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                       class="enable-2fa-totp-digit sn-input sn-text-center sn-font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
                 <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
-                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                       class="enable-2fa-totp-digit sn-input sn-text-center sn-font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
                 <input type="text" inputmode="numeric" maxlength="1" autocomplete="off"
-                       class="enable-2fa-totp-digit input text-center font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
+                       class="enable-2fa-totp-digit sn-input sn-text-center sn-font-mono" style="width:3rem;height:3.5rem;font-size:1.5rem" />
             </div>
-            <p id="2fa-enable-status" class="text-sm mt-3 hidden"></p>
+            <p id="2fa-enable-status" class="sn-text-sm sn-mt-3 sn-hidden"></p>
         </div>
         <div class="sn-modal-footer">
             <button type="button" class="sn-modal-cancel sn-modal-close" data-modal="modal-2fa-enable">@T.Settings.Priv2faCancelBtn</button>
@@ -338,17 +338,17 @@
 </div>
 
 <!-- Backup Codes (shown after enabling 2FA or after regen) -->
-<div id="modal-2fa-backup-codes" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-backup-codes-title">
+<div id="modal-2fa-backup-codes" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-backup-codes-title">
     <div class="sn-modal" style="max-width:38rem">
         <div class="sn-modal-header">
             <span id="modal-2fa-backup-codes-title">@T.Settings.Priv2faBackupCodesTitle</span>
         </div>
         <div class="sn-modal-body" style="flex-direction:column">
-            <div class="rounded border border-base-300 p-4 w-full" style="background:var(--bg-tertiary);color:var(--text-primary);">
-                <p class="text-sm font-medium mb-3">@T.Settings.Priv2faBackupCodesWarning</p>
-                <div id="2fa-codes-grid" class="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-sm"></div>
+            <div class="sn-2fa-backup-codes-container sn-w-full" style="background:var(--bg-tertiary);color:var(--text-primary);">
+                <p class="sn-2fa-backup-codes-label">@T.Settings.Priv2faBackupCodesWarning</p>
+                <div id="2fa-codes-grid" class="sn-grid sn-grid-cols-2 sn-gap-x-6 sn-gap-y-1 sn-font-mono sn-text-sm"></div>
             </div>
-            <div class="callout-node-view callout-node-warning mt-3 text-sm" style="border-left:none">
+            <div class="callout-node-view callout-node-warning sn-mt-3 sn-text-sm" style="border-left:none">
                 <span class="callout-node-icon">⚠️</span>
                 <div class="callout-node-body">@T.Settings.Priv2faCodesOneTimeWarning</div>
             </div>
@@ -361,15 +361,15 @@
 </div>
 
 <!-- Disable 2FA -->
-<div id="modal-2fa-disable" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-disable-title">
+<div id="modal-2fa-disable" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-disable-title">
     <div class="sn-modal" style="max-width:28rem">
         <div class="sn-modal-header">
             <span id="modal-2fa-disable-title">@T.Settings.Priv2faDisableBtn</span>
             <button type="button" class="sn-modal-close" data-modal="modal-2fa-disable" aria-label="Close">✕</button>
         </div>
         <div class="sn-modal-body" style="flex-direction:column">
-            <p class="text-sm mb-4" style="color: var(--text-tertiary)">@T.Settings.Priv2faDisableHelp</p>
-            <p id="2fa-disable-status" class="text-sm mt-2 hidden"></p>
+            <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">@T.Settings.Priv2faDisableHelp</p>
+            <p id="2fa-disable-status" class="sn-text-sm sn-mt-2 sn-hidden"></p>
         </div>
         <div class="sn-modal-footer">
             <button type="button" class="sn-modal-cancel sn-modal-close" data-modal="modal-2fa-disable">@T.Settings.Priv2faCancelBtn</button>
@@ -379,18 +379,18 @@
 </div>
 
 <!-- Regenerate Backup Codes -->
-<div id="modal-2fa-regen" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-regen-title">
+<div id="modal-2fa-regen" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-2fa-regen-title">
     <div class="sn-modal" style="max-width:38rem">
         <div class="sn-modal-header">
             <span id="modal-2fa-regen-title">@T.Settings.Priv2faRegenBtn</span>
             <button type="button" class="sn-modal-close" data-modal="modal-2fa-regen" aria-label="Close">✕</button>
         </div>
         <div class="sn-modal-body" style="flex-direction:column; gap:0.75rem">
-            <p class="text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivRegenCodesHelp</p>
-            <p id="regen-status" class="text-sm hidden"></p>
-            <div id="regen-codes-area" class="rounded border border-base-300 p-4 w-full" style="display:none; background:var(--bg-tertiary);color:var(--text-primary);">
-                <p class="text-sm font-medium mb-3">@T.Settings.Priv2faBackupCodesWarning</p>
-                <div id="regen-codes-grid" class="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-sm"></div>
+            <p class="sn-text-sm" style="color: var(--text-tertiary)">@T.Settings.PrivRegenCodesHelp</p>
+            <p id="regen-status" class="sn-text-sm sn-hidden"></p>
+            <div id="regen-codes-area" class="sn-2fa-backup-codes-container sn-w-full" style="display:none; background:var(--bg-tertiary);color:var(--text-primary);">
+                <p class="sn-2fa-backup-codes-label">@T.Settings.Priv2faBackupCodesWarning</p>
+                <div id="regen-codes-grid" class="sn-grid sn-grid-cols-2 sn-gap-x-6 sn-gap-y-1 sn-font-mono sn-text-sm"></div>
             </div>
         </div>
         <div class="sn-modal-footer">
@@ -404,17 +404,17 @@
 } @* end TwoFactorEnabled modals *@
 
 <!-- Add Passkey -->
-<div id="modal-passkey" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-passkey-title">
+<div id="modal-passkey" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-passkey-title">
     <div class="sn-modal" style="max-width:28rem">
         <div class="sn-modal-header">
             <span id="modal-passkey-title">@T.Settings.PrivPasskeyAdd</span>
             <button type="button" class="sn-modal-close" data-modal="modal-passkey" aria-label="Close">✕</button>
         </div>
         <div class="sn-modal-body" style="flex-direction:column">
-            <p class="text-sm mb-3" style="color: var(--text-tertiary)">@T.Settings.PrivPasskeyHelp</p>
-            <input type="text" id="passkey-name-input" class="input w-full mb-3"
+            <p class="sn-text-sm sn-mb-3" style="color: var(--text-tertiary)">@T.Settings.PrivPasskeyHelp</p>
+            <input type="text" id="passkey-name-input" class="sn-input sn-w-full sn-mb-3"
                    placeholder="@T.Settings.PrivPasskeyNamePlaceholder" maxlength="64" required />
-            <p id="passkey-modal-status" class="text-sm mt-2 hidden"></p>
+            <p id="passkey-modal-status" class="sn-text-sm sn-mt-2 sn-hidden"></p>
         </div>
         <div class="sn-modal-footer">
             <button type="button" class="sn-modal-cancel sn-modal-close" data-modal="modal-passkey">@T.Settings.Priv2faCancelBtn</button>
@@ -424,15 +424,15 @@
 </div>
 
 <!-- Remove Passkey -->
-<div id="modal-passkey-delete" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-passkey-delete-title">
+<div id="modal-passkey-delete" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-passkey-delete-title">
     <div class="sn-modal" style="max-width:28rem">
         <div class="sn-modal-header">
             <span id="modal-passkey-delete-title">@T.Settings.PrivPasskeyDelete</span>
             <button type="button" class="sn-modal-close" data-modal="modal-passkey-delete" aria-label="Close">✕</button>
         </div>
         <div class="sn-modal-body" style="flex-direction:column">
-            <p class="text-sm mb-4" style="color: var(--text-tertiary)">@T.Settings.PrivPasskeyRemoveHelp</p>
-            <p id="passkey-delete-status" class="text-sm mt-2 hidden"></p>
+            <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">@T.Settings.PrivPasskeyRemoveHelp</p>
+            <p id="passkey-delete-status" class="sn-text-sm sn-mt-2 sn-hidden"></p>
         </div>
         <div class="sn-modal-footer">
             <button type="button" class="sn-modal-cancel sn-modal-close" data-modal="modal-passkey-delete">@T.Settings.Priv2faCancelBtn</button>
@@ -441,19 +441,19 @@
     </div>
 </div>
 <!-- Security Log -->
-<div id="modal-security-log" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-security-log-title">
+<div id="modal-security-log" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-security-log-title">
     <div class="sn-modal" style="max-width:32rem">
         <div class="sn-modal-header">
             <span id="modal-security-log-title">@T.Settings.SecLogModalTitle</span>
             <button type="button" class="sn-modal-close" id="security-log-close-btn" aria-label="Close">✕</button>
         </div>
         <div class="sn-modal-body" style="flex-direction:column;max-height:60vh;overflow-y:auto">
-            <div class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
-                <div id="security-log-loading" class="flex justify-center py-4">
-                    <span class="loading loading-spinner loading-md"></span>
+            <div class="sn-settings-list-container" style="background:var(--bg-tertiary);color:var(--text-primary);">
+                <div id="security-log-loading" class="sn-settings-loader">
+                    <span class="sn-spinner sn-loading-md"></span>
                 </div>
-                <div id="security-log-list" class="hidden"></div>
-                <p id="security-log-empty" class="hidden text-sm text-center px-4 py-3" style="color: var(--text-tertiary)">
+                <div id="security-log-list" class="sn-hidden"></div>
+                <p id="security-log-empty" class="sn-settings-empty-state--privacy sn-hidden" style="color: var(--text-tertiary)">
                     @T.Settings.SecLogEmpty
                 </p>
             </div>

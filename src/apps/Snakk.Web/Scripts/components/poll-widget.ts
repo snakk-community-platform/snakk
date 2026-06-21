@@ -67,13 +67,13 @@ interface PollData {
         try {
             const response = await fetch(`/bff/discussions/${discussionId}/poll`);
             if (!response.ok) {
-                container!.innerHTML = '<div class="text-sm text-base-content/50">Poll data unavailable</div>';
+                container!.innerHTML = '<div class="sn-text-sm sn-text-base-content\\/50">Poll data unavailable</div>';
                 return;
             }
             pollData = await response.json();
             render();
         } catch {
-            container!.innerHTML = '<div class="text-sm text-base-content/50">Failed to load poll</div>';
+            container!.innerHTML = '<div class="sn-text-sm sn-text-base-content\\/50">Failed to load poll</div>';
         }
     }
 
@@ -138,7 +138,7 @@ interface PollData {
             html += '<div class="poll-option-label">';
 
             if (showResults && isSelected) {
-                html += '<span class="icon icon-check poll-option-check" aria-hidden="true"></span>';
+                html += '<span class="sn-icon icon-check poll-option-check" aria-hidden="true"></span>';
             } else if (!showResults && clickable) {
                 const inputType = pollData.allowMultiple ? 'checkbox' : 'radio';
                 html += `<input type="${inputType}" ${isLocalSelected || isSelected ? 'checked' : ''} class="poll-option-input" tabindex="-1" />`;
@@ -210,15 +210,15 @@ interface PollData {
                 const h = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                 const m = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
                 const s = Math.floor((diffMs % (1000 * 60)) / 1000);
-                html += `<span class="poll-closes-in" data-countdown-to="${pollData.closesAt}">Closes in <span class="countdown font-mono"><span data-unit="days" style="--value:${d};" aria-label="${d}">${d}</span>d <span data-unit="hours" style="--value:${h};" aria-label="${h}">${h}</span>h <span data-unit="minutes" style="--value:${m};" aria-label="${m}">${m}</span>m <span data-unit="seconds" style="--value:${s};" aria-label="${s}">${s}</span>s</span></span>`;
+                html += `<span class="poll-closes-in" data-countdown-to="${pollData.closesAt}">Closes in <span class="countdown sn-font-mono"><span data-unit="days" style="--value:${d};" aria-label="${d}">${d}</span>d <span data-unit="hours" style="--value:${h};" aria-label="${h}">${h}</span>h <span data-unit="minutes" style="--value:${m};" aria-label="${m}">${m}</span>m <span data-unit="seconds" style="--value:${s};" aria-label="${s}">${s}</span>s</span></span>`;
             }
         }
 
         if (!hasVoted && isAuthenticated && !pollData.isClosed) {
             const canSubmit = selectedOptionIds.size > 0 && (!pollData.isSegmented || selectedSegment !== null);
-            html += `<button class="btn btn-primary btn-sm${canSubmit ? '' : ' btn-disabled'}" ${canSubmit ? 'data-action="poll-submit-vote"' : 'disabled'}>Vote</button>`;
+            html += `<button class="sn-btn sn-btn-primary sn-btn-sm${canSubmit ? '' : ' sn-btn-disabled'}" ${canSubmit ? 'data-action="poll-submit-vote"' : 'disabled'}>Vote</button>`;
         } else if (hasVoted && pollData.allowChangeVote && !pollData.isClosed) {
-            html += `<button class="btn btn-ghost btn-xs" data-action="poll-change-vote">Change vote</button>`;
+            html += `<button class="sn-btn sn-btn-ghost sn-btn-xs" data-action="poll-change-vote">Change vote</button>`;
         }
 
         html += '</div>';

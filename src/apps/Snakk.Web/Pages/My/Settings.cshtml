@@ -18,6 +18,8 @@
 </div>
 
 <!-- Right Column -->
+@if (!DeviceDetection.IsMobile(HttpContext))
+{
 <aside class="sn-right">
 @{
     ViewData["RightPane.NewDiscussionUrl"] = "/create";
@@ -26,3 +28,4 @@
     <partial name="Shared/_RightActionPane" />
 </div>
 </aside>
+}

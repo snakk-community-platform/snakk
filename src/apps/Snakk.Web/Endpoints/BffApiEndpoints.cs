@@ -172,6 +172,11 @@ public static class BffApiEndpoints
             .AllowAnonymous()
             .RequireRateLimiting("auth");
 
+        group.MapPost("/auth/relogin", PasswordReloginAsync)
+            .WithName("BffPasswordRelogin")
+            .AllowAnonymous()
+            .RequireRateLimiting("auth");
+
         group.MapPost("/auth/sudo", IssueSudoTokenBffAsync)
             .WithName("BffIssueSudoToken")
             .RequireAuthorization()
@@ -976,6 +981,45 @@ public static class BffApiEndpoints
                 Email    = body.Email,
                 Password = body.Password
             }, cancellationToken: ct);
+            if (string.IsNullOrEmpty(response.AccessToken))
+                return Results.Unauthorized();
+
+            AuthCookieHelper.SetAuthCookies(httpContext, response.AccessToken, response.RefreshToken);
+            httpContext.Response.Cookies.Delete(".Snakk.ReloginHint", new CookieOptions { Path = "/" });
+            return Results.Ok(new { displayName = response.User?.DisplayName });
+        }
+        catch (RpcException ex) when (
+            ex.StatusCode is StatusCode.Unauthenticated
+                          or StatusCode.NotFound
+                          or StatusCode.PermissionDenied)
+        {
+            return Results.Unauthorized();
+        }
+    }
+
+    private static async Task<IResult> PasswordReloginAsync(
+        [FromBody] PasswordReloginRequest body,
+        Snakk.Protos.Auth.AuthService.AuthServiceClient authClient,
+        HttpContext httpContext,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(body.Password))
+            return Results.BadRequest();
+
+        var refreshToken = httpContext.Request.Cookies[AuthCookieHelper.RefreshCookieName];
+        if (string.IsNullOrEmpty(refreshToken))
+            return Results.Json(new { error = "no_session" }, statusCode: StatusCodes.Status401Unauthorized);
+
+        try
+        {
+            var response = await authClient.ReloginWithRefreshTokenAsync(
+                new Snakk.Protos.Auth.ReloginWithRefreshTokenRequest
+                {
+                    RefreshToken = refreshToken,
+                    Password     = body.Password
+                }, cancellationToken: ct);
+
             if (string.IsNullOrEmpty(response.AccessToken))
                 return Results.Unauthorized();
 
@@ -3290,5 +3334,6 @@ public record UpdateProfileWithSudoDto(string DisplayName);
 public record ValidateHistoryIdsRequest(IReadOnlyList<string>? Ids);
 public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null, bool ClearAllowAdultContent = false, int? AdultPreviewImageMode = null, bool? HidePresence = null);
 public record ReloginRequest(string Email, string Password);
+public record PasswordReloginRequest(string Password);
 public record RevokeAllOtherBffRequest(string ExcludeSessionId);
 

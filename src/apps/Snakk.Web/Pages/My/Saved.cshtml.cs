@@ -31,6 +31,7 @@ public class SavedModel(
         [FromQuery] int offset = 0,
         CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         if (Request.Query.TryGetValue("tab", out var queryTab) && !string.IsNullOrEmpty(queryTab))
             return RedirectToPage(new { tab = queryTab.ToString() });

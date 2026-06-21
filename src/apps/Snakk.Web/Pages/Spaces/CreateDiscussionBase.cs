@@ -46,8 +46,15 @@ public abstract class CreateDiscussionBaseModel(
     /// <summary>URL slug for this type (e.g. "standard", "question", "poll").</summary>
     protected abstract string TypeSlug { get; }
 
+    protected virtual void PreloadPageCss()
+    {
+        Preload("discussion");
+        Preload("editor");
+    }
+
     public async Task<IActionResult> OnGetAsync([FromQuery] string spaceId, CancellationToken cancellationToken = default)
     {
+        PreloadPageCss();
         SpaceId = spaceId;
 
         if (string.IsNullOrEmpty(spaceId))
@@ -61,6 +68,7 @@ public abstract class CreateDiscussionBaseModel(
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
+        PreloadPageCss();
         SpaceId ??= string.Empty;
 
         if (string.IsNullOrEmpty(SpaceId))

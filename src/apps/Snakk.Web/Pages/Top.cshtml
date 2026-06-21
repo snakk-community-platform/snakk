@@ -36,11 +36,11 @@
                 }
                 @foreach (var (period, label) in tabs)
                 {
-                    <a href="/top/@period" class="sn-tab @(Model.Period == period ? "active" : "")">@label</a>
+                    <a href="/top/@period" class="sn-tab @(Model.Period == period ? "sn-active" : "")">@label</a>
                 }
             </div>
+            <p class="sn-section-description">@T.Pages.TopDescription</p>
         </div>
-        <p class="sn-section-description">@T.Pages.TopDescription</p>
 
         @if (Model.TopDiscussions?.Items == null || !Model.TopDiscussions.Items.Any())
         {
@@ -61,8 +61,8 @@
                 @if (Model.TopDiscussions.HasMoreItems)
                 {
                     var nextOffset = Model.TopDiscussions.Items.Count;
-                    <div class="flex justify-center mt-6">
-                        <a href="/top/@Model.Period?offset=@nextOffset" class="btn btn-ghost btn-sm">@T.Pages.TopLoadMore</a>
+                    <div class="sn-load-more-row">
+                        <a href="/top/@Model.Period?offset=@nextOffset" class="sn-btn sn-btn-ghost sn-btn-sm">@T.Pages.TopLoadMore</a>
                     </div>
                 }
             </div>
@@ -75,6 +75,8 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.TopAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.TopAboutDesc;
 }
+@if (!DeviceDetection.IsMobile(HttpContext))
+{
 <aside class="sn-right">
     <div class="sn-right-sticky">
         <partial name="Shared/_RightActionPane" />
@@ -87,21 +89,21 @@
                 @if (Model.InlinePlatformStats != null)
                 {
                     <div class="sn-sidebar-stats">
-                        <div class="stats shadow-layered-light">
-                            <div class="stat">
-                                <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
-                                <div class="stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsDiscussions</div>
+                                <div class="sn-stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
                             </div>
                         </div>
-                        <div class="stats shadow-layered-light">
-                            <div class="stat">
-                                <div class="stat-title">@T.Sidebar.StatsReplies</div>
-                                <div class="stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsReplies</div>
+                                <div class="sn-stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
                             </div>
                         </div>
-                        <div class="stats shadow-layered-light">
-                            <div class="stat">
-                                <div class="stat-title">@T.Sidebar.StatsActivity</div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsActivity</div>
                                 <div class="sn-sparkline-container sn-right-sparkline"
                                      data-sparkline-type="platform"
                                      data-sparkline-days="7"></div>
@@ -124,7 +126,7 @@
                         @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
                         {
                             <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                               class="sn-card-tag sn-card-tag--space shadow-layered"
+                               class="sn-card-tag sn-card-tag--space sn-shadow-layered"
                                style="--space-grad: @SpaceGradient(space.PublicId)">@space.Name</a>
                         }
                     </div>
@@ -142,13 +144,13 @@
                 </div>
                 @if (Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
                 {
-                    <div class="grid grid-cols-8 gap-1">
+                    <div class="sn-grid sn-grid-cols-8 sn-gap-1">
                         @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
                         {
                             <a href="@SnakkUrlHelper.UserProfile(c.Slug)"
                                data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
                                 <img src="@c.AvatarMicroUrl" alt="@c.DisplayName"
-                                     class="rounded-full w-full aspect-square object-cover shadow-layered"
+                                     class="sn-rounded-full sn-w-full aspect-square sn-object-cover sn-shadow-layered"
                                      loading="lazy" decoding="async" />
                             </a>
                         }
@@ -162,3 +164,4 @@
         </div>
     </div>
 </aside>
+}

@@ -1,14 +1,10 @@
-@{
-    Layout = "_Layout";
+﻿@{
+    var _usePartial = Context.Items.ContainsKey("UsePartialLayout") && (bool)Context.Items["UsePartialLayout"]!;
+    Layout = _usePartial ? "_LayoutPartial" : "_Layout";
     var icon = ViewData["Settings.Icon"] as string ?? "icon-cog-6-tooth";
     var heading = ViewData["Settings.Heading"] as string ?? "";
     var useRegistrationNudge = ViewData["Settings.UseRegistrationNudge"] as bool? ?? false;
     var skipAuthGuard = ViewData["Settings.SkipAuthGuard"] as bool? ?? false;
-}
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("settings")" asp-append-version="true" />
-    @RenderSection("ExtraStyles", required: false)
 }
 
 @section LeftColumn {
@@ -31,7 +27,7 @@
         else
         {
             <h2 class="sn-section-title">
-                <span class="icon @icon" aria-hidden="true"></span>
+                <span class="sn-icon @icon" aria-hidden="true"></span>
                 @heading
             </h2>
             <div class="sn-settings-content">
@@ -41,6 +37,9 @@
     </div>
 </div>
 
+@if (!DeviceDetection.IsMobile(Context))
+{
 <aside class="sn-right">
 <partial name="Shared/_SettingsRightNav" />
 </aside>
+}

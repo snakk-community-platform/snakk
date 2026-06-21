@@ -142,7 +142,7 @@
     function getLastBubbleInfo(): { senderPublicId: string; dateStr: string } | null {
         const list = document.getElementById('dm-message-list');
         if (!list) return null;
-        const bubbles = list.querySelectorAll<HTMLElement>('.dm-bubble');
+        const bubbles = list.querySelectorAll<HTMLElement>('.sn-dm-bubble');
         const last = bubbles[bubbles.length - 1];
         if (!last) return null;
         return { senderPublicId: last.dataset.senderPublicId ?? '', dateStr: last.dataset.dateStr ?? '' };
@@ -162,28 +162,28 @@
 
         if (needsDateSep) {
             const sep = document.createElement('div');
-            sep.className = 'dm-date-separator';
+            sep.className = 'sn-dm-date-separator';
             sep.innerHTML = `<span>${formatDate(createdAt)}</span>`;
             list.appendChild(sep);
         }
 
         const wrapper = document.createElement('div');
         wrapper.id = `dm-msg-${publicId}`;
-        wrapper.className = 'dm-msg-row flex items-center gap-1.5';
+        wrapper.className = 'sn-dm-msg-row sn-flex sn-items-center gap-1.5';
         wrapper.dataset.msgId = publicId;
         wrapper.dataset.isMine = String(isMine);
 
-        const bubbleClass = ['dm-bubble', isMine ? 'dm-bubble--mine' : 'dm-bubble--theirs',
-            isFirstInGroup ? 'dm-bubble--first-in-group' : '', 'flex-1'].filter(Boolean).join(' ');
+        const bubbleClass = ['sn-dm-bubble', isMine ? 'dm-bubble--mine' : 'dm-bubble--theirs',
+            isFirstInGroup ? 'sn-dm-bubble--first-in-group' : '', 'sn-flex-1'].filter(Boolean).join(' ');
 
         wrapper.innerHTML = `
-            <input type="checkbox" class="dm-msg-check dm-detail-check" aria-label="Select message">
+            <input type="checkbox" class="dm-msg-check sn-dm-detail-check" aria-label="Select message">
             <div class="${bubbleClass}"
                  data-sender-public-id="${escapeHtml(senderPublicId)}"
                  data-date-str="${escapeHtml(dateStr)}">
-                <div class="dm-bubble-body">
-                    <div class="dm-bubble-content">${escapeHtml(content)}</div>
-                    <span class="dm-bubble-time">${formatTime(createdAt)}</span>
+                <div class="sn-dm-bubble-body">
+                    <div class="sn-dm-bubble-content">${escapeHtml(content)}</div>
+                    <span class="sn-dm-bubble-time">${formatTime(createdAt)}</span>
                 </div>
             </div>`;
 
@@ -199,7 +199,7 @@
 
     function getCheckedMessageIds(): string[] {
         const ids: string[] = [];
-        document.querySelectorAll<HTMLElement>('.dm-msg-row').forEach(row => {
+        document.querySelectorAll<HTMLElement>('.sn-dm-msg-row').forEach(row => {
             const cb = row.querySelector<HTMLInputElement>('.dm-msg-check');
             if (cb?.checked) {
                 const id = row.dataset.msgId ?? row.id.replace('dm-msg-', '');
@@ -218,9 +218,9 @@
         const ids = getCheckedMessageIds();
         if (!deletePaneEl) return;
         if (ids.length === 0) {
-            deletePaneEl.classList.add('hidden');
+            deletePaneEl.classList.add('sn-hidden');
         } else {
-            deletePaneEl.classList.remove('hidden');
+            deletePaneEl.classList.remove('sn-hidden');
             if (selectedCountEl) selectedCountEl.textContent = String(ids.length);
         }
     }
@@ -367,7 +367,7 @@
 
     // ─── Init ─────────────────────────────────────────────────────
 
-    document.querySelectorAll<HTMLElement>('.dm-msg-row').forEach(attachCheckboxListener);
+    document.querySelectorAll<HTMLElement>('.sn-dm-msg-row').forEach(attachCheckboxListener);
 
     function init(): void {
         const messages = document.querySelectorAll('[id^="dm-msg-"]');

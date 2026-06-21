@@ -50,7 +50,7 @@
                         data-unsave-type="discussion"
                         data-unsave-id="@Model.UnsaveId"
                         title="@T.Card.Unsave">
-                    <span class="icon icon-trash w-3 h-3" aria-hidden="true"></span>
+                    <span class="sn-icon icon-trash w-3 h-3" aria-hidden="true"></span>
                     @T.Card.Remove
                 </button>
             }
@@ -59,7 +59,7 @@
                 <button type="button" class="sn-card-side-btn sn-card-side-btn--full"
                         data-unfollow-type="discussion" data-unfollow-id="@Model.UnfollowId"
                         title="@T.Card.Unsubscribe">
-                    <span class="icon icon-trash w-3 h-3" aria-hidden="true"></span>
+                    <span class="sn-icon icon-trash w-3 h-3" aria-hidden="true"></span>
                     @T.Card.Remove
                 </button>
             }
@@ -69,7 +69,7 @@
                         data-action="remove-from-history"
                         data-remove-history-id="@Model.RemoveHistoryId"
                         title="@T.Card.Remove">
-                    <span class="icon icon-trash w-3 h-3" aria-hidden="true"></span>
+                    <span class="sn-icon icon-trash w-3 h-3" aria-hidden="true"></span>
                     @T.Card.Remove
                 </button>
             }
@@ -83,7 +83,7 @@
                 @if (Model.ReactedAt.HasValue)
                 {
                     <div class="sn-card-side-row">
-                        <span class="icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
+                        <span class="sn-icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
                         <span class="sn-card-side-label">@FormatRelativeTime(Model.ReactedAt)</span>
                     </div>
                 }
@@ -91,25 +91,25 @@
             @if (Model.SavedAt.HasValue)
             {
                 <div class="sn-card-side-row">
-                    <span class="icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
+                    <span class="sn-icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
                     <span class="sn-card-side-label">@FormatRelativeTime(Model.SavedAt)</span>
                 </div>
             }
             @if (Model.FollowedAt.HasValue)
             {
                 <div class="sn-card-side-row">
-                    <span class="icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
+                    <span class="sn-icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
                     <span class="sn-card-side-label">@FormatRelativeTime(Model.FollowedAt)</span>
                 </div>
             }
             @if (Model.ShowStats)
             {
                 <div class="sn-card-side-row">
-                    <span class="icon icon-chat-bubble-filled" style="width:1rem;height:1rem" aria-hidden="true"></span>
+                    <span class="sn-icon icon-chat-bubble-filled" style="width:1rem;height:1rem" aria-hidden="true"></span>
                     <span class="sn-card-side-stat">@replyCount</span>
                 </div>
                 <div class="sn-card-side-row">
-                    <span class="icon icon-badge-check" style="width:1rem;height:1rem" aria-hidden="true"></span>
+                    <span class="sn-icon icon-badge-check" style="width:1rem;height:1rem" aria-hidden="true"></span>
                     <span class="sn-card-side-stat">@discussion.ReactionCount</span>
                 </div>
                 <div class="sn-sparkline-container" data-sparkline-entity-type="discussion" data-sparkline-entity-id="@discussion.PublicId"></div>
@@ -117,23 +117,23 @@
             @if (Model.VisitedAt.HasValue)
             {
                 <div class="sn-card-side-row">
-                    <span class="icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
+                    <span class="sn-icon icon-clock" style="width:0.875rem;height:0.875rem" aria-hidden="true"></span>
                     <span class="sn-card-side-label">@FormatRelativeTime(Model.VisitedAt)</span>
                 </div>
             }
             @if ((Model.UnreadCount ?? 0) > 0)
             {
                 <div class="sn-card-side-row">
-                    <span class="badge badge-primary badge-sm">+@Model.UnreadCount @T.Card.New</span>
+                    <span class="sn-badge sn-badge-primary sn-badge-sm">+@Model.UnreadCount @T.Card.New</span>
                 </div>
             }
         </div>
     }
-    <div class="sn-card-body">
+    <div class="sn-card-content">
     <div class="sn-card-header">
         @if (Model.ShowUser)
         {
-            <img src="@discussion.Author.AvatarMicroUrl" alt="" class="sn-card-avatar shadow-layered" width="20" height="20" loading="@(Model.IsFirst ? "eager" : "lazy")" decoding="async" />
+            <img src="@discussion.Author.AvatarMicroUrl" alt="" class="sn-card-avatar sn-shadow-layered" width="20" height="20" loading="@(Model.IsFirst ? "eager" : "lazy")" decoding="async" />
             @if (string.IsNullOrEmpty(discussion.Author.PublicId))
             {
                 <span class="sn-card-author">@T.Card.DeletedUser</span>
@@ -147,7 +147,7 @@
             }
             <span class="sn-card-dot">&middot;</span>
         }
-        <div class="tooltip tooltip-bottom" data-tip="@T.Card.CreatedAt @FormatFullDateTime(discussion.CreatedAt?.ToDateTime())">
+        <div class="sn-tooltip tooltip-bottom" data-tip="@T.Card.CreatedAt @FormatFullDateTime(discussion.CreatedAt?.ToDateTime())">
             <time class="sn-card-time dt-published"
                   datetime="@(discussion.CreatedAt?.ToDateTime().ToString("o"))">@FormatRelativeTime(discussion.CreatedAt?.ToDateTime())</time>
         </div>
@@ -187,7 +187,7 @@
                        data-popup-name="@discussion.Hub.Name">@discussion.Hub.Name</a>
                     <span class="sn-card-path-sep">&rsaquo;</span>
                 }
-                <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space shadow-layered"
+                <a href="@spaceUrl" class="sn-card-tag sn-card-tag--space sn-shadow-layered"
                    style="--space-grad: @SpaceGradient(discussion.Space.PublicId)"
                    data-popup-type="space"
                    data-popup-id="@discussion.Space.PublicId"
@@ -196,16 +196,16 @@
         }
     </div>
 
-    <div class="sn-card-title-row">
-        <div class="sn-card-title">
+    <div class="sn-card-heading-row">
+        <div class="sn-card-heading">
             <a href="@cardUrl" class="u-url p-name">@discussion.Title</a>
         </div>
         <span class="sn-card-stat sn-card-reactions@(discussion.ReactionCount == 0 || Model.HideInlineStats ? " hidden" : "")">
-            <span class="icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
+            <span class="sn-icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
             <span data-stat="reaction-count">@discussion.ReactionCount</span>
         </span>
         <a href="@cardUrl" class="sn-card-stat sn-card-comments@(replyCount == 0 || Model.HideInlineStats ? " hidden" : "")">
-            <span class="icon icon-chat-bubble-filled" aria-hidden="true"></span>
+            <span class="sn-icon icon-chat-bubble-filled" aria-hidden="true"></span>
             <span data-stat="post-count">@replyCount</span> <span class="sn-card-comments-label">@T.Card.Comments</span>
         </a>
     </div>
@@ -222,12 +222,12 @@
                 @if (pollPreview.IsSecret && (pollPreview.ClosesAt == null || pollPreview.ClosesAt.ToDateTime() > DateTime.UtcNow))
                 {
                     <div class="sn-poll-preview">
-                        <div class="text-xs text-base-content/50">@T.Card.SecretPoll</div>
+                        <div class="sn-text-xs sn-text-muted">@T.Card.SecretPoll</div>
                         @if (pollPreview.ClosesAt != null && pollPreview.ClosesAt.ToDateTime() > DateTime.UtcNow)
                         {
                             <div class="sn-iama-countdown" data-countdown-to="@pollPreview.ClosesAt.ToDateTime().ToString("o")">
-                                <span class="text-xs text-base-content/40">@T.Card.ClosesIn</span>
-                                <span class="countdown font-mono text-sm">
+                                <span class="sn-text-xs sn-text-faint">@T.Card.ClosesIn</span>
+                                <span class="countdown sn-font-mono sn-text-sm">
                                     <span data-unit="days" style="--value:0;">0</span>d
                                     <span data-unit="hours" style="--value:0;">0</span>h
                                     <span data-unit="minutes" style="--value:0;">0</span>m
@@ -387,18 +387,18 @@
                             <div class="gup-compare-slider sn-compare-slider">
                                 <div class="gup-compare-line"></div>
                                 <div class="gup-compare-handle">
-                                    <span class="icon icon-chevron-left" style="width:20px;height:20px" aria-hidden="true"></span>
-                                    <span class="icon icon-chevron-right" style="width:20px;height:20px" aria-hidden="true"></span>
+                                    <span class="sn-icon icon-chevron-left" style="width:20px;height:20px" aria-hidden="true"></span>
+                                    <span class="sn-icon icon-chevron-right" style="width:20px;height:20px" aria-hidden="true"></span>
                                 </div>
                             </div>
                             <button type="button" class="sn-images-expand-btn" aria-label="@T.Card.ViewFullscreen">
-                                <span class="icon icon-expand-fullscreen w-3.5 h-3.5" aria-hidden="true"></span>
+                                <span class="sn-icon icon-expand-fullscreen sn-icon--xs" aria-hidden="true"></span>
                             </button>
                         </div>
                         @if (gpSpoiler) {
                             <div class="sn-images-spoiler-overlay">
-                                <button type="button" class="images-spoiler-btn sn-spoiler-reveal">
-                                    <span class="icon icon-eye w-4 h-4" aria-hidden="true"></span>
+                                <button type="button" class="sn-images-spoiler-btn sn-spoiler-reveal">
+                                    <span class="sn-icon icon-eye" aria-hidden="true"></span>
                                     @T.Card.RevealImages
                                 </button>
                             </div>
@@ -472,19 +472,19 @@
                         @if (images.Count > 1)
                         {
                             <button class="sn-images-btn sn-images-prev" type="button" aria-label="@T.Card.Previous">
-                                <span class="icon icon-chevron-left" aria-hidden="true"></span>
+                                <span class="sn-icon icon-chevron-left" aria-hidden="true"></span>
                             </button>
                             <button class="sn-images-btn sn-images-next" type="button" aria-label="@T.Card.Next"
                                     @if (secondSrc != null) { <text>data-preload="@secondSrc"</text> }>
-                                <span class="icon icon-chevron-right" aria-hidden="true"></span>
+                                <span class="sn-icon icon-chevron-right" aria-hidden="true"></span>
                             </button>
                             <span class="sn-images-counter">1 / @images.Count</span>
                         }
                         @if (gpSpoiler)
                         {
                             <div class="sn-images-spoiler-overlay">
-                                <button type="button" class="images-spoiler-btn sn-spoiler-reveal">
-                                    <span class="icon icon-eye w-4 h-4" aria-hidden="true"></span>
+                                <button type="button" class="sn-images-spoiler-btn sn-spoiler-reveal">
+                                    <span class="sn-icon icon-eye" aria-hidden="true"></span>
                                     @T.Card.RevealImages
                                 </button>
                             </div>
@@ -493,7 +493,7 @@
                       @* Expand button is a direct child of .sn-images-preview (not .sn-images-frame)
                          so it anchors to the full-column-width blur container, not the inner image frame. *@
                       <button type="button" class="sn-images-expand-btn" aria-label="@T.Card.ViewFullscreen">
-                          <span class="icon icon-expand-fullscreen w-3.5 h-3.5" aria-hidden="true"></span>
+                          <span class="sn-icon icon-expand-fullscreen sn-icon--xs" aria-hidden="true"></span>
                       </button>
                     </div>
                 }
@@ -515,14 +515,14 @@
 
                 <div class="sn-iama-preview @iamaPhaseClass">
                     <div class="sn-iama-header">
-                                <span class="sn-iama-phase @iamaPhaseClass shadow-layered">@if (iamaPreview.Phase == 1) {
+                                <span class="sn-iama-phase @iamaPhaseClass sn-shadow-layered">@if (iamaPreview.Phase == 1) {
                                     <span class="sn-iama-live-dot" aria-hidden="true"></span>
                                 }
                                 @iamaPhaseLabel</span>
                         @if (iamaPreview.IsVerified)
                         {
                             <span class="sn-iama-verified" title="@T.Card.Verified">
-                                <span class="icon icon-verified-check w-3.5 h-3.5" aria-hidden="true"></span>
+                                <span class="sn-icon icon-verified-check sn-icon--xs" aria-hidden="true"></span>
                                 @T.Card.Verified
                             </span>
                         }
@@ -537,7 +537,7 @@
                         @if (countdownTarget.HasValue && countdownTarget.Value > DateTime.UtcNow)
                         {
                             <span class="sn-iama-countdown" data-countdown-to="@countdownTarget.Value.ToString("o")">
-                                <span class="countdown font-mono">
+                                <span class="countdown sn-font-mono">
                                     <span data-unit="days" style="--value:0;" aria-live="polite">0</span>d
                                     <span data-unit="hours" style="--value:0;" aria-live="polite">0</span>h
                                     <span data-unit="minutes" style="--value:0;" aria-live="polite">0</span>m
@@ -566,32 +566,32 @@
                             @if (blurAdultImages)
                             {
                                 <div class="sn-link-card-adult-overlay" data-discussion-id="@discussion.PublicId">
-                                    <span class="icon icon-eye w-4 h-4" aria-hidden="true"></span>
+                                    <span class="sn-icon icon-eye" aria-hidden="true"></span>
                                     <span>@T.Settings.AdultPreviewBlurReveal</span>
                                 </div>
                             }
                             <span class="sn-link-card-chain-badge">
-                                <span class="icon icon-link-chain" aria-hidden="true"></span>
+                                <span class="sn-icon icon-link-chain" aria-hidden="true"></span>
                             </span>
                         </div>
                     }
                     else
                     {
                         <div class="sn-link-card-thumb sn-link-card-thumb--empty" aria-hidden="true">
-                            <span class="icon icon-link-chain"></span>
+                            <span class="sn-icon icon-link-chain"></span>
                         </div>
                     }
                     <div class="sn-link-card-content">
                         @if (linkPreview.HasTitle)
                         {
-                            <span class="sn-link-card-title">@linkPreview.Title</span>
+                            <span class="sn-link-sn-card-heading">@linkPreview.Title</span>
                         }
                         @if (linkPreview.HasDescription)
                         {
                             <span class="sn-link-card-desc">@linkPreview.Description</span>
                         }
                         <span class="sn-link-card-domain">
-                            <span class="icon icon-external-link w-2.5 h-2.5" aria-hidden="true"></span>
+                            <span class="sn-icon icon-external-link w-2.5 h-2.5" aria-hidden="true"></span>
                             @(linkPreview.HasDomain ? linkPreview.Domain : linkPreview.Url)
                         </span>
                     </div>
@@ -611,20 +611,20 @@
             <div class="sn-card-reply-meta">
                 @if (!string.IsNullOrEmpty(excerpt))
                 {
-                    <span class="icon icon-chat-bubble-filled" style="width:1rem;height:1rem" aria-hidden="true"></span>
+                    <span class="sn-icon icon-chat-bubble-filled" style="width:1rem;height:1rem" aria-hidden="true"></span>
                     <span class="sn-card-reply-excerpt">"@excerpt"</span>
                     <span class="sn-card-dot">&middot;</span>
                 }
                 else
                 {
-                    <span class="icon icon-photograph" style="width:1rem;height:1rem" aria-hidden="true"></span>
+                    <span class="sn-icon icon-photograph" style="width:1rem;height:1rem" aria-hidden="true"></span>
                     <span class="sn-card-reply-excerpt opacity-40 italic">@T.Card.ImageOnly</span>
                     <span class="sn-card-dot">&middot;</span>
                 }
-                <div class="tooltip tooltip-top" data-tip="@T.Card.RepliedAt @FormatFullDateTime(discussion.LastActivityAt?.ToDateTime())">
+                <div class="sn-tooltip tooltip-top" data-tip="@T.Card.RepliedAt @FormatFullDateTime(discussion.LastActivityAt?.ToDateTime())">
                     <time class="sn-card-reply-time">@FormatRelativeTime(discussion.LastActivityAt?.ToDateTime())</time>
                 </div>
-                <img src="@discussion.LastReplier.AvatarMicroUrl" alt="" class="sn-card-reply-avatar shadow-layered" width="16" height="16" loading="lazy" decoding="async" />
+                <img src="@discussion.LastReplier.AvatarMicroUrl" alt="" class="sn-card-reply-avatar sn-shadow-layered" width="16" height="16" loading="lazy" decoding="async" />
                 @if (string.IsNullOrEmpty(discussion.LastReplier.PublicId))
                 {
                     <span class="sn-card-reply-username">@T.Card.DeletedUser</span>

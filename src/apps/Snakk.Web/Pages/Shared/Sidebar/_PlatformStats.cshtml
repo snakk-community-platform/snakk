@@ -2,21 +2,21 @@
 @model Snakk.Web.Pages.ViewModels.SidebarPlatformStatsVM
 
 <div data-cache-source="@Model.CacheSource" class="sn-sidebar-stats">
-    <div class="stats shadow-layered-light">
-        <div class="stat">
-            <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
-            <div class="stat-value">@FormatCount(Model.DiscussionCount)</div>
+    <div class="sn-stats sn-shadow-layered-light">
+        <div class="sn-stat">
+            <div class="sn-stat-title">@T.Sidebar.StatsDiscussions</div>
+            <div class="sn-stat-value">@FormatCount(Model.DiscussionCount)</div>
         </div>
     </div>
-    <div class="stats shadow-layered-light">
-        <div class="stat">
-            <div class="stat-title">@T.Sidebar.StatsReplies</div>
-            <div class="stat-value">@FormatCount(Model.ReplyCount)</div>
+    <div class="sn-stats sn-shadow-layered-light">
+        <div class="sn-stat">
+            <div class="sn-stat-title">@T.Sidebar.StatsReplies</div>
+            <div class="sn-stat-value">@FormatCount(Model.ReplyCount)</div>
         </div>
     </div>
-    <div class="stats shadow-layered-light">
-        <div class="stat">
-            <div class="stat-title">@T.Sidebar.StatsActivity</div>
+    <div class="sn-stats sn-shadow-layered-light">
+        <div class="sn-stat">
+            <div class="sn-stat-title">@T.Sidebar.StatsActivity</div>
             <div class="sn-sparkline-container sn-right-sparkline"
                  data-sparkline-type="platform"
                  data-sparkline-days="7"></div>

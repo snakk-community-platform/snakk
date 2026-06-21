@@ -61,8 +61,8 @@
         const container = document.getElementById('history-container');
         const empty     = document.getElementById('history-empty');
         if (container && !container.querySelector('.sn-card')) {
-            container.classList.add('hidden');
-            empty?.classList.remove('hidden');
+            container.classList.add('sn-hidden');
+            empty?.classList.remove('sn-hidden');
         }
     }
 
@@ -72,8 +72,8 @@
         const container = document.getElementById('history-container');
         const empty     = document.getElementById('history-empty');
 
-        if (container) { container.innerHTML = ''; container.classList.add('hidden'); }
-        empty?.classList.remove('hidden');
+        if (container) { container.innerHTML = ''; container.classList.add('sn-hidden'); }
+        empty?.classList.remove('sn-hidden');
     }
 
     async function init(): Promise<void> {
@@ -86,15 +86,15 @@
 
         // Always reset before (re-)loading — prevents double-render on HTMX back-nav
         container.innerHTML = '';
-        container.classList.add('hidden');
-        empty?.classList.add('hidden');
-        loadingEl?.classList.remove('hidden');
+        container.classList.add('sn-hidden');
+        empty?.classList.add('sn-hidden');
+        loadingEl?.classList.remove('sn-hidden');
 
         const allEntries = readEntries();
 
         if (allEntries.length === 0) {
-            loadingEl?.classList.add('hidden');
-            empty?.classList.remove('hidden');
+            loadingEl?.classList.add('sn-hidden');
+            empty?.classList.remove('sn-hidden');
             return;
         }
 
@@ -117,16 +117,16 @@
 
         if (myGen !== generation) return;
 
-        loadingEl?.classList.add('hidden');
+        loadingEl?.classList.add('sn-hidden');
 
         const combinedHtml = htmlParts.join('');
         if (combinedHtml.trim()) {
             container.insertAdjacentHTML('beforeend', combinedHtml);
             // Let card-animations.js observe the newly inserted poll/debate/gallery cards
             document.dispatchEvent(new CustomEvent('htmx:afterSwap', { detail: { target: container } }));
-            container.classList.remove('hidden');
+            container.classList.remove('sn-hidden');
         } else {
-            empty?.classList.remove('hidden');
+            empty?.classList.remove('sn-hidden');
         }
     }
 

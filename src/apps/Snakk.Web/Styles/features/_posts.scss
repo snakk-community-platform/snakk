@@ -1,8 +1,8 @@
-﻿// ============================================
+// ============================================
 // Necro Timeline Separator
 // ============================================
 
-.timeline-vertical > li > hr {
+.sn-timeline-vertical > li > hr {
     height: 1.5rem;
 }
 
@@ -10,53 +10,56 @@
 // Post Flag Badges
 // ============================================
 
-.post-badge-op {
+.sn-post-badge-op {
     font-weight: 700;
 }
 
-.post-badge-milestone {
-    font-size: 0.625rem;
+.sn-post-badge-milestone {
+    font-size: var(--font-size-2xs);
 }
 
 // ============================================
-// Post Article â€” Two-Column Layout
+// Post Article â€" Two-Column Layout
 // ============================================
 
-.post-layout {
+.sn-post-layout {
     display: flex;
     gap: 0;
 
-    &.new-author {
-        margin-top: 1.5rem;
+    &.sn-new-author {
+        margin-top: var(--space-12);
         border-top: 1px solid var(--border-secondary);
-        padding-top: 1rem;
+        padding-top: var(--space-8);
     }
 
-    &.before-necro {
-        padding-bottom: 1rem;
+    &.sn-before-necro {
+        padding-bottom: var(--space-8);
         border-bottom: 1px solid var(--border-secondary);
-        margin-bottom: 1.5rem;
+        margin-bottom: var(--space-12);
     }
 
-    &.same-author {
-        .post-main {
+    &.sn-same-author {
+        .sn-post-main {
             padding-top: 0;
         }
     }
 }
 
 // Left pane: avatar + username (desktop), just avatar (mobile)
-.post-author-pane {
+.sn-post-author-pane {
     width: 150px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0.5rem 0.75rem 0.5rem 0;
+    padding: var(--space-4) var(--space-6) var(--space-4) 0;
+}
+
+.sn-post-author-pane {
     border-right: 1px solid var(--border-secondary);
 }
 
-.post-avatar {
+.sn-post-avatar {
     width: 48px;
     height: 48px;
     border-radius: 50%;
@@ -64,100 +67,131 @@
     flex-shrink: 0;
 }
 
-.post-avatar-deleted {
+.sn-post-avatar-deleted {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background: var(--border-primary);
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.sn-post-avatar-deleted {
+    background: var(--border-primary);
     color: var(--text-muted);
 }
 
-.post-author-name {
+.sn-post-author-name {
     display: block;
-    margin-top: 0.375rem;
-    font-size: 0.8125rem;
+    margin-top: var(--space-3);
+    font-size: var(--font-size-ui);
     font-weight: 600;
-    color: var(--text-primary);
     text-align: center;
     text-decoration: none;
     word-break: break-word;
+
+    &.sn-deleted {
+        pointer-events: none;
+    }
+}
+
+.sn-post-author-name {
+    color: var(--text-primary);
 
     &:hover {
         color: var(--link-primary);
     }
 
-    &.deleted {
+    &.sn-deleted {
         font-style: italic;
         color: var(--text-muted);
-        pointer-events: none;
     }
 }
 
-.post-author-badges {
+.sn-post-author-badges {
     display: flex;
-    gap: 0.25rem;
-    margin-top: 0.25rem;
+    gap: var(--space-2);
+    margin-top: var(--space-2);
     flex-wrap: wrap;
     justify-content: center;
 }
 
 // Right pane: toolbar + content
-.post-main {
+.sn-post-main {
     flex: 1;
     min-width: 0;
-    padding: 0.5rem 0 0.5rem 1rem;
+    padding: var(--space-4) 0 var(--space-4) var(--space-8);
 }
 
-.post-toolbar {
+.sn-post-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sn-post-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-4);
     min-height: 1.5rem;
 }
 
-.post-toolbar-left {
+.sn-post-toolbar-left {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.8125rem;
+    gap: var(--space-4);
+    font-size: var(--font-size-ui);
     min-height: 1.96rem;
+}
+
+.sn-post-toolbar-left {
     color: var(--text-tertiary);
 }
 
-.post-toolbar-right {
+.sn-post-toolbar-right {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--space-2);
 }
 
 // Mobile-only inline author name (shown in toolbar on small screens)
-.post-author-inline {
+.sn-post-author-inline {
     display: none;
     font-weight: 600;
+
+    a {
+        text-decoration: none;
+    }
+
+    &.sn-deleted,
+    .sn-deleted {
+        font-style: italic;
+    }
+}
+
+.sn-post-author-inline {
     color: var(--text-primary);
 
     a {
         color: var(--text-primary);
-        text-decoration: none;
 
         &:hover {
             color: var(--link-primary);
         }
     }
 
-    &.deleted,
-    .deleted {
-        font-style: italic;
+    &.sn-deleted,
+    .sn-deleted {
         color: var(--text-muted);
     }
 }
 
-.post-time {
-    font-size: 0.75rem;
+.sn-post-time {
+    font-size: var(--font-size-sm);
+}
+
+.sn-post-time {
     color: var(--text-tertiary);
 }
 
@@ -165,70 +199,77 @@
 // gone (single-column layout <1024px). At desktop widths we keep the 150px
 // rail with stacked username + badges.
 @media (max-width: 1023.98px) {
-    .post-author-pane {
+    .sn-post-author-pane {
         width: 48px;
-        padding: 0.5rem 0.5rem 0.5rem 0;
+        padding: var(--space-4) var(--space-4) var(--space-4) 0;
     }
 
-    .post-avatar {
+    .sn-post-avatar {
         width: 32px;
         height: 32px;
     }
 
-    .post-avatar-deleted {
+    .sn-post-avatar-deleted {
         width: 32px;
         height: 32px;
 
-        svg, .icon {
+        svg, .sn-icon {
             width: 1rem;
             height: 1rem;
         }
     }
 
     // Hide desktop author info in left pane
-    .post-author-name,
-    .post-author-badges {
+    .sn-post-author-name,
+    .sn-post-author-badges {
         display: none;
     }
 
     // Show inline author in toolbar
-    .post-author-inline {
+    .sn-post-author-inline {
         display: inline;
     }
 
     // For same-author posts, also show the inline name on mobile
-    .same-author .post-author-inline.hidden {
+    .sn-same-author .sn-post-author-inline.sn-hidden {
         display: inline;
     }
 
-    .post-main {
-        padding-left: 0.5rem;
+    .sn-post-main {
+        padding-left: var(--space-4);
     }
+
 }
 
-// First post (OP) â€” full-width, no aside
-.first-post {
-    .post-main {
+// First post (OP) â€" full-width, no aside
+.sn-first-post {
+    .sn-post-main {
         padding-left: 0;
     }
 }
 
 // Legacy overrides for new layout
-.post-article {
-    &.moderator-post {
+.sn-post-article {
+    &.sn-keyboard-selected {
+        border-left: 3px solid var(--accent-info-outline);
+        transition: background var(--duration-slow) ease, border-color var(--duration-slow) ease;
+    }
+}
+
+.sn-post-article {
+    &.sn-moderator-post {
         background: linear-gradient(90deg, rgba(59, 130, 246, 0.03) 0%, transparent 100%);
         border-left: 3px solid rgba(59, 130, 246, 0.3);
     }
 
-    &.keyboard-selected {
+    &.sn-keyboard-selected {
         background: rgba(0, 102, 204, 0.05);
-        border-left: 3px solid var(--accent-info-outline);
-        transition: background 0.2s ease, border-color 0.2s ease;
+        transition: background var(--duration-slow) ease, border-color var(--duration-slow) ease;
     }
 }
 
 // Post highlight animation
-.post-highlight {
+.sn-post-highlight {
     animation: highlight-subtle 1.5s ease-out;
 }
 
@@ -238,21 +279,20 @@
 }
 
 // Author Block (legacy)
-.author-block {
+.sn-author-block {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
 }
 
 // Avatar Component
-.avatar {
+.sn-avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     overflow: hidden;
     flex-shrink: 0;
-    background: var(--border-primary);
 
     img {
         width: 100%;
@@ -261,18 +301,20 @@
     }
 }
 
+.sn-avatar {
+    background: var(--border-primary);
+}
+
 // Legacy support
-.author-avatar-simple {
+.sn-author-avatar-simple {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: var(--border-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 600;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
+    font-size: var(--font-size-base);
     overflow: hidden;
     flex-shrink: 0;
 
@@ -284,13 +326,21 @@
     }
 }
 
-.author-info {
+.sn-author-avatar-simple {
+    background: var(--border-primary);
+    color: var(--text-secondary);
+}
+
+.sn-author-info {
     flex: 1;
 }
 
-.author-name {
+.sn-author-name {
     font-weight: 600;
-    font-size: 0.9375rem;
+    font-size: var(--font-size-prose);
+}
+
+.sn-author-name {
     color: var(--text-primary);
 
     &:hover {
@@ -298,8 +348,11 @@
     }
 }
 
-.post-meta {
-    font-size: 0.8125rem;
+.sn-post-meta {
+    font-size: var(--font-size-ui);
+}
+
+.sn-post-meta {
     color: var(--text-tertiary);
 }
 
@@ -307,13 +360,12 @@
 // Unread Separator
 // ============================================
 
-.unread-separator {
+.sn-unread-separator {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin: 0.75rem 0;
-    color: var(--link-primary);
-    font-size: 0.75rem;
+    gap: var(--space-6);
+    margin: var(--space-6) 0;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -323,7 +375,40 @@
         content: '';
         flex: 1;
         border-top: 1px solid var(--link-primary);
+    }
+}
+
+.sn-unread-separator {
+    color: var(--link-primary);
+
+    &::before,
+    &::after {
         opacity: 0.4;
     }
+}
+
+// ============================================
+// Post Hover Actions (reply/quote buttons + reaction placeholder)
+// Shown on post hover; forced visible while the reaction picker is open.
+// ============================================
+
+.sn-post-hover-actions {
+    display: none;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.sn-post-article:hover .sn-post-hover-actions,
+.sn-post-hover-actions.sn-actions-forced {
+    display: flex;
+}
+
+.sn-reaction-placeholder {
+    display: none;
+}
+
+.sn-post-article:hover .sn-reaction-placeholder,
+.sn-reaction-placeholder.sn-actions-forced {
+    display: inline;
 }
 

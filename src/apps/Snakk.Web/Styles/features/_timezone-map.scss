@@ -4,19 +4,22 @@
 
 .tz-map-wrapper {
     position: relative;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-4);
+    border-radius: var(--radius-lg);
+}
+
+.tz-map-wrapper {
     background: var(--bg-tertiary);
-    border-radius: 0.5rem;
 }
 
 .tz-map-object {
     width: 100%;
     height: auto;
     border: 1px solid var(--border-primary);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     display: block;
-    padding: 0.5rem;
+    padding: var(--space-4);
     aspect-ratio: 1009.67 / 665.96; // match SVG viewBox ratio to prevent layout shift
 }
 
@@ -24,15 +27,18 @@
 .tz-map-tooltip {
     position: absolute;
     pointer-events: none;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.75rem;
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--font-size-sm);
     font-weight: 500;
-    color: var(--text-primary);
-    background: var(--bg-tertiary);
     border: 1px solid var(--border-primary);
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     white-space: nowrap;
     z-index: 10;
+}
+
+.tz-map-tooltip {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
     box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
 }
 
@@ -40,28 +46,38 @@
 .tz-map-filter {
     display: flex;
     align-items: center;
-    gap: 0.375rem;
-    margin-top: 0.375rem;
-    margin-bottom: 0.25rem;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
+    gap: var(--space-3);
+    margin-top: var(--space-3);
+    margin-bottom: var(--space-2);
+    font-size: var(--font-size-sm);
 
     .tz-map-filter-region {
         font-weight: 600;
+    }
+
+    .tz-map-reset {
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: inherit;
+    }
+}
+
+.tz-map-filter {
+    color: var(--text-secondary);
+
+    .tz-map-filter-region {
         color: var(--link-primary);
     }
 
     .tz-map-reset {
         color: var(--text-tertiary);
         text-decoration: underline;
-        cursor: pointer;
-        background: none;
-        border: none;
-        padding: 0;
-        font-size: inherit;
 
         &:hover {
             color: var(--link-primary);
         }
     }
 }
+

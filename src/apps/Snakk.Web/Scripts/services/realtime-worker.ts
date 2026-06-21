@@ -44,6 +44,10 @@ let connection: any = null;
 let cachedToken: string | null = null;
 let tokenExpiry = 0;
 
+// Last-known counts — sent immediately to new tabs so they skip their own API fetch
+let lastNotificationCount: number | null = null;
+let lastDmCount: number | null = null;
+
 // ============================================================================
 // Tab cleanup helper
 // ============================================================================
@@ -91,6 +95,14 @@ function removeTab(tabId: number): void {
         : connection ? 'reconnecting'
         : 'disconnected';
     port.postMessage({ type: 'connection-state', state });
+
+    // Replay last-known counts so the new tab can skip its own API fetch
+    if (lastNotificationCount !== null) {
+        port.postMessage({ type: 'message', event: 'ReceiveNotificationCount', data: { unreadCount: lastNotificationCount } });
+    }
+    if (lastDmCount !== null) {
+        port.postMessage({ type: 'message', event: 'ReceiveDirectMessageCount', data: { unreadCount: lastDmCount } });
+    }
 };
 
 // ============================================================================
@@ -170,9 +182,9 @@ async function connect(): Promise<void> {
     connection.on('ReceiveViewerCount',     (msg: any) => routeMessage('ReceiveViewerCount', msg, msg.group));
     connection.on('ReceiveTyping',          (msg: any) => routeMessage('ReceiveTyping', msg, msg.group));
     // Notification messages are user-specific — broadcast to all tabs (user is auto-subscribed server-side)
-    connection.on('ReceiveNotificationCount',    (msg: any) => broadcastAll('ReceiveNotificationCount', msg));
+    connection.on('ReceiveNotificationCount',    (msg: any) => { lastNotificationCount = msg.unreadCount ?? null; broadcastAll('ReceiveNotificationCount', msg); });
     connection.on('ReceiveNotification',          (msg: any) => broadcastAll('ReceiveNotification', msg));
-    connection.on('ReceiveDirectMessageCount',    (msg: any) => broadcastAll('ReceiveDirectMessageCount', msg));
+    connection.on('ReceiveDirectMessageCount',    (msg: any) => { lastDmCount = msg.unreadCount ?? null; broadcastAll('ReceiveDirectMessageCount', msg); });
     connection.on('ReceiveDmTyping',              (msg: any) => broadcastAll('ReceiveDmTyping', msg));
     connection.on('ReceiveDmMessagesDeleted',     (msg: any) => broadcastAll('ReceiveDmMessagesDeleted', msg));
 

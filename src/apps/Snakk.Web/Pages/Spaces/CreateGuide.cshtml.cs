@@ -10,4 +10,5 @@ public class NewGuideModel(
 {
     protected override int DiscussionType => 6;
     protected override string TypeSlug => "guide";
+    protected override void PreloadPageCss() { base.PreloadPageCss(); Preload("type-guide"); }
 }

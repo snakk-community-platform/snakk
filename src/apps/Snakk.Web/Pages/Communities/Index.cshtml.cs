@@ -33,6 +33,7 @@ public class IndexModel(
 
     public async Task<IActionResult> OnGetAsync(int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("community");
         cancellationToken.ThrowIfCancellationRequested();
         if (!CommunityContext.IsMultiCommunityEnabled)
             return RedirectToPage("/Index");

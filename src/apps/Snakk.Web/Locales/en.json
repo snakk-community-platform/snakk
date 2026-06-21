@@ -1374,12 +1374,14 @@
   },
   "relogin": {
     "title": "Session expired",
-    "subtitle": "Your session has expired. Enter your password to continue.",
+    "subtitle": "Please sign in to continue.",
+    "inactivitySubtitle": "You were signed out due to inactivity.",
     "passwordPlaceholder": "Password",
-    "submit": "Log back in",
-    "otherAccount": "Use a different account",
+    "submit": "Sign back in",
+    "stayLoggedOut": "Stay logged out",
     "errorWrongPassword": "Incorrect password. Please try again.",
-    "errorGeneric": "Something went wrong. Please try again."
+    "errorGeneric": "Something went wrong. Please try again.",
+    "errorFullExpired": "Your session has fully expired. Please use another sign-in method."
   },
   "roles": {
     "globalAdmin": "Admin"

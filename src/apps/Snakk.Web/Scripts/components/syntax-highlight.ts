@@ -13,8 +13,8 @@
     const PRISM_VERSION = '1.30.0';
     let loadPromise: Promise<any> | null = null;
 
-    const EXPAND_SVG = '<span class="icon icon-code-expand" style="width:12px;height:12px" aria-hidden="true"></span>';
-    const COLLAPSE_SVG = '<span class="icon icon-code-collapse" style="width:12px;height:12px" aria-hidden="true"></span>';
+    const EXPAND_SVG = '<span class="sn-icon icon-code-expand" style="width:12px;height:12px" aria-hidden="true"></span>';
+    const COLLAPSE_SVG = '<span class="sn-icon icon-code-collapse" style="width:12px;height:12px" aria-hidden="true"></span>';
 
     let expandedWrapper: HTMLElement | null = null;
     let expandedBtn: HTMLElement | null = null;
@@ -24,7 +24,7 @@
 
     function collapseExpanded(): void {
         if (!expandedWrapper || !expandedBtn) return;
-        expandedWrapper.classList.remove('code-block-expanded');
+        expandedWrapper.classList.remove('sn-code-block-expanded');
         document.documentElement.style.overflowY = '';
         expandedBtn.innerHTML = EXPAND_SVG;
         expandedBtn.title = 'Expand code';
@@ -42,7 +42,7 @@
 
     function toggleCodeBlockExpand(wrapper: HTMLElement, btn: HTMLElement): void {
         // If this wrapper is already expanded, collapse it.
-        if (wrapper.classList.contains('code-block-expanded')) {
+        if (wrapper.classList.contains('sn-code-block-expanded')) {
             collapseExpanded();
             return;
         }
@@ -54,13 +54,13 @@
         placeholder.style.height = `${rect.height}px`;
         wrapper.parentElement?.insertBefore(placeholder, wrapper);
 
-        wrapper.classList.add('code-block-expanded');
+        wrapper.classList.add('sn-code-block-expanded');
         document.documentElement.style.overflowY = 'hidden';
         btn.innerHTML = COLLAPSE_SVG;
         btn.title = 'Collapse code';
 
         const backdrop = document.createElement('div');
-        backdrop.className = 'code-block-backdrop';
+        backdrop.className = 'sn-code-block-backdrop';
         backdrop.addEventListener('click', () => collapseExpanded());
         document.body.appendChild(backdrop);
 
@@ -174,30 +174,30 @@
             block.classList.add('prism-highlighted');
 
             // Add language label — wrapped outside the scrollable <pre>
-            if (pre && !pre.parentElement?.classList.contains('code-block-wrapper')) {
+            if (pre && !pre.parentElement?.classList.contains('sn-code-block-wrapper')) {
                 const langClass = Array.from(block.classList).find(c => c.startsWith('language-'));
                 const lang = langClass?.replace('language-', '') || '';
 
                 const wrapper = document.createElement('div');
-                wrapper.className = 'code-block-wrapper';
+                wrapper.className = 'sn-code-block-wrapper';
                 pre.parentNode!.insertBefore(wrapper, pre);
                 wrapper.appendChild(pre);
 
                 const header = document.createElement('div');
-                header.className = 'code-block-header';
+                header.className = 'sn-code-block-header';
 
                 const label = document.createElement('span');
-                label.className = 'code-language-label';
+                label.className = 'sn-code-language-label';
                 label.textContent = (lang && lang !== 'none') ? (LANG_LABELS[lang] || lang) : 'Plain text';
                 header.appendChild(label);
 
                 const actions = document.createElement('div');
-                actions.className = 'code-block-header-actions';
+                actions.className = 'sn-code-block-header-actions';
 
                 // Expand button
                 const expandBtn = document.createElement('button');
                 expandBtn.type = 'button';
-                expandBtn.className = 'code-expand-btn';
+                expandBtn.className = 'sn-code-expand-btn';
                 expandBtn.title = 'Expand code';
                 expandBtn.setAttribute('aria-label', 'Expand code');
                 expandBtn.innerHTML = EXPAND_SVG;
@@ -207,19 +207,19 @@
                 // Copy button
                 const copyBtn = document.createElement('button');
                 copyBtn.type = 'button';
-                copyBtn.className = 'code-copy-btn';
+                copyBtn.className = 'sn-code-copy-btn';
                 copyBtn.title = 'Copy code';
                 copyBtn.setAttribute('aria-label', 'Copy code');
-                copyBtn.innerHTML = '<span class="icon icon-copy" style="width:14px;height:14px" aria-hidden="true"></span>';
+                copyBtn.innerHTML = '<span class="sn-icon icon-copy" style="width:14px;height:14px" aria-hidden="true"></span>';
                 copyBtn.addEventListener('click', async () => {
                     const code = block.textContent || '';
                     try {
                         await navigator.clipboard.writeText(code);
-                        copyBtn.classList.add('code-copy-btn-copied');
-                        copyBtn.innerHTML = '<span class="icon icon-check" style="width:14px;height:14px" aria-hidden="true"></span>';
+                        copyBtn.classList.add('sn-code-copy-btn-copied');
+                        copyBtn.innerHTML = '<span class="sn-icon icon-check" style="width:14px;height:14px" aria-hidden="true"></span>';
                         setTimeout(() => {
-                            copyBtn.classList.remove('code-copy-btn-copied');
-                            copyBtn.innerHTML = '<span class="icon icon-copy" style="width:14px;height:14px" aria-hidden="true"></span>';
+                            copyBtn.classList.remove('sn-code-copy-btn-copied');
+                            copyBtn.innerHTML = '<span class="sn-icon icon-copy" style="width:14px;height:14px" aria-hidden="true"></span>';
                         }, 1500);
                     } catch { /* ignore */ }
                 });
@@ -236,7 +236,7 @@
         root.querySelectorAll<HTMLElement>('code.prism-highlighted').forEach(el => {
             el.classList.remove('prism-highlighted');
         });
-        root.querySelectorAll<HTMLElement>('.code-block-wrapper').forEach(wrapper => {
+        root.querySelectorAll<HTMLElement>('.sn-code-block-wrapper').forEach(wrapper => {
             const pre = wrapper.querySelector('pre');
             if (pre && wrapper.parentNode) {
                 wrapper.parentNode.insertBefore(pre, wrapper);

@@ -520,9 +520,9 @@ class DefaultCodeBlockNodeView implements NodeView {
 
         // Header bar with language label
         const header = document.createElement('div');
-        header.className = 'code-block-header';
+        header.className = 'sn-code-block-header';
         this.langLabel = document.createElement('span');
-        this.langLabel.className = 'code-language-label';
+        this.langLabel.className = 'sn-code-language-label';
         header.appendChild(this.langLabel);
         inner.appendChild(header);
 
@@ -712,15 +712,15 @@ class CalloutNodeView implements NodeView {
         this.dom.className = 'sn-block-wrapper callout-block';
 
         const inner = document.createElement('div');
-        inner.className = `callout-node-view callout-node-${type}`;
+        inner.className = `sn-callout-node-view sn-callout-node-${type}`;
 
         const icon = document.createElement('span');
-        icon.className = 'callout-node-icon';
+        icon.className = 'sn-callout-node-icon';
         icon.textContent = meta.icon;
         icon.contentEditable = 'false';
 
         this.contentDOM = document.createElement('div');
-        this.contentDOM.className = 'callout-node-body';
+        this.contentDOM.className = 'sn-callout-node-body';
 
         inner.appendChild(icon);
         inner.appendChild(this.contentDOM);

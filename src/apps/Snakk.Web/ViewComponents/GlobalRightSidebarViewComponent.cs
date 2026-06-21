@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Snakk.Web.Helpers;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
 
@@ -11,6 +12,8 @@ public class GlobalRightSidebarViewComponent(
 {
     public async Task<IViewComponentResult> InvokeAsync()
     {
+        if (DeviceDetection.IsMobile(HttpContext))
+            return Content(string.Empty);
         var statsTask = prefetchCache.GetOrFetchAsync(
             "platform-stats:platform:global",
             () => apiClient.GetPlatformStatsAsync());

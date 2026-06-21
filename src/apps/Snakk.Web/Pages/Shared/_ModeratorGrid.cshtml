@@ -4,11 +4,11 @@
 
 @foreach (var group in Model)
 {
-    <p class="text-xs font-semibold uppercase tracking-wide mt-6 mb-3" style="color: var(--text-tertiary)">
+    <p class="sn-section-label---moderatorgrid" style="color: var(--text-tertiary)">
         @group.Level
         @if (!string.IsNullOrEmpty(group.ScopeName))
         {
-            <span class="font-normal normal-case">(@group.ScopeName)</span>
+            <span class="sn-font-normal normal-case">(@group.ScopeName)</span>
         }
     </p>
     <div class="sn-mod-list-grid">
@@ -25,7 +25,7 @@
                     <span class="sn-mod-list-name">@mod.DisplayName</span>
                 </div>
                 <div class="sn-mod-list-body">
-                    <span class="badge badge-sm badge-ghost">@FormatRole(mod.Role)</span>
+                    <span class="sn-badge sn-badge-sm sn-badge-ghost">@FormatRole(mod.Role)</span>
                 </div>
             </a>
         }

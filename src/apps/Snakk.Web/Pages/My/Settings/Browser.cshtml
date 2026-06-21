@@ -1,4 +1,4 @@
-﻿@page "/my/settings/browser"
+@page "/my/settings/browser"
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.My.Settings.BrowserModel
 @{
@@ -10,31 +10,31 @@
     ViewData["Settings.SkipAuthGuard"] = true;
 }
 
-            <div class="flex items-start gap-2 text-xs p-2.5 rounded-lg mb-2" style="color: var(--text-tertiary); background: color-mix(in srgb, var(--sidebar-bg) 30%, transparent);">
-                <span class="icon icon-display-monitor h-4 w-4 shrink-0 mt-0.5" aria-hidden="true"></span>
+            <div class="sn-browser-device-notice" style="color: var(--text-tertiary); background: color-mix(in srgb, var(--sidebar-bg) 30%, transparent);">
+                <span class="icon icon-display-monitor sn-h-4 sn-w-4 sn-shrink-0 sn-mt-0.5" aria-hidden="true"></span>
                 <span>@T.Settings.BrowserDeviceOnly</span>
             </div>
 
             <!-- Layout -->
             <div id="section-layout" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.BrowserLayoutTitle</h3>
-                <div class="flex items-start justify-between gap-6">
+                <div class="sn-settings-row">
                     <div>
-                        <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserStickyTitle</p>
-                        <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserStickyHelp</p>
+                        <p class="sn-text-sm sn-font-medium" style="color: var(--text-primary)">@T.Settings.BrowserStickyTitle</p>
+                        <p class="sn-text-xs sn-mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserStickyHelp</p>
                     </div>
-                    <select id="pref-sidebar-sticky" class="select select-sm select-bordered shrink-0 mt-0.5">
+                    <select id="pref-sidebar-sticky" class="sn-select sn-select-sm sn-select sn-shrink-0 sn-mt-0.5">
                         <option value="both">@T.Settings.BrowserStickyBoth</option>
                         <option value="left-only">@T.Settings.BrowserStickyLeftOnly</option>
                         <option value="none">@T.Settings.BrowserStickyNone</option>
                     </select>
                 </div>
-                <div class="flex items-start justify-between gap-6 mt-4">
+                <div class="sn-settings-row sn-mt-4">
                     <div>
-                        <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserContentWidthTitle</p>
-                        <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserContentWidthHelp</p>
+                        <p class="sn-text-sm sn-font-medium" style="color: var(--text-primary)">@T.Settings.BrowserContentWidthTitle</p>
+                        <p class="sn-text-xs sn-mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserContentWidthHelp</p>
                     </div>
-                    <button type="button" id="btn-content-width" class="btn btn-sm btn-outline shrink-0 mt-0.5">
+                    <button type="button" id="btn-content-width" class="sn-btn sn-btn-sm sn-btn-outline sn-shrink-0 sn-mt-0.5">
                         @T.Settings.BrowserContentWidthButton
                     </button>
                 </div>
@@ -43,38 +43,38 @@
             <!-- Behavior -->
             <div id="section-behavior" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.BrowserBehaviorTitle</h3>
-                <div class="flex flex-col gap-5">
-                    <div class="flex items-start justify-between gap-6">
+                <div class="sn-settings-row-group">
+                    <div class="sn-settings-row">
                         <div>
-                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserListLayoutTitle</p>
-                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserListLayoutHelp</p>
+                            <p class="sn-text-sm sn-font-medium" style="color: var(--text-primary)">@T.Settings.BrowserListLayoutTitle</p>
+                            <p class="sn-text-xs sn-mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserListLayoutHelp</p>
                         </div>
-                        <select id="pref-discussion-list-layout" class="select select-sm select-bordered shrink-0 mt-0.5">
+                        <select id="pref-discussion-list-layout" class="sn-select sn-select-sm sn-select sn-shrink-0 sn-mt-0.5">
                             <option value="full">@T.Settings.BrowserListLayoutFull</option>
                             <option value="compact">@T.Settings.BrowserListLayoutCompact</option>
                             <option value="none">@T.Settings.BrowserListLayoutNone</option>
                         </select>
                     </div>
-                    <label class="flex items-start justify-between gap-6 cursor-pointer">
+                    <label class="sn-settings-row sn-cursor-pointer">
                         <div>
-                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserAnimationsTitle</p>
-                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserAnimationsHelp</p>
+                            <p class="sn-text-sm sn-font-medium" style="color: var(--text-primary)">@T.Settings.BrowserAnimationsTitle</p>
+                            <p class="sn-text-xs sn-mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserAnimationsHelp</p>
                         </div>
-                        <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-animations" />
+                        <input type="checkbox" class="sn-toggle sn-toggle-sm sn-toggle-primary sn-shrink-0 sn-mt-0.5" id="pref-animations" />
                     </label>
-                    <label class="flex items-start justify-between gap-6 cursor-pointer">
+                    <label class="sn-settings-row sn-cursor-pointer">
                         <div>
-                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserLinkPreviewLargeTitle</p>
-                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserLinkPreviewLargeHelp</p>
+                            <p class="sn-text-sm sn-font-medium" style="color: var(--text-primary)">@T.Settings.BrowserLinkPreviewLargeTitle</p>
+                            <p class="sn-text-xs sn-mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserLinkPreviewLargeHelp</p>
                         </div>
-                        <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-link-preview-large" />
+                        <input type="checkbox" class="sn-toggle sn-toggle-sm sn-toggle-primary sn-shrink-0 sn-mt-0.5" id="pref-link-preview-large" />
                     </label>
-                    <label class="flex items-start justify-between gap-6 cursor-pointer">
+                    <label class="sn-settings-row sn-cursor-pointer">
                         <div>
-                            <p class="text-sm font-medium" style="color: var(--text-primary)">@T.Settings.BrowserHoverPopupTitle</p>
-                            <p class="text-xs mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserHoverPopupHelp</p>
+                            <p class="sn-text-sm sn-font-medium" style="color: var(--text-primary)">@T.Settings.BrowserHoverPopupTitle</p>
+                            <p class="sn-text-xs sn-mt-0.5" style="color: var(--text-tertiary)">@T.Settings.BrowserHoverPopupHelp</p>
                         </div>
-                        <input type="checkbox" class="toggle toggle-sm toggle-primary shrink-0 mt-0.5" id="pref-hover-popup" />
+                        <input type="checkbox" class="sn-toggle sn-toggle-sm sn-toggle-primary sn-shrink-0 sn-mt-0.5" id="pref-hover-popup" />
                     </label>
                 </div>
             </div>
@@ -82,34 +82,34 @@
             <!-- Emoji Skin Tone -->
             <div id="section-skin-tone" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.BrowserSkinToneTitle</h3>
-                <div class="flex gap-2" id="skin-tone-picker">
-                    <button type="button" class="skin-tone-swatch active" data-tone="" title="@T.Settings.BrowserSkinDefault">👋</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏻" title="@T.Settings.BrowserSkinLight">👋🏻</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏼" title="@T.Settings.BrowserSkinMediumLight">👋🏼</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏽" title="@T.Settings.BrowserSkinMedium">👋🏽</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏾" title="@T.Settings.BrowserSkinMediumDark">👋🏾</button>
-                    <button type="button" class="skin-tone-swatch" data-tone="🏿" title="@T.Settings.BrowserSkinDark">👋🏿</button>
+                <div class="sn-flex sn-gap-2" id="skin-tone-picker">
+                    <button type="button" class="sn-skin-tone-swatch sn-active" data-tone="" title="@T.Settings.BrowserSkinDefault">👋</button>
+                    <button type="button" class="sn-skin-tone-swatch" data-tone="🏻" title="@T.Settings.BrowserSkinLight">👋🏻</button>
+                    <button type="button" class="sn-skin-tone-swatch" data-tone="🏼" title="@T.Settings.BrowserSkinMediumLight">👋🏼</button>
+                    <button type="button" class="sn-skin-tone-swatch" data-tone="🏽" title="@T.Settings.BrowserSkinMedium">👋🏽</button>
+                    <button type="button" class="sn-skin-tone-swatch" data-tone="🏾" title="@T.Settings.BrowserSkinMediumDark">👋🏾</button>
+                    <button type="button" class="sn-skin-tone-swatch" data-tone="🏿" title="@T.Settings.BrowserSkinDark">👋🏿</button>
                 </div>
-                <span class="text-xs mt-1" style="color: var(--text-tertiary)">@T.Settings.BrowserSkinApplies</span>
+                <span class="sn-text-xs sn-mt-1" style="color: var(--text-tertiary)">@T.Settings.BrowserSkinApplies</span>
             </div>
 
             <!-- External Embeds -->
             <div id="section-embeds" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.BrowserEmbedsTitle</h3>
-                <p class="text-sm mb-3" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-3" style="color: var(--text-tertiary)">
                     @T.Settings.BrowserEmbedsIntro
                 </p>
-                <div class="callout-node-view callout-node-info mb-4 text-sm" style="border-left: none;">
-                    <span class="callout-node-icon">ℹ️</span>
-                    <div class="callout-node-body">@T.Settings.BrowserEmbedsWarning</div>
+                <div class="sn-callout-node-view sn-callout-node-info sn-mb-4 sn-text-sm" style="border-left: none;">
+                    <span class="sn-callout-node-icon">ℹ️</span>
+                    <div class="sn-callout-node-body">@T.Settings.BrowserEmbedsWarning</div>
                 </div>
 
-                <div id="embed-providers" class="rounded-lg border border-base-300 overflow-hidden" style="background:var(--bg-tertiary);color:var(--text-primary);">
-                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupVideo</div>
+                <div id="embed-providers" class="sn-embed-providers-list" style="background:var(--bg-tertiary);color:var(--text-primary);">
+                    <div class="sn-social-picker-category-divider">@T.Settings.BrowserGroupVideo</div>
                     <div class="sn-device-item">
                         <img src="/icons/embed-youtube-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">YouTube</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="youtube">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="youtube">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
@@ -118,7 +118,7 @@
                     <div class="sn-device-item">
                         <img src="/icons/embed-vimeo-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">Vimeo</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="vimeo">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="vimeo">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
@@ -127,18 +127,18 @@
                     <div class="sn-device-item">
                         <img src="/icons/embed-tiktok-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">TikTok</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="tiktok">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="tiktok">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
                         </select>
                     </div>
 
-                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupSocial</div>
+                    <div class="sn-social-picker-category-divider">@T.Settings.BrowserGroupSocial</div>
                     <div class="sn-device-item">
                         <img src="/icons/embed-twitter-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">Twitter / X</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="twitter">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="twitter">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
@@ -147,7 +147,7 @@
                     <div class="sn-device-item">
                         <img src="/icons/embed-bluesky-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">Bluesky</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="bluesky">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="bluesky">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
@@ -156,18 +156,18 @@
                     <div class="sn-device-item">
                         <img src="/icons/embed-reddit-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">Reddit</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="reddit">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="reddit">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
                         </select>
                     </div>
 
-                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupAudio</div>
+                    <div class="sn-social-picker-category-divider">@T.Settings.BrowserGroupAudio</div>
                     <div class="sn-device-item">
                         <img src="/icons/embed-spotify-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">Spotify</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="spotify">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="spotify">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
@@ -176,7 +176,7 @@
                     <div class="sn-device-item">
                         <img src="/icons/embed-soundcloud-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">SoundCloud</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="soundcloud">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="soundcloud">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
@@ -185,29 +185,29 @@
                     <div class="sn-device-item">
                         <img src="/icons/embed-bandcamp-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">Bandcamp</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="bandcamp">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="bandcamp">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
                         </select>
                     </div>
 
-                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupStreaming</div>
+                    <div class="sn-social-picker-category-divider">@T.Settings.BrowserGroupStreaming</div>
                     <div class="sn-device-item">
                         <img src="/icons/embed-twitch-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">Twitch</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="twitch">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="twitch">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
                         </select>
                     </div>
 
-                    <div class="social-picker-category-divider">@T.Settings.BrowserGroupImages</div>
+                    <div class="sn-social-picker-category-divider">@T.Settings.BrowserGroupImages</div>
                     <div class="sn-device-item">
                         <img src="/icons/embed-imgur-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">Imgur</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="imgur">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="imgur">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
@@ -216,7 +216,7 @@
                     <div class="sn-device-item">
                         <img src="/icons/embed-codepen-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">CodePen</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="codepen">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="codepen">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
@@ -225,7 +225,7 @@
                     <div class="sn-device-item">
                         <img src="/icons/embed-canva-color.svg" width="20" height="20" alt="" aria-hidden="true">
                         <div class="sn-device-info"><div class="sn-device-name">Canva</div></div>
-                        <select class="select select-sm select-bordered shrink-0" data-embed-provider="canva">
+                        <select class="sn-select sn-select-sm sn-select sn-shrink-0" data-embed-provider="canva">
                             <option value="ask">@T.Settings.BrowserEmbedAsk</option>
                             <option value="allow">@T.Settings.BrowserEmbedAllow</option>
                             <option value="deny">@T.Settings.BrowserEmbedDeny</option>
@@ -235,24 +235,24 @@
             </div>
 
 <!-- Content Width Modal -->
-<div id="content-width-modal" class="fixed inset-0 hidden" style="z-index: 10000;" aria-modal="true" role="dialog">
-    <div id="content-width-backdrop" class="absolute inset-0 bg-black/50"></div>
-    <div class="absolute inset-0 flex items-center justify-center p-4 pointer-events-none">
-        <div class="relative w-80 rounded-xl shadow-2xl p-6 pointer-events-auto" style="background: var(--bg-secondary);">
-            <div class="flex items-start justify-between mb-1">
-                <h3 class="font-semibold text-base" style="color: var(--text-primary)">@T.Settings.BrowserContentWidthTitle</h3>
-                <button type="button" id="btn-content-width-cancel-x" class="btn btn-ghost btn-xs btn-circle -mt-1 -mr-1">✕</button>
+<div id="content-width-modal" class="sn-fixed sn-inset-0 sn-hidden" style="z-index: 10000;" aria-modal="true" role="dialog">
+    <div id="content-width-backdrop" class="absolute sn-inset-0 bg-black/50"></div>
+    <div class="absolute sn-inset-0 sn-flex sn-items-center sn-justify-center sn-p-4 sn-pointer-events-none">
+        <div class="sn-relative sn-w-80 sn-rounded-xl sn-shadow-2xl sn-p-6 sn-pointer-events-auto" style="background: var(--bg-secondary);">
+            <div class="sn-modal-header--browser">
+                <h3 class="sn-font-semibold sn-text-base" style="color: var(--text-primary)">@T.Settings.BrowserContentWidthTitle</h3>
+                <button type="button" id="btn-content-width-cancel-x" class="sn-btn sn-btn-ghost sn-btn-xs sn-btn-circle -mt-1 -mr-1">✕</button>
             </div>
-            <p class="text-xs mb-5" style="color: var(--text-tertiary)">@T.Settings.BrowserContentWidthHelp</p>
-            <div class="flex items-center gap-3 mb-6">
-                <span id="pref-content-width-label" class="text-sm tabular-nums shrink-0" style="color: var(--text-secondary); min-width: 4.5rem; text-align: right;">Default</span>
-                <input type="range" id="pref-content-width" min="54" max="128" step="1" class="range range-sm range-primary flex-1" />
+            <p class="sn-text-xs sn-mb-5" style="color: var(--text-tertiary)">@T.Settings.BrowserContentWidthHelp</p>
+            <div class="sn-range-row">
+                <span id="pref-content-width-label" class="sn-text-sm tabular-nums sn-shrink-0" style="color: var(--text-secondary); min-width: 4.5rem; text-align: right;">Default</span>
+                <input type="range" id="pref-content-width" min="54" max="128" step="1" class="sn-range sn-range-sm sn-range-primary sn-flex-1" />
             </div>
-            <div class="flex items-center justify-between">
-                <button type="button" id="btn-content-width-reset" class="btn btn-ghost btn-sm">@T.Settings.BrowserContentWidthReset</button>
-                <div class="flex gap-2">
-                    <button type="button" id="btn-content-width-cancel" class="btn btn-ghost btn-sm">@T.Settings.BrowserContentWidthCancel</button>
-                    <button type="button" id="btn-content-width-apply" class="btn btn-primary btn-sm">@T.Settings.BrowserContentWidthApply</button>
+            <div class="sn-modal-footer">
+                <button type="button" id="btn-content-width-reset" class="sn-btn sn-btn-ghost sn-btn-sm">@T.Settings.BrowserContentWidthReset</button>
+                <div class="sn-flex sn-gap-2">
+                    <button type="button" id="btn-content-width-cancel" class="sn-btn sn-btn-ghost sn-btn-sm">@T.Settings.BrowserContentWidthCancel</button>
+                    <button type="button" id="btn-content-width-apply" class="sn-btn sn-btn-primary sn-btn-sm">@T.Settings.BrowserContentWidthApply</button>
                 </div>
             </div>
         </div>

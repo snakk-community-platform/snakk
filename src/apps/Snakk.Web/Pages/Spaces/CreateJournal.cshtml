@@ -1,4 +1,4 @@
-@page "/create/journal"
+﻿@page "/create/journal"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
@@ -12,17 +12,13 @@
     ViewData["NewDiscussion.SubmitLabel"] = T.Pages.SpacesNewJournalSubmit;
 }
 
-@section ExtraStyles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("type-journal")" asp-append-version="true" />
-}
-
-<div class="mt-8 border-t border-base-content/10 pt-6">
-    <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewJournalHowHeading</h3>
-    <div class="text-sm text-base-content/60 space-y-3">
+<div class="sn-journal-tips-section">
+    <h3 class="sn-section-label--createjournal">@T.Pages.SpacesNewJournalHowHeading</h3>
+    <div class="sn-journal-tips-body">
         <p>@T.Pages.SpacesNewJournalIntro</p>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-subsection-label">@T.Pages.SpacesNewAfterYouPost</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@T.Pages.SpacesNewJournalAfter1</li>
                 <li>@T.Pages.SpacesNewJournalAfter2</li>
                 <li>@T.Pages.SpacesNewJournalAfter3</li>
@@ -30,8 +26,8 @@
             </ul>
         </div>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewJournalGreatLabel</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-subsection-label">@T.Pages.SpacesNewJournalGreatLabel</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@T.Pages.SpacesNewJournalGreat1</li>
                 <li>@T.Pages.SpacesNewJournalGreat2</li>
                 <li>@T.Pages.SpacesNewJournalGreat3</li>
@@ -41,3 +37,4 @@
         </div>
     </div>
 </div>
+

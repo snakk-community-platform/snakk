@@ -1,0 +1,4 @@
+// Light theme CSS variable definitions.
+// Loaded async after layout paint — overrides the grayscale critical-CSS defaults
+// with actual brand colors. Color changes don't cause CLS so async load is safe.
+@use '../base/variables';

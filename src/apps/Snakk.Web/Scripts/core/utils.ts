@@ -152,17 +152,17 @@ interface SnakkUtilsAPI {
         let badges = '';
 
         if (discussion.isPinned) {
-            badges += '<span class="badge badge-primary badge-xs ml-2">Pinned</span>';
+            badges += '<span class="sn-badge sn-badge-primary sn-badge-xs ml-2">Pinned</span>';
         }
         if (discussion.isLocked) {
-            badges += '<span class="badge badge-warning badge-xs ml-2">Locked</span>';
+            badges += '<span class="sn-badge sn-badge-warning sn-badge-xs ml-2">Locked</span>';
         }
         if (discussion.tags && Array.isArray(discussion.tags) && discussion.tags.length > 0) {
             discussion.tags.slice(0, 3).forEach(tag => {
-                badges += `<span class="badge badge-ghost badge-xs ml-2">${escapeHtml(tag)}</span>`;
+                badges += `<span class="sn-badge sn-badge-ghost sn-badge-xs ml-2">${escapeHtml(tag)}</span>`;
             });
             if (discussion.tags.length > 3) {
-                badges += '<span class="text-muted ml-1">...</span>';
+                badges += '<span class="sn-text-muted ml-1">...</span>';
             }
         }
 

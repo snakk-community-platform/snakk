@@ -9,14 +9,14 @@
 }
 else
 {
-    <div class="grid grid-cols-8 gap-1">
+    <div class="sn-grid sn-grid-cols-8 sn-gap-1">
         @foreach (var contributor in Model.Contributors.Items)
         {
             <a href="@SnakkUrlHelper.UserProfile(contributor.Slug)" title="@contributor.DisplayName"
                hx-target="#main-content" hx-swap="outerHTML show:window:top">
                 <img src="@contributor.AvatarThumbnailUrl"
                      alt="@contributor.DisplayName"
-                     class="rounded-full w-full aspect-square object-cover"
+                     class="sn-rounded-full sn-w-full aspect-square sn-object-cover"
                      loading="lazy" decoding="async" />
             </a>
         }

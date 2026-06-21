@@ -92,7 +92,7 @@
     }
 
     function getLastBubbleInfo(messagesEl: HTMLElement): { senderPublicId: string; dateStr: string } | null {
-        const bubbles = messagesEl.querySelectorAll<HTMLElement>('.dm-bubble');
+        const bubbles = messagesEl.querySelectorAll<HTMLElement>('.sn-dm-bubble');
         const last = bubbles[bubbles.length - 1];
         if (!last) return null;
         return {
@@ -117,11 +117,11 @@
     }
 
     function nudgeToggleBtn(): void {
-        toggleBtn.classList.remove('dm-toggle-btn--nudge');
+        toggleBtn.classList.remove('sn-dm-toggle-btn--nudge');
         void toggleBtn.offsetWidth; // force reflow so animation restarts if already running
-        toggleBtn.classList.add('dm-toggle-btn--nudge');
+        toggleBtn.classList.add('sn-dm-toggle-btn--nudge');
         toggleBtn.addEventListener('animationend', () => {
-            toggleBtn.classList.remove('dm-toggle-btn--nudge');
+            toggleBtn.classList.remove('sn-dm-toggle-btn--nudge');
         }, { once: true });
     }
 
@@ -144,9 +144,9 @@
 
     function renderAvatar(conv: ConvInfo, size: 'sm' | 'xs' = 'sm'): string {
         const initial = escapeHtml((conv.displayName[0] ?? '?').toUpperCase());
-        return `<img src="${escapeHtml(conv.avatarUrl)}" alt="" class="dm-avatar dm-avatar--${size}" loading="lazy"
+        return `<img src="${escapeHtml(conv.avatarUrl)}" alt="" class="sn-dm-avatar sn-dm-avatar--${size}" loading="lazy"
                      onerror="this.style.display='none';this.nextElementSibling.style.removeProperty('display')">
-                <span class="dm-avatar-initials dm-avatar--${size}" style="display:none">${initial}</span>`;
+                <span class="sn-dm-avatar-initials sn-dm-avatar--${size}" style="display:none">${initial}</span>`;
     }
 
     // ── Session persistence ───────────────────────────────────────────────────
@@ -191,27 +191,27 @@
 
         // Conversation panel (shows recent conversations)
         panelEl = document.createElement('div');
-        panelEl.className = 'dm-panel';
+        panelEl.className = 'sn-dm-panel';
         panelEl.style.display = 'none';
         panelEl.innerHTML = `
-            <div class="dm-panel-header">
-                <span class="font-semibold text-sm">Messages</span>
-                <div class="flex items-center gap-2">
-                    <button type="button" class="dm-mute-btn" aria-label="Toggle sound">
-                        <span class="icon dm-mute-icon" aria-hidden="true"></span>
+            <div class="sn-dm-panel-header">
+                <span class="sn-font-semibold sn-text-sm">Messages</span>
+                <div class="sn-flex sn-items-center sn-gap-2">
+                    <button type="button" class="sn-dm-mute-btn" aria-label="Toggle sound">
+                        <span class="sn-icon dm-mute-icon" aria-hidden="true"></span>
                     </button>
-                    <a href="/messages" class="text-xs dm-panel-view-all" hx-boost="false">View all</a>
+                    <a href="/messages" class="sn-text-xs sn-dm-panel-view-all" hx-boost="false">View all</a>
                 </div>
             </div>
-            <div class="dm-panel-list"></div>
+            <div class="sn-dm-panel-list"></div>
         `;
-        panelListEl = panelEl.querySelector('.dm-panel-list')!;
+        panelListEl = panelEl.querySelector('.sn-dm-panel-list')!;
 
-        const muteBtn = panelEl.querySelector<HTMLButtonElement>('.dm-mute-btn')!;
+        const muteBtn = panelEl.querySelector<HTMLButtonElement>('.sn-dm-mute-btn')!;
         const muteIcon = panelEl.querySelector<HTMLElement>('.dm-mute-icon')!;
 
         function updateMuteIcon(): void {
-            muteIcon.className = `icon ${isMuted ? 'icon-volume-off' : 'icon-volume-up'} dm-mute-icon`;
+            muteIcon.className = `sn-icon ${isMuted ? 'icon-volume-off' : 'icon-volume-up'} dm-mute-icon`;
             muteBtn.title = isMuted ? 'Sound off (click to enable)' : 'Sound on (click to mute)';
         }
         updateMuteIcon();
@@ -225,12 +225,12 @@
 
         // Toggle button
         toggleBtn = document.createElement('button');
-        toggleBtn.className = 'dm-toggle-btn';
+        toggleBtn.className = 'sn-dm-toggle-btn';
         toggleBtn.type = 'button';
         toggleBtn.setAttribute('aria-label', 'Messages');
         toggleBtn.innerHTML = `
-            <span class="icon icon-chat-bubbles dm-toggle-icon" aria-hidden="true"></span>
-            <span class="dm-badge hidden">0</span>
+            <span class="sn-icon icon-chat-bubbles sn-dm-toggle-icon" aria-hidden="true"></span>
+            <span class="sn-dm-badge sn-hidden">0</span>
         `;
 
         widgetEl.appendChild(panelEl);
@@ -264,28 +264,28 @@
         if (panelOpen) { closePanel(); return; }
         panelOpen = true;
         panelEl.style.display = '';
-        toggleBtn.classList.add('dm-toggle-btn--active');
+        toggleBtn.classList.add('sn-dm-toggle-btn--active');
         if (!panelLoaded) { void loadConversationList(); }
     }
 
     function closePanel(): void {
         panelOpen = false;
         panelEl.style.display = 'none';
-        toggleBtn.classList.remove('dm-toggle-btn--active');
+        toggleBtn.classList.remove('sn-dm-toggle-btn--active');
     }
 
     async function loadConversationList(): Promise<void> {
         panelLoaded = true;
-        panelListEl.innerHTML = '<div class="dm-panel-loading">Loading…</div>';
+        panelListEl.innerHTML = '<div class="sn-dm-panel-loading">Loading…</div>';
 
         try {
             const res = await fetch('/bff/messages/conversations?offset=0&pageSize=10', { credentials: 'include' });
-            if (!res.ok) { panelListEl.innerHTML = '<div class="dm-panel-empty">Could not load</div>'; return; }
+            if (!res.ok) { panelListEl.innerHTML = '<div class="sn-dm-panel-empty">Could not load</div>'; return; }
 
             const data = await res.json() as { items: Array<{ publicId: string; otherUser: { publicId: string; displayName: string; avatarUrl: string }; lastMessageExcerpt?: string }> };
 
             if (!data.items?.length) {
-                panelListEl.innerHTML = '<div class="dm-panel-empty">No conversations yet</div>';
+                panelListEl.innerHTML = '<div class="sn-dm-panel-empty">No conversations yet</div>';
                 return;
             }
 
@@ -300,19 +300,19 @@
                 };
                 const item = document.createElement('button');
                 item.type = 'button';
-                item.className = 'dm-panel-item';
+                item.className = 'sn-dm-panel-item';
                 item.innerHTML = `
                     ${renderAvatar(conv, 'sm')}
-                    <div class="dm-panel-item-text">
-                        <div class="dm-panel-item-name">${escapeHtml(conv.displayName)}</div>
-                        ${conv.lastMessageExcerpt ? `<div class="dm-panel-item-excerpt">${escapeHtml(conv.lastMessageExcerpt)}</div>` : ''}
+                    <div class="sn-dm-panel-item-text">
+                        <div class="sn-dm-panel-item-name">${escapeHtml(conv.displayName)}</div>
+                        ${conv.lastMessageExcerpt ? `<div class="sn-dm-panel-item-excerpt">${escapeHtml(conv.lastMessageExcerpt)}</div>` : ''}
                     </div>
                 `;
                 item.addEventListener('click', () => { openWindow(conv); closePanel(); });
                 panelListEl.appendChild(item);
             }
         } catch {
-            panelListEl.innerHTML = '<div class="dm-panel-empty">Could not load</div>';
+            panelListEl.innerHTML = '<div class="sn-dm-panel-empty">Could not load</div>';
         }
     }
 
@@ -378,38 +378,38 @@
     }
 
     function focusWindow(el: HTMLElement): void {
-        el.querySelector<HTMLTextAreaElement>('.dm-win-textarea')?.focus();
+        el.querySelector<HTMLTextAreaElement>('.sn-dm-win-textarea')?.focus();
     }
 
     function createWindowEl(conv: ConvInfo): HTMLElement {
         const win = document.createElement('div');
-        win.className = 'dm-window';
+        win.className = 'sn-dm-window';
         win.dataset.convId = conv.publicId;
         win.innerHTML = `
-            <div class="dm-win-header">
+            <div class="sn-dm-win-header">
                 ${renderAvatar(conv, 'xs')}
-                <span class="dm-win-name">${escapeHtml(conv.displayName)}</span>
-                <a href="/messages/${encodeURIComponent(conv.publicId)}" class="dm-win-expand" aria-label="Open full conversation" hx-boost="false" title="Open full view">
-                    <span class="icon icon-expand-fullscreen" style="width:.875rem;height:.875rem" aria-hidden="true"></span>
+                <span class="sn-dm-win-name">${escapeHtml(conv.displayName)}</span>
+                <a href="/messages/${encodeURIComponent(conv.publicId)}" class="sn-dm-win-expand" aria-label="Open full conversation" hx-boost="false" title="Open full view">
+                    <span class="sn-icon icon-expand-fullscreen" style="width:.875rem;height:.875rem" aria-hidden="true"></span>
                 </a>
-                <button type="button" class="dm-win-close" aria-label="Close chat">
-                    <span class="icon icon-x" style="width:.875rem;height:.875rem" aria-hidden="true"></span>
+                <button type="button" class="sn-dm-win-close" aria-label="Close chat">
+                    <span class="sn-icon icon-x" style="width:.875rem;height:.875rem" aria-hidden="true"></span>
                 </button>
             </div>
-            <div class="dm-win-messages">
-                <div class="dm-win-loading">Loading…</div>
+            <div class="sn-dm-win-messages">
+                <div class="sn-dm-win-loading">Loading…</div>
             </div>
-            <div class="dm-win-typing" hidden><span></span><span></span><span></span></div>
-            <div class="dm-win-compose">
-                <textarea class="dm-win-textarea" placeholder="Aa" maxlength="2000" rows="1"></textarea>
-                <button type="button" class="dm-win-send" disabled aria-label="Send">↑</button>
+            <div class="sn-dm-win-typing" hidden><span></span><span></span><span></span></div>
+            <div class="sn-dm-win-compose">
+                <textarea class="sn-dm-win-textarea" placeholder="Aa" maxlength="2000" rows="1"></textarea>
+                <button type="button" class="sn-dm-win-send" disabled aria-label="Send">↑</button>
             </div>
         `;
 
-        const closeBtn = win.querySelector<HTMLButtonElement>('.dm-win-close')!;
-        const expandLink = win.querySelector<HTMLAnchorElement>('.dm-win-expand')!;
-        const textarea = win.querySelector<HTMLTextAreaElement>('.dm-win-textarea')!;
-        const sendBtn = win.querySelector<HTMLButtonElement>('.dm-win-send')!;
+        const closeBtn = win.querySelector<HTMLButtonElement>('.sn-dm-win-close')!;
+        const expandLink = win.querySelector<HTMLAnchorElement>('.sn-dm-win-expand')!;
+        const textarea = win.querySelector<HTMLTextAreaElement>('.sn-dm-win-textarea')!;
+        const sendBtn = win.querySelector<HTMLButtonElement>('.sn-dm-win-send')!;
 
         closeBtn.addEventListener('click', () => closeWindow(conv.publicId));
 
@@ -463,15 +463,15 @@
         const state = openWindows.get(convId);
         if (!state) return;
 
-        const messagesEl = state.el.querySelector<HTMLElement>('.dm-win-messages')!;
-        messagesEl.innerHTML = '<div class="dm-win-loading">Loading…</div>';
+        const messagesEl = state.el.querySelector<HTMLElement>('.sn-dm-win-messages')!;
+        messagesEl.innerHTML = '<div class="sn-dm-win-loading">Loading…</div>';
 
         try {
             const res = await fetch(
                 `/bff/messages/conversations/${encodeURIComponent(convId)}/messages?offset=0&pageSize=${MSG_PAGE_SIZE}`,
                 { credentials: 'include' }
             );
-            if (!res.ok) { messagesEl.innerHTML = '<div class="dm-win-loading">Could not load</div>'; return; }
+            if (!res.ok) { messagesEl.innerHTML = '<div class="sn-dm-win-loading">Could not load</div>'; return; }
 
             const data = await res.json() as { items: MessageInfo[] };
             messagesEl.innerHTML = '';
@@ -498,7 +498,7 @@
             void markAsReadAndUpdateBadge(convId);
 
         } catch {
-            messagesEl.innerHTML = '<div class="dm-win-loading">Could not load</div>';
+            messagesEl.innerHTML = '<div class="sn-dm-win-loading">Could not load</div>';
         }
     }
 
@@ -512,7 +512,7 @@
                 if (!res.ok) continue;
 
                 const data = await res.json() as { items: MessageInfo[] };
-                const messagesEl = state.el.querySelector<HTMLElement>('.dm-win-messages');
+                const messagesEl = state.el.querySelector<HTMLElement>('.sn-dm-win-messages');
                 if (!messagesEl) continue;
 
                 // API returns newest-first. Collect unseen messages, then append oldest-first.
@@ -554,8 +554,8 @@
         const state = openWindows.get(convId);
         if (!state) return;
 
-        const textarea = state.el.querySelector<HTMLTextAreaElement>('.dm-win-textarea')!;
-        const sendBtn = state.el.querySelector<HTMLButtonElement>('.dm-win-send')!;
+        const textarea = state.el.querySelector<HTMLTextAreaElement>('.sn-dm-win-textarea')!;
+        const sendBtn = state.el.querySelector<HTMLButtonElement>('.sn-dm-win-send')!;
         const content = textarea.value.trim();
         if (!content) return;
 
@@ -574,7 +574,7 @@
             if (!res.ok) { textarea.value = content; return; }
 
             const msg = await res.json() as MessageInfo;
-            const messagesEl = state.el.querySelector<HTMLElement>('.dm-win-messages')!;
+            const messagesEl = state.el.querySelector<HTMLElement>('.sn-dm-win-messages')!;
             const lastInfo = getLastBubbleInfo(messagesEl);
             const dateStr = new Date(msg.createdAt).toDateString();
             const needsSep = !lastInfo || dateStr !== lastInfo.dateStr;
@@ -618,20 +618,20 @@
 
         if (needsDateSep) {
             const sep = document.createElement('div');
-            sep.className = 'dm-date-separator';
+            sep.className = 'sn-dm-date-separator';
             sep.innerHTML = `<span>${formatDate(msg.createdAt)}</span>`;
             messagesEl.appendChild(sep);
         }
 
         const bubble = document.createElement('div');
-        bubble.className = `dm-bubble ${msg.isMine ? 'dm-bubble--mine' : 'dm-bubble--theirs'}${isFirstInGroup ? ' dm-bubble--first-in-group' : ''}`;
+        bubble.className = `sn-dm-bubble ${msg.isMine ? 'sn-dm-bubble--mine' : 'sn-dm-bubble--theirs'}${isFirstInGroup ? ' sn-dm-bubble--first-in-group' : ''}`;
         bubble.dataset.msgId = msg.publicId;
         bubble.dataset.senderPublicId = msg.senderPublicId;
         bubble.dataset.dateStr = new Date(msg.createdAt).toDateString();
         bubble.innerHTML = `
-            <div class="dm-bubble-body">
-                <div class="dm-bubble-content">${escapeHtml(msg.content)}</div>
-                <span class="dm-bubble-time">${formatTime(msg.createdAt)}</span>
+            <div class="sn-dm-bubble-body">
+                <div class="sn-dm-bubble-content">${escapeHtml(msg.content)}</div>
+                <span class="sn-dm-bubble-time">${formatTime(msg.createdAt)}</span>
             </div>
         `;
         messagesEl.appendChild(bubble);
@@ -650,7 +650,7 @@
         const state = openWindows.get(conversationId);
         if (!state) return;
 
-        const typingEl = state.el.querySelector<HTMLElement>('.dm-win-typing');
+        const typingEl = state.el.querySelector<HTMLElement>('.sn-dm-win-typing');
         if (!typingEl) return;
 
         const existing = dmTypingTimeouts.get(conversationId);
@@ -687,7 +687,7 @@
         if (detail.source === 'widget') return; // own event
         const state = openWindows.get(detail.conversationId);
         if (!state) return;
-        const messagesEl = state.el.querySelector<HTMLElement>('.dm-win-messages');
+        const messagesEl = state.el.querySelector<HTMLElement>('.sn-dm-win-messages');
         if (!messagesEl) return;
         if (messagesEl.querySelector(`[data-msg-id="${detail.publicId}"]`)) return;
         const msg: MessageInfo = {
@@ -711,7 +711,7 @@
         const detail = (e as CustomEvent).detail as { conversationId: string; messageIds: string[] };
         const state = openWindows.get(detail.conversationId);
         if (!state) return;
-        const messagesEl = state.el.querySelector<HTMLElement>('.dm-win-messages');
+        const messagesEl = state.el.querySelector<HTMLElement>('.sn-dm-win-messages');
         if (!messagesEl) return;
         if (detail.messageIds.length === 0) {
             // Entire conversation deleted — close the window

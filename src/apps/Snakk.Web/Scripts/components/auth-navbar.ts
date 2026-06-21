@@ -47,18 +47,18 @@ interface NotificationsResponse {
     }
 
     function updateNotificationBadge(count: number): void {
-        document.querySelectorAll<HTMLElement>('.notification-badge').forEach(badge => {
+        document.querySelectorAll<HTMLElement>('.sn-notification-badge').forEach(badge => {
             if (count > 0) {
                 badge.textContent = count > 99 ? '99+' : count.toString();
-                badge.classList.remove('hidden');
+                badge.classList.remove('sn-hidden');
             } else {
-                badge.classList.add('hidden');
+                badge.classList.add('sn-hidden');
             }
         });
     }
 
     async function loadNotifications(): Promise<void> {
-        const lists = document.querySelectorAll<HTMLElement>('.notification-list');
+        const lists = document.querySelectorAll<HTMLElement>('.sn-notification-list');
         if (!lists.length) return;
 
         try {
@@ -71,18 +71,18 @@ interface NotificationsResponse {
             }
 
             const html = data.items.map(n => `
-                <div class="notification-item ${n.isRead ? '' : 'unread'}" data-id="${escapeHtml(n.publicId)}">
-                    <div class="flex items-start gap-2 p-2 rounded hover:bg-subtle cursor-pointer"
+                <div class="sn-notification-item ${n.isRead ? '' : 'sn-unread'}" data-id="${escapeHtml(n.publicId)}">
+                    <div class="sn-flex sn-items-start sn-gap-2 sn-p-2 sn-rounded hover:bg-subtle sn-cursor-pointer"
                          data-action="click-notification"
                          data-notification-id="${escapeHtml(n.publicId)}"
                          data-discussion-id="${escapeHtml(n.sourceDiscussionId || '')}">
-                        <div class="notification-icon ${getNotificationIconClass(n.type)}">
+                        <div class="sn-notification-icon ${getNotificationIconClass(n.type)}">
                             ${getNotificationIcon(n.type)}
                         </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium truncate">${escapeHtml(n.title)}</p>
-                            ${n.body ? `<p class="text-xs text-muted line-clamp-2">${escapeHtml(n.body)}</p>` : ''}
-                            <p class="text-xs text-muted mt-1">${formatTimeAgo(n.createdAt)}</p>
+                        <div class="sn-flex-1 sn-min-w-0">
+                            <p class="sn-text-sm sn-font-medium sn-truncate">${escapeHtml(n.title)}</p>
+                            ${n.body ? `<p class="sn-text-xs sn-text-muted line-clamp-2">${escapeHtml(n.body)}</p>` : ''}
+                            <p class="sn-text-xs sn-text-muted sn-mt-1">${formatTimeAgo(n.createdAt)}</p>
                         </div>
                     </div>
                 </div>
@@ -109,7 +109,7 @@ interface NotificationsResponse {
             loadNotificationCount();
 
             const item = document.querySelector(`[data-id="${notificationId}"]`);
-            if (item) item.classList.remove('unread');
+            if (item) item.classList.remove('sn-unread');
 
             if (discussionId) {
                 // Navigate to discussion if available
@@ -128,8 +128,8 @@ interface NotificationsResponse {
 
             updateNotificationBadge(0);
 
-            document.querySelectorAll('.notification-item.unread').forEach(el => {
-                el.classList.remove('unread');
+            document.querySelectorAll('.sn-notification-item.sn-unread').forEach(el => {
+                el.classList.remove('sn-unread');
             });
         } catch (err) {
             console.warn('[Auth Navbar] Failed to mark all notifications as read:', err);
@@ -145,6 +145,7 @@ interface NotificationsResponse {
         } catch (err) {
             console.warn('[Auth Navbar] Logout error:', err);
         } finally {
+            window.SnakkBroadcast?.send({ type: 'auth:logout' });
             window.location.replace('/');
         }
     }
@@ -153,19 +154,19 @@ interface NotificationsResponse {
 
     function getNotificationIconClass(type: string): string {
         const classes: Record<string, string> = {
-            'Reply': 'text-primary',
+            'Reply': 'sn-text-primary',
             'Mention': 'text-accent'
         };
-        return classes[type] || 'text-muted';
+        return classes[type] || 'sn-text-muted';
     }
 
     function getNotificationIcon(type: string): string {
         const icons: Record<string, string> = {
-            'Reply': '<span class="icon icon-reply h-4 w-4" aria-hidden="true"></span>',
-            'Mention': '<span class="icon icon-at-sign h-4 w-4" aria-hidden="true"></span>',
-            'NewPostInFollowedDiscussion': '<span class="icon icon-chat-alt h-4 w-4" aria-hidden="true"></span>'
+            'Reply': '<span class="sn-icon icon-reply sn-h-4 sn-w-4" aria-hidden="true"></span>',
+            'Mention': '<span class="sn-icon icon-at-sign sn-h-4 sn-w-4" aria-hidden="true"></span>',
+            'NewPostInFollowedDiscussion': '<span class="sn-icon icon-chat-alt sn-h-4 sn-w-4" aria-hidden="true"></span>'
         };
-        return icons[type] || '<span class="icon icon-bell h-4 w-4" aria-hidden="true"></span>';
+        return icons[type] || '<span class="sn-icon icon-bell sn-h-4 sn-w-4" aria-hidden="true"></span>';
     }
 
     const formatTimeAgo = (dateString: string): string => (window as any).SnakkUtils.formatRelativeTime(dateString);
@@ -189,7 +190,6 @@ interface NotificationsResponse {
                 break;
             case 'toggle-theme':
                 (window as any).snakkTheme?.toggleTheme();
-                (document.activeElement as HTMLElement)?.blur();
                 break;
             case 'mark-all-notifications-read':
                 await markAllNotificationsAsRead();
@@ -200,15 +200,45 @@ interface NotificationsResponse {
         }
     });
 
-    // Close daisyUI dropdowns when any item inside them is clicked.
-    // Without this, HTMX-boosted links and data-action anchors never cause
-    // the trigger label to lose focus, so the dropdown stays open.
+    // Close a popover panel when any interactive item inside it is clicked.
+    // The Popover API handles light-dismiss (click outside) for free; this covers
+    // clicks on links, buttons, and data-action elements inside the panel.
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
-        if (target.closest('.dropdown-content')) {
-            (document.activeElement as HTMLElement)?.blur();
+        const panel = target.closest<HTMLElement>('[popover].sn-dropdown-panel');
+        if (!panel || !panel.matches(':popover-open')) return;
+        if (target.closest('a, button, [data-action]')) {
+            panel.hidePopover();
         }
     });
+
+    // ===== Dropdown Positioning =====
+
+    function positionPanel(panel: HTMLElement): void {
+        const trigger = document.querySelector<HTMLElement>(`[popovertarget="${panel.id}"]`);
+        if (!trigger) return;
+        const rect = trigger.getBoundingClientRect();
+        if (panel.classList.contains('sn-dropdown-panel-top')) {
+            panel.style.top = 'auto';
+            panel.style.bottom = `${window.innerHeight - rect.top + 4}px`;
+        } else {
+            panel.style.top = `${rect.bottom + 4}px`;
+            panel.style.bottom = 'auto';
+        }
+        panel.style.right = `${window.innerWidth - rect.right}px`;
+        panel.style.left = 'auto';
+    }
+
+    function initDropdownPositioning(root: Document | Element = document): void {
+        root.querySelectorAll<HTMLElement>('[popover].sn-dropdown-panel:not([data-dp-init])').forEach(panel => {
+            panel.dataset.dpInit = '1';
+            panel.addEventListener('toggle', (e: Event) => {
+                if ((e as ToggleEvent).newState === 'open') {
+                    positionPanel(panel);
+                }
+            });
+        });
+    }
 
     // ===== DM Badge =====
 
@@ -224,12 +254,12 @@ interface NotificationsResponse {
     }
 
     function updateDmBadge(count: number): void {
-        document.querySelectorAll<HTMLElement>('.dm-badge').forEach(badge => {
+        document.querySelectorAll<HTMLElement>('.sn-dm-badge').forEach(badge => {
             if (count > 0) {
                 badge.textContent = count > 99 ? '99+' : count.toString();
-                badge.classList.remove('hidden');
+                badge.classList.remove('sn-hidden');
             } else {
-                badge.classList.add('hidden');
+                badge.classList.add('sn-hidden');
             }
         });
     }
@@ -265,6 +295,9 @@ interface NotificationsResponse {
 
         // Update theme toggle button icon with current state
         (window as any).snakkTheme?.updateToggleButton();
+
+        // Wire up Popover API positioning for all dropdown panels on this page
+        initDropdownPositioning();
     }
 
     if (document.readyState === 'loading') {
@@ -273,9 +306,33 @@ interface NotificationsResponse {
         init();
     }
 
+    document.addEventListener('htmx:afterSettle', () => initDropdownPositioning());
+
+    // Cross-tab sync via BroadcastChannel
+    window.SnakkBroadcast?.on('auth:logout', () => { window.location.replace('/'); });
+    window.SnakkBroadcast?.on('profile:avatar-changed', msg => {
+        document.querySelectorAll<HTMLImageElement>(
+            '#auth-nav .avatar-sm img, #auth-nav .sn-user-menu-card-avatar, .sn-tabbar .avatar-sm img, .sn-tabbar .sn-user-menu-card-avatar'
+        ).forEach(img => { img.removeAttribute('srcset'); img.src = msg.url; });
+    });
+    window.SnakkBroadcast?.on('profile:display-name-changed', msg => {
+        document.querySelectorAll<HTMLElement>('.sn-user-menu-card-name').forEach(el => { el.textContent = msg.displayName; });
+    });
+    window.SnakkBroadcast?.on('pref:content-width-changed', msg => {
+        if (msg.value === 54) document.documentElement.style.removeProperty('--content-width');
+        else document.documentElement.style.setProperty('--content-width', msg.value + 'rem');
+    });
+
     // Export minimal API
     (window as any).SnakkAuthNav = {
         updateNotificationBadge,
         updateDmBadge
+    };
+
+    // Export dropdown positioning so dynamically-created panels (e.g. discussion-detail.ts)
+    // can register toggle listeners after inserting new panels into the DOM.
+    (window as any).snakkDropdown = {
+        position: positionPanel,
+        init: initDropdownPositioning
     };
 })();

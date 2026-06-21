@@ -4,11 +4,11 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Moderators == null || Model.Moderators.TotalCount == 0)
 {
-    <p class="text-sm text-base-content/50">@T.Sidebar.EmptyModerators</p>
+    <p class="sn-text-sm sn-text-muted">@T.Sidebar.EmptyModerators</p>
 }
 else
 {
-    <div class="grid grid-cols-8 gap-1">
+    <div class="sn-grid sn-grid-cols-8 sn-gap-1">
         @foreach (var group in Model.Moderators.Groups)
         {
             @foreach (var mod in group.Moderators)
@@ -18,7 +18,7 @@ else
                    data-popup-type="user" data-popup-id="@mod.UserPublicId" data-popup-name="@mod.DisplayName">
                     <img src="@SnakkUrlHelper.UserAvatar(mod.UserPublicId)"
                          alt="@mod.DisplayName"
-                         class="rounded-full w-full aspect-square object-cover shadow-layered"
+                         class="sn-rounded-full sn-w-full aspect-square sn-object-cover sn-shadow-layered"
                          loading="lazy" decoding="async" />
                 </a>
             }

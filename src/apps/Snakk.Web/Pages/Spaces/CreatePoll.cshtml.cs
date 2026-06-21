@@ -11,6 +11,7 @@ public class NewPollModel(
 {
     protected override int DiscussionType => 2;
     protected override string TypeSlug => "poll";
+    protected override void PreloadPageCss() { base.PreloadPageCss(); Preload("type-poll"); }
 
     [BindProperty] public List<string> PollOptions { get; set; } = [];
     [BindProperty] public bool PollAllowMultiple { get; set; }

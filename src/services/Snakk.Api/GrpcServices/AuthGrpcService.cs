@@ -214,6 +214,46 @@ public class AuthGrpcService(
         };
     }
 
+    public override async Task<AuthTokenResponse> ReloginWithRefreshToken(
+        ReloginWithRefreshTokenRequest request, ServerCallContext ctx)
+    {
+        var result = await authUseCase.ReloginWithRefreshTokenAsync(request.RefreshToken, request.Password);
+
+        if (!result.IsSuccess)
+            throw new RpcException(new Status(StatusCode.Unauthenticated, result.Error ?? "Relogin failed"));
+
+        var (user, newRefreshToken) = result.Value;
+        var roles = await authDataService.GetUserRolesAsync(user.PublicId.Value);
+
+        var newRawToken = newRefreshToken.Value;
+        var newTokenHash = Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(newRawToken)));
+        var newSessionPublicId = await authDataService.GetRefreshTokenSessionIdAsync(newTokenHash);
+
+        var jwt = jwtService.GenerateToken(
+            user.PublicId.Value,
+            user.DisplayName,
+            user.Email,
+            user.EmailVerified,
+            roles.FirstOrDefault(),
+            user.AvatarFileName,
+            authVersion: user.AuthVersion,
+            sessionId: newSessionPublicId,
+            twoFactorEnabled: user.TwoFactorEnabled,
+            slug: user.Slug);
+
+        return new AuthTokenResponse
+        {
+            AccessToken  = jwt,
+            RefreshToken = newRefreshToken.Value,
+            User = new UserInfo
+            {
+                Id             = user.PublicId.Value,
+                DisplayName    = user.DisplayName,
+                EmailVerified  = user.EmailVerified,
+            }
+        };
+    }
+
     public override async Task<Protos.Auth.MessageResponse> VerifyEmail(VerifyEmailRequest request, ServerCallContext ctx)
     {
         var result = await authUseCase.VerifyEmailAsync(request.Token);

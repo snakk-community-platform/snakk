@@ -88,18 +88,18 @@
         if (!text) return;
 
         scopeLabel = document.createElement('span');
-        scopeLabel.className = 'scope-label';
-        scopeLabel.innerHTML = `<span class="scope-label-text">${escapeHtml(text)}</span>`;
+        scopeLabel.className = 'sn-scope-label';
+        scopeLabel.innerHTML = `<span class="scope-sn-label-text">${escapeHtml(text)}</span>`;
 
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
-        closeBtn.className = 'scope-label-close';
+        closeBtn.className = 'sn-scope-label-close';
         closeBtn.setAttribute('aria-label', 'Clear scope filter');
         closeBtn.innerHTML = '<span class="icon icon-x" style="width:14px;height:14px" aria-hidden="true"></span>';
         closeBtn.addEventListener('click', clearScope);
         scopeLabel.appendChild(closeBtn);
 
-        inputWrapper.classList.add('has-scope-label');
+        inputWrapper.classList.add('sn-has-scope-label');
         inputWrapper.insertBefore(scopeLabel, input);
     }
 
@@ -112,7 +112,7 @@
             scopeLabel = null;
         }
 
-        inputWrapper.classList.remove('has-scope-label');
+        inputWrapper.classList.remove('sn-has-scope-label');
         updatePlaceholder();
 
         // Clear current selection and re-search globally
@@ -120,7 +120,7 @@
             selectedSpace = null;
             input.value = '';
             if (hiddenId) hiddenId.value = '';
-            typePickerSection.classList.add('hidden');
+            typePickerSection.classList.add('sn-hidden');
         }
 
         input.focus();
@@ -150,10 +150,10 @@
 
     function renderDropdown(spaces: SpaceResult[]): void {
         if (spaces.length === 0) {
-            dropdown.innerHTML = '<div class="px-4 py-3 text-sm text-base-content/50">No spaces found</div>';
+            dropdown.innerHTML = '<div class="sn-px-4 sn-py-3 sn-text-sm sn-text-faint">No spaces found</div>';
         } else {
             dropdown.innerHTML = spaces.map(s => `
-                <button type="button" class="space-option w-full text-left px-4 py-2.5 hover:bg-base-200 transition-colors cursor-pointer flex items-center gap-3"
+                <button type="button" class="space-option sn-w-full sn-px-4 sn-flex sn-items-center sn-gap-3"
                         data-id="${escapeHtml(s.publicId)}"
                         data-name="${escapeHtml(s.name)}"
                         data-slug="${escapeHtml(s.slug)}"
@@ -163,12 +163,12 @@
                         data-community-name="${escapeHtml(s.communityName)}"
                         data-avatar-url="${escapeHtml(s.avatarUrl)}"
                         data-discussion-count="${s.discussionCount}">
-                    <img src="${escapeHtml(s.avatarUrl)}" alt="" width="32" height="32" class="w-8 h-8 rounded-full shrink-0" />
-                    <div class="flex-1 min-w-0">
-                        <div class="font-medium text-sm">${escapeHtml(s.name)}</div>
-                        <div class="text-xs text-base-content/50">${escapeHtml(s.communityName)} &rsaquo; ${escapeHtml(s.hubName)}</div>
+                    <img src="${escapeHtml(s.avatarUrl)}" alt="" width="32" height="32" class="sn-w-8 sn-h-8 sn-rounded-full sn-shrink-0" />
+                    <div class="sn-flex-1 sn-min-w-0">
+                        <div class="sn-font-medium sn-text-sm">${escapeHtml(s.name)}</div>
+                        <div class="sn-text-xs sn-text-faint">${escapeHtml(s.communityName)} &rsaquo; ${escapeHtml(s.hubName)}</div>
                     </div>
-                    <span class="flex items-center gap-1 text-xs text-base-content/40 shrink-0">
+                    <span class="sn-flex sn-items-center sn-gap-1 sn-text-xs sn-text-faint sn-shrink-0">
                         <span class="icon icon-chat-bubble" style="width:14px;height:14px" aria-hidden="true"></span>
                         ${s.discussionCount}
                     </span>
@@ -176,12 +176,12 @@
             `).join('');
         }
 
-        dropdown.classList.remove('hidden');
+        dropdown.classList.remove('sn-hidden');
         isOpen = true;
     }
 
     function closeDropdown(): void {
-        dropdown.classList.add('hidden');
+        dropdown.classList.add('sn-hidden');
         isOpen = false;
     }
 
@@ -202,16 +202,16 @@
 
     function showTypeSkeletons(): void {
         typeCards.innerHTML = Array.from({ length: 4 }, () => `
-            <div class="new-discussion-type-card">
-                <div class="flex items-center gap-2 mb-1.5">
-                    <div class="skeleton w-6 h-6 rounded"></div>
-                    <div class="skeleton h-4 w-24"></div>
+            <div class="sn-new-discussion-type-card">
+                <div class="sn-flex sn-items-center sn-gap-2 sn-mb-2">
+                    <div class="sn-skeleton sn-rounded" style="width:1.5rem;height:1.5rem"></div>
+                    <div class="sn-skeleton" style="height:1rem;width:6rem"></div>
                 </div>
-                <div class="skeleton h-3 w-3/4 mb-2"></div>
-                <div class="skeleton h-3 w-1/2"></div>
+                <div class="sn-skeleton sn-mb-2" style="height:0.75rem;width:75%"></div>
+                <div class="sn-skeleton" style="height:0.75rem;width:50%"></div>
             </div>
         `).join('');
-        typePickerSection.classList.remove('hidden');
+        typePickerSection.classList.remove('sn-hidden');
     }
 
     async function loadAllowedTypes(space: SpaceResult): Promise<void> {
@@ -241,18 +241,18 @@
         typeCards.innerHTML = filtered.map(t => {
             const url = buildDiscussionUrl(space, t.slug);
             return `
-                <a href="${escapeHtml(url)}" class="new-discussion-type-card" hx-boost="false">
-                    <div class="flex items-center gap-2 mb-1.5">
-                        ${t.icon ? `<span class="text-lg">${t.icon}</span>` : ''}
-                        <span class="font-semibold">${escapeHtml(t.label)}</span>
+                <a href="${escapeHtml(url)}" class="sn-new-discussion-type-card" hx-boost="false">
+                    <div class="sn-flex sn-items-center sn-gap-2 sn-mb-2">
+                        ${t.icon ? `<span class="sn-text-lg" aria-hidden="true">${t.icon}</span>` : ''}
+                        <span class="sn-font-semibold">${escapeHtml(t.label)}</span>
                     </div>
-                    <p class="text-sm text-base-content/70 mb-2">${escapeHtml(t.description)}</p>
-                    <p class="text-xs text-base-content/40">${escapeHtml(t.features)}</p>
+                    <p class="sn-text-sm sn-text-muted sn-mb-2">${escapeHtml(t.description)}</p>
+                    <p class="sn-text-xs sn-text-faint">${escapeHtml(t.features)}</p>
                 </a>
             `;
         }).join('');
 
-        typePickerSection.classList.remove('hidden');
+        typePickerSection.classList.remove('sn-hidden');
     }
 
     // Pre-select space by ID (fetches details from BFF)
@@ -280,7 +280,7 @@
         if (selectedSpace) {
             selectedSpace = null;
             if (hiddenId) hiddenId.value = '';
-            typePickerSection.classList.add('hidden');
+            typePickerSection.classList.add('sn-hidden');
         }
 
         if (debounceTimer) clearTimeout(debounceTimer);

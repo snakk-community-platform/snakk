@@ -7,10 +7,10 @@
 
 // Fallback for images not in a group — applies only before JS fires.
 // Once JS runs, each image is wrapped in .prose-img-wrap (see below).
-.prose-content > p > img {
+.sn-prose-content > p > img {
     max-width: 100%;
     height: auto;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
 }
 
 // LQIP wrapper inserted by inline-gallery.ts around standalone prose images.
@@ -19,10 +19,8 @@
     display: inline-block;
     max-width: 100%;
     vertical-align: top;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     overflow: hidden;
-    background-size: cover;
-    background-position: center;
     cursor: pointer;
 
     > img {
@@ -32,15 +30,20 @@
     }
 }
 
+.prose-img-wrap {
+    background-size: cover;
+    background-position: center;
+}
+
 // Scoped overrides: gup-* galleries embedded in post prose
-.prose-content {
+.sn-prose-content {
     .gup-grid,
     .gup-masonry,
     .gup-justified,
     .gup-single,
     .ig-carousel {
-        margin-block: 0.5rem;
-        border-radius: 0.5rem;
+        margin-block: var(--space-4);
+        border-radius: var(--radius-lg);
         overflow: hidden;
     }
 
@@ -54,7 +57,11 @@
 
     .images-upload-item {
         cursor: pointer;
+    }
+}
 
+.sn-prose-content {
+    .images-upload-item {
         &:hover img {
             opacity: 0.9;
         }
@@ -69,7 +76,7 @@
 .ig-single {
     display: block;
     max-width: 100%;
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     overflow: hidden;
     position: relative;
     cursor: pointer;
@@ -80,11 +87,6 @@
         content: '';
         position: absolute;
         inset: 0;
-        background-image: var(--blur-bg, none);
-        background-size: cover;
-        background-position: center;
-        filter: blur(30px) brightness(0.85);
-        transform: scale(1.2);
         z-index: 0;
     }
 
@@ -97,10 +99,19 @@
     }
 }
 
+.ig-single {
+    &::before {
+        background-image: var(--blur-bg, none);
+        background-size: cover;
+        background-position: center;
+        filter: blur(30px) brightness(0.85);
+        transform: scale(1.2);
+    }
+}
+
 // ============================================================================
 // Editor NodeView — visible only inside the Milkdown editor
 // ============================================================================
-
 
 // .sn-img-group-node is the inner content div inside .sn-block-wrapper
 // Block framing (border, padding, hover) lives on the wrapper
@@ -115,16 +126,19 @@
 }
 
 .sn-img-group-empty {
-    font-size: 0.75rem;
-    color: var(--text-muted);
+    font-size: var(--font-size-sm);
     align-self: center;
+}
+
+.sn-img-group-empty {
+    color: var(--text-muted);
 }
 
 // Carousel preview inside the editor NodeView
 .sn-img-carousel-preview {
     aspect-ratio: unset;
     height: auto;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     overflow: hidden;
 
     .images-upload-item { height: 14rem; }
@@ -140,9 +154,8 @@
     vertical-align: top;
     max-width: 320px;
     border: 1.5px dashed var(--border-primary);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    background: var(--bg-secondary);
     user-select: none;
     cursor: default;
 
@@ -150,17 +163,24 @@
         content: '';
         position: absolute;
         inset: 0;
+        z-index: 0;
+    }
+
+    .sn-block-controls { z-index: 2; }
+}
+
+.sn-single-img-node {
+    background: var(--bg-secondary);
+
+    &::before {
         background-image: inherit;
         background-size: cover;
         background-position: center;
         filter: blur(20px) brightness(0.75);
         transform: scale(1.2);
-        z-index: 0;
     }
 
     &:hover .sn-block-controls { opacity: 1; }
-
-    .sn-block-controls { z-index: 2; }
 }
 
 .sn-single-img-thumb {
@@ -203,14 +223,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #fff;
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
     pointer-events: none;
     z-index: 3;
 }
 
+.sn-upload-pct {
+    color: var(--text-on-dark);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
 
 // ── Drag-over highlight for intra-group reorder ────────────────────────────
 

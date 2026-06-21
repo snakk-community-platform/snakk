@@ -1,4 +1,4 @@
-page "/unread"
+@page "/unread"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using static Snakk.Web.Helpers.DisplayHelper
@@ -8,7 +8,7 @@ page "/unread"
 }
 
 @section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
+    <partial name="Shared/_LeftSidebar" />
 }
 
 @if (!Model.IsAuthenticated)
@@ -22,11 +22,13 @@ page "/unread"
 <!-- Center Column -->
 <div class="sn-center">
     <div class="sn-center-inner">
-        <h2 class="sn-section-title">
-            <span class="icon icon-bell" aria-hidden="true"></span>
-            @T.Pages.UnreadHeading
-        </h2>
-        <p class="sn-section-description">@T.Pages.UnreadDescription</p>
+        <div class="sn-section-header">
+            <h2 class="sn-section-title">
+                <span class="icon icon-bell" aria-hidden="true"></span>
+                @T.Pages.UnreadHeading
+            </h2>
+            <p class="sn-section-description">@T.Pages.UnreadDescription</p>
+        </div>
 
         @if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
         {
@@ -48,18 +50,18 @@ page "/unread"
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"
-                         class="py-2">
+                         class="sn-py-2">
                         @for (var i = 0; i < 3; i++)
                         {
                             <div class="sn-card" style="opacity: 0.5">
                                 <div class="sn-card-header">
-                                    <div class="skeleton h-3 w-16 rounded"></div>
-                                    <div class="skeleton h-4 w-4 rounded-full"></div>
-                                    <div class="skeleton h-3 w-20 rounded"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-16 sn-rounded"></div>
+                                    <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-20 sn-rounded"></div>
                                 </div>
-                                <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                <div class="sn-card-stats mt-2">
-                                    <div class="skeleton h-3 w-24 rounded"></div>
+                                <div class="sn-skeleton sn-h-4 sn-w-3/4 sn-rounded sn-mt-2"></div>
+                                <div class="sn-card-stats sn-mt-2">
+                                    <div class="sn-skeleton sn-h-3 sn-w-24 sn-rounded"></div>
                                 </div>
                             </div>
                         }

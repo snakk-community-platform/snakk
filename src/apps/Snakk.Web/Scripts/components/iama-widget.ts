@@ -20,12 +20,12 @@
 
             const confirmBtn = document.createElement('button');
             confirmBtn.type = 'button';
-            confirmBtn.className = 'btn btn-sm btn-error';
+            confirmBtn.className = 'btn sn-btn-sm sn-btn-error';
             confirmBtn.textContent = confirmLabel;
 
             const cancelBtn = document.createElement('button');
             cancelBtn.type = 'button';
-            cancelBtn.className = 'btn btn-sm btn-ghost';
+            cancelBtn.className = 'btn sn-btn-sm sn-btn-ghost';
             cancelBtn.textContent = '✕';
 
             wrapper.appendChild(confirmBtn);

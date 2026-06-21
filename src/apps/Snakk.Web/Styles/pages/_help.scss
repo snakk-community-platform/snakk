@@ -3,32 +3,38 @@
 // ============================================
 
 // Navigation lives in the right column (.sn-right).
-.help-sidebar {
+.sn-help-sidebar {
     display: flex;
     flex-direction: column;
 }
 
-.help-section {
-    margin-bottom: 1rem;
+.sn-help-section {
+    margin-bottom: var(--space-8);
 }
 
-.help-section-title {
-    font-size: 0.6875rem;
+.sn-help-section-title {
+    font-size: var(--font-size-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--text-tertiary);
-    padding: 0 0 0.375rem;
+    padding: 0 0 var(--space-3);
 }
 
-.help-nav-item {
+.sn-help-section-title {
+    color: var(--text-tertiary);
+}
+
+.sn-help-nav-item {
     display: block;
-    font-size: 0.8125rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    color: var(--text-secondary);
+    font-size: var(--font-size-ui);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
     text-decoration: none;
-    transition: background 0.1s, color 0.1s;
+}
+
+.sn-help-nav-item {
+    color: var(--text-secondary);
+    transition: background var(--duration-fast), color var(--duration-fast);
 
     &:hover {
         background: var(--bg-hover);
@@ -36,26 +42,32 @@
     }
 }
 
-.help-nav-active {
-    background: var(--bg-subtle);
-    color: var(--text-primary);
+.sn-help-nav-active {
     font-weight: 600;
 }
 
-// "In this article" TOC (rendered above the help-sidebar nav)
-.help-toc {
+.sn-help-nav-active {
+    background: var(--bg-subtle);
+    color: var(--text-primary);
+}
+
+// "In this article" TOC (rendered above the sn-help-sidebar nav)
+.sn-help-toc {
     display: flex;
     flex-direction: column;
 }
 
-.help-toc-item {
+.sn-help-toc-item {
     display: block;
-    font-size: 0.8125rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
-    color: var(--text-secondary);
+    font-size: var(--font-size-ui);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-sm);
     text-decoration: none;
-    transition: background 0.1s, color 0.1s;
+}
+
+.sn-help-toc-item {
+    color: var(--text-secondary);
+    transition: background var(--duration-fast), color var(--duration-fast);
 
     &:hover {
         background: var(--bg-hover);
@@ -66,99 +78,180 @@
 }
 
 // Article body lives in the center column (.sn-center).
-.help-content {
+.sn-help-content {
+    border-radius: var(--radius-lg);
+    padding: var(--space-16);
+}
+
+.sn-help-content {
     background: var(--sidebar-bg);
-    border-radius: 0.5rem;
-    padding: 2rem;
 }
 
 // Section breadcrumb shown above the article title
-.help-article-category {
-    font-size: 0.6875rem;
+.sn-help-article-category {
+    font-size: var(--font-size-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--link-primary);
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-4);
 }
 
-.help-content > h1 {
-    font-size: 1.5rem;
+.sn-help-article-category {
+    color: var(--link-primary);
+}
+
+.sn-help-content > h1 {
+    font-size: var(--font-size-2xl);
     font-weight: 700;
-    color: var(--text-primary);
     margin: 0 0 0 0;
     line-height: 1.3;
-    padding-bottom: 1.5rem;
+    padding-bottom: var(--space-12);
     border-bottom: 1px solid var(--border-primary);
-    margin-bottom: 1.75rem;
+    margin-bottom: var(--space-14);
 }
 
-.help-content .prose {
-    font-size: 0.9375rem;
+.sn-help-content > h1 {
+    color: var(--text-primary);
+}
+
+.sn-help-content .sn-prose {
+    font-size: var(--font-size-prose);
     line-height: 1.7;
-    color: var(--text-secondary);
 
     // Lead paragraph — slightly larger and darker to ease readers in
     > p:first-child {
-        font-size: 1rem;
-        color: var(--text-primary);
+        font-size: var(--font-size-md);
     }
 
     h2 {
-        font-size: 1.25rem;
+        font-size: var(--font-size-xl);
         font-weight: 700;
-        color: var(--text-primary);
-        margin: 2.25rem 0 0.75rem;
-        padding-bottom: 0.5rem;
+        margin: 2.25rem 0 var(--space-6);
+        padding-bottom: var(--space-4);
         border-bottom: 1px solid var(--border-primary);
 
         &:first-child { margin-top: 0; }
     }
 
     h3 {
-        font-size: 1rem;
+        font-size: var(--font-size-md);
         font-weight: 700;
-        color: var(--text-primary);
-        margin: 1.75rem 0 0.5rem;
+        margin: 1.75rem 0 var(--space-4);
     }
 
     h4 {
-        font-size: 0.9375rem;
+        font-size: var(--font-size-prose);
         font-weight: 600;
-        color: var(--text-primary);
-        margin: 1.25rem 0 0.375rem;
+        margin: 1.25rem 0 var(--space-3);
     }
 
-    p { margin: 0 0 1rem; }
+    p { margin: 0 0 var(--space-8); }
 
     ul, ol {
-        margin: 0 0 1rem;
-        padding-left: 1.5rem;
+        margin: 0 0 var(--space-8);
+        padding-left: var(--space-12);
     }
 
-    li { margin-bottom: 0.375rem; }
+    li { margin-bottom: var(--space-3); }
 
     code {
-        font-size: 0.8125rem;
-        background: var(--bg-tertiary);
-        padding: 0.125rem 0.375rem;
-        border-radius: 0.25rem;
+        font-size: var(--font-size-ui);
+        padding: var(--space-1) var(--space-3);
+        border-radius: var(--radius-sm);
         font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
     }
 
     pre {
-        margin: 0 0 1rem;
-        padding: 1rem;
-        background: var(--bg-tertiary);
+        margin: 0 0 var(--space-8);
+        padding: var(--space-8);
         border: 1px solid var(--border-primary);
-        border-radius: 0.375rem;
+        border-radius: var(--radius-md);
         overflow-x: auto;
-        font-size: 0.8125rem;
+        font-size: var(--font-size-ui);
         line-height: 1.6;
 
         code {
-            background: none;
             padding: 0;
+        }
+    }
+
+    hr {
+        border: none;
+        border-top: 1px solid var(--border-primary);
+        margin: var(--space-12) 0;
+    }
+
+    table {
+        width: 100%;
+        margin: 0 0 var(--space-8);
+        border-collapse: collapse;
+        font-size: var(--font-size-base);
+
+        th, td {
+            padding: var(--space-4) var(--space-6);
+            text-align: left;
+            border-bottom: 1px solid var(--border-primary);
+        }
+
+        th {
+            font-weight: 600;
+            border-bottom: 2px solid var(--border-primary);
+        }
+    }
+
+    blockquote {
+        margin: 0 0 var(--space-8);
+        padding: var(--space-6) var(--space-8);
+        border-left: 3px solid var(--link-primary);
+        border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+
+        p:last-child { margin-bottom: 0; }
+    }
+
+    // Callout / admonition blocks (via Markdig custom containers: :::callout-tip)
+    .sn-callout-info,
+    .sn-callout-tip,
+    .sn-callout-warning,
+    .sn-callout-note {
+        padding: var(--space-7) var(--space-8);
+        border-radius: var(--radius-lg);
+        border-left: 4px solid;
+        margin: 0 0 var(--space-8);
+        font-size: var(--font-size-base);
+
+        p:last-child { margin-bottom: 0; }
+    }
+}
+
+.sn-help-content .sn-prose {
+    color: var(--text-secondary);
+
+    // Lead paragraph — slightly larger and darker to ease readers in
+    > p:first-child {
+        color: var(--text-primary);
+    }
+
+    h2 {
+        color: var(--text-primary);
+    }
+
+    h3 {
+        color: var(--text-primary);
+    }
+
+    h4 {
+        color: var(--text-primary);
+    }
+
+    code {
+        background: var(--bg-tertiary);
+    }
+
+    pre {
+        background: var(--bg-tertiary);
+
+        code {
+            background: none;
         }
     }
 
@@ -172,29 +265,10 @@
         &:hover { text-decoration-thickness: 2px; }
     }
 
-    hr {
-        border: none;
-        border-top: 1px solid var(--border-primary);
-        margin: 1.5rem 0;
-    }
-
     table {
-        width: 100%;
-        margin: 0 0 1rem;
-        border-collapse: collapse;
-        font-size: 0.875rem;
-
-        th, td {
-            padding: 0.5rem 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid var(--border-primary);
-        }
-
         th {
-            font-weight: 600;
             color: var(--text-primary);
             background: var(--bg-tertiary);
-            border-bottom: 2px solid var(--border-primary);
         }
 
         tr:nth-child(even) td {
@@ -203,57 +277,40 @@
     }
 
     blockquote {
-        margin: 0 0 1rem;
-        padding: 0.75rem 1rem;
-        border-left: 3px solid var(--link-primary);
         background: var(--bg-subtle);
-        border-radius: 0 0.25rem 0.25rem 0;
         color: var(--text-secondary);
-
-        p:last-child { margin-bottom: 0; }
     }
 
-    // Callout / admonition blocks (via Markdig custom containers: :::callout-tip)
-    .callout-info,
-    .callout-tip,
-    .callout-warning,
-    .callout-note {
-        padding: 0.875rem 1rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid;
-        margin: 0 0 1rem;
-        font-size: 0.875rem;
-
-        p:last-child { margin-bottom: 0; }
-    }
-
-    .callout-info    { background: var(--accent-info-bg);    border-color: var(--accent-info); }
-    .callout-tip     { background: var(--accent-success-bg, rgba(16, 185, 129, 0.1)); border-color: var(--accent-success); }
-    .callout-warning { background: var(--accent-warning-bg); border-color: var(--accent-warning); }
-    .callout-note    { background: var(--bg-tertiary);       border-color: var(--border-primary); }
+    .sn-callout-info    { background: var(--accent-info-bg);    border-color: var(--accent-info); }
+    .sn-callout-tip     { background: var(--accent-success-bg, rgba(16, 185, 129, 0.1)); border-color: var(--accent-success); }
+    .sn-callout-warning { background: var(--accent-warning-bg); border-color: var(--accent-warning); }
+    .sn-callout-note    { background: var(--bg-tertiary);       border-color: var(--border-primary); }
 }
 
 // Prev / Next article footer navigation
-.help-article-nav {
+.sn-help-article-nav {
     display: flex;
     justify-content: space-between;
-    gap: 1rem;
-    margin-top: 2rem;
-    padding-top: 1.5rem;
+    gap: var(--space-8);
+    margin-top: var(--space-16);
+    padding-top: var(--space-12);
     border-top: 1px solid var(--border-primary);
 }
 
-.help-article-nav-link {
+.sn-help-article-nav-link {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0.375rem;
-    background: var(--bg-subtle);
+    gap: var(--space-2);
+    padding: var(--space-6) var(--space-8);
+    border-radius: var(--radius-md);
     text-decoration: none;
     border: 1px solid var(--border-primary);
-    transition: background 0.1s, border-color 0.1s;
     max-width: 48%;
+}
+
+.sn-help-article-nav-link {
+    background: var(--bg-subtle);
+    transition: background var(--duration-fast), border-color var(--duration-fast);
 
     &:hover {
         background: var(--bg-hover);
@@ -261,22 +318,29 @@
     }
 }
 
-.help-article-nav-link--next {
+.sn-help-article-nav-link--next {
     margin-left: auto;
     text-align: right;
 }
 
-.help-article-nav-label {
-    font-size: 0.6875rem;
+.sn-help-article-nav-label {
+    font-size: var(--font-size-xs);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+.sn-help-article-nav-label {
     color: var(--text-tertiary);
 }
 
-.help-article-nav-title {
-    font-size: 0.8125rem;
+.sn-help-article-nav-title {
+    font-size: var(--font-size-ui);
     font-weight: 600;
-    color: var(--text-primary);
     line-height: 1.4;
 }
+
+.sn-help-article-nav-title {
+    color: var(--text-primary);
+}
+

@@ -1,0 +1,77 @@
+// Popover API dropdown — replaces daisyUI focus-within hack.
+// JS in auth-navbar.ts positions panels on the toggle event.
+
+.sn-dropdown {
+    position: relative;
+    display: inline-flex;
+}
+
+// Panel — promoted to top layer by popover; positioned fixed via JS on toggle
+[popover].sn-dropdown-panel {
+    // Reset browser popover defaults (inset: 0; margin: auto → centered on screen)
+    inset: unset;
+    margin: 0;
+    overflow: visible;
+
+    position: fixed;
+    padding: var(--space-4);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    min-width: 12rem;
+    z-index: var(--z-dropdown);
+
+    &:not(:popover-open) {
+        display: none;
+    }
+
+    hr {
+        border: none;
+        border-top: 1px solid var(--border-subtle);
+        margin: 0;
+    }
+}
+
+[popover].sn-dropdown-panel {
+    background: var(--bg-primary);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+// Menu list inside a dropdown panel
+.sn-menu {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li > a,
+    li > button {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-md);
+        font-size: var(--font-size-ui);
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        width: 100%;
+        text-align: left;
+        white-space: nowrap;
+    }
+}
+
+.sn-menu {
+    li > a,
+    li > button {
+        color: var(--text-secondary);
+        background: transparent;
+
+        &:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+    }
+}
+

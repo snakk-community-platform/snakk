@@ -353,7 +353,7 @@ public class MarkupParser : IMarkupParser
             {
                 var rawContent = WebUtility.HtmlDecode(match.Groups[1].Value);
                 var base64Config = Convert.ToBase64String(Encoding.UTF8.GetBytes(rawContent));
-                return $"<div class=\"snakk-chart\" data-chart-config=\"{base64Config}\"><canvas></canvas></div>";
+                return $"<div class=\"sn-snakk-chart\" data-chart-config=\"{base64Config}\"><canvas></canvas></div>";
             });
         }
         catch (RegexMatchTimeoutException)
@@ -384,9 +384,9 @@ public class MarkupParser : IMarkupParser
                     _         => "ℹ",
                 };
                 return $"""
-                    <div class="callout callout-{calloutType}">
-                      <span class="callout-icon" aria-hidden="true">{icon}</span>
-                      <div class="callout-body">{bodyHtml}</div>
+                    <div class="sn-callout sn-callout-{calloutType}">
+                      <span class="sn-callout-icon" aria-hidden="true">{icon}</span>
+                      <div class="sn-callout-body">{bodyHtml}</div>
                     </div>
                     """;
             });
@@ -562,7 +562,7 @@ public class MarkupParser : IMarkupParser
     {
         try
         {
-            return TableRegex.Replace(html, match => $"<div class=\"table-scroll\">{match.Value}</div>");
+            return TableRegex.Replace(html, match => $"<div class=\"sn-table-scroll\">{match.Value}</div>");
         }
         catch (RegexMatchTimeoutException)
         {
@@ -663,7 +663,7 @@ public class MarkupParser : IMarkupParser
     {
         protected override void Write(HtmlRenderer renderer, SpoilerInline obj)
         {
-            renderer.Write("<span class=\"spoiler\">");
+            renderer.Write("<span class=\"sn-spoiler\">");
             renderer.WriteChildren(obj);
             renderer.Write("</span>");
         }

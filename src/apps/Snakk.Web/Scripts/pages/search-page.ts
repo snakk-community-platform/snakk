@@ -52,7 +52,7 @@
 
     // Close all popups on HTMX navigation
     document.addEventListener('htmx:beforeSwap', function() {
-        document.querySelectorAll<HTMLElement>('.snakk-popup').forEach(popup => {
+        document.querySelectorAll<HTMLElement>('.sn-snakk-popup').forEach(popup => {
             popup.classList.add('hidden');
         });
     });

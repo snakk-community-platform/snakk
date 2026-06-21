@@ -35,6 +35,8 @@ public class CreateDiscussionModel(
         [FromQuery] string? communityId,
         CancellationToken cancellationToken = default)
     {
+        Preload("discussion");
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         PreselectedSpaceId = spaceId;
         ScopeHubId = hubId;

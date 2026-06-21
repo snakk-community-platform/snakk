@@ -9,14 +9,15 @@
 }
 else
 {
-    <div class="grid grid-cols-8 gap-1">
+    <div class="sn-grid sn-grid-cols-8 sn-gap-1">
         @foreach (var c in Model.Contributors.Items)
         {
             <a href="@SnakkUrlHelper.UserProfile(c.Slug)"
                hx-target="#main-content" hx-swap="outerHTML show:window:top"
                data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
                 <img src="@c.AvatarThumbnailUrl" alt="@c.DisplayName"
-                     class="rounded-full w-full aspect-square object-cover shadow-layered"
+                     class="sn-rounded-full sn-w-full aspect-square sn-object-cover sn-shadow-layered"
+                     width="32" height="32"
                      loading="lazy" decoding="async" />
             </a>
         }

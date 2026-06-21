@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Options;
 using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.My.Settings;
 
-public class PrivacyModel(SnakkApiClient apiClient, IConfiguration configuration, IOptions<OAuthProvidersOptions> oauthOptions) : PageModel
+public class PrivacyModel(SnakkApiClient apiClient, IConfiguration configuration, ICommunityContext communityContext, IOptions<OAuthProvidersOptions> oauthOptions) : BasePageModel(configuration, communityContext)
 {
     public bool HidePresence { get; private set; }
     public bool DisableHistory { get; private set; }
@@ -23,6 +22,7 @@ public class PrivacyModel(SnakkApiClient apiClient, IConfiguration configuration
         cancellationToken.ThrowIfCancellationRequested();
         if (User.Identity?.IsAuthenticated != true)
             return Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(Request.Path + Request.QueryString)}");
+        Preload("settings");
         ConnectedProvider = connected;
         ErrorCode = error;
         var me = await apiClient.GetCurrentUserAsync();

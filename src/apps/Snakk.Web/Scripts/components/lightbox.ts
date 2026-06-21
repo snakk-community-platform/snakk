@@ -1,25 +1,25 @@
-/**
- * Lightbox — full-screen image viewer with prev/next navigation.
+﻿/**
+ * Lightbox â€” full-screen image viewer with prev/next navigation.
  * Opens when clicking images that have a data-full attribute.
  *
  * Progressive loading sequence per slide:
  *   1. Blur LQIP shown immediately (existing behaviour).
  *   2. Medium-tier image (_med.webp, ~900px) set as src right away.
  *   3. Full-resolution image loaded in a detached Image(); once complete
- *      the src is swapped to full — guarded by a navigation token so a
+ *      the src is swapped to full â€” guarded by a navigation token so a
  *      stale full-res load that finishes after the user moved on is ignored.
  *   4. Adjacent preloads use the medium variant instead of full.
  *
  * URL derivation: strip ".webp" from the full URL and append "_med.webp".
  * Only applied to Snakk CDN post-image URLs (matching SNAKK_MEDIA_RE).
- * If the medium variant 404s (images ≤900px wide have no _med file) the
+ * If the medium variant 404s (images â‰¤900px wide have no _med file) the
  * img onerror handler falls back to the full URL transparently.
  */
 
 (function() {
     'use strict';
 
-    // Inject lightbox CSS as soon as this script loads — the overlay can appear
+    // Inject lightbox CSS as soon as this script loads â€” the overlay can appear
     // on any page (space list, detail page, creation form) so it must be ready
     // before the first open() call without waiting for user interaction.
     (function injectCSS(): void {
@@ -27,7 +27,7 @@
         const link = document.createElement('link');
         link.id = 'snakk-lightbox-css';
         link.rel = 'stylesheet';
-        link.href = '/css/dist/lightbox.css';
+        link.href = '/css/features/lightbox.css';
         document.head.appendChild(link);
     })();
 
@@ -102,7 +102,7 @@
         // with position: fixed collapses html's scroll height to viewport
         // size; html.lightbox-lock then forces overflow-y: scroll so the
         // scrollbar track keeps rendering. The thumb fills the whole track
-        // and can't move — visually present, functionally inert.
+        // and can't move â€” visually present, functionally inert.
         savedScrollY = window.scrollY;
         document.body.style.position = 'fixed';
         document.body.style.top = `-${savedScrollY}px`;
@@ -125,7 +125,7 @@
         // Force a synchronous reflow so the document regains its full height
         // before we scroll. Without this, scrollTo runs against the still-
         // collapsed (position: fixed) layout and the browser clamps the
-        // target to 0 — which is why closing the lightbox jumped to top.
+        // target to 0 â€” which is why closing the lightbox jumped to top.
         // eslint-disable-next-line @typescript-eslint/no-unused-expressions
         document.body.offsetHeight;
 
@@ -166,9 +166,9 @@
         const fullUrl = images[idx]!;
 
         // Step 2: set src to the medium-tier URL right away (much faster to
-        // decode than full-res; bridges the blur→sharp gap on slow connections).
+        // decode than full-res; bridges the blurâ†’sharp gap on slow connections).
         // Pre-apply the full-res dimensions so the medium renders at the same
-        // visual size the full-res will occupy — no layout shift on swap.
+        // visual size the full-res will occupy â€” no layout shift on swap.
         if (isSnakkMediaUrl(fullUrl)) {
             const medUrl = deriveMedUrl(fullUrl);
             const dim = dims[idx] ?? null;
@@ -181,8 +181,8 @@
             }
             imgEl.src = medUrl;
 
-            // If the medium file doesn't exist (images ≤900px wide have no
-            // _med variant) the browser fires onerror — fall back to full URL.
+            // If the medium file doesn't exist (images â‰¤900px wide have no
+            // _med variant) the browser fires onerror â€” fall back to full URL.
             imgEl.onerror = () => {
                 imgEl!.onerror = null;
                 imgEl!.style.width = '';
@@ -194,13 +194,13 @@
             // When it completes, swap only if the user hasn't navigated away.
             const fullImg = new window.Image();
             fullImg.onload = () => {
-                if (navToken !== token) return; // user moved on — discard
+                if (navToken !== token) return; // user moved on â€” discard
                 imgEl!.onerror = null;
                 imgEl!.style.width = '';
                 imgEl!.style.height = '';
                 imgEl!.src = fullUrl;
             };
-            fullImg.onerror = () => { /* full-res unavailable — medium is fine */ };
+            fullImg.onerror = () => { /* full-res unavailable â€” medium is fine */ };
             fullImg.src = fullUrl;
         } else {
             // Non-CDN URL (e.g. external image): load directly as before.
@@ -294,12 +294,12 @@
 
         // Close on overlay click (not on image)
         overlay.addEventListener('click', (e) => {
-            // Synthesized click after a pan — pointer capture retargets it to
+            // Synthesized click after a pan â€” pointer capture retargets it to
             // .lightbox-content, bypassing the image's wasDragging guard.
             if (wasDragging) { wasDragging = false; return; }
             const t = e.target as HTMLElement;
             // While zoomed, capture retargets every click on the image to the
-            // content element — a plain click there means zoom out, not close.
+            // content element â€” a plain click there means zoom out, not close.
             if (isZoomed && (t === contentEl || t.classList.contains('lightbox-img-wrap') || t === imgEl)) {
                 zoomOut();
                 return;
@@ -417,3 +417,4 @@
     // Expose for use by images code
     (window as any).SnakkLightbox = { open, preloadUrl };
 })();
+

@@ -46,6 +46,8 @@ public class DetailModel(
 
     public async Task<IActionResult> OnGetAsync(string slug, int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("community");
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         var communityResult = await _apiClient.GetCommunityBySlugResultAsync(slug);
 

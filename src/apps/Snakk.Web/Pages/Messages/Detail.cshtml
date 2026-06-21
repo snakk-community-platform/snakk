@@ -16,7 +16,7 @@
     <div class="sn-center-inner">
         @if (Model.Conversation == null)
         {
-            <p class="text-muted py-8 text-center">Conversation not found.</p>
+            <p class="sn-text-muted sn-py-8 sn-text-center">Conversation not found.</p>
         }
         else
         {
@@ -28,34 +28,34 @@
             <input type="hidden" id="dm-current-user-id" value="@Model.CurrentUserPublicId" />
 
             <!-- Header -->
-            <div class="dm-detail-header">
-                <a href="/messages" class="btn btn-ghost btn-sm btn-square" aria-label="Back to messages">
-                    <span class="icon icon-chevron-left h-4 w-4" aria-hidden="true"></span>
+            <div class="sn-dm-detail-header">
+                <a href="/messages" class="sn-btn sn-btn-ghost sn-btn-sm sn-btn-square" aria-label="Back to messages">
+                    <span class="icon icon-chevron-left sn-h-4 sn-w-4" aria-hidden="true"></span>
                 </a>
-                <div class="avatar avatar-sm">
+                <div class="sn-avatar avatar-sm">
                     <img src="@Model.Conversation.OtherUser.AvatarUrl"
                          alt="@Model.Conversation.OtherUser.DisplayName"
                          loading="lazy" />
                 </div>
                 <a href="@SnakkUrlHelper.UserProfile(Model.Conversation.OtherUser.Slug)"
-                   class="font-semibold hover:underline flex-1 min-w-0 truncate text-sm">
+                   class="sn-dm-header-username sn-flex-1 sn-min-w-0 sn-truncate">
                     @Model.Conversation.OtherUser.DisplayName
                 </a>
                 <button id="dm-delete-conv-btn"
-                        class="btn btn-ghost btn-sm text-error gap-1 text-xs"
+                        class="sn-btn sn-btn-ghost sn-btn-sm sn-text-error sn-gap-1 sn-text-xs"
                         aria-label="Delete conversation">
-                    <span class="icon icon-trash h-3.5 w-3.5" aria-hidden="true"></span>
+                    <span class="icon icon-trash sn-h-3.5 sn-w-3.5" aria-hidden="true"></span>
                     Delete conversation
                 </button>
             </div>
 
             <!-- Message list -->
-            <div id="dm-message-list" class="dm-detail-messages">
+            <div id="dm-message-list" class="sn-dm-detail-messages">
                 @if (Model.HasMoreMessages)
                 {
-                    <div class="text-center pb-2">
+                    <div class="sn-text-center sn-pb-2">
                         <a href="/messages/@Model.ConversationId?offset=@(Model.Messages.Count)"
-                           class="text-xs text-muted hover:underline">
+                           class="sn-text-xs sn-text-muted sn-hover:underline">
                             Load older messages
                         </a>
                     </div>
@@ -68,7 +68,7 @@
                 }
                 @if (Model.Messages.Count == 0)
                 {
-                    <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
+                    <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
                         <p>@T.Pages.MessagesDetailEmpty</p>
                     </div>
                 }
@@ -85,19 +85,19 @@
                             : msgDt.ToString("MMMM d");
                         if (needsDateSep || dmPrevDate.Length == 0)
                         {
-                            <div class="dm-date-separator"><span>@dateLabel</span></div>
+                            <div class="sn-dm-date-separator"><span>@dateLabel</span></div>
                         }
                         <div id="dm-msg-@msg.PublicId"
-                             class="dm-msg-row flex items-center gap-1.5"
+                             class="sn-dm-msg-row sn-flex sn-items-center gap-1.5"
                              data-msg-id="@msg.PublicId"
                              data-is-mine="@msg.IsMine.ToString().ToLower()">
-                            <input type="checkbox" class="dm-msg-check dm-detail-check" aria-label="Select message" />
-                            <div class="dm-bubble @(msg.IsMine ? "dm-bubble--mine" : "dm-bubble--theirs") @(isFirstInGroup ? "dm-bubble--first-in-group" : "") flex-1"
+                            <input type="checkbox" class="dm-msg-check sn-dm-detail-check" aria-label="Select message" />
+                            <div class="sn-dm-bubble @(msg.IsMine ? "dm-bubble--mine" : "dm-bubble--theirs") @(isFirstInGroup ? "sn-dm-bubble--first-in-group" : "") sn-flex-1"
                                  data-sender-public-id="@msg.SenderPublicId"
                                  data-date-str="@msgDateStr">
-                                <div class="dm-bubble-body">
-                                    <div class="dm-bubble-content">@msg.Content</div>
-                                    <span class="dm-bubble-time">@msgDt.ToString("HH:mm")</span>
+                                <div class="sn-dm-bubble-body">
+                                    <div class="sn-dm-bubble-content">@msg.Content</div>
+                                    <span class="sn-dm-bubble-time">@msgDt.ToString("HH:mm")</span>
                                 </div>
                             </div>
                         </div>
@@ -108,39 +108,39 @@
             </div>
 
             <!-- Delete action pane — appears between messages and compose when messages are checked -->
-            <div id="dm-delete-pane" class="dm-detail-delete-pane hidden">
-                <span class="text-sm">
+            <div id="dm-delete-pane" class="sn-dm-detail-delete-pane sn-hidden">
+                <span class="sn-text-sm">
                     You have marked <strong id="dm-selected-count">0</strong> messages for deletion
                 </span>
-                <button id="dm-delete-selected-btn" class="btn btn-error btn-xs">Delete</button>
+                <button id="dm-delete-selected-btn" class="sn-btn sn-btn-error sn-btn-xs">Delete</button>
             </div>
 
             <!-- Compose area — reuses widget styles -->
-            <div class="dm-win-compose dm-detail-compose">
+            <div class="sn-dm-win-compose sn-dm-detail-compose">
                 <textarea id="dm-compose-textarea"
-                          class="dm-win-textarea dm-detail-textarea"
+                          class="sn-dm-win-textarea sn-dm-detail-textarea"
                           placeholder="Write a message…"
                           maxlength="2000"
                           rows="1"></textarea>
-                <button id="dm-send-btn" class="dm-win-send" disabled aria-label="Send">↑</button>
+                <button id="dm-send-btn" class="sn-dm-win-send" disabled aria-label="Send">↑</button>
             </div>
 
             <!-- Delete confirmation modal -->
-            <dialog id="dm-delete-modal" class="modal">
-                <div class="modal-box">
-                    <h3 id="dm-delete-modal-title" class="font-bold text-base mb-2">Delete messages</h3>
-                    <p id="dm-delete-modal-desc" class="text-sm text-muted mb-4">Choose how to delete.</p>
-                    <div class="flex flex-col gap-2">
-                        <button id="dm-delete-for-me-btn" class="btn btn-sm btn-outline w-full">Delete for me</button>
-                        <button id="dm-delete-for-all-btn" class="btn btn-sm btn-error w-full">Delete for everyone</button>
+            <dialog id="dm-delete-modal" class="sn-modal">
+                <div class="sn-modal-box">
+                    <h3 id="dm-delete-modal-title" class="sn-modal-title">Delete messages</h3>
+                    <p id="dm-delete-modal-desc" class="sn-modal-description--detail">Choose how to delete.</p>
+                    <div class="sn-modal-action-list">
+                        <button id="dm-delete-for-me-btn" class="sn-btn sn-btn-sm sn-btn-outline sn-w-full">Delete for me</button>
+                        <button id="dm-delete-for-all-btn" class="sn-btn sn-btn-sm sn-btn-error sn-w-full">Delete for everyone</button>
                     </div>
-                    <div class="modal-action mt-4">
+                    <div class="sn-modal-action sn-mt-4">
                         <form method="dialog">
-                            <button class="btn btn-ghost btn-sm">Cancel</button>
+                            <button class="sn-btn sn-btn-ghost sn-btn-sm">Cancel</button>
                         </form>
                     </div>
                 </div>
-                <form method="dialog" class="modal-backdrop"><button>close</button></form>
+                <form method="dialog" class="sn-modal-backdrop-overlay"><button>close</button></form>
             </dialog>
         }
     </div>

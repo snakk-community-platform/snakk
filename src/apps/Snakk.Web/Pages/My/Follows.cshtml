@@ -1,4 +1,4 @@
-﻿@page "/my/follows/{tab?}"
+@page "/my/follows/{tab?}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
@@ -25,36 +25,36 @@
         {
         <div class="sn-section-header">
         <h2 class="sn-section-title">
-            <span class="icon icon-heart" aria-hidden="true"></span>
+            <span class="sn-icon icon-heart" aria-hidden="true"></span>
             @T.Pages.FollowingHeading
         </h2>
 
         <!-- Tabs -->
         <div class="sn-tabs">
-            <a href="/my/follows/discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "active" : "")">
+            <a href="/my/follows/discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "sn-active" : "")">
                 @T.Pages.FollowingTabDiscussions
-                @if (Model.DiscussionCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.DiscussionCount</span> }
+                @if (Model.DiscussionCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.DiscussionCount</span> }
             </a>
-            <a href="/my/follows/spaces" class="sn-tab @(Model.ActiveTab == "spaces" ? "active" : "")">
+            <a href="/my/follows/spaces" class="sn-tab @(Model.ActiveTab == "spaces" ? "sn-active" : "")">
                 @T.Pages.FollowingTabSpaces
-                @if (Model.SpaceCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.SpaceCount</span> }
+                @if (Model.SpaceCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.SpaceCount</span> }
             </a>
-            <a href="/my/follows/users" class="sn-tab @(Model.ActiveTab == "users" ? "active" : "")">
+            <a href="/my/follows/users" class="sn-tab @(Model.ActiveTab == "users" ? "sn-active" : "")">
                 @T.Pages.FollowingTabPeople
-                @if (Model.UserCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.UserCount</span> }
+                @if (Model.UserCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.UserCount</span> }
             </a>
         </div>
+            <p class="sn-section-description">@T.Pages.FollowingDescription</p>
         </div>
-        <p class="sn-section-description">@T.Pages.FollowingDescription</p>
 
         @if (Model.ActiveTab == "spaces")
         {
             @if (Model.Spaces.Count == 0)
             {
-                <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
-                    <span class="icon icon-archive-layers h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="sn-icon icon-archive-layers sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
                     <p>@T.Pages.FollowingEmptySpaces</p>
-                    <p class="mt-1 text-xs opacity-70">@T.Pages.FollowingEmptySpacesHint</p>
+                    <p class="sn-mt-1 sn-text-xs opacity-70">@T.Pages.FollowingEmptySpacesHint</p>
                 </div>
             }
             else
@@ -67,11 +67,11 @@
                                 <button type="button" class="sn-card-side-btn sn-card-side-btn--full"
                                         data-unfollow-type="space" data-unfollow-id="@space.PublicId"
                                         title="@T.Card.Remove">
-                                    <span class="icon icon-trash w-3 h-3" aria-hidden="true"></span>
+                                    <span class="sn-icon icon-trash w-3 h-3" aria-hidden="true"></span>
                                     @T.Card.Remove
                                 </button>
                             </div>
-                            <div class="sn-card-body">
+                            <div class="sn-card-content">
                                 <div class="sn-space-list-banner" style="background-image: @SpaceGradient(space.PublicId)">
                                     <img src="@space.AvatarUrl" alt="" width="34" height="34"
                                          class="sn-space-list-avatar" loading="lazy" decoding="async" />
@@ -85,11 +85,11 @@
                                     }
                                     <div class="sn-space-list-stat-row">
                                         <div class="sn-community-stat-pill">
-                                            <span class="sn-community-stat-value">@DisplayHelper.FormatCount(space.DiscussionCount)</span>
+                                            <span class="sn-community-sn-stat-value">@DisplayHelper.FormatCount(space.DiscussionCount)</span>
                                             <span class="sn-community-stat-label">@T.Pages.FollowingTopicsLabel</span>
                                         </div>
                                         <div class="sn-community-stat-pill">
-                                            <span class="sn-community-stat-value">@DisplayHelper.FormatCount(space.ReplyCount)</span>
+                                            <span class="sn-community-sn-stat-value">@DisplayHelper.FormatCount(space.ReplyCount)</span>
                                             <span class="sn-community-stat-label">@T.Pages.FollowingRepliesLabel</span>
                                         </div>
                                     </div>
@@ -104,10 +104,10 @@
         {
             @if (Model.DiscussionCount == 0)
             {
-                <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
-                    <span class="icon icon-chat-bubbles h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="sn-icon icon-chat-bubbles sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
                     <p>@T.Pages.FollowingEmptyDiscussions</p>
-                    <p class="mt-1 text-xs opacity-70">@T.Pages.FollowingEmptyDiscussionsHint</p>
+                    <p class="sn-mt-1 sn-text-xs opacity-70">@T.Pages.FollowingEmptyDiscussionsHint</p>
                 </div>
             }
             else
@@ -127,18 +127,18 @@
                              hx-swap="outerHTML"
                              hx-target="this"
                              hx-push-url="false"
-                             class="py-2">
+                             class="sn-py-2">
                             @for (var i = 0; i < 3; i++)
                             {
                                 <div class="sn-card" style="opacity: 0.5">
                                     <div class="sn-card-header">
-                                        <div class="skeleton h-3 w-16 rounded"></div>
-                                        <div class="skeleton h-4 w-4 rounded-full"></div>
-                                        <div class="skeleton h-3 w-20 rounded"></div>
+                                        <div class="sn-skeleton h-3 sn-w-16 sn-rounded"></div>
+                                        <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                        <div class="sn-skeleton h-3 w-20 sn-rounded"></div>
                                     </div>
-                                    <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                    <div class="sn-card-stats mt-2">
-                                        <div class="skeleton h-3 w-24 rounded"></div>
+                                    <div class="sn-skeleton sn-h-4 w-3/4 sn-rounded sn-mt-2"></div>
+                                    <div class="sn-card-stats sn-mt-2">
+                                        <div class="sn-skeleton h-3 w-24 sn-rounded"></div>
                                     </div>
                                 </div>
                             }
@@ -155,10 +155,10 @@
         {
             @if (Model.Users.Count == 0)
             {
-                <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
-                    <span class="icon icon-users-group h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="sn-icon icon-users-group sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
                     <p>@T.Pages.FollowingEmptyPeople</p>
-                    <p class="mt-1 text-xs opacity-70">@T.Pages.FollowingEmptyPeopleHint</p>
+                    <p class="sn-mt-1 sn-text-xs opacity-70">@T.Pages.FollowingEmptyPeopleHint</p>
                 </div>
             }
             else
@@ -172,16 +172,16 @@
                                      class="sn-mod-list-avatar" loading="lazy" decoding="async" />
                                 <a href="@user.Href" class="sn-mod-list-name"
                                    data-popup-type="user" data-popup-id="@user.PublicId" data-popup-name="@user.DisplayName">@user.DisplayName</a>
-                                <button class="btn btn-ghost btn-xs ml-auto shrink-0"
+                                <button class="sn-btn sn-btn-ghost sn-btn-xs sn-ml-auto sn-shrink-0"
                                         style="color: oklch(0.7 0.15 60)"
                                         data-unfollow-type="user" data-unfollow-id="@user.PublicId"
                                         title="@T.Pages.FollowingUnfollow">
-                                    <span class="icon icon-user w-3 h-3" aria-hidden="true"></span>
+                                    <span class="sn-icon icon-user w-3 h-3" aria-hidden="true"></span>
                                     @T.Pages.FollowingUnfollow
                                 </button>
                             </div>
                             <div class="sn-mod-list-body">
-                                <span class="text-xs" style="color: var(--text-tertiary)">@DisplayHelper.FormatCount(user.FollowerCount) @T.Pages.FollowingFollowersSuffix</span>
+                                <span class="sn-text-xs" style="color: var(--text-tertiary)">@DisplayHelper.FormatCount(user.FollowerCount) @T.Pages.FollowingFollowersSuffix</span>
                             </div>
                         </div>
                     }

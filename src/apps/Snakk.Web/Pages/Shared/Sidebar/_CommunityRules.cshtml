@@ -3,27 +3,27 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
 {
-    <p class="text-sm text-base-content/50">@T.Sidebar.EmptyCommunityRules</p>
+    <p class="sn-text-sm sn-text-muted">@T.Sidebar.EmptyCommunityRules</p>
 }
 else
 {
     @foreach (var (rule, index) in Model.Rules.Rules.Select((r, i) => (r, i)))
     {
-        <details class="group">
-            <summary class="flex items-center justify-between cursor-pointer py-2 text-sm font-medium">
+        <details>
+            <summary class="sn-collapse-summary---communityrules">
                 <span>@(index + 1). @rule.Title</span>
-                <span class="icon icon-chevron-down w-4 h-4 flex-shrink-0 transition-transform group-open:rotate-180" aria-hidden="true"></span>
+                <span class="icon icon-chevron-down sn-w-4 sn-h-4 flex-shrink-0" aria-hidden="true"></span>
             </summary>
-            <p class="text-sm text-base-content/70 pl-4 pb-2">@rule.Description</p>
+            <p class="sn-rule-description---communityrules">@rule.Description</p>
         </details>
     }
 }
 
-<div class="border-t border-base-200 mt-2 pt-2 flex flex-col gap-1">
+<div class="sn-community-rules-footer">
     <a href="/rules"
-       class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+       class="sn-sidebar-nav-link---communityrules">
         <span>@T.Sidebar.SiteRulesLink</span>
-        <span class="icon icon-chevron-right w-4 h-4" aria-hidden="true"></span>
+        <span class="icon icon-chevron-right sn-w-4 sn-h-4" aria-hidden="true"></span>
     </a>
 </div>
 </div>

@@ -9,61 +9,61 @@
     var unreadUrl = $"{baseUrl}?gotoUnread=true";
 }
 
-<div class="topic-item-wrapper" data-discussion-id="@discussion.PublicId">
+<div class="sn-topic-item-wrapper" data-discussion-id="@discussion.PublicId">
     <img src="@discussion.Author.AvatarThumbnailUrl"
          alt="@discussion.Author.DisplayName"
          width="40" height="40"
-         class="w-10 h-10 rounded-full flex-shrink-0 mr-2 hidden sm:block shadow-layered"
+         class="sn-avatar flex-shrink-0 sn-mr-2 sn-hidden sn-sm:block sn-shadow-layered"
          loading="lazy" decoding="async" />
 
-    <div class="topic-item">
-        <div class="topic-content">
-            <div class="topic-title">
-                <a href="@baseUrl" class="topic-title-link">@discussion.Title</a>
+    <div class="sn-topic-item">
+        <div class="sn-topic-content">
+            <div class="sn-topic-title">
+                <a href="@baseUrl" class="sn-topic-title-link">@discussion.Title</a>
             </div>
-            <div class="topic-meta">
+            <div class="sn-topic-meta">
                 <span>@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>
                 @if (discussion.Type is not "" and not "Standard")
                 {
                     var (icon, label, cssClass) = GetTypeBadge(discussion.Type);
-                    <span class="discussion-type-badge badge-sm @cssClass">@icon @label</span>
+                    <span class="discussion-type-badge sn-badge-sm @cssClass">@icon @label</span>
                 }
             </div>
         </div>
         @if (discussion.ReactionCount > 0 || discussion.PostCount > 0)
         {
-            <div class="topic-stats hidden sm:flex">
+            <div class="sn-topic-stats sn-hidden sn-sm:flex">
                 @if (discussion.ReactionCount > 0)
                 {
-                    <div class="topic-stat">
-                        <div class="topic-stat-icon">
-                            <span class="icon icon-badge-check" style="width:18px;height:18px" aria-hidden="true"></span>
+                    <div class="sn-topic-stat">
+                        <div class="sn-topic-stat-icon">
+                            <span class="sn-icon icon-badge-check" style="width:18px;height:18px" aria-hidden="true"></span>
                         </div>
-                        <div class="topic-stat-value">@discussion.ReactionCount</div>
+                        <div class="topic-sn-stat-value">@discussion.ReactionCount</div>
                     </div>
                 }
                 @if (discussion.PostCount > 0)
                 {
-                    <div class="topic-stat">
-                        <div class="topic-stat-icon">
-                            <span class="icon icon-chat-square" style="width:18px;height:18px" aria-hidden="true"></span>
+                    <div class="sn-topic-stat">
+                        <div class="sn-topic-stat-icon">
+                            <span class="sn-icon icon-chat-square" style="width:18px;height:18px" aria-hidden="true"></span>
                         </div>
-                        <div class="topic-stat-value" data-stat="post-count">@discussion.PostCount</div>
+                        <div class="topic-sn-stat-value" data-stat="post-count">@discussion.PostCount</div>
                     </div>
                 }
             </div>
         }
     </div>
-    <button class="preview-btn"
+    <button class="sn-preview-btn"
             data-discussion-id="@discussion.PublicId"
             title="@T.Card.PreviewFirstPost"
             type="button">
-        <span class="icon icon-chevron-down" style="width:18px;height:18px" aria-hidden="true"></span>
+        <span class="sn-icon icon-chevron-down" style="width:18px;height:18px" aria-hidden="true"></span>
     </button>
-    <a href="@unreadUrl" class="topic-latest-link" title="@T.Card.JumpFirstUnread">
-        <span class="icon icon-chevron-down chevron-right" style="width:18px;height:18px" aria-hidden="true"></span>
+    <a href="@unreadUrl" class="sn-topic-latest-link" title="@T.Card.JumpFirstUnread">
+        <span class="sn-icon icon-chevron-down sn-chevron-right" style="width:18px;height:18px" aria-hidden="true"></span>
     </a>
-    <div class="discussion-preview hidden" data-discussion-id="@discussion.PublicId">
-        <div class="preview-content"></div>
+    <div class="sn-discussion-preview sn-hidden" data-discussion-id="@discussion.PublicId">
+        <div class="sn-preview-content"></div>
     </div>
 </div>

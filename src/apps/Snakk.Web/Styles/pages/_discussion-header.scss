@@ -4,19 +4,15 @@
 .sn-discussion-header {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: var(--space-2);
     position: relative;
     overflow: visible;
-    background-size: cover;
-    background-position: center;
-    color: #fff;
-    padding: 1.25rem 1.5rem 1.5rem;
+    padding: var(--space-6) var(--space-12) var(--space-12);
 
     &::before {
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
         z-index: 0;
         pointer-events: none;
     }
@@ -28,12 +24,47 @@
         margin-bottom: 0;
     }
 
+    h1 {
+        font-weight: 600;
+
+        .sn-card-type-badge {
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+    }
+
+    // The breadcrumb row is already on the same canvas — strip its own
+    // background, overlay, and padding so it doesn't double-up.
+    .sn-page-labels--gradient {
+        padding: 0;
+        overflow: visible;
+    }
+
+    // Reactions badge pill — always-visible add-reaction affordance
+    .sn-reaction-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-2) var(--space-5);
+        border-radius: var(--radius-full);
+        border: 1px solid transparent;
+        user-select: none;
+    }
+}
+
+.sn-discussion-header {
+    background-size: cover;
+    background-position: center;
+    color: var(--text-on-dark);
+
+    &::before {
+        background: linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.45));
+    }
+
     // The breadcrumb row is already on the same canvas — strip its own
     // background, overlay, and padding so it doesn't double-up.
     .sn-page-labels--gradient {
         background: none;
-        padding: 0;
-        overflow: visible;
 
         &::before {
             content: none;
@@ -41,28 +72,21 @@
     }
 
     // Text-shadow on the emoji of the user's active reaction
-    .active .sn-reaction-icon {
+    .sn-active .sn-reaction-icon {
         text-shadow: 0 0 .25rem rgba(0, 0, 0, 1);
     }
 
     // Reactions badge pill — always-visible add-reaction affordance
     .sn-reaction-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.375rem;
-        padding: 0.25rem 0.625rem;
-        border-radius: 9999px;
         background: rgba(255, 255, 255, 0.15);
         color: rgba(255, 255, 255, 0.9);
-        border: 1px solid transparent;
-        transition: background 0.15s;
-        user-select: none;
+        transition: background var(--duration-base);
 
         &:hover { background: rgba(255, 255, 255, 0.25); }
     }
 
     // Ellipsis / ghost buttons — white on the coloured canvas, subtle on hover
-    .btn-ghost {
+    .sn-btn-ghost {
         color: rgba(255, 255, 255, 0.85);
 
         &:hover {
@@ -72,11 +96,12 @@
     }
 
     // Dropdown popup — reset inherited white text so it stays readable
-    .dropdown-content {
+    .sn-dropdown-content {
         color: var(--text-primary);
         background: var(--bg-primary);
 
         button, a { color: var(--text-primary); }
-        .text-error { color: oklch(0.6569 0.2315 18.79); }
+        .sn-text-error { color: oklch(0.6569 0.2315 18.79); }
     }
 }
+

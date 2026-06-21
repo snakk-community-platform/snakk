@@ -1,4 +1,4 @@
-﻿@page "/my/history"
+@page "/my/history"
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.My.HistoryModel
 @{
@@ -20,33 +20,35 @@
         }
         else
         {
-            <h2 class="sn-section-title">
-                <span class="icon icon-clock" aria-hidden="true"></span>
-                @T.Pages.HistoryHeading
-            </h2>
-            <p class="sn-section-description">@T.Pages.HistoryDescription</p>
+            <div class="sn-section-header">
+                <h2 class="sn-section-title">
+                    <span class="sn-icon icon-clock" aria-hidden="true"></span>
+                    @T.Pages.HistoryHeading
+                </h2>
+                <p class="sn-section-description">@T.Pages.HistoryDescription</p>
+            </div>
 
             <div id="history-loading">
                 @for (int i = 0; i < 5; i++)
                 {
                     <div class="sn-card" style="opacity: 0.5">
                         <div class="sn-card-header">
-                            <div class="skeleton h-3 w-16 rounded"></div>
-                            <div class="skeleton h-3 w-4 rounded"></div>
-                            <div class="skeleton h-3 w-20 rounded"></div>
+                            <div class="sn-skeleton h-3 sn-w-16 sn-rounded"></div>
+                            <div class="sn-skeleton h-3 sn-w-4 sn-rounded"></div>
+                            <div class="sn-skeleton h-3 w-20 sn-rounded"></div>
                         </div>
-                        <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
+                        <div class="sn-skeleton sn-h-4 w-3/4 sn-rounded sn-mt-2"></div>
                     </div>
                 }
             </div>
 
-            <div id="history-empty" class="hidden py-12 text-center text-sm" style="color: var(--text-tertiary)">
-                <span class="icon icon-clock h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
+            <div id="history-empty" class="sn-hidden py-12 sn-text-center sn-text-sm" style="color: var(--text-tertiary)">
+                <span class="sn-icon icon-clock sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
                 <p>@T.Pages.HistoryEmpty</p>
-                <p class="mt-1 text-xs opacity-70">@T.Pages.HistoryEmptyHint</p>
+                <p class="sn-mt-1 sn-text-xs opacity-70">@T.Pages.HistoryEmptyHint</p>
             </div>
 
-            <div id="history-container" class="sn-card-list h-feed hidden"></div>
+            <div id="history-container" class="sn-card-list h-feed sn-hidden"></div>
         }
     </div>
 </div>

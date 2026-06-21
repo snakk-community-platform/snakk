@@ -56,6 +56,7 @@ interface SettingsPageConfig {
             userId = userData.publicId;
 
             populateProfileForm(userData);
+            loadDisplayNameHistory(userData);
         } catch (error) {
             console.error('[Profile Settings] Failed to load profile:', error);
             showMessage('Could not load your settings. Please refresh the page.', true);
@@ -67,12 +68,6 @@ interface SettingsPageConfig {
         const avatarImg = document.getElementById('avatar-preview') as HTMLImageElement | null;
         if (avatarImg && data.avatarUrl) {
             avatarImg.src = data.avatarUrl;
-        }
-
-        // Show current display name as text
-        const currentDisplayName = document.getElementById('current-display-name');
-        if (currentDisplayName) {
-            currentDisplayName.textContent = data.displayName || '';
         }
 
         // Update preferences checkboxes
@@ -113,37 +108,8 @@ interface SettingsPageConfig {
         // Feed token
         updateFeedTokenUI(data.feedToken || null);
 
-        // Display name change restrictions
-        const statusEl = document.getElementById('display-name-status');
-        const passwordField = document.getElementById('password-field');
-        const changeNameBtn = document.getElementById('change-name-btn') as HTMLButtonElement | null;
-
-        if (data.isDisplayNameLocked) {
-            if (statusEl) {
-                statusEl.textContent = (window as any).T?.settings?.displayNameLocked ?? 'Your display name has been locked by an administrator.';
-                statusEl.className = 'text-sm mb-3 text-warning';
-                statusEl.classList.remove('hidden');
-            }
-            if (changeNameBtn) changeNameBtn.disabled = true;
-        } else if (data.displayNameChangedAt) {
-            const changedAt = new Date(data.displayNameChangedAt);
-            const daysSince = Math.floor((Date.now() - changedAt.getTime()) / (1000 * 60 * 60 * 24));
-            const cooldownDays = 30;
-            if (daysSince < cooldownDays) {
-                const remaining = cooldownDays - daysSince;
-                if (statusEl) {
-                    const tpl = remaining === 1
-                        ? ((window as any).T?.settings?.displayNameCooldownOne ?? 'You can change your display name again in {0} day.')
-                        : ((window as any).T?.settings?.displayNameCooldownOther ?? 'You can change your display name again in {0} days.');
-                    statusEl.textContent = tpl.replace('{0}', String(remaining));
-                    statusEl.className = 'text-sm mb-3 text-base-content/60';
-                    statusEl.classList.remove('hidden');
-                }
-                if (changeNameBtn) changeNameBtn.disabled = true;
-            }
-        }
-
         // Hide password field for OAuth-only users (no password set)
+        const passwordField = document.getElementById('password-field');
         if (!data.passwordHash && data.oAuthProvider && passwordField) {
             passwordField.style.display = 'none';
         }
@@ -157,12 +123,111 @@ interface SettingsPageConfig {
         }
     }
 
+    async function loadDisplayNameHistory(userData: any): Promise<void> {
+        const loadingEl = document.getElementById('display-name-history-loading');
+        const listEl = document.getElementById('display-name-history-list');
+        if (!listEl) return;
+
+        try {
+            const response = await fetch('/bff/me/display-name-history', { credentials: 'include' });
+            const historyData = response.ok ? await response.json() : { entries: [] };
+            renderDisplayNameSection(userData, historyData.entries || []);
+        } catch {
+            renderDisplayNameSection(userData, []);
+        } finally {
+            if (loadingEl) loadingEl.classList.add('sn-hidden');
+            listEl.classList.remove('sn-hidden');
+        }
+    }
+
+    function renderDisplayNameSection(userData: any, entries: any[]): void {
+        const listEl = document.getElementById('display-name-history-list');
+        const calloutEl = document.getElementById('display-name-callout');
+        const calloutBodyEl = document.getElementById('display-name-callout-body');
+        const changeNameBtn = document.getElementById('change-name-btn') as HTMLButtonElement | null;
+        if (!listEl) return;
+
+        const currentName = userData.displayName || '';
+        const isLocked = userData.isDisplayNameLocked === true;
+        const changedAt = userData.displayNameChangedAt ? new Date(userData.displayNameChangedAt) : null;
+        const cooldownDays = 30;
+
+        const fmtDate = (d: Date) => d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+        // Build list items — current name first, then history descending
+        const items: string[] = [];
+
+        const sinceStr = changedAt
+            ? `<div class="sn-device-meta">Since ${escapeHtml(fmtDate(changedAt))}</div>`
+            : '';
+        items.push(`
+            <div class="sn-device-item">
+                <div class="sn-device-info">
+                    <div class="sn-device-name">
+                        <span>${escapeHtml(currentName)}</span>
+                        <span class="sn-badge" style="background:var(--accent-info-bg);color:var(--accent-info-strong);border:1px solid var(--accent-info-outline)">Current</span>
+                    </div>
+                    ${sinceStr}
+                </div>
+            </div>`);
+
+        for (const entry of entries) {
+            const until = fmtDate(new Date(entry.changedAt));
+            const staffBadge = entry.changedByUserPublicId
+                ? `<span class="sn-badge" style="color:var(--text-tertiary);background:var(--bg-secondary)">Staff change</span>`
+                : '';
+            items.push(`
+                <div class="sn-device-item">
+                    <div class="sn-device-info">
+                        <div class="sn-device-name">
+                            <span>${escapeHtml(entry.previousName)}</span>
+                            ${staffBadge}
+                        </div>
+                        <div class="sn-device-meta">Used until ${escapeHtml(until)}</div>
+                    </div>
+                </div>`);
+        }
+
+        listEl.innerHTML = items.join('');
+
+        // Callout — eligibility + rules
+        if (calloutEl && calloutBodyEl) {
+            const rules = 'Once every 30 days · 3–20 characters · single script · reserved names not allowed';
+
+            if (isLocked) {
+                calloutEl.className = 'sn-callout sn-callout-warning sn-mb-3';
+                const icon = calloutEl.querySelector('.sn-callout-icon');
+                if (icon) icon.textContent = '⚠';
+                calloutBodyEl.innerHTML = `<strong>Your display name has been locked by a moderator.</strong><br><span style="color:var(--text-secondary);font-size:var(--font-size-sm)">${escapeHtml(rules)}</span>`;
+                if (changeNameBtn) changeNameBtn.disabled = true;
+            } else {
+                calloutEl.className = 'sn-callout sn-callout-info sn-mb-3';
+                const icon = calloutEl.querySelector('.sn-callout-icon');
+                if (icon) icon.textContent = 'ℹ';
+
+                const daysSince = changedAt
+                    ? Math.floor((Date.now() - changedAt.getTime()) / (1000 * 60 * 60 * 24))
+                    : cooldownDays;
+
+                if (changedAt && daysSince < cooldownDays) {
+                    const nextDate = new Date(changedAt.getTime() + cooldownDays * 24 * 60 * 60 * 1000);
+                    calloutBodyEl.innerHTML = `<strong>You can change your display name on ${escapeHtml(fmtDate(nextDate))}.</strong><br><span style="color:var(--text-secondary);font-size:var(--font-size-sm)">${escapeHtml(rules)}</span>`;
+                    if (changeNameBtn) changeNameBtn.disabled = true;
+                } else {
+                    calloutBodyEl.innerHTML = `<strong>You can change your display name now.</strong><br><span style="color:var(--text-secondary);font-size:var(--font-size-sm)">${escapeHtml(rules)}</span>`;
+                    if (changeNameBtn) changeNameBtn.disabled = false;
+                }
+            }
+            calloutEl.classList.remove('sn-hidden');
+        }
+    }
+
     function showStatus(message: string, isError: boolean = false): void {
         const statusDiv = document.getElementById('upload-status');
         if (!statusDiv) return;
         statusDiv.textContent = message;
-        statusDiv.className = 'mt-3 text-sm ' + (isError ? 'text-error' : 'text-success');
-        statusDiv.classList.remove('hidden');
+        statusDiv.className = 'mt-3 sn-text-sm ' + (isError ? 'sn-text-error' : 'sn-text-success');
+        statusDiv.classList.remove('sn-hidden');
     }
 
     function showUploadProgress(): void {
@@ -173,11 +238,11 @@ interface SettingsPageConfig {
 
         chipsEl.innerHTML = '';
         const chip = document.createElement('span');
-        chip.className = 'upload-chip upload-chip-uploading';
+        chip.className = 'sn-upload-chip sn-upload-chip-uploading';
         chip.id = 'avatar-upload-chip';
         chipsEl.appendChild(chip);
         statusEl.textContent = (window as any).T?.settings?.avatarUploading ?? 'Uploading avatar…';
-        progressRow.classList.remove('hidden');
+        progressRow.classList.remove('sn-hidden');
     }
 
     function finishUploadProgress(success: boolean): void {
@@ -186,10 +251,10 @@ interface SettingsPageConfig {
         if (!progressRow) return;
 
         if (success && chip) {
-            chip.className = 'upload-chip upload-chip-done';
-            setTimeout(() => progressRow.classList.add('hidden'), 800);
+            chip.className = 'sn-upload-chip sn-upload-chip-done';
+            setTimeout(() => progressRow.classList.add('sn-hidden'), 800);
         } else {
-            progressRow.classList.add('hidden');
+            progressRow.classList.add('sn-hidden');
         }
     }
 
@@ -200,7 +265,7 @@ interface SettingsPageConfig {
 
         // Create new message
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert ${isError ? 'alert-error' : 'alert-success'} mb-6 profile-alert-message`;
+        alertDiv.className = `sn-alert ${isError ? 'sn-alert-error' : 'sn-alert-success'} sn-mb-6 profile-alert-message`;
 
         const span = document.createElement('span');
         span.textContent = message;
@@ -215,9 +280,9 @@ interface SettingsPageConfig {
         setTimeout(() => { alertDiv.remove(); }, 5000);
     }
 
-    async function refreshAvatar(forceGenerated = false): Promise<void> {
+    async function refreshAvatar(forceGenerated = false): Promise<string | null> {
         const avatarPreview = document.getElementById('avatar-preview') as HTMLImageElement | null;
-        if (!avatarPreview || !userId) return;
+        if (!avatarPreview || !userId) return null;
         try {
             const response = await fetch('/bff/me', { credentials: 'include' });
             if (response.ok) {
@@ -239,9 +304,11 @@ interface SettingsPageConfig {
 
                 document.querySelectorAll<HTMLImageElement>(
                     '#auth-nav .avatar-sm img, #auth-nav .sn-user-menu-card-avatar, .sn-tabbar .avatar-sm img, .sn-tabbar .sn-user-menu-card-avatar'
-                ).forEach(img => { img.src = navSrc; });
+                ).forEach(img => { img.removeAttribute('srcset'); img.src = navSrc; });
+                return navSrc;
             }
         } catch { /* ignore */ }
+        return null;
     }
 
     function setAvatarFile(file: File): void {
@@ -284,16 +351,16 @@ interface SettingsPageConfig {
 
         dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropZone.classList.add('gallery-drop-zone-active');
+            dropZone.classList.add('sn-gallery-drop-zone-active');
         });
 
         dropZone.addEventListener('dragleave', () => {
-            dropZone.classList.remove('gallery-drop-zone-active');
+            dropZone.classList.remove('sn-gallery-drop-zone-active');
         });
 
         dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.classList.remove('gallery-drop-zone-active');
+            dropZone.classList.remove('sn-gallery-drop-zone-active');
             const file = e.dataTransfer?.files[0];
             if (file) setAvatarFile(file);
         });
@@ -334,7 +401,8 @@ interface SettingsPageConfig {
                 finishUploadProgress(true);
                 // Await so the blob stays visible during the API round-trip.
                 // revokeObjectURL runs only after the new URL is set (or confirmed absent).
-                await refreshAvatar();
+                const newAvatarUrl = await refreshAvatar();
+                if (newAvatarUrl) window.SnakkBroadcast?.send({ type: 'profile:avatar-changed', url: newAvatarUrl });
                 pendingAvatarFile = null;
                 if (avatarBlobUrl) { URL.revokeObjectURL(avatarBlobUrl); avatarBlobUrl = null; }
                 resetDropZone();
@@ -371,7 +439,8 @@ interface SettingsPageConfig {
             });
 
             if (response.ok) {
-                refreshAvatar(true);
+                const newAvatarUrl = await refreshAvatar(true);
+                if (newAvatarUrl) window.SnakkBroadcast?.send({ type: 'profile:avatar-changed', url: newAvatarUrl });
                 deleteBtn.disabled = true;
                 deleteBtn.textContent = (window as any).T?.settings?.avatarUseGenerated ?? 'Use Generated';
             } else {
@@ -423,10 +492,21 @@ interface SettingsPageConfig {
             });
             const result = await response.json().catch(() => null);
             if (response.ok) {
-                const currentEl = document.getElementById('current-display-name');
-                if (currentEl) currentEl.textContent = displayName;
+                window.SnakkBroadcast?.send({ type: 'profile:display-name-changed', displayName });
                 const snakkModal = (window as any).snakkModal as { close: (id: string) => void } | undefined;
                 snakkModal?.close('modal-display-name');
+                // Refresh the history list and callout to reflect the new name and reset cooldown
+                if (userData) {
+                    userData.displayName = displayName;
+                    userData.displayNameChangedAt = new Date().toISOString();
+                    const historyRes = await fetch('/bff/me/display-name-history', { credentials: 'include' }).catch(() => null);
+                    const historyData = historyRes?.ok ? await historyRes.json().catch(() => null) : null;
+                    renderDisplayNameSection(userData, historyData?.entries || []);
+                    const loadingEl = document.getElementById('display-name-history-loading');
+                    const listEl = document.getElementById('display-name-history-list');
+                    if (loadingEl) loadingEl.classList.add('sn-hidden');
+                    if (listEl) listEl.classList.remove('sn-hidden');
+                }
             } else if (response.status === 403) {
                 invalidateSudo();
                 showModalStatus('display-name-modal-status', 'Session expired. Please re-authenticate.', true);
@@ -478,12 +558,12 @@ interface SettingsPageConfig {
         if (!emptyEl || !activeEl) return;
 
         if (token) {
-            emptyEl.classList.add('hidden');
-            activeEl.classList.remove('hidden');
+            emptyEl.classList.add('sn-hidden');
+            activeEl.classList.remove('sn-hidden');
             if (valueEl) valueEl.value = token;
         } else {
-            emptyEl.classList.remove('hidden');
-            activeEl.classList.add('hidden');
+            emptyEl.classList.remove('sn-hidden');
+            activeEl.classList.add('sn-hidden');
             if (valueEl) valueEl.value = '';
         }
     }
@@ -541,12 +621,12 @@ interface SettingsPageConfig {
         const display = document.getElementById('discord-username-display');
         if (!notLinked || !linked) return;
         if (isLinked) {
-            notLinked.classList.add('hidden');
-            linked.classList.remove('hidden');
+            notLinked.classList.add('sn-hidden');
+            linked.classList.remove('sn-hidden');
             if (display) display.textContent = username ?? '';
         } else {
-            notLinked.classList.remove('hidden');
-            linked.classList.add('hidden');
+            notLinked.classList.remove('sn-hidden');
+            linked.classList.add('sn-hidden');
         }
     }
 
@@ -934,9 +1014,9 @@ interface SettingsPageConfig {
                     const value = listLayoutSelect.value;
                     localStorage.setItem('snakk:discussion-list-layout', value);
                     const root = document.documentElement;
-                    root.classList.remove('no-discussion-previews', 'discussion-list-compact');
-                    if (value === 'none') root.classList.add('no-discussion-previews');
-                    else if (value === 'compact') root.classList.add('discussion-list-compact');
+                    root.classList.remove('sn-no-discussion-previews', 'sn-discussion-list-compact');
+                    if (value === 'none') root.classList.add('sn-no-discussion-previews');
+                    else if (value === 'compact') root.classList.add('sn-discussion-list-compact');
                 });
             }
 
@@ -946,10 +1026,10 @@ interface SettingsPageConfig {
                     const disabled = !animationsToggle.checked;
                     if (disabled) {
                         localStorage.setItem('snakk:disable-animations', 'true');
-                        document.documentElement.classList.add('no-animations');
+                        document.documentElement.classList.add('sn-no-animations');
                     } else {
                         localStorage.removeItem('snakk:disable-animations');
-                        document.documentElement.classList.remove('no-animations');
+                        document.documentElement.classList.remove('sn-no-animations');
                     }
                 });
             }
@@ -1013,7 +1093,7 @@ interface SettingsPageConfig {
         const stored = localStorage.getItem('snakk:skin-tone') || '';
         const swatches = picker.querySelectorAll('.skin-tone-swatch');
         swatches.forEach(btn => {
-            btn.classList.toggle('active', (btn as HTMLElement).dataset.tone === stored);
+            btn.classList.toggle('sn-active', (btn as HTMLElement).dataset.tone === stored);
         });
 
         picker.addEventListener('click', (e) => {
@@ -1023,7 +1103,7 @@ interface SettingsPageConfig {
             const tone = btn.dataset.tone || '';
             localStorage.setItem('snakk:skin-tone', tone);
 
-            swatches.forEach(s => s.classList.toggle('active', s === btn));
+            swatches.forEach(s => s.classList.toggle('sn-active', s === btn));
         });
     }
 
@@ -1057,7 +1137,7 @@ interface SettingsPageConfig {
             const stored = localStorage.getItem('snakk:content-width');
             originalValue = stored ? parseInt(stored, 10) : 54;
             applyPreview(originalValue);
-            modal!.classList.remove('hidden');
+            modal!.classList.remove('sn-hidden');
             document.addEventListener('keydown', onEscape);
         }
 
@@ -1065,6 +1145,7 @@ interface SettingsPageConfig {
             const val = parseInt(slider!.value, 10);
             if (val === 54) localStorage.removeItem('snakk:content-width');
             else localStorage.setItem('snakk:content-width', String(val));
+            window.SnakkBroadcast?.send({ type: 'pref:content-width-changed', value: val });
             closeModal();
         }
 
@@ -1074,7 +1155,7 @@ interface SettingsPageConfig {
         }
 
         function closeModal(): void {
-            modal!.classList.add('hidden');
+            modal!.classList.add('sn-hidden');
             document.removeEventListener('keydown', onEscape);
         }
 
@@ -1222,11 +1303,17 @@ interface SettingsPageConfig {
 
     // ===== Modal helpers (shared across settings-privacy.ts via window.snakkModal) =====
 
+    let lockedScrollY = 0;
+
     function openModal(id: string): void {
         const el = document.getElementById(id);
         if (!el) return;
         el.style.display = '';
+        lockedScrollY = window.scrollY;
+        document.body.style.top = `-${lockedScrollY}px`;
         document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
         requestAnimationFrame(() => {
             const first = el.querySelector<HTMLElement>(
                 'input:not([type="hidden"]):not([disabled]):not(.hidden), textarea:not([disabled]), select:not([disabled])'
@@ -1240,19 +1327,23 @@ interface SettingsPageConfig {
         if (!el) return;
         el.style.display = 'none';
         document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        window.scrollTo(0, lockedScrollY);
     }
 
     function showModalStatus(statusId: string, text: string, isError = false): void {
         const el = document.getElementById(statusId);
         if (!el) return;
         el.textContent = text;
-        el.className = 'text-sm mt-2 ' + (isError ? 'text-error' : 'text-success');
-        el.classList.remove('hidden');
+        el.className = 'sn-text-sm mt-2 ' + (isError ? 'sn-text-error' : 'sn-text-success');
+        el.classList.remove('sn-hidden');
     }
 
     function clearModalStatus(statusId: string): void {
         const el = document.getElementById(statusId);
-        if (el) { el.textContent = ''; el.classList.add('hidden'); }
+        if (el) { el.textContent = ''; el.classList.add('sn-hidden'); }
     }
 
     // Expose for other scripts on the same page
@@ -1391,11 +1482,11 @@ interface SettingsPageConfig {
         pendingPasskeyChallenge = null;
 
         if (settings?.hasPasskeys) {
-            passkeySection?.classList.remove('hidden');
-            pwdSection?.classList.add('hidden');
+            passkeySection?.classList.remove('sn-hidden');
+            pwdSection?.classList.add('sn-hidden');
         } else {
-            passkeySection?.classList.add('hidden');
-            pwdSection?.classList.remove('hidden');
+            passkeySection?.classList.add('sn-hidden');
+            pwdSection?.classList.remove('sn-hidden');
         }
 
         const providers = settings?.connectedProviders ?? [];
@@ -1404,16 +1495,16 @@ interface SettingsPageConfig {
             for (const p of providers) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'btn btn-ghost btn-sm sudo-oauth-btn w-full';
+                btn.className = 'sn-btn sn-btn-ghost sn-btn-sm sudo-oauth-btn sn-w-full';
                 btn.dataset.provider = p;
                 btn.textContent = (window as any).T?.settings?.sudoContinueWith
                     ? `${(window as any).T.settings.sudoContinueWith} ${p.charAt(0).toUpperCase() + p.slice(1)}`
                     : `Continue with ${p.charAt(0).toUpperCase() + p.slice(1)}`;
                 oauthButtons.appendChild(btn);
             }
-            oauthSection.classList.remove('hidden');
+            oauthSection.classList.remove('sn-hidden');
         } else {
-            oauthSection?.classList.add('hidden');
+            oauthSection?.classList.add('sn-hidden');
         }
 
         openModal('modal-sudo-auth');
@@ -1552,8 +1643,7 @@ interface SettingsPageConfig {
     async function handleSudoAuthConfirm(): Promise<void> {
         const btn = document.getElementById('sudo-auth-confirm-btn') as HTMLButtonElement | null;
         const pwdInput = document.getElementById('sudo-password') as HTMLInputElement | null;
-        const settings = (window as any).snakkSettings as { hasPassword?: boolean; twoFactorEnabled?: boolean } | undefined;
-
+        const settings = (window as any).snakkSettings as { hasPassword?: boolean } | undefined;
         const password = pwdInput?.value || '';
 
         if (settings?.hasPassword !== false && !password) {
@@ -1561,45 +1651,44 @@ interface SettingsPageConfig {
             return;
         }
 
-        if (settings?.twoFactorEnabled) {
-            if (btn) btn.disabled = true;
-            try {
-                const verifyRes = await fetch('/bff/me/verify-credential', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password })
-                });
-                if (!verifyRes.ok) {
-                    const d = await verifyRes.json().catch(() => ({}));
-                    showModalStatus('sudo-auth-status', (d as any).error || 'Incorrect password', true);
-                    return;
-                }
-            } catch {
-                showModalStatus('sudo-auth-status', 'Network error', true);
-                return;
-            } finally {
-                if (btn) btn.disabled = false;
-            }
-            pendingPassword = password;
-            sudoTotpAutoSubmit = true;
-            closeModal('modal-sudo-auth');
-            clearModalStatus('sudo-totp-status');
-            clearSudoTotpInputs();
-            openModal('modal-sudo-totp');
-            setTimeout(() => focusSudoTotpFirst(), 50);
-            return;
-        }
-
         if (btn) btn.disabled = true;
-        const ok = await issueSudoToken(password, '', 'sudo-auth-status');
-        if (ok) {
-            closeModal('modal-sudo-auth');
-            const cb = sudoCallback;
-            sudoCallback = null;
-            cb?.();
+        try {
+            const response = await fetch('/bff/auth/sudo', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: password || undefined })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setSudoExpiry(data.expiresInSeconds ?? 300);
+                closeModal('modal-sudo-auth');
+                const cb = sudoCallback;
+                sudoCallback = null;
+                cb?.();
+                return;
+            }
+
+            const errorData = await response.json().catch(() => ({})) as { error?: string };
+
+            if (errorData.error === '2FA code is required.') {
+                pendingPassword = password;
+                sudoTotpAutoSubmit = true;
+                closeModal('modal-sudo-auth');
+                clearModalStatus('sudo-totp-status');
+                clearSudoTotpInputs();
+                openModal('modal-sudo-totp');
+                setTimeout(() => focusSudoTotpFirst(), 50);
+                return;
+            }
+
+            showModalStatus('sudo-auth-status', errorData.error || 'Authentication failed', true);
+        } catch {
+            showModalStatus('sudo-auth-status', 'Network error', true);
+        } finally {
+            if (btn) btn.disabled = false;
         }
-        if (btn) btn.disabled = false;
     }
 
     async function handleSudoTotpConfirm(): Promise<void> {
@@ -1648,8 +1737,8 @@ interface SettingsPageConfig {
             if (btn?.dataset.provider) beginSudoOAuth(btn.dataset.provider);
         });
         document.getElementById('sudo-use-password-link')?.addEventListener('click', () => {
-            document.getElementById('sudo-passkey-section')?.classList.add('hidden');
-            document.getElementById('sudo-password-section')?.classList.remove('hidden');
+            document.getElementById('sudo-passkey-section')?.classList.add('sn-hidden');
+            document.getElementById('sudo-password-section')?.classList.remove('sn-hidden');
             (document.getElementById('sudo-password') as HTMLInputElement | null)?.focus();
         });
         document.getElementById('sudo-password')?.addEventListener('keydown', (e) => {
@@ -1714,10 +1803,10 @@ interface SettingsPageConfig {
         const status = document.getElementById('2fa-status');
         const disabled = document.getElementById('2fa-state-disabled');
         const enabled = document.getElementById('2fa-state-enabled');
-        if (loading) loading.classList.toggle('hidden', state !== 'loading');
-        if (status) status.classList.toggle('hidden', state === 'loading');
-        if (disabled) disabled.classList.toggle('hidden', state !== 'disabled');
-        if (enabled) enabled.classList.toggle('hidden', state !== 'enabled');
+        if (loading) loading.classList.toggle('sn-hidden', state !== 'loading');
+        if (status) status.classList.toggle('sn-hidden', state === 'loading');
+        if (disabled) disabled.classList.toggle('sn-hidden', state !== 'disabled');
+        if (enabled) enabled.classList.toggle('sn-hidden', state !== 'enabled');
     }
 
     async function load2FAStatus(): Promise<void> {
@@ -2073,28 +2162,28 @@ interface SettingsPageConfig {
         const actionsEl = document.getElementById('sessions-actions');
         const statusEl = document.getElementById('sessions-status');
 
-        if (loadingEl) loadingEl.classList.remove('hidden');
-        if (listEl) { listEl.innerHTML = ''; listEl.classList.add('hidden'); }
-        if (emptyEl) emptyEl.classList.add('hidden');
-        if (actionsEl) actionsEl.classList.add('hidden');
-        if (statusEl) statusEl.classList.add('hidden');
+        if (loadingEl) loadingEl.classList.remove('sn-hidden');
+        if (listEl) { listEl.innerHTML = ''; listEl.classList.add('sn-hidden'); }
+        if (emptyEl) emptyEl.classList.add('sn-hidden');
+        if (actionsEl) actionsEl.classList.add('sn-hidden');
+        if (statusEl) statusEl.classList.add('sn-hidden');
 
         try {
             const res = await fetch('/bff/me/sessions', { credentials: 'include' });
-            if (loadingEl) loadingEl.classList.add('hidden');
+            if (loadingEl) loadingEl.classList.add('sn-hidden');
             if (!res.ok) return;
 
             const data = await res.json();
             const sessions: any[] = data.sessions ?? [];
 
             if (sessions.length === 0) {
-                if (emptyEl) emptyEl.classList.remove('hidden');
+                if (emptyEl) emptyEl.classList.remove('sn-hidden');
                 return;
             }
 
             if (listEl) {
                 sessions.forEach(s => listEl.appendChild(buildSessionCard(s)));
-                listEl.classList.remove('hidden');
+                listEl.classList.remove('sn-hidden');
             }
 
             const current = sessions.find(s => s.isCurrent);
@@ -2104,9 +2193,9 @@ interface SettingsPageConfig {
             }
 
             if (actionsEl && sessions.some(s => !s.isCurrent))
-                actionsEl.classList.remove('hidden');
+                actionsEl.classList.remove('sn-hidden');
         } catch {
-            if (loadingEl) loadingEl.classList.add('hidden');
+            if (loadingEl) loadingEl.classList.add('sn-hidden');
         }
     }
 
@@ -2182,8 +2271,8 @@ interface SettingsPageConfig {
         if (!el) return;
         el.textContent = message;
         el.style.color = isError ? 'var(--color-error,#dc2626)' : 'var(--color-success,#16a34a)';
-        el.classList.remove('hidden');
-        setTimeout(() => el.classList.add('hidden'), 4000);
+        el.classList.remove('sn-hidden');
+        setTimeout(() => el.classList.add('sn-hidden'), 4000);
     }
 
     async function openSecurityLogModal(): Promise<void> {
@@ -2192,25 +2281,25 @@ interface SettingsPageConfig {
         const listEl = document.getElementById('security-log-list');
         const emptyEl = document.getElementById('security-log-empty');
 
-        if (loadingEl) loadingEl.classList.remove('hidden');
-        if (listEl) { listEl.innerHTML = ''; listEl.classList.add('hidden'); }
-        if (emptyEl) emptyEl.classList.add('hidden');
+        if (loadingEl) loadingEl.classList.remove('sn-hidden');
+        if (listEl) { listEl.innerHTML = ''; listEl.classList.add('sn-hidden'); }
+        if (emptyEl) emptyEl.classList.add('sn-hidden');
 
         try {
             const res = await fetch('/bff/me/login-history', { credentials: 'include' });
-            if (loadingEl) loadingEl.classList.add('hidden');
-            if (!res.ok) { if (emptyEl) emptyEl.classList.remove('hidden'); return; }
+            if (loadingEl) loadingEl.classList.add('sn-hidden');
+            if (!res.ok) { if (emptyEl) emptyEl.classList.remove('sn-hidden'); return; }
 
             const entries: any[] = await res.json();
-            if (entries.length === 0) { if (emptyEl) emptyEl.classList.remove('hidden'); return; }
+            if (entries.length === 0) { if (emptyEl) emptyEl.classList.remove('sn-hidden'); return; }
 
             if (listEl) {
                 entries.forEach(e => listEl.appendChild(buildLogEntry(e)));
-                listEl.classList.remove('hidden');
+                listEl.classList.remove('sn-hidden');
             }
         } catch {
-            if (loadingEl) loadingEl.classList.add('hidden');
-            if (emptyEl) emptyEl.classList.remove('hidden');
+            if (loadingEl) loadingEl.classList.add('sn-hidden');
+            if (emptyEl) emptyEl.classList.remove('sn-hidden');
         }
     }
 
@@ -2378,11 +2467,11 @@ interface SettingsPageConfig {
             if (conn) {
                 if (provider !== 'discord') {
                     const toggle = document.createElement('label');
-                    toggle.className = 'flex items-center gap-1.5 text-xs cursor-pointer';
+                    toggle.className = 'sn-flex sn-items-center gap-1.5 sn-text-xs sn-cursor-pointer';
                     toggle.style.color = 'var(--text-tertiary)';
                     const chk = document.createElement('input');
                     chk.type = 'checkbox';
-                    chk.className = 'checkbox checkbox-xs';
+                    chk.className = 'sn-checkbox checkbox-xs';
                     chk.checked = conn.require2FA;
                     chk.addEventListener('change', async () => {
                         await fetch(`/bff/settings/oauth-connections/${provider}/require-2fa`, {
@@ -2423,7 +2512,7 @@ interface SettingsPageConfig {
                 const connectUrl = `/auth/oauth/${provider}/challenge?connectMode=true&returnUrl=/my/settings/privacy`;
                 const connectBtn = document.createElement('button');
                 connectBtn.type = 'button';
-                connectBtn.className = 'btn btn-primary btn-sm';
+                connectBtn.className = 'sn-btn sn-btn-primary sn-btn-sm';
                 connectBtn.textContent = (window as any).T?.settings?.connAccConnect ?? 'Connect';
                 connectBtn.addEventListener('click', () => ensureSudo(() => { window.location.href = connectUrl; }));
                 actions.appendChild(connectBtn);
@@ -2500,7 +2589,7 @@ interface SettingsPageConfig {
 
             if (filtered.length === 0) {
                 const empty = document.createElement('div');
-                empty.className = 'social-picker-empty';
+                empty.className = 'sn-social-picker-empty';
                 empty.textContent = q ? 'No platforms match your search.' : 'All platforms have been added.';
                 resultsEl.appendChild(empty);
                 return;
@@ -2517,7 +2606,7 @@ interface SettingsPageConfig {
                 }
                 for (const [cat, items] of byCategory) {
                     const divider = document.createElement('div');
-                    divider.className = 'social-picker-category-divider';
+                    divider.className = 'sn-social-picker-category-divider';
                     divider.textContent = cat;
                     resultsEl.appendChild(divider);
                     for (const p of items) renderItem(p);
@@ -2527,11 +2616,11 @@ interface SettingsPageConfig {
 
         function renderItem(p: PlatformDef): void {
             const item = document.createElement('div');
-            item.className = 'social-picker-item';
+            item.className = 'sn-social-picker-item';
             item.setAttribute('role', 'option');
 
             const iconWrap = document.createElement('div');
-            iconWrap.className = 'social-picker-item-icon';
+            iconWrap.className = 'sn-social-picker-item-icon';
             const iconDef = icons[p.key];
             if (iconDef) {
                 iconWrap.style.color = `#${iconDef.hex}`;
@@ -2539,7 +2628,7 @@ interface SettingsPageConfig {
             }
 
             const name = document.createElement('span');
-            name.className = 'social-picker-item-name';
+            name.className = 'sn-social-picker-item-name';
             name.textContent = p.displayName;
 
             item.appendChild(iconWrap);
@@ -2565,22 +2654,22 @@ interface SettingsPageConfig {
             inputHint.textContent = p.hasUrl
                 ? 'You can paste a full profile URL or just your username.'
                 : 'Enter your username only.';
-            inputHint.classList.remove('hidden');
-            addError.classList.add('hidden');
+            inputHint.classList.remove('sn-hidden');
+            addError.classList.add('sn-hidden');
             modalAddBtn.disabled = false;
 
-            resultsEl.classList.add('hidden');
-            inputSection.classList.remove('hidden');
+            resultsEl.classList.add('sn-hidden');
+            inputSection.classList.remove('sn-hidden');
             valueInput.focus();
         }
 
         function resetModal(): void {
             selectedPlatform = null;
             searchInput.value = '';
-            searchClear.classList.add('hidden');
-            resultsEl.classList.remove('hidden');
-            inputSection.classList.add('hidden');
-            addError.classList.add('hidden');
+            searchClear.classList.add('sn-hidden');
+            resultsEl.classList.remove('sn-hidden');
+            inputSection.classList.add('sn-hidden');
+            addError.classList.add('sn-hidden');
             modalAddBtn.disabled = true;
             valueInput.value = '';
             renderResults('');
@@ -2591,17 +2680,17 @@ interface SettingsPageConfig {
             const raw = valueInput.value.trim();
             if (!raw) {
                 addError.textContent = (window as any).T?.settings?.socialEnterUsername ?? 'Please enter a username or profile URL.';
-                addError.classList.remove('hidden');
+                addError.classList.remove('sn-hidden');
                 return;
             }
             if (links.some(l => l.platform === selectedPlatform!.key)) {
                 addError.textContent = `You already have a ${selectedPlatform.displayName} link.`;
-                addError.classList.remove('hidden');
+                addError.classList.remove('sn-hidden');
                 return;
             }
             if (links.length >= 10) {
                 addError.textContent = (window as any).T?.settings?.socialMaxLinks ?? 'Maximum 10 social links allowed.';
-                addError.classList.remove('hidden');
+                addError.classList.remove('sn-hidden');
                 return;
             }
 
@@ -2639,27 +2728,27 @@ interface SettingsPageConfig {
         async function loadLinks(): Promise<void> {
             try {
                 const res = await fetch('/bff/me/social', { credentials: 'include' });
-                if (!res.ok) { loadingEl.classList.add('hidden'); containerEl.classList.add('hidden'); return; }
+                if (!res.ok) { loadingEl.classList.add('sn-hidden'); containerEl.classList.add('sn-hidden'); return; }
                 const data = await res.json();
                 links = data.links || [];
             } catch {
-                loadingEl.classList.add('hidden');
-                containerEl.classList.add('hidden');
+                loadingEl.classList.add('sn-hidden');
+                containerEl.classList.add('sn-hidden');
                 return;
             }
             renderLinks();
         }
 
         function renderLinks(): void {
-            loadingEl.classList.add('hidden');
+            loadingEl.classList.add('sn-hidden');
             listEl.innerHTML = '';
             if (links.length === 0) {
-                listEl.classList.add('hidden');
-                containerEl.classList.add('hidden');
+                listEl.classList.add('sn-hidden');
+                containerEl.classList.add('sn-hidden');
             } else {
-                containerEl.classList.remove('hidden');
+                containerEl.classList.remove('sn-hidden');
                 for (const link of links) listEl.appendChild(buildLinkRow(link));
-                listEl.classList.remove('hidden');
+                listEl.classList.remove('sn-hidden');
             }
         }
 
@@ -2726,21 +2815,21 @@ interface SettingsPageConfig {
         addBtn.addEventListener('click', () => { resetModal(); openModal('modal-add-social'); });
         deselectBtn.addEventListener('click', () => {
             selectedPlatform = null;
-            resultsEl.classList.remove('hidden');
-            inputSection.classList.add('hidden');
+            resultsEl.classList.remove('sn-hidden');
+            inputSection.classList.add('sn-hidden');
             modalAddBtn.disabled = true;
             valueInput.value = '';
-            addError.classList.add('hidden');
+            addError.classList.add('sn-hidden');
             searchInput.focus();
         });
         searchInput.addEventListener('input', () => {
             const q = searchInput.value;
-            searchClear.classList.toggle('hidden', !q);
+            searchClear.classList.toggle('sn-hidden', !q);
             renderResults(q);
         });
         searchClear.addEventListener('click', () => {
             searchInput.value = '';
-            searchClear.classList.add('hidden');
+            searchClear.classList.add('sn-hidden');
             renderResults('');
             searchInput.focus();
         });
@@ -2748,7 +2837,7 @@ interface SettingsPageConfig {
         document.getElementById('social-modal-cancel')?.addEventListener('click', () => closeModal('modal-add-social'));
         modalAddBtn.addEventListener('click', () => doAdd());
         valueInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
-        valueInput.addEventListener('input', () => { if (valueInput.value.trim()) addError.classList.add('hidden'); });
+        valueInput.addEventListener('input', () => { if (valueInput.value.trim()) addError.classList.add('sn-hidden'); });
 
         loadLinks();
     }
@@ -2802,13 +2891,13 @@ interface SettingsPageConfig {
         const el = document.getElementById('delete-account-modal-status');
         if (!el) return;
         el.textContent = msg;
-        el.className = 'text-sm mt-2 ' + (isError ? 'text-error' : 'text-success');
-        el.classList.remove('hidden');
+        el.className = 'sn-text-sm mt-2 ' + (isError ? 'sn-text-error' : 'sn-text-success');
+        el.classList.remove('sn-hidden');
     }
 
     function clearStatus(): void {
         const el = document.getElementById('delete-account-modal-status');
-        if (el) { el.textContent = ''; el.classList.add('hidden'); }
+        if (el) { el.textContent = ''; el.classList.add('sn-hidden'); }
     }
 
     openBtn.addEventListener('click', () => {

@@ -11,6 +11,7 @@ public class NewGalleryModel(
 {
     protected override int DiscussionType => 5;
     protected override string TypeSlug => "images";
+    protected override void PreloadPageCss() { base.PreloadPageCss(); Preload("type-images"); }
 
     [BindProperty] public List<string> ImagesImageUrls { get; set; } = [];
     [BindProperty] public string ImagesLayout { get; set; } = "masonry";

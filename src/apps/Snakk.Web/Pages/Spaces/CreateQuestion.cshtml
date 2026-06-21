@@ -1,4 +1,4 @@
-@page "/create/question"
+﻿@page "/create/question"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
@@ -12,17 +12,13 @@
     ViewData["NewDiscussion.SubmitLabel"] = T.Pages.SpacesNewQuestionSubmit;
 }
 
-@section ExtraStyles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("type-question")" asp-append-version="true" />
-}
-
-<div class="mt-8 border-t border-base-content/10 pt-6">
-    <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewQuestionHowHeading</h3>
-    <div class="text-sm text-base-content/60 space-y-3">
+<div class="sn-mt-8 sn-border-t sn-border sn-pt-6">
+    <h3 class="sn-section-label--createquestion">@T.Pages.SpacesNewQuestionHowHeading</h3>
+    <div class="sn-create-question-guidance">
         <p>@T.Pages.SpacesNewQuestionIntro</p>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-create-question-sublabel">@T.Pages.SpacesNewAfterYouPost</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@T.Pages.SpacesNewQuestionAfter1</li>
                 <li>@T.Pages.SpacesNewQuestionAfter2</li>
                 <li>@T.Pages.SpacesNewQuestionAfter3</li>
@@ -30,8 +26,8 @@
             </ul>
         </div>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewQuestionWritingLabel</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-create-question-sublabel">@T.Pages.SpacesNewQuestionWritingLabel</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@T.Pages.SpacesNewQuestionWriting1</li>
                 <li>@T.Pages.SpacesNewQuestionWriting2</li>
                 <li>@T.Pages.SpacesNewQuestionWriting3</li>
@@ -40,3 +36,4 @@
         </div>
     </div>
 </div>
+

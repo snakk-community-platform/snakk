@@ -3,8 +3,8 @@
 @model Snakk.Protos.Space.SpaceInfo
 @if (Model is { AllowsAdultContent: true, IsAdultOnly: false })
 {
-    <label class="flex items-center gap-2 text-sm text-base-content/70 cursor-pointer">
-        <input type="checkbox" name="IsAdult" value="true" class="checkbox checkbox-sm" />
+    <label class="sn-adult-toggle-label">
+        <input type="checkbox" name="IsAdult" value="true" class="sn-checkbox sn-checkbox-sm" />
         <span>@T.Adult.NewToggleLabel</span>
     </label>
 }

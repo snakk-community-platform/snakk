@@ -54,13 +54,13 @@
         const el = document.getElementById('change-password-status');
         if (!el) return;
         el.textContent = msg;
-        el.className = 'text-sm mt-2 ' + (isError ? 'text-error' : 'text-success');
-        el.classList.remove('hidden');
+        el.className = 'sn-text-sm sn-mt-2 ' + (isError ? 'sn-text-error' : 'sn-text-success');
+        el.classList.remove('sn-hidden');
     }
 
     function clearStatus(): void {
         const el = document.getElementById('change-password-status');
-        if (el) { el.textContent = ''; el.classList.add('hidden'); }
+        if (el) { el.textContent = ''; el.classList.add('sn-hidden'); }
     }
 
     openBtn.addEventListener('click', () => {
@@ -147,26 +147,26 @@
         const el = document.getElementById('passkey-modal-status');
         if (!el) return;
         el.textContent = msg;
-        el.className = 'text-sm mt-2 ' + (isError ? 'text-error' : 'text-success');
-        el.classList.remove('hidden');
+        el.className = 'sn-text-sm sn-mt-2 ' + (isError ? 'sn-text-error' : 'sn-text-success');
+        el.classList.remove('sn-hidden');
     }
 
     function clearAddModalStatus(): void {
         const el = document.getElementById('passkey-modal-status');
-        if (el) { el.textContent = ''; el.classList.add('hidden'); }
+        if (el) { el.textContent = ''; el.classList.add('sn-hidden'); }
     }
 
     function showDelModalStatus(msg: string, isError: boolean): void {
         const el = document.getElementById('passkey-delete-status');
         if (!el) return;
         el.textContent = msg;
-        el.className = 'text-sm mt-2 ' + (isError ? 'text-error' : 'text-success');
-        el.classList.remove('hidden');
+        el.className = 'sn-text-sm sn-mt-2 ' + (isError ? 'sn-text-error' : 'sn-text-success');
+        el.classList.remove('sn-hidden');
     }
 
     function clearDelModalStatus(): void {
         const el = document.getElementById('passkey-delete-status');
-        if (el) { el.textContent = ''; el.classList.add('hidden'); }
+        if (el) { el.textContent = ''; el.classList.add('sn-hidden'); }
     }
 
     const base64urlToBuffer = (base64url: string): ArrayBuffer => (window as any).SnakkWebAuthn.base64urlToBuffer(base64url) as ArrayBuffer;
@@ -220,7 +220,7 @@
             const escapedName = name.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
             const iconHtml = p.authenticatorIcon && p.authenticatorIcon.startsWith('data:image/')
                 ? `<img src="${p.authenticatorIcon}" class="sn-device-icon" aria-hidden="true" width="24" height="24" alt="">`
-                : `<span class="icon icon-lock-closed sn-device-icon" aria-hidden="true"></span>`;
+                : `<span class="sn-icon icon-lock-closed sn-device-icon" aria-hidden="true"></span>`;
             const metaParts: string[] = [];
             if (p.authenticatorName) metaParts.push(p.authenticatorName.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
             if (p.createdAt) metaParts.push('Added ' + new Date(p.createdAt).toLocaleDateString());
@@ -255,7 +255,7 @@
 
     function loadPasskeys(): void {
         list.style.display = '';
-        list.innerHTML = '<div class="flex justify-center py-4"><span class="loading loading-spinner loading-md"></span></div>';
+        list.innerHTML = '<div class="sn-flex sn-justify-center sn-py-4"><span class="sn-spinner sn-loading-md"></span></div>';
         fetch('/bff/auth/passkeys/', { credentials: 'include' })
             .then(res => res.ok ? res.json() as Promise<PasskeyItem[]> : Promise.reject(new Error('load failed')))
             .then(data => {
@@ -438,12 +438,12 @@
     function setStatus(msg: string, isError: boolean): void {
         if (!statusEl) return;
         statusEl.textContent = msg;
-        statusEl.className = 'text-sm mt-2 ' + (isError ? 'text-error' : 'text-success');
-        statusEl.classList.remove('hidden');
+        statusEl.className = 'sn-text-sm sn-mt-2 ' + (isError ? 'sn-text-error' : 'sn-text-success');
+        statusEl.classList.remove('sn-hidden');
     }
 
     function clearStatus(): void {
-        if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('hidden'); }
+        if (statusEl) { statusEl.textContent = ''; statusEl.classList.add('sn-hidden'); }
     }
 
     downloadBtn.addEventListener('click', () => {
@@ -452,7 +452,7 @@
             downloadBtn.disabled = true;
             clearStatus();
             const originalText = downloadBtn.innerHTML;
-            downloadBtn.innerHTML = '<span class="loading loading-spinner loading-xs"></span> Preparing export...';
+            downloadBtn.innerHTML = '<span class="sn-spinner sn-loading-xs"></span> Preparing export...';
 
             try {
                 const res = await fetch('/bff/me/data-export', { credentials: 'include' });

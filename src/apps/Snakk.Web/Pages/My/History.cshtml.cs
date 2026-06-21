@@ -11,6 +11,7 @@ public class HistoryModel(IConfiguration configuration, ICommunityContext commun
 
     public IActionResult OnGet()
     {
+        Preload("discussion-card");
         IsAuthenticated = HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName);
         return Page();
     }

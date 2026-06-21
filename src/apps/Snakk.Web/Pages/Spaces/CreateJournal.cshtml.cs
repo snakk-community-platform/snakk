@@ -10,4 +10,5 @@ public class NewJournalModel(
 {
     protected override int DiscussionType => 8;
     protected override string TypeSlug => "journal";
+    protected override void PreloadPageCss() { base.PreloadPageCss(); Preload("type-journal"); }
 }

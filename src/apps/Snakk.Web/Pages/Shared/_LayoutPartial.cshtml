@@ -4,7 +4,12 @@
 @{ IgnoreSection("LeftColumn"); }
 @await RenderSectionAsync("Meta", required: false)
 <div id="main-content" class="sn-main-body">
-    <div id="page-title" data-title="@ViewData["Title"] - Snakk" class="hidden"></div>
+    <div id="page-title" data-title="@ViewData["Title"] - Snakk" class="sn-hidden"></div>
+    @* Feature CSS declared via Preload() in PageModel code-behind *@
+    @foreach (var path in (Context.Items["snakk.css.features"] as List<string> ?? new List<string>()))
+    {
+        <link rel="stylesheet" href="@path" />
+    }
     @await RenderSectionAsync("Styles", required: false)
     @RenderBody()
     @await RenderSectionAsync("Scripts", required: false)

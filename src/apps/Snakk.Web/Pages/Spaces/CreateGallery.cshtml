@@ -1,4 +1,4 @@
-@page "/create/gallery"
+﻿@page "/create/gallery"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
@@ -13,10 +13,6 @@
     ViewData["NewDiscussion.EditorHeight"] = "150px";
 }
 
-@section ExtraStyles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("type-images")" asp-append-version="true" />
-}
-
 @section ExtraFormFields {
     <!-- Images section -->
     <div>
@@ -24,11 +20,11 @@
         <div id="images-picker-container"></div>
 
         <!-- Spoiler toggle (shown always, below picker) -->
-        <label class="flex items-center gap-3 cursor-pointer mt-3">
-            <input type="checkbox" name="ImagesIsSpoiler" value="true" class="toggle toggle-primary toggle-sm" />
+        <label class="sn-gallery-spoiler-toggle">
+            <input type="checkbox" name="ImagesIsSpoiler" value="true" class="sn-toggle sn-toggle-primary sn-toggle-sm" />
             <span>
-                <span class="font-medium text-sm">@T.Pages.SpacesNewGallerySpoiler</span>
-                <span class="block text-xs text-base-content/50">@T.Pages.SpacesNewGallerySpoilerDesc</span>
+                <span class="sn-font-medium sn-text-sm">@T.Pages.SpacesNewGallerySpoiler</span>
+                <span class="sn-gallery-spoiler-desc">@T.Pages.SpacesNewGallerySpoilerDesc</span>
             </span>
         </label>
 
@@ -43,24 +39,24 @@
 @section EditorContainer {
     <!-- Description editor -->
     <div>
-        <div class="text-sm font-medium mb-2">@T.Pages.SpacesNewGalleryDescLabel</div>
+        <div class="sn-field-label">@T.Pages.SpacesNewGalleryDescLabel</div>
         <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
         <div id="editor-container" data-hide-image="true" data-placeholder="@T.Pages.SpacesNewGalleryEditorPh">
-            <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:150px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+            <div class="sn-editor-skeleton"><div class="sn-editor-skeleton-toolbar"><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div></div><div class="sn-editor-skeleton-body" style="min-height:150px"><div class="sn-skeleton-line w-3/4"></div><div class="sn-skeleton-line w-1/2"></div></div></div>
         </div>
     </div>
 }
 
 @section SubmitRow {
-    <div class="flex items-center gap-3">
-        <div id="upload-progress-row" class="upload-progress-row hidden">
-            <div id="upload-image-chips" class="upload-image-chips"></div>
-            <span id="upload-status-text" class="upload-status-text"></span>
+    <div class="sn-submit-row">
+        <div id="upload-progress-row" class="sn-upload-progress-row sn-hidden">
+            <div id="upload-image-chips" class="sn-upload-image-chips"></div>
+            <span id="upload-status-text" class="sn-upload-status-text"></span>
         </div>
-        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">
+        <button type="submit" id="new-discussion-submit" class="sn-btn sn-btn-primary sn-btn-sm sn-hidden">
             <span id="new-discussion-submit-label">@T.Pages.SpacesNewGallerySubmit</span>
-            <span id="new-discussion-submit-spinner" class="loading loading-spinner loading-xs hidden"></span>
+            <span id="new-discussion-submit-spinner" class="sn-spinner sn-loading-xs sn-hidden"></span>
         </button>
     </div>
 }
@@ -69,23 +65,24 @@
     <script src="@SnakkUrlHelper.Js("pages/gallery-new")" asp-append-version="true" defer></script>
 }
 
-<div class="mt-8 border-t border-base-content/10 pt-6">
-    <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewGalleryHowHeading</h3>
-    <div class="text-sm text-base-content/60 space-y-3">
+<div class="sn-mt-8 sn-border-t sn-border sn-pt-6">
+    <h3 class="sn-section-label--creategallery">@T.Pages.SpacesNewGalleryHowHeading</h3>
+    <div class="sn-gallery-howto-body">
         <p>@T.Pages.SpacesNewGalleryIntro</p>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-gallery-howto-subheading">@T.Pages.SpacesNewAfterYouPost</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@T.Pages.SpacesNewGalleryAfter1</li>
                 <li>@T.Pages.SpacesNewGalleryAfter2</li>
             </ul>
         </div>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-gallery-howto-subheading">@T.Pages.SpacesNewTips</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@T.Pages.SpacesNewGalleryTip1</li>
                 <li>@T.Pages.SpacesNewGalleryTip2</li>
             </ul>
         </div>
     </div>
 </div>
+

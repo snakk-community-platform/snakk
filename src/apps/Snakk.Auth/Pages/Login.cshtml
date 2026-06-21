@@ -166,6 +166,7 @@
         var form = document.querySelector('form');
         if (!form) return;
         form.addEventListener('submit', function (e) {
+            try { localStorage.removeItem('snakk:lastOAuthProvider'); } catch (ignore) {}
             if (e.defaultPrevented) return;
             var btn = form.querySelector('button[type="submit"]');
             if (!btn) return;

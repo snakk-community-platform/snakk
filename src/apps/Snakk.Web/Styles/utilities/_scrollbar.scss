@@ -12,10 +12,14 @@
 }
 
 ::-webkit-scrollbar-thumb {
+    border-radius: var(--radius-sm);
+}
+
+::-webkit-scrollbar-thumb {
     background: var(--border-subtle);
-    border-radius: 4px;
 
     &:hover {
         background: var(--border-subtle);
     }
 }
+

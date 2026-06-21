@@ -1,4 +1,4 @@
-@page "/create/link"
+﻿@page "/create/link"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
@@ -13,30 +13,26 @@
     ViewData["NewDiscussion.EditorHeight"] = "150px";
 }
 
-@section ExtraStyles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("type-link")" asp-append-version="true" />
-}
-
 @section ExtraFormFields {
     <input type="url" name="LinkUrl" value="@Model.LinkUrl"
-           class="input w-full" required placeholder="@T.Pages.SpacesNewLinkUrlPh" />
+           class="sn-input sn-w-full" required placeholder="@T.Pages.SpacesNewLinkUrlPh" />
 }
 
-<div class="mt-8 border-t border-base-content/10 pt-6">
-    <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewLinkHowHeading</h3>
-    <div class="text-sm text-base-content/60 space-y-3">
+<div class="sn-how-to-section">
+    <h3 class="sn-section-label--createlink">@T.Pages.SpacesNewLinkHowHeading</h3>
+    <div class="sn-how-to-body">
         <p>@T.Pages.SpacesNewLinkIntro</p>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-how-to-sublabel">@T.Pages.SpacesNewAfterYouPost</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@T.Pages.SpacesNewLinkAfter1</li>
                 <li>@T.Pages.SpacesNewLinkAfter2</li>
                 <li>@T.Pages.SpacesNewLinkAfter3</li>
             </ul>
         </div>
         <div>
-            <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewTips</div>
-            <ul class="space-y-1 list-disc pl-4">
+            <div class="sn-how-to-sublabel">@T.Pages.SpacesNewTips</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
                 <li>@T.Pages.SpacesNewLinkTip1</li>
                 <li>@T.Pages.SpacesNewLinkTip2</li>
                 <li>@T.Pages.SpacesNewLinkTip3</li>
@@ -44,3 +40,4 @@
         </div>
     </div>
 </div>
+

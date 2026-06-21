@@ -11,6 +11,7 @@ public class NewDebateModel(
 {
     protected override int DiscussionType => 7;
     protected override string TypeSlug => "debate";
+    protected override void PreloadPageCss() { base.PreloadPageCss(); Preload("type-debate"); }
 
     [BindProperty] public List<string> DebatePositions { get; set; } = [];
     [BindProperty] public bool DebateAllowNeutral { get; set; }

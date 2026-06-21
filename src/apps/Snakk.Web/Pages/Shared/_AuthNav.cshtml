@@ -16,42 +16,47 @@
     var isGlobalAdmin = role == "GlobalAdmin";
     var avatarFileName = User.FindFirst("AvatarFileName")?.Value;
     var avatarThumbnailFileName = User.FindFirst("AvatarThumbnailFileName")?.Value;
+    var avatarMicroFileName = User.FindFirst("AvatarMicroFileName")?.Value;
     var avatarUrl = SnakkUrlHelper.UserAvatarThumbnail(publicId, avatarFileName: avatarFileName, avatarThumbnailFileName: avatarThumbnailFileName);
+    var avatarMicroUrl = SnakkUrlHelper.UserAvatarMicro(publicId, avatarFileName: avatarFileName, avatarMicroFileName: avatarMicroFileName);
 
     @if (isMessagingEnabled)
     {
     <!-- DM (Messages) Icon -->
-    <a href="/messages" class="btn btn-ghost btn-sm btn-circle relative mr-1" aria-label="@T.AuthNav.Messages" hx-boost="false">
-        <span class="icon icon-chat-bubbles h-5 w-5" aria-hidden="true"></span>
-        <span class="dm-badge hidden"></span>
+    <a href="/messages" class="sn-btn sn-btn-ghost sn-btn-sm sn-btn-circle sn-relative sn-mr-1" aria-label="@T.AuthNav.Messages" hx-boost="false">
+        <span class="sn-icon icon-chat-bubbles sn-icon--md" aria-hidden="true"></span>
+        <span class="sn-dm-badge sn-hidden"></span>
     </a>
     }
     <!-- Notification Bell -->
-    <div class="dropdown dropdown-end mr-2">
-        <label tabindex="0" class="btn btn-ghost btn-sm btn-circle relative">
-            <span class="icon icon-bell h-5 w-5" aria-hidden="true"></span>
-            <span id="notification-badge" class="notification-badge hidden">0</span>
-        </label>
-        <div tabindex="0" class="dropdown-content z-[1] mt-3 w-80 max-h-96 overflow-y-auto shadow-lg bg-base-100 border border-subtle rounded-lg">
-            <div class="flex items-center justify-between p-3 border-b border-subtle">
-                <span class="font-semibold">@T.AuthNav.Notifications</span>
-                <button data-action="mark-all-notifications-read" class="text-xs text-primary hover:underline">@T.AuthNav.MarkAllRead</button>
+    <div class="sn-dropdown sn-mr-2">
+        <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm sn-btn-circle sn-relative"
+                popovertarget="sn-notif-panel" aria-label="@T.AuthNav.Notifications">
+            <span class="sn-icon icon-bell sn-icon--md" aria-hidden="true"></span>
+            <span id="notification-badge" class="sn-notification-badge sn-hidden">0</span>
+        </button>
+        <div id="sn-notif-panel" popover class="sn-dropdown-panel sn-w-80 sn-max-h-96 sn-overflow-y-auto">
+            <div class="sn-notif-panel-header">
+                <span class="sn-font-semibold">@T.AuthNav.Notifications</span>
+                <button data-action="mark-all-notifications-read" class="sn-text-xs sn-text-primary sn-hover\:underline">@T.AuthNav.MarkAllRead</button>
             </div>
-            <div id="notification-list" class="notification-list p-2">
-                <p class="text-sm text-muted text-center py-4">@T.Common.Loading</p>
+            <div id="notification-list" class="notification-list sn-p-2">
+                <p class="sn-notif-empty-hint">@T.Common.Loading</p>
             </div>
         </div>
     </div>
     <!-- User Menu -->
-    <div class="dropdown dropdown-end">
-        <label tabindex="0" class="btn btn-ghost btn-sm btn-circle p-0">
-            <div class="avatar" style="width:1.75rem;height:1.75rem">
-                <img src="@avatarUrl"
+    <div class="sn-dropdown">
+        <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm sn-btn-circle sn-p-0"
+                popovertarget="sn-user-menu">
+            <div class="sn-avatar" style="width:1.75rem;height:1.75rem">
+                <img src="@avatarMicroUrl"
+                     srcset="@avatarMicroUrl 1x, @avatarUrl 2x"
                      alt="@displayName"
                      loading="lazy" />
             </div>
-        </label>
-        <ul tabindex="0" class="mt-3 z-[1] p-2 shadow-lg menu menu-sm dropdown-content bg-base-100 border border-subtle rounded-lg w-52">
+        </button>
+        <ul id="sn-user-menu" popover class="sn-dropdown-panel sn-menu sn-w-52">
             <li>
                 <a href="@SnakkUrlHelper.UserProfile(slug)" class="sn-user-menu-card"
                    style="--user-grad: @UserGradient(publicId)">
@@ -59,46 +64,46 @@
                     <span class="sn-user-menu-card-name">@displayName</span>
                     @if (emailVerified != "True")
                     {
-                        <span class="badge badge-warning badge-xs">@T.AuthNav.Unverified</span>
+                        <span class="sn-badge sn-badge-warning sn-badge-xs">@T.AuthNav.Unverified</span>
                     }
                 </a>
             </li>
             <li>
                 <a href="/my/settings">
-                    <span class="icon icon-cog h-4 w-4" aria-hidden="true"></span>
+                    <span class="sn-icon icon-cog" aria-hidden="true"></span>
                     @T.Nav.Settings
                 </a>
             </li>
             <li>
                 <a href="#" id="theme-toggle" data-action="toggle-theme">
-                    <span class="icon icon-moon h-4 w-4" aria-hidden="true"></span>
+                    <span class="sn-icon icon-moon" aria-hidden="true"></span>
                     @T.AuthNav.ToggleTheme
                 </a>
             </li>
             @if (isModerator)
             {
-                <li><hr class="my-1 border-subtle"/></li>
+                <li><hr class="sn-my-1 sn-border-subtle"/></li>
                 <li>
                     <a href="/moderation">
-                        <span class="icon icon-shield-check h-4 w-4" aria-hidden="true"></span>
+                        <span class="sn-icon icon-shield-check" aria-hidden="true"></span>
                         @T.AuthNav.Moderation
                     </a>
                 </li>
-                <li><hr class="my-1 border-subtle"/></li>
+                <li><hr class="sn-my-1 sn-border-subtle"/></li>
             }
             @if (isGlobalAdmin)
             {
                 <li>
                     <a href="/admin" hx-boost="false">
-                        <span class="icon icon-cog h-4 w-4" aria-hidden="true"></span>
+                        <span class="sn-icon icon-cog" aria-hidden="true"></span>
                         @T.AuthNav.AdminPanel
                     </a>
                 </li>
-                <li><hr class="my-1 border-subtle"/></li>
+                <li><hr class="sn-my-1 sn-border-subtle"/></li>
             }
             <li>
                 <a href="#" data-action="logout">
-                    <span class="icon icon-logout h-4 w-4" aria-hidden="true"></span>
+                    <span class="sn-icon icon-logout" aria-hidden="true"></span>
                     @T.AuthNav.Logout
                 </a>
             </li>
@@ -107,7 +112,7 @@
 }
 else
 {
-    <a href="/my/settings/browser" class="btn btn-ghost btn-sm btn-square" title="@T.Nav.Settings" hx-boost="false"><span class="icon icon-cog h-4 w-4" aria-hidden="true"></span></a>
-    <a href="/auth/login" class="btn btn-ghost btn-sm" hx-boost="false">@T.AuthNav.Login</a>
-    <a href="/auth/register" class="btn btn-primary btn-sm" hx-boost="false">@T.AuthNav.SignUp</a>
+    <a href="/my/settings/browser" class="sn-btn sn-btn-ghost sn-btn-sm sn-btn-square" title="@T.Nav.Settings" hx-boost="false"><span class="sn-icon icon-cog" aria-hidden="true"></span></a>
+    <a href="/auth/login" class="sn-btn sn-btn-ghost sn-btn-sm" hx-boost="false">@T.AuthNav.Login</a>
+    <a href="/auth/register" class="sn-btn sn-btn-primary sn-btn-sm" hx-boost="false">@T.AuthNav.SignUp</a>
 }

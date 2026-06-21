@@ -4,10 +4,12 @@ using System.Text.RegularExpressions;
 using Markdig;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages;
 
-public class HelpModel : PageModel
+public class HelpModel(IConfiguration configuration, ICommunityContext communityContext)
+    : BasePageModel(configuration, communityContext)
 {
     private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
         .UseAdvancedExtensions()
@@ -49,6 +51,7 @@ public class HelpModel : PageModel
 
     public async Task<IActionResult> OnGetAsync(string? slug)
     {
+        Preload("help");
         var manifest = _manifest.Value;
         if (manifest.Sections.Count == 0) return NotFound();
 

@@ -1,0 +1,56 @@
+// Feature: common
+// Compiled to wwwroot/css/features/common.css
+// Loaded on every page — covers all chrome present above the fold.
+// Replaces site.scss. Excludes features that have their own files:
+//   discussion-card, profile (page-specific)
+
+// Base
+@use '../base/tokens';
+@use '../base/variables';
+@use '../base/typography';
+@use '../base/layout';
+
+// Components
+@use '../components/navbar';
+@use '../components/breadcrumbs';
+@use '../components/cards';
+@use '../components/buttons';
+@use '../components/forms';
+@use '../components/badges';
+@use '../components/modals';
+@use '../components/notifications';
+@use '../components/popups';
+@use '../components/icons';
+@use '../components/skeletons';
+@use '../components/search-focus';
+@use '../components/search-modal';
+@use '../components/sparkline';
+@use '../components/mobile-nav';
+@use '../components/site-header';
+@use '../components/tabs';
+@use '../components/sn-card';
+@use '../components/sn-join';
+@use '../components/sn-loading';
+@use '../components/sn-alert';
+@use '../components/sn-stat';
+@use '../components/sn-misc';
+@use '../components/sn-dropdown';
+@use '../components/sn-semantic';
+
+// Features (shared across all pages)
+@use '../features/sidebar';
+@use '../features/nudge';
+@use '../features/stats';
+@use '../features/activity';
+
+// Pages (structural — every page)
+@use '../pages/layout' as page-layout;
+@use '../pages/left-nav';
+@use '../pages/right-sidebar';
+@use '../pages/space' as page-space;
+
+// Utilities
+@use '../utilities/scrollbar';
+@use '../utilities/transitions';
+@use '../utilities/utilities';
+@use '../utilities/mobile';

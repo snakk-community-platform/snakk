@@ -11,7 +11,7 @@ public class IndexModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    IPrefetchCacheService prefetchCache) : PageModel
+    IPrefetchCacheService prefetchCache) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
@@ -49,6 +49,7 @@ public class IndexModel(
 
     public async Task OnGetAsync(int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("hub");
         cancellationToken.ThrowIfCancellationRequested();
         // Fetch community detail for breadcrumb popup or custom domain scoping
         string? communityId = null;

@@ -4,35 +4,35 @@
 <div data-cache-source="@Model.CacheSource">
 @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
 {
-    <p class="text-sm text-base-content/50">@T.Sidebar.EmptyHubRules</p>
+    <p class="sn-text-sm sn-text-muted">@T.Sidebar.EmptyHubRules</p>
 }
 else
 {
     @foreach (var (rule, index) in Model.Rules.Rules.Select((r, i) => (r, i)))
     {
-        <details class="group">
-            <summary class="flex items-center justify-between cursor-pointer py-2 text-sm font-medium">
+        <details>
+            <summary class="sn-collapse-summary">
                 <span>@(index + 1). @rule.Title</span>
-                <span class="icon icon-chevron-down w-4 h-4 flex-shrink-0 transition-transform group-open:rotate-180" aria-hidden="true"></span>
+                <span class="sn-icon icon-chevron-down" aria-hidden="true"></span>
             </summary>
-            <p class="text-sm text-base-content/70 pl-4 pb-2">@rule.Description</p>
+            <p class="sn-rule-description">@rule.Description</p>
         </details>
     }
 }
 
-<div class="border-t border-base-200 mt-2 pt-2 flex flex-col gap-1">
+<div class="sn-rules-footer">
     @if (Model.ParentCommunityHasRules && !string.IsNullOrEmpty(Model.CommunitySlug) && Model.Community.IsMultiCommunityEnabled)
     {
         <a href="/c/@Model.CommunitySlug/rules"
-           class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+           class="sn-sidebar-nav-link---hubrules">
             <span>@T.Sidebar.CommunityRulesLink</span>
-            <span class="icon icon-chevron-right w-4 h-4" aria-hidden="true"></span>
+            <span class="sn-icon icon-chevron-right" aria-hidden="true"></span>
         </a>
     }
     <a href="/rules"
-       class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors">
+       class="sn-sidebar-nav-link---hubrules py-1.5">
         <span>@T.Sidebar.SiteRulesLink</span>
-        <span class="icon icon-chevron-right w-4 h-4" aria-hidden="true"></span>
+        <span class="sn-icon icon-chevron-right" aria-hidden="true"></span>
     </a>
 </div>
 </div>

@@ -87,7 +87,7 @@ interface SearchTypeTextMap {
     // Show pane and update placeholder when input is focused
     searchInput.addEventListener('focus', function() {
         if (!searchPane) return;
-        searchPane.classList.remove('hidden');
+        searchPane.classList.remove('sn-hidden');
         updatePlaceholder();
     });
 
@@ -102,7 +102,7 @@ interface SearchTypeTextMap {
         if (!searchWrapper || !searchPane) return;
         // If click is outside the wrapper, hide the pane
         if (!searchWrapper.contains(e.target as Node)) {
-            searchPane.classList.add('hidden');
+            searchPane.classList.add('sn-hidden');
         }
     });
 

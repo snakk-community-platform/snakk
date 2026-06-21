@@ -1,4 +1,4 @@
-﻿@page "/my/settings/account"
+@page "/my/settings/account"
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.My.Settings.AccountModel
 @{
@@ -19,60 +19,68 @@
             <!-- Avatar -->
             <div id="section-avatar" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.AvatarTitle</h3>
-                <form id="avatar-upload-form" class="flex flex-col gap-4">
-                    <div class="flex items-center gap-4">
-                        <div class="avatar avatar-xl shrink-0">
+                <form id="avatar-upload-form" class="sn-avatar-upload-form">
+                    <div class="sn-avatar-preview-row">
+                        <div class="sn-avatar avatar-xl sn-shrink-0">
                             <img src="@settingsAvatarUrl"
                                  alt="@T.Settings.AvatarAlt"
                                  width="80" height="80"
                                  id="avatar-preview"
                                  data-generated-url="@settingsGeneratedUrl" />
                         </div>
-                        <div class="text-sm" style="color: var(--text-tertiary)">
+                        <div class="sn-text-sm" style="color: var(--text-tertiary)">
                             @T.Settings.AvatarHelp
                             <br />@T.Settings.AvatarSupport
                         </div>
                     </div>
 
                     <input type="file" id="avatar-file" name="avatar"
-                           accept="image/jpeg,image/png,image/webp" class="hidden" />
+                           accept="image/jpeg,image/png,image/webp" class="sn-hidden" />
 
-                    <div id="avatar-drop-zone" class="gallery-drop-zone">
-                        <div class="gallery-drop-zone-content">
-                            <span class="icon icon-photograph h-8 w-8 text-base-content/30 mb-2" aria-hidden="true"></span>
-                            <span class="text-sm text-base-content/50" id="avatar-drop-label">@T.Settings.AvatarDropLabel</span>
+                    <div id="avatar-drop-zone" class="sn-gallery-drop-zone">
+                        <div class="sn-gallery-drop-zone-content">
+                            <span class="icon icon-photograph sn-h-8 sn-w-8 sn-text-faint sn-mb-2" aria-hidden="true"></span>
+                            <span class="sn-text-sm sn-text-muted" id="avatar-drop-label">@T.Settings.AvatarDropLabel</span>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <button type="submit" class="btn btn-primary btn-sm" id="upload-btn" disabled>
+                    <div class="sn-avatar-actions-row">
+                        <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm" id="upload-btn" disabled>
                             @T.Settings.AvatarUpload
                         </button>
                         <button type="button"
-                                class="btn btn-ghost btn-sm"
+                                class="sn-btn sn-btn-ghost sn-btn-sm"
                                 id="delete-avatar-btn"
                                 @(hasUploadedAvatar ? "" : "disabled")>
                             @T.Settings.AvatarUseGenerated
                         </button>
-                        <div id="upload-progress-row" class="upload-progress-row hidden">
-                            <div id="upload-image-chips" class="upload-image-chips"></div>
-                            <span id="upload-status-text" class="upload-status-text"></span>
+                        <div id="upload-progress-row" class="sn-upload-progress-row sn-hidden">
+                            <div id="upload-image-chips" class="sn-upload-image-chips"></div>
+                            <span id="upload-status-text" class="sn-upload-status-text"></span>
                         </div>
                     </div>
                 </form>
 
-                <div id="upload-status" class="mt-3 text-sm hidden"></div>
+                <div id="upload-status" class="sn-mt-3 sn-text-sm sn-hidden"></div>
             </div>
 
             <!-- Display Name -->
             <div id="section-display-name" class="sn-settings-section">
                 <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
                     <span>@T.Settings.DisplayNameTitle</span>
-                    <span class="icon icon-lock-closed w-4 h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
+                    <span class="icon icon-lock-closed sn-w-4 sn-h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
                 </h3>
-                <div id="display-name-status" class="text-sm mb-3 hidden"></div>
-                <p id="current-display-name" class="text-sm font-medium mb-3"></p>
-                <button type="button" class="btn btn-primary btn-sm" id="change-name-btn">
+                <div id="display-name-callout" class="sn-callout sn-callout-info sn-mb-3 sn-hidden">
+                    <span class="sn-callout-icon" aria-hidden="true">ℹ</span>
+                    <div class="sn-callout-body" id="display-name-callout-body"></div>
+                </div>
+                <div class="sn-settings-list-container sn-mb-3" style="background:var(--bg-tertiary);color:var(--text-primary)">
+                    <div id="display-name-history-loading" class="sn-settings-loader">
+                        <span class="sn-spinner sn-loading-md"></span>
+                    </div>
+                    <div id="display-name-history-list" class="sn-hidden"></div>
+                </div>
+                <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" id="change-name-btn">
                     @T.Settings.DisplayNameSubmit
                 </button>
             </div>
@@ -80,34 +88,34 @@
             <!-- Bio -->
             <div id="section-bio" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.BioTitle</h3>
-                <p class="text-sm mb-3" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-3" style="color: var(--text-tertiary)">
                     @T.Settings.BioHelp
                 </p>
                 <textarea id="bio-input"
-                          class="textarea w-full"
+                          class="sn-textarea sn-w-full"
                           rows="3"
                           maxlength="300"
                           placeholder="@T.Settings.BioPlaceholder"></textarea>
-                <div class="flex items-center justify-between mt-2">
-                    <span class="text-xs" style="color: var(--text-tertiary)"><span id="bio-char-count">0</span>/300</span>
-                    <button type="button" class="btn btn-primary btn-sm" id="save-bio-btn">@T.Settings.BioSave</button>
+                <div class="sn-bio-footer-row">
+                    <span class="sn-text-xs" style="color: var(--text-tertiary)"><span id="bio-char-count">0</span>/300</span>
+                    <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" id="save-bio-btn">@T.Settings.BioSave</button>
                 </div>
             </div>
 
             <!-- Social Links -->
             <div id="section-social" class="sn-settings-section">
                 <h3 class="sn-settings-section-title">@T.Settings.TitleSocial</h3>
-                <p class="text-sm mb-4" style="color: var(--text-tertiary)">
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
                     @T.Settings.SocialIntro
                 </p>
-                <div id="social-links-container" class="rounded-lg border border-base-300 overflow-hidden mb-4 hidden" style="background:var(--bg-tertiary);color:var(--text-primary)">
-                    <div id="social-links-loading" class="flex justify-center py-4">
-                        <span class="loading loading-spinner loading-md"></span>
+                <div id="social-links-container" class="sn-social-links-container sn-hidden" style="background:var(--bg-tertiary);color:var(--text-primary)">
+                    <div id="social-links-loading" class="sn-social-links-loading">
+                        <span class="sn-spinner sn-loading-md"></span>
                     </div>
-                    <div id="social-links-list" class="hidden"></div>
+                    <div id="social-links-list" class="sn-hidden"></div>
                 </div>
-                <button type="button" id="social-add-btn" class="btn btn-primary btn-sm">
-                    <span class="icon icon-plus w-4 h-4" aria-hidden="true"></span>
+                <button type="button" id="social-add-btn" class="sn-btn sn-btn-primary sn-btn-sm">
+                    <span class="icon icon-plus sn-w-4 sn-h-4" aria-hidden="true"></span>
                     @T.Settings.SocialAddLinkBtn
                 </button>
             </div>
@@ -115,7 +123,7 @@
 <!-- Display Name Modal -->
 @if (User.Identity?.IsAuthenticated == true)
 {
-<div id="modal-display-name" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-display-name-title">
+<div id="modal-display-name" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-display-name-title">
     <div class="sn-modal" style="max-width:28rem">
         <div class="sn-modal-header">
             <span id="modal-display-name-title">@T.Settings.DisplayNameTitle</span>
@@ -124,13 +132,13 @@
         <div class="sn-modal-body" style="flex-direction:column">
             <input type="text"
                    id="display-name-input"
-                   class="input w-full"
+                   class="sn-input sn-w-full"
                    minlength="3"
                    maxlength="20"
                    placeholder="@T.Settings.DisplayNamePlaceholder"
                    autocomplete="off" />
-            <span class="text-xs mt-1" style="color: var(--text-tertiary)">@T.Settings.DisplayNameHelp</span>
-            <p id="display-name-modal-status" class="text-sm mt-2 hidden"></p>
+            <span class="sn-text-xs sn-mt-1" style="color: var(--text-tertiary)">@T.Settings.DisplayNameHelp</span>
+            <p id="display-name-modal-status" class="sn-text-sm sn-mt-2 sn-hidden"></p>
         </div>
         <div class="sn-modal-footer">
             <button type="button" class="sn-modal-cancel" id="display-name-modal-cancel">@T.Settings.Priv2faCancelBtn</button>
@@ -143,32 +151,32 @@
 <!-- Add Social Link Modal -->
 @if (User.Identity?.IsAuthenticated == true)
 {
-<div id="modal-add-social" class="sn-modal-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-add-social-title">
-    <div class="sn-modal social-picker-modal">
+<div id="modal-add-social" class="sn-modal-backdrop-overlay" style="display:none" role="dialog" aria-modal="true" aria-labelledby="modal-add-social-title">
+    <div class="sn-modal sn-social-picker-modal">
         <div class="sn-modal-header">
             <span id="modal-add-social-title">@T.Settings.SocialAddLinkBtn</span>
             <button type="button" class="sn-modal-close" id="social-modal-close" aria-label="Close">✕</button>
         </div>
-        <div class="social-picker-body">
-            <div class="social-picker-search">
-                <span class="icon icon-search social-picker-search-icon" aria-hidden="true"></span>
-                <input type="text" id="social-search" class="social-picker-input"
+        <div class="sn-social-picker-body">
+            <div class="sn-social-picker-search">
+                <span class="icon icon-search sn-social-picker-search-icon" aria-hidden="true"></span>
+                <input type="text" id="social-search" class="sn-social-picker-input"
                        placeholder="@T.Settings.SocialSearchPlaceholder" autocomplete="off" />
-                <button type="button" id="social-search-clear" class="social-picker-clear hidden" aria-label="Clear">✕</button>
+                <button type="button" id="social-search-clear" class="sn-social-picker-clear sn-hidden" aria-label="Clear">✕</button>
             </div>
-            <div id="social-results" class="social-picker-results" role="listbox" aria-label="Platforms"></div>
-            <div id="social-input-section" class="social-picker-input-section hidden">
-                <button type="button" id="social-deselect-btn" class="social-picker-back" aria-label="Back">
-                    <span class="icon icon-chevron-left w-4 h-4" aria-hidden="true"></span>
+            <div id="social-results" class="sn-social-picker-results" role="listbox" aria-label="Platforms"></div>
+            <div id="social-input-section" class="sn-social-picker-input-section sn-hidden">
+                <button type="button" id="social-deselect-btn" class="sn-social-picker-back" aria-label="Back">
+                    <span class="icon icon-chevron-left sn-w-4 sn-h-4" aria-hidden="true"></span>
                 </button>
-                <div id="social-selected-header" class="social-picker-selected-header">
-                    <span id="social-selected-icon" class="social-picker-selected-icon"></span>
-                    <span id="social-selected-name" class="social-picker-selected-name"></span>
+                <div id="social-selected-header" class="sn-social-picker-selected-header">
+                    <span id="social-selected-icon" class="sn-social-picker-selected-icon"></span>
+                    <span id="social-selected-name" class="sn-social-picker-selected-name"></span>
                 </div>
-                <div class="social-picker-value-wrap">
-                    <input type="text" id="social-value-input" class="input w-full" autocomplete="off" />
-                    <p id="social-input-hint" class="text-xs mt-1 hidden" style="color: var(--text-tertiary)"></p>
-                    <p id="social-add-error" class="text-xs mt-1 hidden" style="color: var(--color-error)"></p>
+                <div class="sn-social-picker-value-wrap">
+                    <input type="text" id="social-value-input" class="sn-input sn-w-full" autocomplete="off" />
+                    <p id="social-input-hint" class="sn-text-xs sn-mt-1 sn-hidden" style="color: var(--text-tertiary)"></p>
+                    <p id="social-add-error" class="sn-text-xs sn-mt-1 sn-hidden" style="color: var(--color-error)"></p>
                 </div>
             </div>
         </div>

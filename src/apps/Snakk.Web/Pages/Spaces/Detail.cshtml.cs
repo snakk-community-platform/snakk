@@ -55,6 +55,7 @@ public class DetailModel(
 
     public async Task<IActionResult> OnGetAsync(string hubSlug, string slug, int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         HubSlug = hubSlug;
         Slug = slug;

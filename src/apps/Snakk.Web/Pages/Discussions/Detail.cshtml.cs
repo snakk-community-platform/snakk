@@ -92,6 +92,8 @@ public class DetailModel(
         string sort = "",
         CancellationToken cancellationToken = default)
     {
+        Preload("discussion");
+        Preload("type-images");
         cancellationToken.ThrowIfCancellationRequested();
         HubSlug = hubSlug;
         SpaceSlug = spaceSlug;

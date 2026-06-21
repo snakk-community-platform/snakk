@@ -4,19 +4,22 @@
 .sn-space-list-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.625rem;
-    margin-bottom: 1.5rem;
+    gap: var(--space-5);
+    margin-bottom: var(--space-12);
 }
 
 .sn-space-list-card {
     display: block;
     border-radius: 0.625rem;
     border: 1px solid var(--border-secondary);
-    background: var(--bg-primary);
-    text-decoration: none;
     overflow: hidden;
     position: relative;
-    transition: box-shadow 0.15s, border-color 0.15s;
+    text-decoration: none;
+}
+
+.sn-space-list-card {
+    background: var(--bg-primary);
+    transition: box-shadow var(--duration-base), border-color var(--duration-base);
 
     &:hover {
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -34,8 +37,15 @@
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(transparent 10%, rgba(0, 0, 0, 0.42) 100%);
         pointer-events: none;
+    }
+}
+
+.sn-space-list-banner {
+    filter: var(--banner-img-filter);
+
+    &::after {
+        background: linear-gradient(transparent 10%, rgba(0, 0, 0, 0.42) 100%);
     }
 }
 
@@ -47,8 +57,11 @@
     height: 2.125rem;
     border-radius: 50%;
     object-fit: cover;
-    box-shadow: 0 0 0 2px var(--bg-primary);
     z-index: 2;
+}
+
+.sn-space-list-avatar {
+    box-shadow: 0 0 0 2px var(--bg-primary);
 }
 
 .sn-space-list-name {
@@ -57,26 +70,28 @@
     left: calc(0.625rem + 2.125rem + 0.5rem);
     right: 0.625rem;
     z-index: 1;
-    color: #fff;
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     font-weight: 700;
     line-height: 1.2;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+.sn-space-list-name {
+    color: var(--text-on-dark);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
 .sn-space-list-body {
-    padding: 1.375rem 0.625rem 0.625rem;
+    padding: 1.375rem var(--space-5) var(--space-5);
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--space-2);
 }
 
 .sn-space-list-desc {
-    font-size: 0.6875rem;
-    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
     line-height: 1.35;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -84,10 +99,14 @@
     overflow: hidden;
 }
 
+.sn-space-list-desc {
+    color: var(--text-secondary);
+}
+
 .sn-space-list-stat-row {
     display: flex;
-    gap: 0.25rem;
-    margin-top: 0.125rem;
+    gap: var(--space-2);
+    margin-top: var(--space-1);
     flex-wrap: wrap;
     align-items: center;
 }
@@ -103,18 +122,21 @@
 .sn-mod-list-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.625rem;
-    margin-bottom: 1.5rem;
+    gap: var(--space-5);
+    margin-bottom: var(--space-12);
 }
 
 .sn-mod-list-card {
     display: block;
     border-radius: 0.625rem;
     border: 1px solid var(--border-secondary);
-    background: var(--bg-primary);
-    text-decoration: none;
     overflow: hidden;
-    transition: box-shadow 0.15s, border-color 0.15s;
+    text-decoration: none;
+}
+
+.sn-mod-list-card {
+    background: var(--bg-primary);
+    transition: box-shadow var(--duration-base), border-color var(--duration-base);
 
     &:hover {
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -132,8 +154,15 @@
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(transparent 10%, rgba(0, 0, 0, 0.42) 100%);
         pointer-events: none;
+    }
+}
+
+.sn-mod-list-banner {
+    filter: var(--banner-img-filter);
+
+    &::after {
+        background: linear-gradient(transparent 10%, rgba(0, 0, 0, 0.42) 100%);
     }
 }
 
@@ -145,8 +174,11 @@
     height: 2.125rem;
     border-radius: 50%;
     object-fit: cover;
-    box-shadow: 0 0 0 2px var(--bg-primary);
     z-index: 2;
+}
+
+.sn-mod-list-avatar {
+    box-shadow: 0 0 0 2px var(--bg-primary);
 }
 
 .sn-mod-list-name {
@@ -155,20 +187,22 @@
     left: calc(0.625rem + 2.125rem + 0.5rem);
     right: 0.625rem;
     z-index: 1;
-    color: #fff;
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     font-weight: 700;
     line-height: 1.2;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.sn-mod-list-body {
-    padding: 1.375rem 0.625rem 0.625rem;
+.sn-mod-list-name {
+    color: var(--text-on-dark);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
+.sn-mod-list-body {
+    padding: 1.375rem var(--space-5) var(--space-5);
+}
 
 // ============================================
 // Space Page Header Card — shares the gradient + overlay pattern with
@@ -178,8 +212,8 @@
 .sn-space-card {
     display: flex;
     flex-direction: column;
-    margin-bottom: 1rem;
-    border-radius: 0.5rem;
+    margin-bottom: var(--space-8);
+    border-radius: var(--radius-lg);
     position: relative;
     overflow: visible;
 }
@@ -195,8 +229,15 @@
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.48));
         pointer-events: none;
+    }
+}
+
+.sn-space-card-banner {
+    filter: var(--banner-img-filter);
+
+    &::after {
+        background: linear-gradient(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.48));
     }
 }
 
@@ -205,13 +246,18 @@
     z-index: 1;
     display: flex;
     align-items: center;
-    gap: 0.375rem;
-    padding: 0.75rem 1rem;
+    gap: var(--space-3);
+    padding: var(--space-6) var(--space-8);
 
     .badge {
-        font-size: 0.6875rem;
+        font-size: var(--font-size-xs);
         font-weight: 600;
         text-decoration: none;
+    }
+}
+
+.sn-space-card-breadcrumbs {
+    .badge {
         color: rgba(255, 255, 255, 0.9);
         background: rgba(255, 255, 255, 0.15);
         border-color: transparent;
@@ -231,6 +277,9 @@
     bottom: -1.75rem;
     left: 1.5rem;
     z-index: 2;
+}
+
+.sn-space-card-banner .sn-space-avatar {
     box-shadow: 0 0 0 3px var(--bg-primary);
 }
 
@@ -239,9 +288,7 @@
     left: 5.75rem;
     bottom: 0.65rem;
     z-index: 1;
-    color: #fff;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-    font-size: 1rem;
+    font-size: var(--font-size-md);
     font-weight: 700;
     margin: 0;
     line-height: 1.25;
@@ -251,16 +298,21 @@
     text-overflow: ellipsis;
 }
 
+.sn-space-card-banner .sn-space-name {
+    color: var(--text-on-dark);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
 .sn-space-card-body {
-    padding: 2.25rem 1.5rem 1.25rem;
+    padding: 2.25rem var(--space-12) var(--space-10);
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: var(--space-10);
 }
 
 .sn-space-card-header {
     display: flex;
-    gap: 1rem;
+    gap: var(--space-8);
 }
 
 .sn-space-avatar {
@@ -275,26 +327,35 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: var(--space-2);
 }
 
 .sn-space-name {
-    font-size: 1.25rem;
+    font-size: var(--font-size-xl);
     font-weight: 700;
-    color: var(--text-primary);
     margin: 0;
 }
 
+.sn-space-name {
+    color: var(--text-primary);
+}
+
 .sn-space-description {
-    font-size: 0.875rem;
+    font-size: var(--font-size-base);
+    margin: var(--space-2) 0 0;
+}
+
+.sn-space-description {
     color: var(--text-secondary);
-    margin: 0.25rem 0 0;
 }
 
 .sn-space-breadcrumb {
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
+    margin-top: var(--space-2);
+}
+
+.sn-space-breadcrumb {
     color: var(--text-tertiary);
-    margin-top: 0.25rem;
 }
 
 // Narrow viewports: tighten the hero banner so name + avatar fit on phones
@@ -314,17 +375,17 @@
     .sn-space-card-banner .sn-space-name {
         left: 4.75rem;
         bottom: 0.5rem;
-        font-size: 0.875rem;
+        font-size: var(--font-size-base);
         max-width: calc(100% - 5.25rem);
     }
 
     .sn-space-card-body {
-        padding: 1.75rem 1rem 1rem;
-        gap: 1rem;
+        padding: var(--space-14) var(--space-8) var(--space-8);
+        gap: var(--space-8);
     }
 
     .sn-space-card-breadcrumbs {
-        padding: 0.5rem 0.75rem;
+        padding: var(--space-4) var(--space-6);
     }
-}
 
+}

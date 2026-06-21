@@ -1,16 +1,10 @@
-﻿@page "/create/guide"
+@page "/create/guide"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject ICommunityContext CommunityCtx
 @model Snakk.Web.Pages.Spaces.NewGuideModel
 @{
     ViewData["Title"] = string.Format(T.Pages.SpacesNewGuideTitlePattern, Model.Space?.Name);
-}
-
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion")" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("editor")" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("type-guide")" asp-append-version="true" />
 }
 
 @section LeftColumn {
@@ -20,18 +14,18 @@
 @section CenterHeader {
     @if (Model.ShowCommunityInBreadcrumb)
     {
-        <a href="/c/@Model.CommunitySlug" class="badge badge-ghost badge-sm">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a>
+        <a href="/c/@Model.CommunitySlug" class="sn-badge sn-badge-ghost sn-badge-sm">@(Model.CommunityDetail?.Name ?? Model.CommunitySlug)</a>
         <span class="sn-page-labels-sep">›</span>
     }
     @if (Model.Space != null)
     {
-        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="sn-badge sn-badge-ghost sn-badge-sm">@(Model.Hub?.Name ?? Model.HubSlug)</a>
         <span class="sn-page-labels-sep">›</span>
-        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="badge badge-ghost badge-sm">@Model.Space.Name</a>
+        <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="sn-badge sn-badge-ghost sn-badge-sm">@Model.Space.Name</a>
         <span class="sn-page-labels-sep">›</span>
-        <a href="/create?spaceId=@Model.SpaceId" class="badge badge-ghost badge-sm">@T.Pages.SpacesNewCrumbNew</a>
+        <a href="/create?spaceId=@Model.SpaceId" class="sn-badge sn-badge-ghost sn-badge-sm">@T.Pages.SpacesNewCrumbNew</a>
         <span class="sn-page-labels-sep">›</span>
-        <span class="badge badge-ghost badge-sm">@T.Pages.SpacesNewGuideCrumb</span>
+        <span class="sn-badge sn-badge-ghost sn-badge-sm">@T.Pages.SpacesNewGuideCrumb</span>
     }
 }
 
@@ -44,47 +38,47 @@
 
 <div class="sn-center">
     <div class="sn-center-inner">
-        <div class="max-w-3xl py-8">
-            <h1 class="text-xl font-semibold mb-6">@T.Pages.SpacesNewGuideHeading</h1>
+        <div class="max-w-3xl sn-py-8">
+            <h1 class="sn-page-heading">@T.Pages.SpacesNewGuideHeading</h1>
 
-            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="alert alert-error text-sm mb-4">@Model.CreateError</div> }
+            @if (!string.IsNullOrEmpty(Model.CreateError)) { <div class="sn-alert sn-alert-error sn-text-sm sn-mb-4">@Model.CreateError</div> }
 
             <form method="post" id="new-discussion-form" hx-boost="false">
                 <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
-                <div class="space-y-4">
+                <div class="sn-space-y-4">
                     <input type="text" name="NewTitle" id="new-discussion-title" autofocus value="@Model.NewTitle"
-                           class="input w-full text-lg" required maxlength="200" placeholder="@T.Pages.SpacesNewGuideTitlePh" />
+                           class="sn-input sn-w-full sn-text-lg" required maxlength="200" placeholder="@T.Pages.SpacesNewGuideTitlePh" />
 
                     <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
 
                     <div id="editor-container" data-hide-image="true">
-                        <div class="editor-skeleton"><div class="editor-skeleton-toolbar"><div class="skeleton-pill"></div><div class="skeleton-pill"></div><div class="skeleton-pill"></div></div><div class="editor-skeleton-body" style="min-height:300px"><div class="skeleton-line w-3/4"></div><div class="skeleton-line w-1/2"></div></div></div>
+                        <div class="sn-editor-skeleton"><div class="sn-editor-skeleton-toolbar"><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div></div><div class="sn-editor-skeleton-body" style="min-height:300px"><div class="sn-skeleton-line w-3/4"></div><div class="sn-skeleton-line w-1/2"></div></div></div>
                     </div>
 
                     <partial name="_NewDiscussionAdultToggle" model="Model.Space" />
 
-                    <div class="flex items-center justify-between">
-                        <a href="/create?spaceId=@Model.SpaceId" class="btn btn-ghost btn-sm">@T.Pages.SpacesNewBack</a>
-                        <button type="submit" id="new-discussion-submit" class="btn btn-primary btn-sm hidden">@T.Pages.SpacesNewGuideSubmit</button>
+                    <div class="sn-form-actions-row--createguide">
+                        <a href="/create?spaceId=@Model.SpaceId" class="sn-btn sn-btn-ghost sn-btn-sm">@T.Pages.SpacesNewBack</a>
+                        <button type="submit" id="new-discussion-submit" class="sn-btn sn-btn-primary sn-btn-sm sn-hidden">@T.Pages.SpacesNewGuideSubmit</button>
                     </div>
                 </div>
             </form>
 
-            <div class="mt-8 border-t border-base-content/10 pt-6">
-                <h3 class="text-sm font-semibold mb-3 text-base-content/70">@T.Pages.SpacesNewGuideHowHeading</h3>
-                <div class="text-sm text-base-content/60 space-y-3">
+            <div class="sn-guide-tips-section">
+                <h3 class="sn-section-label--createguide">@T.Pages.SpacesNewGuideHowHeading</h3>
+                <div class="sn-guide-tips-body">
                     <p>@T.Pages.SpacesNewGuideIntro</p>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewAfterYouPost</div>
-                        <ul class="space-y-1 list-disc pl-4">
+                        <div class="sn-guide-tips-sublabel">@T.Pages.SpacesNewAfterYouPost</div>
+                        <ul class="sn-space-y-1 list-disc sn-pl-4">
                             <li>@T.Pages.SpacesNewGuideAfter1</li>
                             <li>@T.Pages.SpacesNewGuideAfter2</li>
                             <li>@T.Pages.SpacesNewGuideAfter3</li>
                         </ul>
                     </div>
                     <div>
-                        <div class="font-medium text-base-content/70 mb-1">@T.Pages.SpacesNewGuideStructLabel</div>
-                        <ul class="space-y-1 list-disc pl-4">
+                        <div class="sn-guide-tips-sublabel">@T.Pages.SpacesNewGuideStructLabel</div>
+                        <ul class="sn-space-y-1 list-disc sn-pl-4">
                             <li>@T.Pages.SpacesNewGuideStruct1</li>
                             <li>@T.Pages.SpacesNewGuideStruct2</li>
                             <li>@T.Pages.SpacesNewGuideStruct3</li>

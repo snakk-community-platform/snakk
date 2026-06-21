@@ -10,4 +10,5 @@ public class NewQuestionModel(
 {
     protected override int DiscussionType => 1;
     protected override string TypeSlug => "question";
+    protected override void PreloadPageCss() { base.PreloadPageCss(); Preload("type-question"); }
 }

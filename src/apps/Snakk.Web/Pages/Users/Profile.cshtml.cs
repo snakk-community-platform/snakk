@@ -38,6 +38,8 @@ public class ProfileModel(
 
     public async Task<IActionResult> OnGetAsync(string slug, string? tab, CancellationToken cancellationToken)
     {
+        Preload("profile");
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
 
         var profileResult = await _apiClient.GetUserBySlugResultAsync(slug, cancellationToken);

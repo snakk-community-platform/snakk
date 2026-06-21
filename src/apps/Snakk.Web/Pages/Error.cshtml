@@ -6,22 +6,22 @@
 
 
 
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div class="sn-error-page-container">
     <div class="page-header">
         <h1>@T.Pages.ErrorHeading</h1>
         <p>@T.Pages.ErrorBody</p>
     </div>
 
-    <div class="clean-card p-6">
+    <div class="sn-clean-card sn-p-6">
         @if (Model.ShowRequestId)
         {
-            <p class="text-sm text-base-content/70 mb-4">
-                @T.Pages.ErrorRequestIdLabel <code class="text-xs bg-base-300 px-1.5 py-0.5 rounded">@Model.RequestId</code>
+            <p class="sn-error-detail-text">
+                @T.Pages.ErrorRequestIdLabel <code class="sn-error-request-id">@Model.RequestId</code>
             </p>
         }
-        <p class="text-sm text-base-content/70 mb-6">
+        <p class="sn-error-logged-note">
             @T.Pages.ErrorLoggedNote
         </p>
-        <a href="/" class="btn btn-primary btn-sm">@T.Pages.ErrorHomeBtn</a>
+        <a href="/" class="sn-btn sn-btn-primary sn-btn-sm">@T.Pages.ErrorHomeBtn</a>
     </div>
 </div>

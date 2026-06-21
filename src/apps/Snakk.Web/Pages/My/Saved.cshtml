@@ -1,4 +1,4 @@
-﻿@page "/my/saved/{tab?}"
+@page "/my/saved/{tab?}"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
@@ -30,26 +30,26 @@
 
         <!-- Tabs -->
         <div class="sn-tabs">
-            <a href="/my/saved/discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "active" : "")">
+            <a href="/my/saved/discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "sn-active" : "")">
                 @T.Pages.SavedTabDiscussions
-                @if (Model.DiscussionCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.DiscussionCount</span> }
+                @if (Model.DiscussionCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.DiscussionCount</span> }
             </a>
-            <a href="/my/saved/posts" class="sn-tab @(Model.ActiveTab == "posts" ? "active" : "")">
+            <a href="/my/saved/posts" class="sn-tab @(Model.ActiveTab == "posts" ? "sn-active" : "")">
                 @T.Pages.SavedTabPosts
-                @if (Model.PostCount > 0) { <span class="badge badge-sm badge-ghost ml-1">@Model.PostCount</span> }
+                @if (Model.PostCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.PostCount</span> }
             </a>
         </div>
+            <p class="sn-section-description">@T.Pages.SavedDescription</p>
         </div>
-        <p class="sn-section-description">@T.Pages.SavedDescription</p>
 
         @if (Model.ActiveTab == "discussions")
         {
             @if (Model.SavedDiscussions == null || Model.SavedDiscussions.Items.Count == 0)
             {
-                <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
-                    <span class="icon icon-bookmark h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="icon icon-bookmark sn-h-10 sn-w-10 sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
                     <p>@T.Pages.SavedEmptyDiscussions</p>
-                    <p class="mt-1 text-xs opacity-70">@T.Pages.SavedEmptyDiscussionsHint</p>
+                    <p class="sn-mt-1 sn-text-xs sn-opacity-70">@T.Pages.SavedEmptyDiscussionsHint</p>
                 </div>
             }
             else
@@ -71,18 +71,18 @@
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"
-                         class="py-2">
+                         class="sn-py-2">
                         @for (var i = 0; i < 3; i++)
                         {
-                            <div class="sn-card" style="opacity: 0.5">
+                            <div class="sn-card-wrap" style="opacity: 0.5">
                                 <div class="sn-card-header">
-                                    <div class="skeleton h-3 w-16 rounded"></div>
-                                    <div class="skeleton h-4 w-4 rounded-full"></div>
-                                    <div class="skeleton h-3 w-20 rounded"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-16 sn-rounded"></div>
+                                    <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-20 sn-rounded"></div>
                                 </div>
-                                <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                <div class="sn-card-stats mt-2">
-                                    <div class="skeleton h-3 w-24 rounded"></div>
+                                <div class="sn-skeleton sn-h-4 sn-w-3/4 sn-rounded sn-mt-2"></div>
+                                <div class="sn-card-stats sn-mt-2">
+                                    <div class="sn-skeleton sn-h-3 sn-w-24 sn-rounded"></div>
                                 </div>
                             </div>
                         }
@@ -94,10 +94,10 @@
         {
             @if (Model.SavedPosts == null || Model.SavedPosts.Items.Count == 0)
             {
-                <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
-                    <span class="icon icon-bookmark h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="icon icon-bookmark sn-h-10 sn-w-10 sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
                     <p>@T.Pages.SavedEmptyPosts</p>
-                    <p class="mt-1 text-xs opacity-70">@T.Pages.SavedEmptyPostsHint</p>
+                    <p class="sn-mt-1 sn-text-xs sn-opacity-70">@T.Pages.SavedEmptyPostsHint</p>
                 </div>
             }
             else
@@ -117,14 +117,14 @@
                              hx-push-url="false">
                             @for (var i = 0; i < 3; i++)
                             {
-                                <div class="sn-card" style="opacity: 0.5">
+                                <div class="sn-card-wrap" style="opacity: 0.5">
                                     <div class="sn-card-header">
-                                        <div class="skeleton h-4 w-4 rounded-full"></div>
-                                        <div class="skeleton h-3 w-20 rounded"></div>
-                                        <div class="skeleton h-3 w-16 rounded"></div>
+                                        <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                        <div class="sn-skeleton sn-h-3 sn-w-20 sn-rounded"></div>
+                                        <div class="sn-skeleton sn-h-3 sn-w-16 sn-rounded"></div>
                                     </div>
-                                    <div class="skeleton h-4 w-3/4 rounded mt-1"></div>
-                                    <div class="skeleton h-3 w-full rounded mt-1"></div>
+                                    <div class="sn-skeleton sn-h-4 sn-w-3/4 sn-rounded sn-mt-1"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-full sn-rounded sn-mt-1"></div>
                                 </div>
                             }
                         </div>

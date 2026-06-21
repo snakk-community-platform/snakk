@@ -1,4 +1,4 @@
-﻿@page "/my/settings/display"
+@page "/my/settings/display"
 @using Snakk.Web.Helpers
 @model Snakk.Web.Pages.My.Settings.DisplayModel
 @{
@@ -20,10 +20,10 @@
                             type="image/svg+xml"
                             aria-label="@T.Settings.TimezoneMapAria">
                     </object>
-                    <div id="tz-map-tooltip" class="tz-map-tooltip hidden"></div>
+                    <div id="tz-map-tooltip" class="tz-map-tooltip sn-hidden"></div>
                 </div>
 
-                <select id="timezone-select" name="timezone" class="select w-full">
+                <select id="timezone-select" name="timezone" class="sn-select sn-w-full">
                     <option value="UTC">UTC</option>
                     <optgroup label="Americas">
                         <option value="America/Adak">Adak (USA)</option>
@@ -128,7 +128,7 @@
                         <option value="Pacific/Auckland">Auckland (New Zealand)</option>
                     </optgroup>
                 </select>
-                <span class="text-xs" style="color: var(--text-tertiary)">@T.Settings.TimezoneHelp</span>
+                <span class="sn-text-xs" style="color: var(--text-tertiary)">@T.Settings.TimezoneHelp</span>
             </div>
 
 <script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

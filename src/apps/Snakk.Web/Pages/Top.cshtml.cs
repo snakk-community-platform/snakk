@@ -54,6 +54,7 @@ public class TopModel(
 
     public async Task<IActionResult> OnGetAsync(string? period, [FromQuery] int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         if (Request.Query.TryGetValue("period", out var queryPeriod) && !string.IsNullOrEmpty(queryPeriod))
         {

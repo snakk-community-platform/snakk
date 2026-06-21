@@ -31,6 +31,7 @@ public class FollowsModel(
 
     public async Task<IActionResult> OnGetAsync(string? tab, CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         if (Request.Query.TryGetValue("tab", out var queryTab) && !string.IsNullOrEmpty(queryTab))
             return RedirectToPage(new { tab = queryTab.ToString() });

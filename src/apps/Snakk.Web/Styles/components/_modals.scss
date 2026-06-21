@@ -2,13 +2,23 @@
 // Modal
 // ============================================
 
-.modal-box {
+// sn-modal-box is the new name; modal-box is the migration shim
+.sn-modal-box {
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
 }
 
-.modal-backdrop {
+.sn-modal-backdrop-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sn-modal-backdrop-overlay {
     background: rgba(0, 0, 0, 0.5);
 }
 
@@ -22,40 +32,52 @@
 .sn-modal-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 200;
+    z-index: var(--z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
+.sn-modal-backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
 .sn-modal {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 0.5rem;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-lg);
     width: min(720px, 95vw);
     max-height: 90vh;
     display: flex;
     flex-direction: column;
 }
 
+.sn-modal {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
 .sn-modal-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.875rem 1rem;
-    border-bottom: 1px solid var(--border-primary);
+    padding: var(--space-7) var(--space-8);
     font-weight: 600;
-    font-size: 0.9375rem;
+    font-size: var(--font-size-prose);
     flex-shrink: 0;
+}
+
+.sn-modal-header {
+    border-bottom: 1px solid var(--border-primary);
 }
 
 .sn-modal-close {
     border: none;
+    cursor: pointer;
+}
+
+.sn-modal-close {
     background: transparent;
     color: var(--text-secondary);
-    cursor: pointer;
 
     &:hover {
         background: var(--bg-tertiary);
@@ -70,8 +92,8 @@
     justify-content: center;
     width: 1.5rem;
     height: 1.5rem;
-    border-radius: 0.25rem;
-    font-size: 1.125rem;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-lg);
     line-height: 1;
     flex-shrink: 0;
 }
@@ -79,13 +101,13 @@
 .sn-modal-header-actions {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--space-2);
 }
 
 .sn-modal-body {
     display: flex;
-    gap: 1rem;
-    padding: 1rem;
+    gap: var(--space-8);
+    padding: var(--space-8);
     overflow-y: auto;
     flex: 1;
 }
@@ -93,32 +115,41 @@
 .sn-modal-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
-    border-top: 1px solid var(--border-primary);
+    gap: var(--space-4);
+    padding: var(--space-6) var(--space-8);
     flex-shrink: 0;
 }
 
+.sn-modal-footer {
+    border-top: 1px solid var(--border-primary);
+}
+
 .sn-modal-cancel {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.8125rem;
+    padding: var(--space-2) var(--space-6);
+    font-size: var(--font-size-ui);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.sn-modal-cancel {
     background: transparent;
     border: 1px solid var(--border-primary);
-    border-radius: 0.25rem;
     color: var(--text-secondary);
-    cursor: pointer;
 
     &:hover { background: var(--bg-tertiary); }
 }
 
 .sn-modal-insert {
-    padding: 0.25rem 0.75rem;
-    font-size: 0.8125rem;
+    padding: var(--space-2) var(--space-6);
+    font-size: var(--font-size-ui);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.sn-modal-insert {
     background: var(--link-primary);
     border: 1px solid transparent;
-    border-radius: 0.25rem;
-    color: #fff;
-    cursor: pointer;
+    color: var(--text-on-dark);
 
     &:hover:not(:disabled) { opacity: 0.9; }
 
@@ -127,3 +158,4 @@
         cursor: not-allowed;
     }
 }
+

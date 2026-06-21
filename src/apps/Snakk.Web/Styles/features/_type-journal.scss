@@ -7,10 +7,13 @@
 }
 
 .journal-entry-badge {
-    font-size: 0.6875rem;
+    font-size: var(--font-size-xs);
     font-weight: 500;
+    margin-right: var(--space-4);
+}
+
+.journal-entry-badge {
     color: oklch(0.5 0.1 30);
-    margin-right: 0.5rem;
 }
 
 [data-theme="dark"] .journal-entry {
@@ -20,3 +23,4 @@
 [data-theme="dark"] .journal-entry-badge {
     color: oklch(0.7 0.08 30);
 }
+

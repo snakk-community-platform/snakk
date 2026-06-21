@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.Text.Json;
 using Snakk.Shared;
+using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.My.Settings;
 
-public class SocialModel : PageModel
+public class SocialModel(IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     public string PlatformsJson { get; private set; } = "[]";
 
@@ -14,6 +14,7 @@ public class SocialModel : PageModel
         if (User.Identity?.IsAuthenticated != true)
             return Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(Request.Path + Request.QueryString)}");
 
+        Preload("settings");
         var platforms = SocialPlatformRegistry.All.Values
             .Select(p => new
             {

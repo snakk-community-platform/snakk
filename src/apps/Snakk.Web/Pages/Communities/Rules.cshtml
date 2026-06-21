@@ -13,7 +13,7 @@
 @section CenterHeader {
     @if (Model.CommunityDetail != null)
     {
-        <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)" class="badge badge-ghost badge-sm">@Model.CommunityDetail.Name</a>
+        <a href="@SnakkUrlHelper.Community(Model.CommunityDetail.Slug, Model.Community)" class="sn-badge sn-badge-ghost sn-badge-sm">@Model.CommunityDetail.Name</a>
     }
 }
 
@@ -29,49 +29,53 @@ else
 {
     <div class="sn-center">
         <div class="sn-center-inner">
-            <h2 class="sn-section-title">
-                <span class="icon icon-shield-check" aria-hidden="true"></span>
-                @Model.CommunityDetail.Name@T.Pages.CommRulesHeadingSuffix
-            </h2>
+            <div class="sn-section-header">
+                <h2 class="sn-section-title">
+                    <span class="icon icon-shield-check" aria-hidden="true"></span>
+                    @Model.CommunityDetail.Name@T.Pages.CommRulesHeadingSuffix
+                </h2>
+            </div>
             @if (!string.IsNullOrEmpty(Model.CommunityDetail.Description))
             {
-                <p class="text-sm mb-6" style="color: var(--text-secondary)">@Model.CommunityDetail.Description</p>
+                <p class="sn-text-sm sn-mb-6" style="color: var(--text-secondary)">@Model.CommunityDetail.Description</p>
             }
             else
             {
-                <div class="mb-6"></div>
+                <div class="sn-mb-6"></div>
             }
 
             @if (Model.Rules?.Rules == null || Model.Rules.Rules.Count == 0)
             {
-                <p class="text-sm" style="color: var(--text-tertiary)">@T.Pages.CommRulesEmpty</p>
+                <p class="sn-text-sm" style="color: var(--text-tertiary)">@T.Pages.CommRulesEmpty</p>
             }
             else
             {
-                <div class="flex flex-col gap-6">
+                <div class="sn-rules-list">
                     @foreach (var (rule, index) in Model.Rules.Rules.Select((r, i) => (r, i)))
                     {
-                        <div class="flex gap-4 items-start">
-                            <span class="text-5xl font-black leading-none select-none shrink-0 w-14 text-right" style="color: var(--text-primary); opacity: 0.08">@(index + 1)</span>
-                            <div class="pt-1 min-w-0">
-                                <p class="text-sm font-semibold mb-1" style="color: var(--text-primary)">@rule.Title</p>
-                                <p class="text-sm" style="color: var(--text-secondary)">@rule.Description</p>
+                        <div class="sn-rule-item">
+                            <span class="sn-text-5xl sn-font-black leading-none sn-select-none sn-shrink-0 sn-w-14 sn-text-right" style="color: var(--text-primary); opacity: 0.08">@(index + 1)</span>
+                            <div class="sn-pt-1 sn-min-w-0">
+                                <p class="sn-rule-title" style="color: var(--text-primary)">@rule.Title</p>
+                                <p class="sn-text-sm" style="color: var(--text-secondary)">@rule.Description</p>
                             </div>
                         </div>
                     }
                 </div>
             }
 
-            <div class="mt-6 pt-4" style="border-top: 1px solid var(--border-secondary)">
-                <p class="text-xs font-semibold uppercase tracking-wide mb-2" style="color: var(--text-tertiary)">@T.Pages.CommSeeAlso</p>
-                <a href="/rules" class="flex items-center justify-between py-1.5 text-sm hover:text-primary transition-colors" style="color: var(--text-secondary)">
+            <div class="sn-mt-6 sn-pt-4" style="border-top: 1px solid var(--border-secondary)">
+                <p class="sn-section-label--rules" style="color: var(--text-tertiary)">@T.Pages.CommSeeAlso</p>
+                <a href="/rules" class="sn-sidebar-nav-link--rules" style="color: var(--text-secondary)">
                     <span>@T.Pages.CommSiteRules</span>
-                    <span class="icon icon-chevron-right w-3.5 h-3.5" aria-hidden="true"></span>
+                    <span class="icon icon-chevron-right sn-w-3\.5 sn-h-3\.5" aria-hidden="true"></span>
                 </a>
             </div>
         </div>
     </div>
 
+@if (!DeviceDetection.IsMobile(HttpContext))
+{
 <aside class="sn-right">
 <div class="sn-right-sticky">
     <div class="sn-right-section"
@@ -83,9 +87,9 @@ else
             <span class="icon icon-chart-bar" aria-hidden="true"></span>
             @T.Pages.CommSiteStats
         </div>
-        <div class="grid grid-cols-2 gap-3">
-            <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-16"></div></div>
-            <div><div class="skeleton h-5 w-8 mb-1"></div><div class="skeleton h-3 w-10"></div></div>
+        <div class="sn-grid sn-grid-cols-2 sn-gap-3">
+            <div><div class="sn-skeleton sn-h-5 sn-w-8 sn-mb-1"></div><div class="sn-skeleton sn-h-3 sn-w-16"></div></div>
+            <div><div class="sn-skeleton sn-h-5 sn-w-8 sn-mb-1"></div><div class="sn-skeleton sn-h-3 sn-w-10"></div></div>
         </div>
     </div>
 
@@ -98,11 +102,12 @@ else
             <span class="icon icon-trending-up" aria-hidden="true"></span>
             @T.Pages.CommTrending
         </div>
-        <div class="flex flex-col gap-3">
-            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-full"></div><div class="skeleton h-3 w-3/4 mt-1"></div></div></div>
-            <div class="flex items-center gap-3"><div class="skeleton h-8 w-8 shrink-0 rounded-full"></div><div class="flex-1"><div class="skeleton h-3 w-5/6"></div><div class="skeleton h-3 w-2/3 mt-1"></div></div></div>
+        <div class="sn-trending-skeleton-list--rules">
+            <div class="sn-trending-skeleton-item"><div class="sn-skeleton sn-h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton sn-h-3 sn-w-full"></div><div class="sn-skeleton sn-h-3 sn-w-3/4 sn-mt-1"></div></div></div>
+            <div class="sn-trending-skeleton-item"><div class="sn-skeleton sn-h-8 sn-w-8 sn-shrink-0 sn-rounded-full"></div><div class="sn-flex-1"><div class="sn-skeleton sn-h-3 sn-w-5/6"></div><div class="sn-skeleton sn-h-3 sn-w-2/3 sn-mt-1"></div></div></div>
         </div>
     </div>
 </div>
 </aside>
+}
 }

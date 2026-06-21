@@ -19,7 +19,7 @@
     var microsoftUrl = $"/auth/oauth/Microsoft/challenge?returnUrl={returnUrl}";
     var steamUrl     = $"/auth/oauth/Steam/challenge?returnUrl={returnUrl}";
 }
-<div class="sn-registration-nudge clean-card">
+<div class="sn-registration-nudge sn-clean-card">
     <div class="sn-nudge-icon">
         <span class="icon icon-lock-closed w-6 h-6" aria-hidden="true"></span>
     </div>
@@ -30,55 +30,55 @@
         @if (oauth.Google)
         {
             <a href="@googleUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Google">
-                <img src="/icons/brand-google-color.svg" class="w-4 h-4 shrink-0" aria-hidden="true" alt="">
+                <img src="/icons/brand-google-color.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
                 <span class="oauth-text-full">@T.Nudge.ContinueGoogle</span><span class="oauth-text-short">Google</span>
             </a>
         }
         @if (oauth.GitHub)
         {
             <a href="@githubUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="GitHub">
-                <img src="/icons/brand-github.svg" class="w-4 h-4 shrink-0" aria-hidden="true" alt="">
+                <img src="/icons/brand-github.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
                 <span class="oauth-text-full">@T.Nudge.ContinueGitHub</span><span class="oauth-text-short">GitHub</span>
             </a>
         }
         @if (oauth.Discord)
         {
             <a href="@discordUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Discord">
-                <img src="/icons/brand-discord-color.svg" class="w-4 h-4 shrink-0" aria-hidden="true" alt="">
+                <img src="/icons/brand-discord-color.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
                 <span class="oauth-text-full">@T.Nudge.ContinueDiscord</span><span class="oauth-text-short">Discord</span>
             </a>
         }
         @if (oauth.Facebook)
         {
             <a href="@facebookUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Facebook">
-                <img src="/icons/brand-facebook-color.svg" class="w-4 h-4 shrink-0" aria-hidden="true" alt="">
+                <img src="/icons/brand-facebook-color.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
                 <span class="oauth-text-full">@T.Nudge.ContinueFacebook</span><span class="oauth-text-short">Facebook</span>
             </a>
         }
         @if (oauth.Microsoft)
         {
             <a href="@microsoftUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Microsoft">
-                <img src="/icons/brand-microsoft-color.svg" class="w-4 h-4 shrink-0" aria-hidden="true" alt="">
+                <img src="/icons/brand-microsoft-color.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
                 <span class="oauth-text-full">@T.Nudge.ContinueMicrosoft</span><span class="oauth-text-short">Microsoft</span>
             </a>
         }
         @if (oauth.Steam)
         {
             <a href="@steamUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Steam">
-                <img src="/icons/brand-steam.svg" class="w-4 h-4 shrink-0" aria-hidden="true" alt="">
+                <img src="/icons/brand-steam.svg" class="sn-w-5 sn-h-5 sn-shrink-0" aria-hidden="true" alt="">
                 <span class="oauth-text-full">@T.Nudge.ContinueSteam</span><span class="oauth-text-short">Steam</span>
             </a>
         }
         <button type="button" class="sn-nudge-oauth-btn" style="display:none"
                 data-nudge-passkey data-provider="passkey" data-return-url="@returnPath">
-            <img src="/icons/passkey.svg" class="w-5 h-5 shrink-0" aria-hidden="true" alt="">
+            <img src="/icons/passkey.svg" class="sn-w-5 sn-h-5 sn-shrink-0" aria-hidden="true" alt="">
             <span class="oauth-text-full">@T.Nudge.ContinuePasskey</span><span class="oauth-text-short">Passkey</span>
         </button>
     </div>
-    <p id="nudge-passkey-error" class="text-sm text-error hidden mt-1"></p>
+    <p id="nudge-passkey-error" class="sn-nudge-passkey-error sn-hidden"></p>
     <div class="sn-nudge-divider" id="nudge-alt-divider"@(oauth.HasAny ? "" : " style=\"display:none\"")><span>@T.Nudge.Or</span></div>
 
-    <a href="@registerUrl" class="btn btn-primary btn-sm w-full" hx-boost="false">@T.Nudge.SignUpEmail</a>
+    <a href="@registerUrl" class="sn-btn sn-btn-primary sn-btn-sm sn-w-full" hx-boost="false">@T.Nudge.SignUpEmail</a>
     <p class="sn-nudge-login-link">
         @T.Nudge.AlreadyAccount <a href="@loginUrl" hx-boost="false">@T.Nudge.LogIn</a>
     </p>

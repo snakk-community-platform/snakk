@@ -26,6 +26,7 @@ public class LatestModel(
 
     public async Task OnGetAsync(int offset = 0, string? cursor = null, CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         string? communityId = null;
         if (CommunityContext.IsCustomDomain && !string.IsNullOrEmpty(CommunityContext.CommunitySlug))

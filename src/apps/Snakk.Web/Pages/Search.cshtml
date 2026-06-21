@@ -6,11 +6,6 @@ page
     ViewData["Title"] = string.IsNullOrEmpty(Model.Q) ? T.Pages.SearchTitle : $"{T.Pages.SearchResultsFor}{Model.Q}";
 }
 
-@section Styles {
-    <link rel="preload" href="@SnakkUrlHelper.Css("search")" as="style" asp-append-version="true" />
-    <script>(function(){var p=document.currentScript.previousElementSibling;if(p){var s=document.createElement('link');s.rel='stylesheet';s.media='print';s.href=p.href;s.onload=function(){this.media='all'};document.head.appendChild(s);}})();</script>
-    <noscript><link rel="stylesheet" href="@SnakkUrlHelper.Css("search")" asp-append-version="true" /></noscript>
-}
 
 @section LeftColumn {
 <partial name="Shared/_LeftSidebar" />

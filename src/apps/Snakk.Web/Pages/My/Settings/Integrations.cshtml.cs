@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
+using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.My.Settings;
 
-public class IntegrationsModel : PageModel
+public class IntegrationsModel(IConfiguration configuration, ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     public string? DiscordStatus { get; set; }
     public string? DiscordErrorReason { get; set; }
@@ -14,6 +14,7 @@ public class IntegrationsModel : PageModel
     {
         if (User.Identity?.IsAuthenticated != true)
             return Redirect($"/auth/login?returnUrl={Uri.EscapeDataString(Request.Path + Request.QueryString)}");
+        Preload("settings");
         DiscordStatus = discord;
         DiscordErrorReason = reason;
         return Page();

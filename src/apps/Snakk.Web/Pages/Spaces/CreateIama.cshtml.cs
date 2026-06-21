@@ -11,6 +11,7 @@ public class NewIamaModel(
 {
     protected override int DiscussionType => 9;
     protected override string TypeSlug => "iama";
+    protected override void PreloadPageCss() { base.PreloadPageCss(); Preload("type-iama"); }
 
     [BindProperty] public bool IamaIsScheduled { get; set; }
     [BindProperty] public string? IamaScheduledStart { get; set; }

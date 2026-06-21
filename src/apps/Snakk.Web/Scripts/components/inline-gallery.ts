@@ -216,7 +216,7 @@
     }
 
     function processGalleries(root: Document | HTMLElement): void {
-        const proseEls = root.querySelectorAll<HTMLElement>('.prose-content:not([data-ig-init])');
+        const proseEls = root.querySelectorAll<HTMLElement>('.sn-prose-content:not([data-ig-init])');
         proseEls.forEach(prose => {
             prose.dataset.igInit = '1';
             processProseImages(prose);
