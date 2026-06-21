@@ -1,0 +1,94 @@
+@page "/unread"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
+@using static Snakk.Web.Helpers.DisplayHelper
+@model Snakk.Web.Pages.UnreadModel
+@{
+    ViewData["Title"] = T.Pages.UnreadTitle;
+}
+
+@section LeftColumn {
+    <partial name="Shared/_LeftSidebar" />
+}
+
+@if (!Model.IsAuthenticated)
+{
+    ViewData["Nudge.Title"] = T.Pages.UnreadTitle;
+    ViewData["Nudge.Body"] = T.Pages.UnreadDescription;
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_RegistrationNudge" /></div></div>
+    return;
+}
+
+<!-- Center Column -->
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <div class="sn-section-header">
+            <h2 class="sn-section-title">
+                <span class="icon icon-bell" aria-hidden="true"></span>
+                @T.Pages.UnreadHeading
+            </h2>
+            <p class="sn-section-description">@T.Pages.UnreadDescription</p>
+        </div>
+
+        @if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
+        {
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.UnreadEmpty)" />
+        }
+        else
+        {
+            <div id="discussions-container" class="h-feed">
+                @foreach (var discussion in Model.Discussions.Items)
+                {
+                    @await Html.PartialAsync("Shared/_DiscussionCard",
+                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community, GotoUnread: true))
+                }
+
+                @if (Model.Discussions.HasMoreItems && Model.NextCursor != null)
+                {
+                    <div hx-get="/partials/discussions?sort=since&cursor=@Model.NextCursor&pageSize=20"
+                         hx-trigger="revealed once"
+                         hx-swap="outerHTML"
+                         hx-target="this"
+                         hx-push-url="false"
+                         class="sn-py-2">
+                        @for (var i = 0; i < 3; i++)
+                        {
+                            <div class="sn-card" style="opacity: 0.5">
+                                <div class="sn-card-header">
+                                    <div class="sn-skeleton sn-h-3 sn-w-16 sn-rounded"></div>
+                                    <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-20 sn-rounded"></div>
+                                </div>
+                                <div class="sn-skeleton sn-h-4 sn-w-3/4 sn-rounded sn-mt-2"></div>
+                                <div class="sn-card-stats sn-mt-2">
+                                    <div class="sn-skeleton sn-h-3 sn-w-24 sn-rounded"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <partial name="Shared/_EndOfScroll" />
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Right Column -->
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
+    if (Model.IsAuthenticated)
+        ViewData["RightPane.Actions"] = new[] { "mark-all-read" };
+    ViewData["RightPane.AboutTitle"] = T.Pages.UnreadAboutTitle;
+    ViewData["RightPane.AboutDescription"] = T.Pages.UnreadAboutDesc;
+}
+<vc:global-right-sidebar />
+
+@section Scripts {
+    @if (Model.Discussions?.Items != null && Model.Discussions.Items.Any())
+    {
+        <script src="@SnakkUrlHelper.Js("pages/frontpage-discussions")" asp-append-version="true" defer></script>
+    }
+}

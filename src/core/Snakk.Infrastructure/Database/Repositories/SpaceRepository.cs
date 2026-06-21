@@ -44,8 +44,8 @@ public class SpaceRepository(SnakkDbContext context)
             s.AllowAnonymousReading,
             s.RequireEmailConfirmation,
             s.CreatedAt,
-            s.HubPublicId,
-            s.HubName))
+            s.HubPublicId!,
+            s.HubName!))
         .FirstOrDefaultAsync(ct);
 
     public async Task<SpaceDatabaseEntity?> GetByPublicIdAsync(string publicId, CancellationToken ct = default) =>

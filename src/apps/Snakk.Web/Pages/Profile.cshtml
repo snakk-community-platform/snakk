@@ -5,77 +5,77 @@
 }
 
 
-<div class="max-w-4xl mx-auto px-4 py-8">
-    <div class="card bg-base-200 shadow-xl">
-        <div class="card-body">
-            <h1 class="card-title text-3xl mb-6">@T.Pages.ProfileHeading</h1>
+<div class="sn-max-w-4xl sn-mx-auto sn-px-4 sn-py-8">
+    <div class="sn-card-wrap sn-bg-base-200 sn-shadow-xl">
+        <div class="sn-card-content">
+            <h1 class="sn-card-heading sn-text-3xl sn-mb-6">@T.Pages.ProfileHeading</h1>
 
             @if (Model.User != null)
             {
-                <div class="space-y-4">
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-semibold">@T.Pages.ProfileDisplayName</span>
+                <div class="sn-space-y-4">
+                    <div class="sn-field">
+                        <label class="sn-label">
+                            <span class="sn-label-text sn-font-semibold">@T.Pages.ProfileDisplayName</span>
                         </label>
-                        <div class="text-lg">@Model.User.DisplayName</div>
+                        <div class="sn-text-lg">@Model.User.DisplayName</div>
                     </div>
 
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-semibold">@T.Pages.ProfileEmail</span>
+                    <div class="sn-field">
+                        <label class="sn-label">
+                            <span class="sn-label-text sn-font-semibold">@T.Pages.ProfileEmail</span>
                         </label>
-                        <div class="text-lg">@Model.User.Email</div>
+                        <div class="sn-text-lg">@Model.User.Email</div>
                     </div>
 
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-semibold">@T.Pages.ProfileEmailVerified</span>
+                    <div class="sn-field">
+                        <label class="sn-label">
+                            <span class="sn-label-text sn-font-semibold">@T.Pages.ProfileEmailVerified</span>
                         </label>
-                        <div class="text-lg">
+                        <div class="sn-text-lg">
                             @if (Model.User.EmailVerified)
                             {
-                                <span class="badge badge-success">@T.Pages.ProfileVerified</span>
+                                <span class="sn-badge sn-badge-success">@T.Pages.ProfileVerified</span>
                             }
                             else
                             {
-                                <span class="badge badge-warning">@T.Pages.ProfileNotVerified</span>
+                                <span class="sn-badge sn-badge-warning">@T.Pages.ProfileNotVerified</span>
                             }
                         </div>
                     </div>
 
                     @if (!string.IsNullOrEmpty(Model.User.OAuthProvider))
                     {
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text font-semibold">@T.Pages.ProfileAuthProvider</span>
+                        <div class="sn-field">
+                            <label class="sn-label">
+                                <span class="sn-label-text sn-font-semibold">@T.Pages.ProfileAuthProvider</span>
                             </label>
-                            <div class="text-lg">
-                                <span class="badge badge-info">@Model.User.OAuthProvider</span>
+                            <div class="sn-text-lg">
+                                <span class="sn-badge sn-badge-info">@Model.User.OAuthProvider</span>
                             </div>
                         </div>
                     }
 
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text font-semibold">@T.Pages.ProfileUserId</span>
+                    <div class="sn-field">
+                        <label class="sn-label">
+                            <span class="sn-label-text sn-font-semibold">@T.Pages.ProfileUserId</span>
                         </label>
-                        <div class="text-sm font-mono text-base-content/70">@Model.User.PublicId</div>
+                        <div class="sn-text-sm sn-font-mono sn-text-muted">@Model.User.PublicId</div>
                     </div>
 
-                    <div class="divider"></div>
+                    <div class="sn-divider"></div>
 
-                    <div class="flex gap-2">
-                        <a href="/settings" class="btn btn-primary">@T.Pages.ProfileEditBtn</a>
-                        <form method="post" asp-page-handler="Logout" class="inline">
-                            <button type="submit" class="btn btn-error">@T.Pages.ProfileLogoutBtn</button>
+                    <div class="sn-flex sn-gap-2">
+                        <a href="/my/settings" class="sn-btn sn-btn-primary">@T.Pages.ProfileEditBtn</a>
+                        <form method="post" asp-page-handler="Logout" class="sn-inline">
+                            <button type="submit" class="sn-btn sn-btn-error">@T.Pages.ProfileLogoutBtn</button>
                         </form>
                     </div>
                 </div>
             }
             else
             {
-                <div class="alert alert-warning">
-                    <span>@T.Pages.ProfileLoginNoteBefore<a href="/auth/login" class="link">@T.Pages.ProfileLoginLink</a>@T.Pages.ProfileLoginNoteAfter</span>
+                <div class="sn-alert sn-alert-warning">
+                    <span>@T.Pages.ProfileLoginNoteBefore<a href="/auth/login" class="sn-link">@T.Pages.ProfileLoginLink</a>@T.Pages.ProfileLoginNoteAfter</span>
                 </div>
             }
         </div>

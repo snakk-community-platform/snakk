@@ -11,7 +11,7 @@
 }
 
 @section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
+    <partial name="Shared/_LeftSidebar" />
 }
 
 <!-- Center Column -->
@@ -29,10 +29,13 @@
         else
         {
             <div id="discussions-container" class="h-feed">
+                @{
+                    var trendIndex = 0;
+                }
                 @foreach (var discussion in Model.TrendingDiscussions.Items)
                 {
                     @await Html.PartialAsync("Shared/_DiscussionCard",
-                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community))
+                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community, Rank: trendIndex++ + 1))
                 }
 
                 @if (Model.TrendingDiscussions.HasMoreItems)
@@ -45,18 +48,18 @@
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"
-                         class="py-2">
+                         class="sn-py-2">
                         @for (var i = 0; i < 3; i++)
                         {
                             <div class="sn-card" style="opacity: 0.5">
                                 <div class="sn-card-header">
-                                    <div class="skeleton h-3 w-16 rounded"></div>
-                                    <div class="skeleton h-4 w-4 rounded-full"></div>
-                                    <div class="skeleton h-3 w-20 rounded"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-16 sn-rounded"></div>
+                                    <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-20 sn-rounded"></div>
                                 </div>
-                                <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                <div class="sn-card-stats mt-2">
-                                    <div class="skeleton h-3 w-24 rounded"></div>
+                                <div class="sn-skeleton sn-h-4 sn-w-3/4 sn-rounded sn-mt-2"></div>
+                                <div class="sn-card-stats sn-mt-2">
+                                    <div class="sn-skeleton sn-h-3 sn-w-24 sn-rounded"></div>
                                 </div>
                             </div>
                         }
@@ -72,92 +75,96 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.TrendingAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.TrendingAboutDesc;
 }
+@if (!DeviceDetection.IsMobile(HttpContext))
+{
 <aside class="sn-right">
-<div class="sn-right-sticky">
-    <partial name="Shared/_RightActionPane" />
-    <div class="sn-right-body">
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            @T.Sections.SiteStats
-        </div>
-        @if (Model.InlinePlatformStats != null)
-        {
-            <div class="sn-sidebar-stats">
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
-                        <div class="stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
-                    </div>
+    <div class="sn-right-sticky">
+        <partial name="Shared/_RightActionPane" />
+        <div class="sn-right-body">
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="icon icon-chart-bar" aria-hidden="true"></span>
+                    @T.Sections.SiteStats
                 </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsReplies</div>
-                        <div class="stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
-                    </div>
-                </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsActivity</div>
-                        <div class="sn-sparkline-container sn-right-sparkline"
-                             data-sparkline-type="platform"
-                             data-sparkline-days="7"></div>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    <partial name="Shared/_RightAboutSection" />
-
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-archive-layers" aria-hidden="true"></span>
-            @T.Sections.TrendingSpaces
-        </div>
-        @if (Model.InlineTrendingSpaces?.Spaces?.Items?.Count > 0)
-        {
-            <div class="sn-spaces-inline">
-                @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
+                @if (Model.InlinePlatformStats != null)
                 {
-                    <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                       class="sn-card-tag sn-card-tag--space"
-                       style="--space-grad: @SpaceGradient(space.PublicId)">@space.Name</a>
+                    <div class="sn-sidebar-stats">
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsDiscussions</div>
+                                <div class="sn-stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
+                            </div>
+                        </div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsReplies</div>
+                                <div class="sn-stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
+                            </div>
+                        </div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsActivity</div>
+                                <div class="sn-sparkline-container sn-right-sparkline"
+                                     data-sparkline-type="platform"
+                                     data-sparkline-days="7"></div>
+                            </div>
+                        </div>
+                    </div>
                 }
             </div>
-        }
-        else
-        {
-            <p class="sn-right-empty">@T.Sidebar.EmptyTrendingSpaces</p>
-        }
-    </div>
 
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-users-group" aria-hidden="true"></span>
-            @T.Sections.TrendingContributors
-        </div>
-        @if (Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
-        {
-            <div class="sn-trending-list">
-                @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
+            <partial name="Shared/_RightAboutSection" />
+
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="icon icon-archive-layers" aria-hidden="true"></span>
+                    @T.Sections.TrendingSpaces
+                </div>
+                @if (Model.InlineTrendingSpaces?.Spaces?.Items?.Count > 0)
                 {
-                    <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor">
-                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                        <span class="sn-trending-contributor-name">@c.DisplayName</span>
-                        <span class="sn-card-tag sn-card-tag-light sn-tag-sm">@c.PostCountToday</span>
-                    </a>
+                    <div class="sn-spaces-inline">
+                        @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
+                        {
+                            <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
+                               class="sn-card-tag sn-card-tag--space sn-shadow-layered"
+                               style="--space-grad: @SpaceGradient(space.PublicId)">@space.Name</a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="sn-right-empty">@T.Sidebar.EmptyTrendingSpaces</p>
                 }
             </div>
-        }
-        else
-        {
-            <p class="sn-right-empty">@T.Sidebar.EmptyTrendingContributors</p>
-        }
+
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="icon icon-users-group" aria-hidden="true"></span>
+                    @T.Sections.TrendingContributors
+                </div>
+                @if (Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
+                {
+                    <div class="sn-grid sn-grid-cols-8 sn-gap-1">
+                        @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
+                        {
+                            <a href="@SnakkUrlHelper.UserProfile(c.Slug)"
+                               data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
+                                <img src="@c.AvatarMicroUrl" alt="@c.DisplayName"
+                                     class="sn-rounded-full sn-w-full aspect-square sn-object-cover sn-shadow-layered"
+                                     loading="lazy" decoding="async" />
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="sn-right-empty">@T.Sidebar.EmptyTrendingContributors</p>
+                }
+            </div>
+        </div>
     </div>
-    </div>
-</div>
 </aside>
+}
 
 @section Scripts {
     @if (Model.TrendingDiscussions?.Items != null && Model.TrendingDiscussions.Items.Any())

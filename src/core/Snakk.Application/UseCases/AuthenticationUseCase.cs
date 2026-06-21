@@ -25,7 +25,8 @@ public class AuthenticationUseCase(
     DisplayNameValidator displayNameValidator,
     IPasswordResetTokenRepository passwordResetTokenRepository,
     IPasswordResetRequestRepository passwordResetRequestRepository,
-    IAuthVersionCache authVersionCache) : UseCaseBase
+    IAuthVersionCache authVersionCache,
+    ISlugService slugService) : UseCaseBase
 {
     // Dummy BCrypt hash for timing equalization (prevents email enumeration)
     private static readonly string DummyPasswordHash = "$2a$12$LJ3m4ys3Gy2e1mGFBgHnMeZOp5xDz4MBpUmLhMYkP5K8xA2YUCIi";
@@ -76,7 +77,7 @@ public class AuthenticationUseCase(
         }
 
         // Check if display name is available
-        var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(displayName);
+        var suggestedDisplayName = await EnsureUniqueDisplayNameAsync(displayName!);
 
         // Hash password
         var passwordHash = passwordHasher.HashPassword(password);
@@ -93,6 +94,9 @@ public class AuthenticationUseCase(
             allowAdultContent);
 
         await userRepository.AddAsync(user);
+
+        // Assign initial slug from display name
+        await slugService.AssignInitialSlugAsync(user.PublicId.Value, suggestedDisplayName);
 
         // Dispatch domain events
         await eventDispatcher.DispatchAsync(user.DomainEvents);
@@ -340,8 +344,8 @@ public class AuthenticationUseCase(
         if (suggestedDisplayName != trimmed)
             return Result.Failure($"Display name '{trimmed}' is taken. Try '{suggestedDisplayName}' instead.");
 
-        // Check historical uniqueness (name was never used by anyone)
-        if (await displayNameHistoryRepository.WasNameEverUsedAsync(trimmed))
+        // Check historical uniqueness (name was never used by anyone else)
+        if (await displayNameHistoryRepository.WasNameEverUsedAsync(trimmed, user.PublicId.Value))
             return Result.Failure($"The display name '{trimmed}' was previously used and cannot be reused.");
 
         // Record history before changing
@@ -349,6 +353,9 @@ public class AuthenticationUseCase(
         user.UpdateDisplayName(trimmed);
         await userRepository.UpdateAsync(user);
         await displayNameHistoryRepository.AddAsync(user.PublicId.Value, previousName, trimmed);
+
+        // Auto-update slug from new display name (no-ops if user has a custom slug)
+        await slugService.AutoUpdateSlugFromDisplayNameAsync(user.PublicId.Value, trimmed);
 
         return Result.Success();
     }
@@ -399,6 +406,8 @@ public class AuthenticationUseCase(
         await userRepository.UpdateAsync(user);
         await displayNameHistoryRepository.AddAsync(
             user.PublicId.Value, previousName, trimmed, adminUserId.Value);
+
+        await slugService.AutoUpdateSlugFromDisplayNameAsync(user.PublicId.Value, trimmed);
 
         return Result.Success();
     }
@@ -538,6 +547,30 @@ public class AuthenticationUseCase(
     {
         await refreshTokenRepository.RevokeAllForUserAsync(userId);
         return Result.Success();
+    }
+
+    public async Task<Result<(User user, RefreshToken newRefreshToken)>> ReloginWithRefreshTokenAsync(
+        string refreshTokenValue, string password)
+    {
+        var refreshToken = await refreshTokenRepository.GetByValueAsync(refreshTokenValue);
+
+        if (refreshToken is null || !refreshToken.IsActive)
+            return Result<(User, RefreshToken)>.Failure("Invalid refresh token");
+
+        var user = await userRepository.GetByPublicIdAsync(refreshToken.UserId);
+        if (user is null)
+            return Result<(User, RefreshToken)>.Failure("User not found");
+
+        if (!user.HasPassword() || !passwordHasher.VerifyPassword(password, user.PasswordHash!))
+            return Result<(User, RefreshToken)>.Failure("Incorrect password");
+
+        var revokedToken = refreshToken.Revoke();
+        await refreshTokenRepository.UpdateAsync(revokedToken);
+
+        var newRefreshToken = RefreshToken.Create(refreshToken.UserId, expirationDays: 30);
+        await refreshTokenRepository.AddAsync(newRefreshToken);
+
+        return Result<(User, RefreshToken)>.Success((user, newRefreshToken));
     }
 
     // ─── Social Links ────────────────────────────────────────────────────────

@@ -3,22 +3,22 @@
     var returnUrl = ViewBag.ReturnUrl as string ?? Context.Request.Path + Context.Request.QueryString;
 }
 
-<div class="max-w-lg mx-auto mt-16 px-4">
-    <div class="clean-card">
-        <div class="p-8 text-center space-y-4">
-            <span class="icon icon-exclamation-triangle h-12 w-12 mx-auto text-warning" aria-hidden="true"></span>
+<div class="sn-gate-page-wrapper mt-16">
+    <div class="sn-clean-card">
+        <div class="sn-gate-card-body">
+            <span class="sn-icon icon-exclamation-triangle h-12 w-12 sn-mx-auto sn-text-warning" aria-hidden="true"></span>
 
-            <h2 class="text-lg font-bold">@T.Adult.Title</h2>
+            <h2 class="sn-text-lg sn-font-bold">@T.Adult.Title</h2>
 
-            <p class="text-sm text-base-content/60">
+            <p class="sn-text-sm sn-text-muted">
                 @T.Adult.Body
             </p>
 
-            <div class="flex flex-col gap-2 pt-2">
+            <div class="sn-gate-actions">
                 <form method="post" action="/bff/adult-consent" hx-boost="false">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
-                    <button type="submit" class="btn btn-primary btn-sm w-full">
+                    <button type="submit" class="sn-btn sn-btn-primary sn-btn-sm sn-w-full">
                         @T.Adult.Confirm
                     </button>
                 </form>
@@ -26,7 +26,7 @@
                 <form method="post" action="/bff/adult-decline" hx-boost="false">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="returnUrl" value="@returnUrl" />
-                    <button type="submit" class="btn btn-ghost btn-sm w-full">
+                    <button type="submit" class="sn-btn sn-btn-ghost sn-btn-sm sn-w-full">
                         @T.Adult.Decline
                     </button>
                 </form>
@@ -34,8 +34,8 @@
 
             @if (User.Identity?.IsAuthenticated == true)
             {
-                <p class="text-xs text-base-content/40 pt-2">
-                    @T.Adult.SettingsHintBefore<a href="/settings/notifications#section-adult-content" class="underline">@T.Adult.SettingsHintLink</a>@T.Adult.SettingsHintAfter
+                <p class="sn-gate-hint">
+                    @T.Adult.SettingsHintBefore<a href="/my/settings/notifications#section-adult-content" class="underline">@T.Adult.SettingsHintLink</a>@T.Adult.SettingsHintAfter
                 </p>
             }
         </div>

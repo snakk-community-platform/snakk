@@ -1,0 +1,176 @@
+﻿@page "/my/feed"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
+@using static Snakk.Web.Helpers.DisplayHelper
+@model Snakk.Web.Pages.My.FeedModel
+@{
+    ViewData["Title"] = T.Pages.MyFeedTitle;
+}
+
+@section LeftColumn {
+    <partial name="Shared/_LeftSidebar" />
+}
+
+@if (!Model.IsAuthenticated)
+{
+    ViewData["Nudge.Title"] = T.Pages.MyFeedNudgeTitle;
+    ViewData["Nudge.Body"] = T.Pages.MyFeedNudgeBody;
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_RegistrationNudge" /></div></div>
+    return;
+}
+
+<!-- Center Column -->
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <div class="sn-section-header">
+            <h2 class="sn-section-title">
+                <span class="sn-icon icon-rss" aria-hidden="true"></span>
+                @T.Pages.MyFeedHeading
+            </h2>
+            <p class="sn-section-description">@T.Pages.MyFeedDescription</p>
+        </div>
+
+        @if (!Model.HasFollowedSpaces)
+        {
+            <partial name="Shared/_EmptyState" model='new EmptyStateVM(T.Pages.MyFeedNoFollows, T.Pages.MyFeedBrowseSpaces, "/communities")' />
+        }
+        else if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
+        {
+            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.MyFeedNoDiscussions)" />
+        }
+        else
+        {
+            <div id="discussions-container" class="h-feed">
+                @foreach (var discussion in Model.Discussions.Items)
+                {
+                    @await Html.PartialAsync("Shared/_DiscussionCard",
+                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community))
+                }
+
+                @if (Model.Discussions.HasMoreItems && Model.NextCursor != null)
+                {
+                    <div hx-get="/partials/discussions?sort=my-feed&cursor=@Model.NextCursor&pageSize=20"
+                         hx-trigger="revealed once"
+                         hx-swap="outerHTML"
+                         hx-target="this"
+                         hx-push-url="false"
+                         class="sn-py-2">
+                        @for (var i = 0; i < 3; i++)
+                        {
+                            <div class="sn-card" style="opacity: 0.5">
+                                <div class="sn-card-header">
+                                    <div class="sn-skeleton h-3 sn-w-16 sn-rounded"></div>
+                                    <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                    <div class="sn-skeleton h-3 w-20 sn-rounded"></div>
+                                </div>
+                                <div class="sn-skeleton sn-h-4 w-3/4 sn-rounded sn-mt-2"></div>
+                                <div class="sn-card-stats sn-mt-2">
+                                    <div class="sn-skeleton h-3 w-24 sn-rounded"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <partial name="Shared/_EndOfScroll" />
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Right Column -->
+@{
+    ViewData["RightPane.Actions"] = new[] { "follows" };
+}
+@if (!DeviceDetection.IsMobile(HttpContext))
+{
+<aside class="sn-right">
+    <div class="sn-right-sticky">
+        <partial name="Shared/_RightActionPane" />
+        <div class="sn-right-body">
+            @if (Model.InlinePlatformStats != null)
+            {
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="sn-icon icon-chart-bar" aria-hidden="true"></span>
+                        @T.Sections.SiteStats
+                    </div>
+                    <div class="sn-sidebar-stats">
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsDiscussions</div>
+                                <div class="sn-stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
+                            </div>
+                        </div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsReplies</div>
+                                <div class="sn-stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
+                            </div>
+                        </div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsActivity</div>
+                                <div class="sn-sparkline-container sn-right-sparkline"
+                                     data-sparkline-type="platform"
+                                     data-sparkline-days="7"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="sn-icon icon-info-circle" aria-hidden="true"></span>
+                    @T.Pages.MyFeedAboutTitle
+                </div>
+                <p class="sn-text-sm" style="color: var(--text-secondary)">
+                    @T.Pages.MyFeedAboutBody
+                </p>
+            </div>
+
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="sn-icon icon-archive-layers" aria-hidden="true"></span>
+                    @T.Sections.ActiveSpaces
+                </div>
+                <div hx-get="/partials/trending-spaces?scopeType=platform&scopeId=global"
+                     hx-trigger="load delay:100ms"
+                     hx-target="this"
+                     hx-swap="innerHTML">
+                    <div class="sn-spaces-inline">
+                        <div class="sn-skeleton h-5 sn-w-16 sn-rounded"></div>
+                        <div class="sn-skeleton h-5 w-20 sn-rounded"></div>
+                        <div class="sn-skeleton h-5 w-14 sn-rounded"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="sn-icon icon-users-group" aria-hidden="true"></span>
+                    @T.Sections.ActiveContributors
+                </div>
+                <div hx-get="/partials/trending-contributors?scopeType=platform&scopeId=global"
+                     hx-trigger="load delay:100ms"
+                     hx-target="this"
+                     hx-swap="innerHTML">
+                    <div class="sn-trending-list">
+                        <div class="sn-trending-contributor" style="opacity:0.4"><div class="sn-skeleton sn-avatar-square" style="width:28px;height:28px"></div><div class="sn-skeleton h-3 w-24 sn-rounded"></div></div>
+                        <div class="sn-trending-contributor" style="opacity:0.4"><div class="sn-skeleton sn-avatar-square" style="width:28px;height:28px"></div><div class="sn-skeleton h-3 w-20 sn-rounded"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</aside>
+}
+
+@section Scripts {
+    @if (Model.Discussions?.Items != null && Model.Discussions.Items.Any())
+    {
+        <script src="@SnakkUrlHelper.Js("pages/frontpage-discussions")" asp-append-version="true" defer></script>
+    }
+}

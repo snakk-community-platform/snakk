@@ -2,71 +2,338 @@
 // Utility Classes
 // ============================================
 
+// Programmatic show/hide — parallels the HTML `hidden` attribute.
+// !important required so it wins over layout display values (flex, grid) set by component classes.
+.sn-hidden { display: none !important; }
+
+// Layout
+.sn-flex          { display: flex; }
+.sn-inline-flex   { display: inline-flex; }
+.sn-grid          { display: grid; }
+.sn-block         { display: block; }
+.sn-inline        { display: inline; }
+.sn-inline-block  { display: inline-block; }
+
+// Flex helpers
+.sn-items-center    { align-items: center; }
+.sn-items-start     { align-items: flex-start; }
+.sn-justify-center  { justify-content: center; }
+.sn-flex-col        { flex-direction: column; }
+.sn-flex-1          { flex: 1; }
+.sn-flex-wrap       { flex-wrap: wrap; }
+.sn-shrink-0        { flex-shrink: 0; }
+.sn-min-w-0         { min-width: 0; }
+
+// Gap
+.sn-gap-1 { gap: var(--space-2); }
+.sn-gap-2 { gap: var(--space-4); }
+.sn-gap-3 { gap: var(--space-6); }
+.sn-gap-4 { gap: var(--space-8); }
+.sn-gap-6 { gap: var(--space-12); }
+
+// Width / Height
+.sn-w-4    { width: 1rem; }
+.sn-h-4    { height: 1rem; }
+.sn-w-5    { width: 1.25rem; }
+.sn-h-5    { height: 1.25rem; }
+.sn-w-full { width: 100%; }
+
+// Typography utilities (for JS-generated content / dynamic templates)
+.sn-text-xs   { font-size: var(--font-size-sm); line-height: 1rem; }
+.sn-text-sm   { font-size: var(--font-size-base); line-height: 1.25rem; }
+.sn-font-medium   { font-weight: 500; }
+.sn-font-semibold { font-weight: 600; }
+.sn-font-bold     { font-weight: 700; }
+
+// Overflow
+.sn-overflow-hidden  { overflow: hidden; }
+.sn-overflow-y-auto  { overflow-y: auto; }
+.sn-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+// Misc
+.sn-cursor-pointer { cursor: pointer; }
+.sn-relative       { position: relative; }
+.sn-transition-colors { transition: color var(--duration-base), background-color var(--duration-base), border-color var(--duration-base); }
+
 // User preference: hide discussion preview buttons and inline card previews
-.no-discussion-previews .preview-btn,
-.no-discussion-previews .sn-card-preview {
+.sn-no-discussion-previews .sn-preview-btn,
+.sn-no-discussion-previews .sn-card-preview {
     display: none !important;
 }
 
-.no-discussion-previews #discussions-container {
-    gap: 0.25rem;
+.sn-no-discussion-previews #discussions-container {
+    gap: var(--space-2);
 }
 
 // User preference: cap image preview height in discussion list
-.discussion-list-compact .sn-images-frame,
-.discussion-list-compact .sn-compare-frame {
+.sn-discussion-list-compact .sn-images-frame,
+.sn-discussion-list-compact .sn-compare-frame {
     max-height: 20rem;
 }
 
-.discussion-list-compact .sn-debate-bar {
+.sn-discussion-list-compact .sn-debate-bar {
     height: 0.5rem;
 }
 
-.discussion-list-compact .sn-debate-segment span {
+.sn-discussion-list-compact .sn-debate-segment span {
     display: none;
 }
 
 // User preference: disable all animations and transitions
-.no-animations *,
-.no-animations *::before,
-.no-animations *::after {
+.sn-no-animations *,
+.sn-no-animations *::before,
+.sn-no-animations *::after {
     animation-duration: 0ms !important;
     animation-delay: 0ms !important;
     transition-duration: 0ms !important;
     transition-delay: 0ms !important;
 }
 
-.text-muted {
-    color: var(--text-tertiary);
+.sn-border-subtle {
+    border-color: var(--border-subtle);
 }
 
-.border-subtle {
-    border-color: var(--border-primary);
-}
-
-.bg-subtle {
-    background: var(--bg-tertiary);
-}
-
-// Link hover state (Sketch style)
-a.hover-link {
-    color: var(--text-primary);
-    text-decoration: none;
-
-    &:hover {
-        color: var(--link-primary);
-    }
-}
-
-// daisyUI tooltip z-index override — default z-index: 2 is too low and causes
-// tooltip bubbles to render beneath sibling positioned elements (e.g. adjacent sn-cards)
-.tooltip::before,
-.tooltip::after {
+// daisyUI tooltip z-index override
+.sn-tooltip::before,
+.sn-tooltip::after {
     z-index: 50;
 }
 
-// daisyUI .fab sets display:flex which beats the [hidden] attribute, so we need
-// a class with !important to actually hide the FAB
-#new-discussion-fab.fab-collapsed {
+// FAB hide — display:flex beats [hidden], needs !important
+#new-discussion-fab.sn-fab-collapsed {
     display: none !important;
+}
+
+.sn-breadcrumb-bar a {
+    box-shadow: 0 1px 1px hsl(0deg 0% 0% / 0.05),
+                0 2px 2px hsl(0deg 0% 0% / 0.05),
+                0 4px 4px hsl(0deg 0% 0% / 0.05),
+                0 6px 6px hsl(0deg 0% 0% / 0.05),
+                0 8px 8px hsl(0deg 0% 0% / 0.05);
+}
+
+.sn-shadow-layered {
+    box-shadow: 0 1px 1px hsl(0deg 0% 0% / 0.035),
+                0 2px 2px hsl(0deg 0% 0% / 0.035),
+                0 4px 4px hsl(0deg 0% 0% / 0.035),
+                0 6px 6px hsl(0deg 0% 0% / 0.035),
+                0 8px 8px hsl(0deg 0% 0% / 0.035);
+}
+
+.sn-shadow-layered-light {
+    box-shadow: 0 1px 1px hsl(0deg 0% 0% / 0.015), 0 2px 2px hsl(0deg 0% 0% / 0.015), 0 4px 4px hsl(0deg 0% 0% / 0.015), 0 6px 6px hsl(0deg 0% 0% / 0.015), 0 8px 8px hsl(0deg 0% 0% / 0.015);
+}
+
+// ============================================
+// Extended Utility Classes
+// ============================================
+
+// Border radius
+.sn-rounded      { border-radius: var(--radius-sm); }
+.sn-rounded-lg   { border-radius: var(--radius-lg); }
+.sn-rounded-xl   { border-radius: var(--radius-xl); }
+.sn-rounded-full { border-radius: var(--radius-full); }
+
+// Shadows
+.sn-shadow    { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08); }
+.sn-shadow-xl { box-shadow: 0 20px 25px rgba(0,0,0,0.08), 0 10px 10px rgba(0,0,0,0.04); }
+
+// Borders
+.sn-border   { border: 1px solid var(--border-primary); }
+.sn-border-t { border-top: 1px solid var(--border-primary); }
+.sn-border-l { border-left: 1px solid var(--border-primary); }
+.sn-border-l-2 { border-left-width: 2px; }
+.sn-border-l-4 { border-left-width: 4px; }
+
+// Border colors
+.sn-border-base-300 { border-color: var(--bg-tertiary); }
+.sn-border-warning  { border-color: var(--accent-warning); }
+.sn-border-error    { border-color: var(--accent-danger); }
+
+// Text colors
+.sn-text-primary      { color: var(--link-primary); }
+.sn-text-error        { color: var(--accent-danger); }
+.sn-text-warning      { color: var(--accent-warning-text); }
+.sn-text-info         { color: var(--accent-info-strong); }
+.sn-text-base-content { color: var(--text-primary); }
+.sn-text-muted        { color: var(--text-secondary); }
+.sn-text-faint        { color: var(--text-tertiary); }
+
+// Tailwind arbitrary-value equivalent used for tag count pills
+.sn-text-\[0\.6875rem\] { font-size: var(--font-size-xs); }
+
+// Extra-small text (10px) — used in dense info labels
+.sn-text-2xs { font-size: var(--font-size-2xs); line-height: 1rem; }
+
+// Additional text sizes
+.sn-text-base { font-size: var(--font-size-md); line-height: 1.5rem; }
+.sn-text-lg   { font-size: var(--font-size-lg); line-height: 1.75rem; }
+.sn-text-xl   { font-size: var(--font-size-xl); line-height: 1.75rem; }
+.sn-text-2xl  { font-size: var(--font-size-2xl); line-height: 2rem; }
+.sn-text-3xl  { font-size: var(--font-size-3xl); line-height: 2.25rem; }
+.sn-text-5xl  { font-size: 3rem; line-height: 1; }
+
+// Font utilities
+.sn-font-mono    { font-family: ui-monospace, 'Cascadia Code', 'Fira Code', monospace; }
+.sn-font-normal  { font-weight: 400; }
+.sn-font-black   { font-weight: 900; }
+
+// Text transform / spacing
+.sn-uppercase     { text-transform: uppercase; }
+.sn-tracking-wide { letter-spacing: 0.025em; }
+
+// Text alignment
+.sn-text-center { text-align: center; }
+.sn-text-right  { text-align: right; }
+
+// Miscellaneous
+.sn-whitespace-nowrap { white-space: nowrap; }
+.sn-select-none       { user-select: none; }
+.sn-pointer-events-none { pointer-events: none; }
+
+// Z-index
+.sn-z-30 { z-index: 30; }
+
+// Sizing
+.sn-w-8  { width: 2rem; }
+.sn-w-10 { width: 2.5rem; }
+.sn-w-12 { width: 3rem; }
+.sn-w-16 { width: 4rem; }
+.sn-w-52 { width: 13rem; }
+.sn-w-80 { width: 20rem; }
+.sn-h-8  { height: 2rem; }
+.sn-h-10 { height: 2.5rem; }
+.sn-h-full { height: 100%; }
+.sn-max-w-sm  { max-width: 24rem; }
+.sn-max-w-md  { max-width: 28rem; }
+.sn-max-w-xl  { max-width: 36rem; }
+.sn-max-w-2xl { max-width: 42rem; }
+.sn-max-w-4xl { max-width: 56rem; }
+.sn-max-w-5xl { max-width: 64rem; }
+.sn-max-w-none { max-width: none; }
+.sn-max-h-96  { max-height: 24rem; }
+
+// Spacing — margin
+.sn-mx-auto { margin-inline: auto; }
+.sn-my-1 { margin-block: var(--space-2); }
+.sn-mt-0 { margin-top: 0; }
+.sn-mt-1 { margin-top: var(--space-2); }
+.sn-mt-2    { margin-top: var(--space-4); }
+.sn-mt-3    { margin-top: var(--space-6); }
+.sn-mt-4    { margin-top: var(--space-8); }
+.sn-mt-6    { margin-top: var(--space-12); }
+.sn-mt-8    { margin-top: var(--space-16); }
+.sn-mb-1    { margin-bottom: var(--space-2); }
+.sn-mb-2    { margin-bottom: var(--space-4); }
+.sn-mb-3    { margin-bottom: var(--space-6); }
+.sn-mb-4    { margin-bottom: var(--space-8); }
+.sn-mb-6    { margin-bottom: var(--space-12); }
+.sn-ml-1    { margin-left: var(--space-2); }
+.sn-ml-2    { margin-left: var(--space-4); }
+.sn-ml-auto { margin-left: auto; }
+.sn-mr-1    { margin-right: var(--space-2); }
+.sn-mr-2    { margin-right: var(--space-4); }
+.sn-pl-4    { padding-left: var(--space-8); }
+
+// Spacing — padding
+.sn-p-2     { padding: var(--space-4); }
+.sn-p-3     { padding: var(--space-6); }
+.sn-p-4     { padding: var(--space-8); }
+.sn-p-6     { padding: var(--space-12); }
+.sn-p-8     { padding: var(--space-16); }
+.sn-px-2 { padding-inline: var(--space-4); }
+.sn-px-4    { padding-inline: var(--space-8); }
+.sn-py-1 { padding-block: var(--space-2); }
+.sn-py-2 { padding-block: var(--space-4); }
+.sn-py-3    { padding-block: var(--space-6); }
+.sn-py-4    { padding-block: var(--space-8); }
+.sn-py-8    { padding-block: var(--space-16); }
+.sn-pt-4    { padding-top: var(--space-8); }
+.sn-pt-6    { padding-top: var(--space-12); }
+.sn-pb-2    { padding-bottom: var(--space-4); }
+
+// Stacked gap (space-y-*)
+.sn-space-y-1 > * + * { margin-top: var(--space-2); }
+.sn-space-y-2 > * + * { margin-top: var(--space-4); }
+.sn-space-y-3 > * + * { margin-top: var(--space-6); }
+.sn-space-y-4 > * + * { margin-top: var(--space-8); }
+
+// Background token utilities
+.sn-bg-base-100     { background-color: var(--bg-primary); }
+.sn-bg-base-200     { background-color: var(--bg-secondary); }
+.sn-bg-warning-subtle { background-color: color-mix(in srgb, var(--accent-warning) 10%, transparent); }
+
+// Position
+.sn-fixed    { position: fixed; }
+.sn-bottom-6 { bottom: 1.5rem; }
+.sn-right-6  { right: 1.5rem; }
+.sn-inset-0  { inset: 0; }
+
+// Object fit
+.sn-object-cover { object-fit: cover; }
+
+// ============================================
+// Grid utilities
+// ============================================
+.sn-grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.sn-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sn-grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sn-grid-cols-8 { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.sn-gap-x-6     { column-gap: var(--space-12); }
+.sn-gap-y-1     { row-gap: var(--space-2); }
+
+// ============================================
+// Hover utilities
+// ============================================
+.sn-hover\:text-primary:hover  { color: var(--link-primary); }
+.sn-hover\:underline:hover     { text-decoration: underline; }
+.sn-hover\:bg-base-200:hover   { background-color: var(--bg-secondary); }
+.sn-hover\:shadow-md:hover     { box-shadow: 0 4px 6px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06); }
+
+// ============================================
+// Opacity utilities
+// ============================================
+.sn-opacity-30 { opacity: 0.3; }
+.sn-opacity-50 { opacity: 0.5; }
+.sn-opacity-60 { opacity: 0.6; }
+
+// ============================================
+// Responsive utilities — sm (≥640px)
+// ============================================
+@media (min-width: 640px) {
+    .sn-sm\:flex    { display: flex; }
+    .sn-sm\:block   { display: block; }
+    .sn-sm\:inline  { display: inline; }
+    .sn-sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+}
+
+// ============================================
+// Responsive utilities — md (≥768px)
+// ============================================
+@media (min-width: 768px) {
+    .sn-md\:flex          { display: flex; }
+    .sn-md\:grid-cols-3   { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .sn-md\:grid-cols-4   { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .sn-md\:col-span-1    { grid-column: span 1 / span 1; }
+    .sn-md\:col-span-2    { grid-column: span 2 / span 2; }
+    .sn-md\:items-center  { align-items: center; }
+    .sn-md\:gap-2         { gap: var(--space-4); }
+    .sn-md\:shrink-0      { flex-shrink: 0; }
+    .sn-md\:w-56          { width: 14rem; }
+    .sn-md\:min-w-0       { min-width: 0; }
+
+}
+
+// ============================================
+// Responsive utilities — lg (≥1024px)
+// ============================================
+@media (min-width: 1024px) {
+    .sn-lg\:flex          { display: flex; }
+    .sn-lg\:flex-row      { flex-direction: row; }
+    .sn-lg\:items-start   { align-items: flex-start; }
+    .sn-lg\:justify-between { justify-content: space-between; }
+    .sn-lg\:w-80          { width: 20rem; }
+    .sn-lg\:w-96          { width: 24rem; }
+
 }

@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Configurations>Debug;Release</Configurations>
     <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+    <TypeScriptToolsVersion>5.7</TypeScriptToolsVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,20 +19,20 @@
   <ItemGroup>
     <PackageReference Include="Fido2.AspNet" Version="4.0.1" />
     <PackageReference Include="HtmlSanitizer" Version="9.0.892" />
-    <PackageReference Include="Markdig" Version="1.2.0" />
+    <PackageReference Include="Markdig" Version="1.3.0" />
     <!-- JWT Authentication -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
-    <PackageReference Include="Npgsql" Version="10.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
     <PackageReference Include="prometheus-net.DotNetRuntime" Version="4.4.1" />
 	<PackageReference Include="SixLabors.ImageSharp" Version="[3.1.12, 4.0.0)" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.19.1" />
 
     <!-- gRPC client -->
     <PackageReference Include="Grpc.Net.Client" Version="2.80.0" />
-    <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.8" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.9" />
   </ItemGroup>
 
   <!-- Help center articles — .md files aren't auto-included by the Web SDK -->

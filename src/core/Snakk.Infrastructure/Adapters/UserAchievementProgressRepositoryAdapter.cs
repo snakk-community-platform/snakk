@@ -20,7 +20,7 @@ public class UserAchievementProgressRepositoryAdapter(
                 p.UserPublicId == userId.Value
                 && p.AchievementPublicId == achievementId.Value)
             .Select(p => new UserAchievementProgressProjection(
-                p.UserPublicId, p.AchievementPublicId,
+                p.UserPublicId!, p.AchievementPublicId!,
                 p.CurrentValue, p.TargetValue, p.ProgressData, p.LastUpdated))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
@@ -31,7 +31,7 @@ public class UserAchievementProgressRepositoryAdapter(
         var projections = await context.UserAchievementProgress
             .Where(p => p.UserPublicId == userId.Value)
             .Select(p => new UserAchievementProgressProjection(
-                p.UserPublicId, p.AchievementPublicId,
+                p.UserPublicId!, p.AchievementPublicId!,
                 p.CurrentValue, p.TargetValue, p.ProgressData, p.LastUpdated))
             .ToListAsync(ct);
 
@@ -45,7 +45,7 @@ public class UserAchievementProgressRepositoryAdapter(
                 p.UserPublicId == userId.Value
                 && p.CurrentValue < p.TargetValue)
             .Select(p => new UserAchievementProgressProjection(
-                p.UserPublicId, p.AchievementPublicId,
+                p.UserPublicId!, p.AchievementPublicId!,
                 p.CurrentValue, p.TargetValue, p.ProgressData, p.LastUpdated))
             .ToListAsync(ct);
 

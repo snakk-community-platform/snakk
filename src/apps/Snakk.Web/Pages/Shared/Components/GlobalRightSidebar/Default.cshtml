@@ -1,0 +1,45 @@
+@model Snakk.Web.Pages.ViewModels.GlobalRightSidebarVM
+
+<aside class="sn-right">
+    <div class="sn-right-sticky">
+        <partial name="Shared/_RightActionPane" />
+        <div class="sn-right-body">
+
+            @if (Model.Stats != null)
+            {
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="icon icon-chart-bar" aria-hidden="true"></span>
+                        @T.Sections.SiteStats
+                    </div>
+                    <partial name="Shared/Sidebar/_PlatformStats" model="Model.Stats" />
+                </div>
+            }
+
+            <partial name="Shared/_RightAboutSection" />
+
+            @if (Model.TrendingSpaces != null)
+            {
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="icon icon-archive-layers" aria-hidden="true"></span>
+                        @T.Sections.ActiveSpaces
+                    </div>
+                    <partial name="Shared/Sidebar/_TrendingSpaces" model="Model.TrendingSpaces" />
+                </div>
+            }
+
+            @if (Model.TrendingContributors != null)
+            {
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="icon icon-users-group" aria-hidden="true"></span>
+                        @T.Sections.ActiveContributors
+                    </div>
+                    <partial name="Shared/Sidebar/_TrendingContributors" model="Model.TrendingContributors" />
+                </div>
+            }
+
+        </div>
+    </div>
+</aside>

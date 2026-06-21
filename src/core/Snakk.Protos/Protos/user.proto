@@ -8,6 +8,8 @@ import "google/protobuf/timestamp.proto";
 
 service UserService {
   rpc GetUserProfile (GetUserProfileRequest) returns (UserProfileInfo);
+  rpc GetUserBySlug (GetUserBySlugRequest) returns (UserProfileInfo);
+  rpc ResolveOldSlug (ResolveOldSlugRequest) returns (ResolveOldSlugResponse);
   rpc SearchUsers (SearchUsersRequest) returns (UserSearchResults);
 }
 
@@ -17,12 +19,25 @@ message GetUserProfileRequest {
   string public_id = 1;
 }
 
+message GetUserBySlugRequest {
+  string slug = 1;
+}
+
+message ResolveOldSlugRequest {
+  string old_slug = 1;
+}
+
 message SearchUsersRequest {
   string query = 1;
   int32 limit = 2;
 }
 
 // --- Responses ---
+
+message ResolveOldSlugResponse {
+  bool found = 1;
+  optional string current_slug = 2;
+}
 
 message UserProfileInfo {
   string public_id = 1;
@@ -43,6 +58,8 @@ message UserProfileInfo {
   optional string avatar_thumbnail_file_name = 16;
   optional string discord_user_id  = 17;
   optional string discord_username = 18;
+  optional string slug = 19;
+  bool is_global_admin = 20;
 }
 
 message UserAchievementInfo {
@@ -86,6 +103,7 @@ message UserSearchResultItem {
   string display_name = 2;
   string avatar_url = 3;
   optional string avatar_thumbnail_url = 4;
+  optional string slug = 5;
 }
 
 message UserSearchResults {

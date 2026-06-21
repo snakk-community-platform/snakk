@@ -1,8 +1,7 @@
-﻿@page
+@page
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
-@using static Snakk.Web.Helpers.DisplayHelper
 @using static Snakk.Web.Helpers.DiscussionTypeHelper
 @model LatestModel
 @{
@@ -17,10 +16,13 @@
 <!-- Center Column -->
 <div class="sn-center">
     <div class="sn-center-inner">
-        <h2 class="sn-section-title">
-            <span class="icon icon-clock" aria-hidden="true"></span>
-            @T.Pages.LatestHeading
-        </h2>
+        <div class="sn-section-header">
+            <h2 class="sn-section-title">
+                <span class="icon icon-clock" aria-hidden="true"></span>
+                @T.Pages.LatestHeading
+            </h2>
+            <p class="sn-section-description">@T.Pages.LatestDescription</p>
+        </div>
 
         @if (Model.LatestDiscussions?.Items == null || !Model.LatestDiscussions.Items.Any())
         {
@@ -44,18 +46,18 @@
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"
-                         class="py-2">
+                         class="sn-py-2">
                         @for (var i = 0; i < 3; i++)
                         {
                             <div class="sn-card" style="opacity: 0.5">
                                 <div class="sn-card-header">
-                                    <div class="skeleton h-3 w-16 rounded"></div>
-                                    <div class="skeleton h-4 w-4 rounded-full"></div>
-                                    <div class="skeleton h-3 w-20 rounded"></div>
+                                    <div class="sn-skeleton h-3 w-16 sn-rounded"></div>
+                                    <div class="sn-skeleton h-4 w-4 sn-rounded-full"></div>
+                                    <div class="sn-skeleton h-3 w-20 sn-rounded"></div>
                                 </div>
-                                <div class="skeleton h-4 w-3/4 rounded mt-2"></div>
-                                <div class="sn-card-stats mt-2">
-                                    <div class="skeleton h-3 w-24 rounded"></div>
+                                <div class="sn-skeleton h-4 w-3/4 sn-rounded sn-mt-2"></div>
+                                <div class="sn-card-stats sn-mt-2">
+                                    <div class="sn-skeleton h-3 w-24 sn-rounded"></div>
                                 </div>
                             </div>
                         }
@@ -71,95 +73,7 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.LatestAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.LatestAboutDesc;
 }
-<aside class="sn-right">
-<div class="sn-right-sticky">
-    <partial name="Shared/_RightActionPane" />
-    <div class="sn-right-body">
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            @T.Sections.SiteStats
-        </div>
-        @if (Model.InlinePlatformStats != null)
-        {
-            <div class="sn-sidebar-stats">
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
-                        <div class="stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
-                    </div>
-                </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsReplies</div>
-                        <div class="stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
-                    </div>
-                </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsActivity</div>
-                        <div class="sn-sparkline-container sn-right-sparkline"
-                             data-sparkline-type="platform"
-                             data-sparkline-days="7"></div>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    <partial name="Shared/_RightAboutSection" />
-
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-archive-layers" aria-hidden="true"></span>
-            @T.Sections.LatestSpaces
-        </div>
-        @if (Model.InlineLatestSpaces?.Spaces?.Items?.Count > 0)
-        {
-            <div class="sn-spaces-inline">
-                @foreach (var space in Model.InlineLatestSpaces.Spaces.Items)
-                {
-                    <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                       class="sn-card-tag sn-card-tag--space"
-                       style="--space-grad: @SpaceGradient(space.PublicId)"
-                       data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
-                }
-            </div>
-        }
-        else
-        {
-            <p class="sn-right-empty">@T.Sidebar.EmptyLatestSpaces</p>
-        }
-    </div>
-
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-users-group" aria-hidden="true"></span>
-            @T.Sections.LatestContributors
-        </div>
-        @if (Model.InlineLatestContributors?.Contributors?.Items?.Count > 0)
-        {
-            <div class="sn-trending-list">
-                @foreach (var c in Model.InlineLatestContributors.Contributors.Items)
-                {
-                    var contribLastPostAt = DateTime.TryParse(c.LastPostAt, out var contribParsed) ? contribParsed.ToString("MMM d") : "";
-                    <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor"
-                       data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
-                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                        <span class="sn-trending-contributor-name">@c.DisplayName</span>
-                        <time class="sn-card-tag sn-card-tag-light sn-tag-sm" datetime="@c.LastPostAt" data-relative="true">@contribLastPostAt</time>
-                    </a>
-                }
-            </div>
-        }
-        else
-        {
-            <p class="sn-right-empty">@T.Sections.EmptyLatestContributors</p>
-        }
-    </div>
-    </div>
-</div>
-</aside>
+<vc:global-right-sidebar />
 
 @section Scripts {
     @if (Model.LatestDiscussions?.Items != null && Model.LatestDiscussions.Items.Any())

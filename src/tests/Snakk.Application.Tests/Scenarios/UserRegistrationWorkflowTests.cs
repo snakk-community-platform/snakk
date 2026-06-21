@@ -25,6 +25,7 @@ public class UserRegistrationWorkflowTests
     private readonly IPasswordResetTokenRepository _passwordResetTokenRepository = Substitute.For<IPasswordResetTokenRepository>();
     private readonly IPasswordResetRequestRepository _passwordResetRequestRepository = Substitute.For<IPasswordResetRequestRepository>();
     private readonly IAuthVersionCache _authVersionCache = Substitute.For<IAuthVersionCache>();
+    private readonly ISlugService _slugService = Substitute.For<ISlugService>();
     private AuthenticationUseCase _useCase = null!;
 
     [Before(Test)]
@@ -46,7 +47,8 @@ public class UserRegistrationWorkflowTests
             new DisplayNameValidator(_settingsService),
             _passwordResetTokenRepository,
             _passwordResetRequestRepository,
-            _authVersionCache);
+            _authVersionCache,
+            _slugService);
     }
 
     [Test]

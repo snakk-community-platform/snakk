@@ -9,14 +9,16 @@
 }
 else
 {
-    <div class="sn-trending-list">
+    <div class="sn-grid sn-grid-cols-8 sn-gap-1">
         @foreach (var c in Model.Contributors.Items)
         {
-            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor" hx-target="#main-content"
+            <a href="@SnakkUrlHelper.UserProfile(c.Slug)"
+               hx-target="#main-content" hx-swap="outerHTML show:window:top"
                data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
-                <img src="@c.AvatarThumbnailUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                <span class="sn-trending-contributor-name">@c.DisplayName</span>
-                <span class="sn-card-tag sn-card-tag-light sn-tag-sm">@c.PostCountToday</span>
+                <img src="@c.AvatarThumbnailUrl" alt="@c.DisplayName"
+                     class="sn-rounded-full sn-w-full aspect-square sn-object-cover sn-shadow-layered"
+                     width="32" height="32"
+                     loading="lazy" decoding="async" />
             </a>
         }
     </div>

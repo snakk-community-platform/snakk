@@ -9,7 +9,7 @@
         const input = document.createElement('input');
         input.type = 'text';
         input.name = 'PollOptions';
-        input.className = 'input w-full input-sm';
+        input.className = 'sn-input sn-w-full sn-input-sm';
         input.placeholder = 'Option ' + (list.children.length + 1);
         list.appendChild(input);
     });
@@ -18,7 +18,7 @@
     const segmentFields = document.getElementById('segment-fields');
     if (segmentCheck && segmentFields) {
         segmentCheck.addEventListener('change', () => {
-            segmentFields.classList.toggle('hidden', !segmentCheck.checked);
+            segmentFields.classList.toggle('sn-hidden', !segmentCheck.checked);
         });
     }
 
@@ -26,7 +26,7 @@
     const closeDateField = document.getElementById('close-date-field');
     if (closeDateCheck && closeDateField) {
         closeDateCheck.addEventListener('change', () => {
-            closeDateField.classList.toggle('hidden', !closeDateCheck.checked);
+            closeDateField.classList.toggle('sn-hidden', !closeDateCheck.checked);
         });
     }
 })();

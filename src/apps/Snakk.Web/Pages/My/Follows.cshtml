@@ -1,0 +1,204 @@
+@page "/my/follows/{tab?}"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
+@using Snakk.Web.Services
+@using static Snakk.Web.Helpers.DisplayHelper
+@model Snakk.Web.Pages.My.FollowsModel
+@{
+    ViewData["Title"] = T.Pages.FollowingTitle;
+    ViewData["Description"] = "Spaces, discussions and people you follow.";
+    ViewData["Nudge.Title"] = T.Pages.FollowingNudgeTitle;
+    ViewData["Nudge.Body"] = T.Pages.FollowingNudgeBody;
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<div class="sn-center">
+    <div class="sn-center-inner">
+        @if (!Model.IsAuthenticated)
+        {
+            <partial name="Shared/_RegistrationNudge" />
+        }
+        else
+        {
+        <div class="sn-section-header">
+        <h2 class="sn-section-title">
+            <span class="sn-icon icon-heart" aria-hidden="true"></span>
+            @T.Pages.FollowingHeading
+        </h2>
+
+        <!-- Tabs -->
+        <div class="sn-tabs">
+            <a href="/my/follows/discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "sn-active" : "")">
+                @T.Pages.FollowingTabDiscussions
+                @if (Model.DiscussionCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.DiscussionCount</span> }
+            </a>
+            <a href="/my/follows/spaces" class="sn-tab @(Model.ActiveTab == "spaces" ? "sn-active" : "")">
+                @T.Pages.FollowingTabSpaces
+                @if (Model.SpaceCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.SpaceCount</span> }
+            </a>
+            <a href="/my/follows/users" class="sn-tab @(Model.ActiveTab == "users" ? "sn-active" : "")">
+                @T.Pages.FollowingTabPeople
+                @if (Model.UserCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.UserCount</span> }
+            </a>
+        </div>
+            <p class="sn-section-description">@T.Pages.FollowingDescription</p>
+        </div>
+
+        @if (Model.ActiveTab == "spaces")
+        {
+            @if (Model.Spaces.Count == 0)
+            {
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="sn-icon icon-archive-layers sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
+                    <p>@T.Pages.FollowingEmptySpaces</p>
+                    <p class="sn-mt-1 sn-text-xs opacity-70">@T.Pages.FollowingEmptySpacesHint</p>
+                </div>
+            }
+            else
+            {
+                <div class="sn-card-list">
+                    @foreach (var space in Model.Spaces)
+                    {
+                        <div class="sn-card sn-card--has-side" data-following-item="space" data-id="@space.PublicId">
+                            <div class="sn-card-side">
+                                <button type="button" class="sn-card-side-btn sn-card-side-btn--full"
+                                        data-unfollow-type="space" data-unfollow-id="@space.PublicId"
+                                        title="@T.Card.Remove">
+                                    <span class="sn-icon icon-trash w-3 h-3" aria-hidden="true"></span>
+                                    @T.Card.Remove
+                                </button>
+                            </div>
+                            <div class="sn-card-content">
+                                <div class="sn-space-list-banner" style="background-image: @SpaceGradient(space.PublicId)">
+                                    <img src="@space.AvatarUrl" alt="" width="34" height="34"
+                                         class="sn-space-list-avatar" loading="lazy" decoding="async" />
+                                    <a href="@space.Href" class="sn-space-list-name"
+                                       data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">@space.Name</a>
+                                </div>
+                                <div class="sn-space-list-body">
+                                    @if (!string.IsNullOrEmpty(space.Description))
+                                    {
+                                        <p class="sn-space-list-desc">@space.Description</p>
+                                    }
+                                    <div class="sn-space-list-stat-row">
+                                        <div class="sn-community-stat-pill">
+                                            <span class="sn-community-sn-stat-value">@DisplayHelper.FormatCount(space.DiscussionCount)</span>
+                                            <span class="sn-community-stat-label">@T.Pages.FollowingTopicsLabel</span>
+                                        </div>
+                                        <div class="sn-community-stat-pill">
+                                            <span class="sn-community-sn-stat-value">@DisplayHelper.FormatCount(space.ReplyCount)</span>
+                                            <span class="sn-community-stat-label">@T.Pages.FollowingRepliesLabel</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else if (Model.ActiveTab == "discussions")
+        {
+            @if (Model.DiscussionCount == 0)
+            {
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="sn-icon icon-chat-bubbles sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
+                    <p>@T.Pages.FollowingEmptyDiscussions</p>
+                    <p class="sn-mt-1 sn-text-xs opacity-70">@T.Pages.FollowingEmptyDiscussionsHint</p>
+                </div>
+            }
+            else
+            {
+                <div class="sn-card-list">
+                    @foreach (var discussion in Model.FirstDiscussions)
+                    {
+                        var followedAt = Model.FollowTimestamps.TryGetValue(discussion.PublicId, out var ft) ? (DateTime?)ft : null;
+                        @await Html.PartialAsync("Shared/_DiscussionCard",
+                            new DiscussionListItemVM(discussion, Model.ShowCommunityInBreadcrumb, Model.Community, UnfollowId: discussion.PublicId, FollowedAt: followedAt,
+                                UnreadCount: discussion.HasUnreadPostCount ? discussion.UnreadPostCount : (int?)null))
+                    }
+                    @if (Model.DiscussionsHasMore)
+                    {
+                        <div hx-get="/partials/following-discussions?offset=@Model.DiscussionsNextOffset&pageSize=10"
+                             hx-trigger="revealed once"
+                             hx-swap="outerHTML"
+                             hx-target="this"
+                             hx-push-url="false"
+                             class="sn-py-2">
+                            @for (var i = 0; i < 3; i++)
+                            {
+                                <div class="sn-card" style="opacity: 0.5">
+                                    <div class="sn-card-header">
+                                        <div class="sn-skeleton h-3 sn-w-16 sn-rounded"></div>
+                                        <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                        <div class="sn-skeleton h-3 w-20 sn-rounded"></div>
+                                    </div>
+                                    <div class="sn-skeleton sn-h-4 w-3/4 sn-rounded sn-mt-2"></div>
+                                    <div class="sn-card-stats sn-mt-2">
+                                        <div class="sn-skeleton h-3 w-24 sn-rounded"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else if (Model.FirstDiscussions.Any())
+                    {
+                        <partial name="Shared/_EndOfScroll" />
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            @if (Model.Users.Count == 0)
+            {
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="sn-icon icon-users-group sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
+                    <p>@T.Pages.FollowingEmptyPeople</p>
+                    <p class="sn-mt-1 sn-text-xs opacity-70">@T.Pages.FollowingEmptyPeopleHint</p>
+                </div>
+            }
+            else
+            {
+                <div class="sn-mod-list-grid">
+                    @foreach (var user in Model.Users)
+                    {
+                        <div class="sn-mod-list-card" data-following-item="user" data-id="@user.PublicId">
+                            <div class="sn-mod-list-banner" style="background-image: @UserGradient(user.PublicId)">
+                                <img src="@user.AvatarUrl" alt="" width="34" height="34"
+                                     class="sn-mod-list-avatar" loading="lazy" decoding="async" />
+                                <a href="@user.Href" class="sn-mod-list-name"
+                                   data-popup-type="user" data-popup-id="@user.PublicId" data-popup-name="@user.DisplayName">@user.DisplayName</a>
+                                <button class="sn-btn sn-btn-ghost sn-btn-xs sn-ml-auto sn-shrink-0"
+                                        style="color: oklch(0.7 0.15 60)"
+                                        data-unfollow-type="user" data-unfollow-id="@user.PublicId"
+                                        title="@T.Pages.FollowingUnfollow">
+                                    <span class="sn-icon icon-user w-3 h-3" aria-hidden="true"></span>
+                                    @T.Pages.FollowingUnfollow
+                                </button>
+                            </div>
+                            <div class="sn-mod-list-body">
+                                <span class="sn-text-xs" style="color: var(--text-tertiary)">@DisplayHelper.FormatCount(user.FollowerCount) @T.Pages.FollowingFollowersSuffix</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        } @* end IsAuthenticated *@
+    </div>
+</div>
+
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
+    ViewData["RightPane.AboutTitle"] = T.Pages.FollowingAboutTitle;
+    ViewData["RightPane.AboutDescription"] = T.Pages.FollowingAboutDesc;
+}
+<vc:global-right-sidebar />
+
+@section Scripts {
+<script src="@SnakkUrlHelper.Js("pages/following")" asp-append-version="true"></script>
+}

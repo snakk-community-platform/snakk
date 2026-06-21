@@ -1,43 +1,73 @@
+  .sn-tabs {
+display: inline-flex;
+align-items: center;
+gap: var(--space-4);
+  }
+
+@media (max-width: 767.98px) {
 .sn-tabs {
-  display: inline-flex;
-  padding: 3px;
-  gap: 2px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: 0.5rem;
-
-  @media (max-width: 767.98px) {
-    display: flex;
-    width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    &::-webkit-scrollbar { display: none; }
-  }
-}
-
-.sn-tab {
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.875rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--text-tertiary);
-  background: transparent;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  white-space: nowrap;
-  flex-shrink: 0;
-  transition: color 0.15s, background-color 0.15s;
-  text-decoration: none;
-
-  &:hover { color: var(--text-secondary); }
-
-  &.active,
-  &[aria-selected="true"] {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  }
+  flex-wrap: wrap;
 }
+
+}
+
+  .sn-tab {
+position: relative;
+display: inline-flex;
+align-items: center;
+font-size: var(--font-size-ui);
+font-weight: 400;
+padding: 0;
+cursor: pointer;
+white-space: nowrap;
+text-decoration: none;
+flex-shrink: 0;
+
+// Hide wrapped radio/checkbox inputs (search filter tab pattern)
+input[type="radio"],
+input[type="checkbox"] {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+&.active,
+&[aria-selected="true"],
+&:has(input:checked) {
+  font-weight: bold;
+}
+
+& + .sn-tab::before {
+  content: "|";
+  font-weight: 400;
+  margin-right: var(--space-4);
+}
+  }
+
+  .sn-tab {
+color: var(--text-secondary);
+background: transparent;
+border: none;
+transition: color var(--duration-base);
+
+// Hide wrapped radio/checkbox inputs (search filter tab pattern)
+input[type="radio"],
+input[type="checkbox"] {
+  opacity: 0;
+}
+
+&:hover { color: var(--text-primary); }
+
+&.active,
+&[aria-selected="true"],
+&:has(input:checked) {
+  color: var(--text-primary);
+}
+
+& + .sn-tab::before {
+  color: var(--text-tertiary);
+}
+  }
+

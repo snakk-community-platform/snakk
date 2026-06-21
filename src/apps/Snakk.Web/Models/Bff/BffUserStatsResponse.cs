@@ -15,4 +15,5 @@ public record BffUserStatsResponse
     public required int FollowerCount { get; init; }
     public required int FollowingCount { get; init; }
     public string? GradientCss { get; init; }
+    public bool IsGlobalAdmin { get; init; }
 }

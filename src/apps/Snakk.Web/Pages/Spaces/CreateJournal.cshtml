@@ -1,0 +1,40 @@
+﻿@page "/create/journal"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@inject ICommunityContext CommunityCtx
+@model Snakk.Web.Pages.Spaces.NewJournalModel
+@{
+    Layout = "~/Pages/Shared/_NewDiscussionLayout.cshtml";
+    ViewData["Title"] = string.Format(T.Pages.SpacesNewJournalTitlePattern, Model.Space?.Name);
+    ViewData["NewDiscussion.Crumb"]       = T.Pages.SpacesNewJournalCrumb;
+    ViewData["NewDiscussion.Heading"]     = T.Pages.SpacesNewJournalHeading;
+    ViewData["NewDiscussion.TitlePh"]     = T.Pages.SpacesNewJournalTitlePh;
+    ViewData["NewDiscussion.SubmitLabel"] = T.Pages.SpacesNewJournalSubmit;
+}
+
+<div class="sn-journal-tips-section">
+    <h3 class="sn-section-label--createjournal">@T.Pages.SpacesNewJournalHowHeading</h3>
+    <div class="sn-journal-tips-body">
+        <p>@T.Pages.SpacesNewJournalIntro</p>
+        <div>
+            <div class="sn-subsection-label">@T.Pages.SpacesNewAfterYouPost</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
+                <li>@T.Pages.SpacesNewJournalAfter1</li>
+                <li>@T.Pages.SpacesNewJournalAfter2</li>
+                <li>@T.Pages.SpacesNewJournalAfter3</li>
+                <li>@T.Pages.SpacesNewJournalAfter4</li>
+            </ul>
+        </div>
+        <div>
+            <div class="sn-subsection-label">@T.Pages.SpacesNewJournalGreatLabel</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
+                <li>@T.Pages.SpacesNewJournalGreat1</li>
+                <li>@T.Pages.SpacesNewJournalGreat2</li>
+                <li>@T.Pages.SpacesNewJournalGreat3</li>
+                <li>@T.Pages.SpacesNewJournalGreat4</li>
+                <li>@T.Pages.SpacesNewJournalGreat5</li>
+            </ul>
+        </div>
+    </div>
+</div>
+

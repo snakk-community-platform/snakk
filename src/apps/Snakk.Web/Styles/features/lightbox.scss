@@ -1,0 +1,4 @@
+// Lightbox — self-contained widget CSS injected by lightbox.ts at script boot.
+// Not imported by any other entry point.
+// Note: base/variables is NOT @used here — site.css emits the :root custom properties.
+@use './_lightbox';

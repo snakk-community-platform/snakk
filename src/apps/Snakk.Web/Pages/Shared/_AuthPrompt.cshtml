@@ -5,13 +5,13 @@
     var loginUrl = $"/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}";
     var registerUrl = $"/auth/register?returnUrl={Uri.EscapeDataString(returnUrl)}";
 }
-<div class="clean-card p-8 text-center max-w-sm mx-auto mt-8">
-    <img src="/img/logo-square.webp" alt="" width="64" height="64" class="mx-auto mb-4 opacity-15" />
-    <h3 class="font-semibold mb-1" style="color: var(--text-primary)">@title</h3>
-    <p class="text-sm mb-5" style="color: var(--text-secondary)">@message</p>
-    <div class="flex items-center justify-center gap-3">
-        <a href="@loginUrl" class="btn btn-primary btn-sm">@T.Nudge.LogIn</a>
+<div class="sn-clean-card sn-p-8 sn-text-center sn-max-w-sm sn-mx-auto mt-8">
+    <img src="/img/logo-square.webp" alt="" width="64" height="64" class="sn-mx-auto sn-mb-4 opacity-15" />
+    <h3 class="sn-font-semibold sn-mb-1" style="color: var(--text-primary)">@title</h3>
+    <p class="sn-text-sm mb-5" style="color: var(--text-secondary)">@message</p>
+    <div class="sn-auth-prompt-actions">
+        <a href="@loginUrl" class="sn-btn sn-btn-primary sn-btn-sm">@T.Nudge.LogIn</a>
         <span style="color: var(--text-tertiary)">@T.Nudge.Or</span>
-        <a href="@registerUrl" class="btn btn-ghost btn-sm">@T.AuthPrompt.SignUp</a>
+        <a href="@registerUrl" class="sn-btn sn-btn-ghost sn-btn-sm">@T.AuthPrompt.SignUp</a>
     </div>
 </div>

@@ -1,0 +1,67 @@
+@page "/my/history"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.My.HistoryModel
+@{
+    ViewData["Title"] = T.Pages.HistoryTitle;
+    ViewData["Description"] = "Discussions you have recently visited.";
+    ViewData["Nudge.Title"] = T.Pages.HistoryNudgeTitle;
+    ViewData["Nudge.Body"] = T.Pages.HistoryNudgeBody;
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<div class="sn-center">
+    <div class="sn-center-inner">
+        @if (!Model.IsAuthenticated)
+        {
+            <partial name="Shared/_RegistrationNudge" />
+        }
+        else
+        {
+            <div class="sn-section-header">
+                <h2 class="sn-section-title">
+                    <span class="sn-icon icon-clock" aria-hidden="true"></span>
+                    @T.Pages.HistoryHeading
+                </h2>
+                <p class="sn-section-description">@T.Pages.HistoryDescription</p>
+            </div>
+
+            <div id="history-loading">
+                @for (int i = 0; i < 5; i++)
+                {
+                    <div class="sn-card" style="opacity: 0.5">
+                        <div class="sn-card-header">
+                            <div class="sn-skeleton h-3 sn-w-16 sn-rounded"></div>
+                            <div class="sn-skeleton h-3 sn-w-4 sn-rounded"></div>
+                            <div class="sn-skeleton h-3 w-20 sn-rounded"></div>
+                        </div>
+                        <div class="sn-skeleton sn-h-4 w-3/4 sn-rounded sn-mt-2"></div>
+                    </div>
+                }
+            </div>
+
+            <div id="history-empty" class="sn-hidden py-12 sn-text-center sn-text-sm" style="color: var(--text-tertiary)">
+                <span class="sn-icon icon-clock sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
+                <p>@T.Pages.HistoryEmpty</p>
+                <p class="sn-mt-1 sn-text-xs opacity-70">@T.Pages.HistoryEmptyHint</p>
+            </div>
+
+            <div id="history-container" class="sn-card-list h-feed sn-hidden"></div>
+        }
+    </div>
+</div>
+
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
+    if (Model.IsAuthenticated)
+        ViewData["RightPane.Actions"] = new[] { "clear-history" };
+    ViewData["RightPane.AboutTitle"] = T.Pages.HistoryHeading;
+    ViewData["RightPane.AboutDescription"] = T.Pages.HistoryAboutDesc;
+}
+<vc:global-right-sidebar />
+
+<script src="@SnakkUrlHelper.Js("components/card-animations")" asp-append-version="true"></script>
+<script src="@SnakkUrlHelper.Js("services/read-history")" asp-append-version="true"></script>
+<script src="@SnakkUrlHelper.Js("pages/history")" asp-append-version="true"></script>

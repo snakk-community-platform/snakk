@@ -7,8 +7,10 @@
 
 @foreach (var discussion in Model.Items)
 {
+    var followedAt = Model.FollowTimestamps.TryGetValue(discussion.PublicId, out var ft) ? (DateTime?)ft : null;
     @await Html.PartialAsync("Shared/_DiscussionCard",
-        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, UnfollowId: discussion.PublicId))
+        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, UnfollowId: discussion.PublicId, FollowedAt: followedAt,
+            UnreadCount: discussion.HasUnreadPostCount ? discussion.UnreadPostCount : (int?)null))
 }
 
 @if (Model.HasMoreItems)
@@ -18,7 +20,7 @@
          hx-swap="outerHTML"
          hx-target="this"
          hx-push-url="false"
-         class="py-2">
+         class="sn-py-2">
         <partial name="Shared/_DiscussionSkeleton" />
     </div>
 }

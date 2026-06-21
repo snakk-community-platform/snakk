@@ -238,7 +238,7 @@ class DraftManager {
     showDraftRestoredIndicator(): void {
         const msg = document.getElementById('draft-restored-msg');
         if (msg) {
-            msg.classList.remove('hidden');
+            msg.classList.remove('sn-hidden');
         }
     }
 

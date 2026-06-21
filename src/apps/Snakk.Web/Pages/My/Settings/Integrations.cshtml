@@ -1,0 +1,94 @@
+@page "/my/settings/integrations"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.My.Settings.IntegrationsModel
+@{
+    Layout = "~/Pages/Shared/_SettingsLayout.cshtml";
+    ViewData["Title"] = T.Settings.TitleIntegrations;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
+    ViewData["Settings.Icon"] = "icon-puzzle";
+    ViewData["Settings.Heading"] = T.Settings.HeadingIntegrations;
+}
+
+            <!-- RSS Feeds -->
+            <div id="section-rss" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.IntgRssTitle</h3>
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.IntgRssIntro
+                </p>
+
+                <div class="sn-settings-feed-list">
+                    <div>
+                        <span class="sn-font-medium">@T.Settings.IntgSiteFeed</span>
+                        <div class="sn-input-copy-row">
+                            <input type="text" readonly value="/feed.xml" id="rss-site-url"
+                                   class="sn-input sn-input-sm sn-w-full sn-font-mono sn-text-xs" />
+                            <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm sn-btn-square sn-shrink-0"
+                                    data-action="copy" data-copy-target="rss-site-url" title="@T.Settings.IntgCopy">
+                                <span class="icon icon-copy-link sn-h-4 sn-w-4" aria-hidden="true"></span>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="sn-text-xs" style="color: var(--text-tertiary)">
+                        @T.Settings.IntgFeedsNoteBefore<code>/feed.xml</code>@T.Settings.IntgFeedsNoteAfter
+                    </p>
+                </div>
+
+                <div style="border-top: 1px solid var(--border-secondary); padding-top: 1rem;">
+                    <span class="sn-settings-token-label">
+                        @T.Settings.IntgTokenTitle
+                        <span class="icon icon-lock-closed sn-w-3\.5 sn-h-3\.5" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
+                    </span>
+                    <p class="sn-settings-field-help" style="color: var(--text-tertiary)">
+                        @T.Settings.IntgTokenHelp
+                    </p>
+
+                    <div id="feed-token-section">
+                        <div id="feed-token-empty" class="sn-hidden">
+                            <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" id="generate-feed-token-btn">@T.Settings.IntgGenerate</button>
+                        </div>
+                        <div id="feed-token-active" class="sn-hidden">
+                            <div class="sn-input-copy-row sn-input-copy-row--spaced">
+                                <input type="text" readonly id="feed-token-value"
+                                       class="sn-input sn-input-sm sn-w-full sn-font-mono sn-text-xs" />
+                                <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm sn-btn-square sn-shrink-0"
+                                        data-action="copy" data-copy-target="feed-token-value" title="@T.Settings.IntgCopy">
+                                    <span class="icon icon-copy-link sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                </button>
+                            </div>
+                            <div class="sn-flex sn-gap-2">
+                                <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm" id="regenerate-feed-token-btn">@T.Settings.IntgRegenerate</button>
+                                <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm" style="color: var(--text-tertiary)" id="revoke-feed-token-btn">@T.Settings.IntgRevoke</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Discord -->
+            <div id="section-discord" class="sn-settings-section">
+                <h3 class="sn-settings-section-title" style="display:flex;justify-content:space-between;align-items:center">
+                    <span>@T.Settings.IntgDiscordTitle</span>
+                    <span class="icon icon-lock-closed sn-w-4 sn-h-4" title="@T.Settings.PrivSudoNote" style="color:var(--text-tertiary);cursor:default" aria-hidden="true"></span>
+                </h3>
+                <p class="sn-text-sm sn-mb-4" style="color: var(--text-tertiary)">
+                    @T.Settings.IntgDiscordIntro
+                </p>
+
+                @if (Model.DiscordStatus == "error")
+                {
+                    <div class="sn-alert sn-alert-error sn-mb-4 sn-text-sm">@T.Settings.IntgDiscordLinkError</div>
+                }
+
+                <div id="discord-not-linked" class="sn-hidden">
+                    <button type="button" class="sn-btn sn-btn-primary sn-btn-sm" id="discord-link-btn">@T.Settings.IntgDiscordConnect</button>
+                </div>
+                <div id="discord-linked" class="sn-hidden">
+                    <p class="sn-text-sm sn-mb-3">
+                        <span id="discord-username-display" class="sn-font-medium"></span>
+                    </p>
+                    <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm" style="color: var(--text-tertiary)" id="discord-unlink-btn">@T.Settings.IntgDiscordDisconnect</button>
+                </div>
+            </div>
+<partial name="Shared/_SudoModals" />
+
+<script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>

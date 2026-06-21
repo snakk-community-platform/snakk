@@ -53,6 +53,9 @@ service AuthService {
   // Password recovery (no auth required)
   rpc RequestPasswordReset (RequestPasswordResetRequest) returns (MessageResponse);
   rpc ResetPassword (ResetPasswordRequest) returns (MessageResponse);
+
+  // Re-authenticate using an existing refresh token + password (no email needed)
+  rpc ReloginWithRefreshToken (ReloginWithRefreshTokenRequest) returns (AuthTokenResponse);
 }
 
 // --- Request Messages ---
@@ -316,4 +319,9 @@ message SetEmailRequest {
 }
 message SetEmailResponse {
   string token = 1;
+}
+
+message ReloginWithRefreshTokenRequest {
+  string refresh_token = 1;
+  string password = 2;
 }

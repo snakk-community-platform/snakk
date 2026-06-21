@@ -48,6 +48,7 @@ interface ActivityDataPoint {
         async function loadUserStats(): Promise<void> {
             try {
                 const response = await fetch(`/bff/users/${userId}/stats`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
                 const followerStat = document.getElementById('stat-followers');
@@ -75,11 +76,12 @@ interface ActivityDataPoint {
 
             try {
                 const response = await fetch(`/bff/search/posts?authorPublicId=${userId}&pageSize=${limit}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
                 if (!data.items || data.items.length === 0) {
                     container.innerHTML = `
-                        <div class="text-center py-8 text-muted">
+                        <div class="sn-text-center sn-py-8 sn-text-muted">
                             <p>No posts yet</p>
                         </div>
                     `;
@@ -91,7 +93,7 @@ interface ActivityDataPoint {
                     const authorHref = p.authorPublicId ? `/u/${encodeURIComponent(p.authorPublicId)}` : '#';
                     const spaceStyle = p.spaceGradientCss ? ` style="--space-grad: ${p.spaceGradientCss}"` : '';
                     const excerpt = p.contentPreview
-                        ? `<div class="sn-card-excerpt"><div class="sn-post-preview prose prose-sm">${sanitizeHtml(p.contentPreview)}</div></div>`
+                        ? `<div class="sn-card-excerpt"><div class="sn-post-preview sn-prose sn-prose-sm">${sanitizeHtml(p.contentPreview)}</div></div>`
                         : '';
                     return `
                     <article class="sn-card">
@@ -106,8 +108,8 @@ interface ActivityDataPoint {
                                 <span class="sn-card-tag sn-card-tag--space"${spaceStyle}>${escapeHtml(p.spaceName)}</span>
                             </span>
                         </div>
-                        <div class="sn-card-title-row">
-                            <div class="sn-card-title">
+                        <div class="sn-card-heading-row">
+                            <div class="sn-card-heading">
                                 <a href="${postUrl}">${escapeHtml(p.discussionTitle)}</a>
                             </div>
                         </div>
@@ -116,7 +118,7 @@ interface ActivityDataPoint {
                 }).join('')}</div>`;
             } catch (error) {
                 console.error('Error loading posts:', error);
-                container.innerHTML = '<div class="text-center py-8 text-error">Failed to load posts</div>';
+                container.innerHTML = '<div class="sn-text-center sn-py-8 sn-text-error">Failed to load posts</div>';
             }
         }
 
@@ -130,6 +132,7 @@ interface ActivityDataPoint {
 
             try {
                 const response = await fetch(`/bff/users/${userId}/activity-history?days=${days}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const result = await response.json();
 
                 const data: ActivityDataPoint[] = (result.activities || []).map((a: any) => ({
@@ -148,17 +151,17 @@ interface ActivityDataPoint {
                 renderActivityChart(container, data, days, maxHeight);
             } catch (error) {
                 console.error('Error loading activity chart:', error);
-                container.innerHTML = '<div class="text-center py-8 text-error">Failed to load activity chart</div>';
+                container.innerHTML = '<div class="sn-text-center sn-py-8 sn-text-error">Failed to load activity chart</div>';
             }
         }
 
         function renderActivityChart(container: HTMLElement, data: ActivityDataPoint[], days: number, maxHeight: number = 150): void {
             if (!data || data.length === 0) {
                 container.innerHTML = `
-                    <div class="text-center py-12">
-                        <span class="icon icon-chart-bar h-16 w-16 mx-auto text-muted mb-4" aria-hidden="true"></span>
-                        <h3 class="font-semibold mb-2">No activity yet</h3>
-                        <p class="text-sm text-muted">Activity will appear here once this user starts contributing</p>
+                    <div class="sn-text-center sn-py-12">
+                        <span class="sn-icon icon-chart-bar sn-h-16 sn-w-16 sn-mx-auto sn-text-muted sn-mb-4" aria-hidden="true"></span>
+                        <h3 class="sn-font-semibold sn-mb-2">No activity yet</h3>
+                        <p class="sn-text-sm sn-text-muted">Activity will appear here once this user starts contributing</p>
                     </div>
                 `;
                 return;
@@ -201,14 +204,14 @@ interface ActivityDataPoint {
                     : fmtDate(day.date);
 
                 return `
-                    <div class="activity-chart-bar-wrapper">
-                        <div class="activity-chart-bar-container" style="height: ${maxHeight}px;">
-                            <div class="activity-chart-bar"
+                    <div class="sn-activity-chart-bar-wrapper">
+                        <div class="sn-activity-chart-bar-container" style="height: ${maxHeight}px;">
+                            <div class="sn-activity-chart-bar"
                                  style="height: ${day.total === 0 ? '4px' : heightPercent + '%'}; ${day.total === 0 ? 'min-height: 4px;' : ''}"
                                  title="${day.total} contribution${day.total !== 1 ? 's' : ''}\\n${day.discussions} discussion${day.discussions !== 1 ? 's' : ''}\\n${day.posts} post${day.posts !== 1 ? 's' : ''}\\n${dateLabel}">
-                                ${day.discussions > 0 ? `<div class="activity-chart-bar-segment-primary" style="height: ${discussionsPercent}%;"></div>` : ''}
-                                ${day.posts > 0 ? `<div class="activity-chart-bar-segment-secondary" style="height: ${postsPercent}%;"></div>` : ''}
-                                ${day.total === 0 ? '<div class="activity-chart-bar-zero"></div>' : ''}
+                                ${day.discussions > 0 ? `<div class="sn-activity-chart-bar-segment-primary" style="height: ${discussionsPercent}%;"></div>` : ''}
+                                ${day.posts > 0 ? `<div class="sn-activity-chart-bar-segment-secondary" style="height: ${postsPercent}%;"></div>` : ''}
+                                ${day.total === 0 ? '<div class="sn-activity-chart-bar-zero"></div>' : ''}
                             </div>
                         </div>
                     </div>
@@ -220,17 +223,17 @@ interface ActivityDataPoint {
             const totalActivity = totalDiscussions + totalPosts;
 
             container.innerHTML = `
-                <div class="space-y-4">
-                    <div class="activity-chart-wrapper" style="height: ${maxHeight + 40}px;">
+                <div class="sn-space-y-4">
+                    <div class="sn-activity-chart-wrapper" style="height: ${maxHeight + 40}px;">
                         ${barsHtml}
                     </div>
-                    <div class="activity-chart-legend">
-                        <div class="activity-chart-legend-item">
-                            <div class="activity-chart-legend-color activity-chart-legend-color-primary"></div>
+                    <div class="sn-activity-chart-legend">
+                        <div class="sn-activity-chart-legend-item">
+                            <div class="sn-activity-chart-legend-color sn-activity-chart-legend-color-primary"></div>
                             <span>${totalDiscussions} discussions</span>
                         </div>
-                        <div class="activity-chart-legend-item">
-                            <div class="activity-chart-legend-color activity-chart-legend-color-secondary"></div>
+                        <div class="sn-activity-chart-legend-item">
+                            <div class="sn-activity-chart-legend-color sn-activity-chart-legend-color-secondary"></div>
                             <span>${totalPosts} posts</span>
                         </div>
                         <span class="text-base-content/50">(${totalActivity} total)</span>
@@ -247,22 +250,23 @@ interface ActivityDataPoint {
 
             try {
                 const response = await fetch('/bff/me/display-name-history', { credentials: 'include' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
 
                 if (!data.entries || data.entries.length === 0) return;
 
                 list.innerHTML = data.entries.map((e: any) => `
-                    <div class="flex items-center justify-between text-sm py-1.5">
-                        <div class="min-w-0">
-                            <span class="text-base-content/50 line-through">${escapeHtml(e.previousName)}</span>
-                            <span class="text-base-content/40 mx-1">&rarr;</span>
-                            <span class="font-medium">${escapeHtml(e.newName)}</span>
+                    <div class="sn-flex sn-items-center sn-justify-between sn-text-sm sn-py-1.5">
+                        <div class="sn-min-w-0">
+                            <span class="text-base-content/50 sn-line-through">${escapeHtml(e.previousName)}</span>
+                            <span class="text-base-content/40 sn-mx-1">&rarr;</span>
+                            <span class="sn-font-medium">${escapeHtml(e.newName)}</span>
                         </div>
-                        <span class="text-xs text-base-content/40 shrink-0 ml-2">${formatRelativeTime(e.changedAt)}</span>
+                        <span class="sn-text-xs text-base-content/40 sn-shrink-0 sn-ml-2">${formatRelativeTime(e.changedAt)}</span>
                     </div>
                 `).join('');
 
-                section.classList.remove('hidden');
+                section.classList.remove('sn-hidden');
             } catch (error) {
                 console.error('Error loading name history:', error);
             }
@@ -276,6 +280,7 @@ interface ActivityDataPoint {
             try {
                 // Check if user is authenticated and viewing someone else's profile
                 const authResponse = await fetch(`/bff/auth/status`, { credentials: 'include' });
+                if (!authResponse.ok) throw new Error(`HTTP ${authResponse.status}`);
                 const authData = await authResponse.json();
 
                 if (!authData.isAuthenticated) {
@@ -286,7 +291,7 @@ interface ActivityDataPoint {
                 if (authData.publicId === userId) {
                     // Viewing own profile
                     container.innerHTML = `
-                        <a href="/settings" class="btn btn-outline btn-sm">
+                        <a href="/my/settings" class="sn-btn sn-btn-outline sn-btn-sm">
                             <span class="icon icon-pencil h-4 w-4" aria-hidden="true"></span>
                             Edit Profile
                         </a>
@@ -299,12 +304,13 @@ interface ActivityDataPoint {
                 const followResponse = await fetch(`/bff/users/${userId}/follow-status?currentUserId=${authData.publicId}`, {
                     credentials: 'include'
                 });
+                if (!followResponse.ok) throw new Error(`HTTP ${followResponse.status}`);
                 const followData = await followResponse.json();
 
                 container.innerHTML = `
                     <button data-action="toggle-follow-user"
                             data-user-id="${userId}"
-                            class="btn btn-outline btn-sm"
+                            class="sn-btn sn-btn-outline sn-btn-sm"
                             id="follow-btn">
                         ${followData.isFollowing ? '<span class="icon icon-check h-4 w-4" aria-hidden="true"></span>' : '<span class="icon icon-user-follow h-4 w-4" aria-hidden="true"></span>'}
                         <span id="follow-btn-text">${followData.isFollowing ? 'Following' : 'Follow'}</span>
@@ -391,7 +397,7 @@ interface ActivityDataPoint {
             const target = tab.dataset.tab;
             if (!target) return;
             tabList.querySelectorAll<HTMLElement>('[data-tab]').forEach(t => {
-                t.classList.toggle('active', t === tab);
+                t.classList.toggle('sn-active', t === tab);
                 t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
             });
             document.querySelectorAll<HTMLElement>('.sn-profile-tab-panel').forEach(p => {

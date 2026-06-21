@@ -9,28 +9,6 @@
     ViewData["Title"] = Model.Discussion?.Title ?? T.Pages.DiscTitleFallback;
 }
 
-@section Styles {
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("discussion")" asp-append-version="true" />
-    @{
-        var discType = Model.Discussion?.Type ?? "";
-        string? typeCss = discType switch {
-            "Question" => "type-question",
-            "Poll"     => "type-poll",
-            "Link"     => "type-link",
-            "Debate"   => "type-debate",
-            "Journal"  => "type-journal",
-            "Guide"    => "type-guide",
-            "Iama"     => "type-iama",
-            "Images"   => "type-images",
-            _          => null
-        };
-    }
-    @if (typeCss != null)
-    {
-        <link rel="stylesheet" href="@SnakkUrlHelper.Css(typeCss)" asp-append-version="true" />
-    }
-}
-
 @section LeftColumn {
     <partial name="Shared/_LeftSidebar" />
 }
@@ -175,7 +153,7 @@
         <div class="sn-breadcrumb-bar sn-breadcrumb-bar--colored" style="background-image: @SpaceGradient(Model.Space.PublicId, 45)">
             @if (Model.ShowCommunityInBreadcrumb)
             {
-                <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
+                <a href="/c/@Model.Community.CommunitySlug" class="sn-badge sn-badge-ghost sn-badge-sm"
                    data-popup-type="community"
                    data-popup-id="@Model.CommunityDetail?.PublicId"
                    data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
@@ -183,18 +161,18 @@
             }
             else if (!Model.Community.IsMultiCommunityEnabled)
             {
-                <a href="/c" class="badge badge-ghost badge-sm"
+                <a href="/c" class="sn-badge sn-badge-ghost sn-badge-sm"
                    data-popup-type="community"
                    data-popup-id="@Model.CommunityDetail?.PublicId"
                    data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
                 <span class="sn-page-labels-sep">›</span>
             }
-            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm"
+            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="sn-badge sn-badge-ghost sn-badge-sm"
                data-popup-type="hub"
                data-popup-id="@Model.Hub?.PublicId"
                data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
             <span class="sn-page-labels-sep">›</span>
-            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="badge badge-ghost badge-sm"
+            <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug)" class="sn-badge sn-badge-ghost sn-badge-sm"
                data-popup-type="space"
                data-popup-id="@Model.Space?.PublicId"
                data-popup-name="@Model.Space?.Name">@(Model.Space?.Name ?? Model.SpaceSlug)</a>
@@ -211,7 +189,7 @@
     }
     else if (Model.Discussion != null)
     {
-    
+
         <header class="sn-discussion-header" style="background-image: @SpaceGradient(Model.Space?.PublicId)">
 
             <!-- Realtime context — JS reads these to subscribe to the correct groups -->
@@ -221,8 +199,8 @@
                  hidden></div>
 
             <!-- Jump to Unread Button -->
-            <div id="jump-to-unread" class="hidden fixed bottom-6 right-6 z-30">
-                <button data-action="jump-to-unread" class="btn btn-primary btn-sm">
+            <div id="jump-to-unread" class="sn-hidden sn-fixed sn-bottom-6 sn-right-6 sn-z-30">
+                <button data-action="jump-to-unread" class="sn-btn sn-btn-primary sn-btn-sm">
                     @T.Pages.DiscJumpToUnread
                 </button>
             </div>
@@ -231,7 +209,7 @@
                 }
 
                 <!-- Author + Time row -->
-                <div class="flex items-center gap-2 text-sm">
+                <div class="sn-discussion-byline">
                         @if (firstPostItem != null)
                         {
                             @if (!firstPostItem.Author.IsDeleted)
@@ -239,53 +217,54 @@
                                 <img src="@firstPostItem.Author.AvatarThumbnailUrl"
                                      alt="@firstPostItem.Author.DisplayName"
                                      width="24" height="24"
-                                     class="rounded-full"
+                                     class="sn-rounded-full sn-shadow-layered"
                                      decoding="async" />
-                                <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.PublicId)"
-                                   class="font-medium hover:underline"
+                                <a href="@SnakkUrlHelper.UserProfile(firstPostItem.Author.Slug)"
+                                   class="sn-font-medium sn-hover\:underline"
                                    data-popup-type="user"
                                    data-popup-id="@firstPostItem.Author.PublicId"
                                    data-popup-name="@firstPostItem.Author.DisplayName">@firstPostItem.Author.DisplayName</a>
                             }
                             else
                             {
-                                <span class="deleted">@firstPostItem.Author.DisplayName</span>
+                                <span class="sn-deleted">@firstPostItem.Author.DisplayName</span>
                             }
                             @if (firstPostItem.Author.Role == "admin")
                             {
-                                <span class="badge badge-error badge-xs">@T.Pages.DiscBadgeAdmin</span>
+                                <span class="sn-badge sn-badge-error sn-badge-xs">@T.Pages.DiscBadgeAdmin</span>
                             }
                             else if (firstPostItem.Author.Role == "mod")
                             {
-                                <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
+                                <span class="sn-badge sn-badge-info sn-badge-xs">@T.Pages.DiscBadgeMod</span>
                             }
                         }
-                        <span class="discussion-header-sep">·</span>
-                        <time class="discussion-header-time" datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
+                        <span class="sn-discussion-header-sep">·</span>
+                        <time class="sn-discussion-header-time" datetime="@Model.Discussion.CreatedAt.ToDateTime().ToString("O")">
                             @FormatRelativeTime(Model.Discussion.CreatedAt.ToDateTime())
                         </time>
                         @if (Model.Discussion.IsPinned)
                         {
-                            <span class="badge badge-primary badge-xs">@T.Pages.DiscBadgePinned</span>
+                            <span class="sn-badge sn-badge-primary sn-badge-xs">@T.Pages.DiscBadgePinned</span>
                         }
                         @if (Model.Discussion!.IsLocked)
                         {
-                            <span class="badge badge-warning badge-xs">@T.Pages.DiscBadgeLocked</span>
+                            <span class="sn-badge sn-badge-warning sn-badge-xs">@T.Pages.DiscBadgeLocked</span>
                         }
-                        <div id="viewer-presence" class="hidden flex items-center gap-0.5"></div>
+                        <div id="viewer-presence" class="sn-hidden sn-flex sn-items-center sn-gap-0\.5"></div>
 
                         <!-- Actions — pushed right -->
-                        <div class="flex items-center gap-1 ml-auto">
+                        <div class="sn-discussion-header-actions">
                             @if (Model.IsAuthenticated)
                             {
-                                <div class="dropdown dropdown-end">
-                                    <button tabindex="0" class="btn btn-ghost btn-xs btn-square" aria-label="@T.Pages.DiscAriaDiscussionOptions">
-                                        <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
+                                <div class="sn-dropdown">
+                                    <button type="button" class="sn-btn sn-btn-ghost sn-btn-xs sn-btn-square" aria-label="@T.Pages.DiscAriaDiscussionOptions"
+                                            popovertarget="sn-disc-opts">
+                                        <span class="icon icon-dots-horizontal sn-h-4 sn-w-4" aria-hidden="true"></span>
                                     </button>
-                                    <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-[100]">
+                                    <ul id="sn-disc-opts" popover class="sn-dropdown-panel sn-menu sn-w-48">
                                         <li>
-                                            <button id="mute-discussion-btn" data-action="toggle-mute-discussion" data-discussion-id="@Model.Discussion.PublicId" class="text-sm">
-                                                <span class="icon icon-volume-off h-4 w-4" aria-hidden="true"></span>
+                                            <button id="mute-discussion-btn" data-action="toggle-mute-discussion" data-discussion-id="@Model.Discussion.PublicId" class="sn-text-sm">
+                                                <span class="icon icon-volume-off sn-h-4 sn-w-4" aria-hidden="true"></span>
                                                 <span id="mute-text">@T.Pages.DiscMuteDiscussion</span>
                                             </button>
                                         </li>
@@ -296,19 +275,19 @@
                                                         hx-target="#history-modal-content"
                                                         hx-swap="innerHTML"
                                                         data-modal-open="history_modal"
-                                                        class="text-sm">
+                                                        class="sn-text-sm">
                                                     @T.Pages.DiscHistory
                                                 </button>
                                             </li>
                                             @if (Model.CurrentUserId == firstPostItem.Author.PublicId)
                                             {
-                                                <li><button data-action="edit-post" data-post-id="@firstPostItem.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
+                                                <li><button data-action="edit-post" data-post-id="@firstPostItem.PublicId" data-user-id="@Model.CurrentUserId" class="sn-text-sm">@T.Pages.DiscEdit</button></li>
                                                 <li>
                                                     <button hx-delete="/bff/posts/@firstPostItem.PublicId"
                                                             hx-target="#post-@firstPostItem.PostNumber"
                                                             hx-swap="outerHTML"
                                                             hx-confirm="@T.Pages.DiscDeleteConfirm"
-                                                            class="text-sm text-error">
+                                                            class="sn-text-sm sn-text-error">
                                                         @T.Pages.DiscDelete
                                                     </button>
                                                 </li>
@@ -316,15 +295,15 @@
                                             @if (Model.CurrentUserId != firstPostItem.Author.PublicId)
                                             {
                                                 <li>
-                                                    <button data-action="open-report-modal" data-report-type="post" data-report-id="@firstPostItem.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="text-sm text-error">
+                                                    <button data-action="open-report-modal" data-report-type="post" data-report-id="@firstPostItem.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="sn-text-sm sn-text-error">
                                                         @T.Pages.DiscReportPost
                                                     </button>
                                                 </li>
                                             }
                                         }
                                         <li>
-                                            <button data-action="open-report-modal" data-report-type="discussion" data-report-id="@Model.Discussion.PublicId" data-report-label="@Model.Discussion!.Title" class="text-sm text-error">
-                                                <span class="icon icon-exclamation-triangle h-4 w-4" aria-hidden="true"></span>
+                                            <button data-action="open-report-modal" data-report-type="discussion" data-report-id="@Model.Discussion.PublicId" data-report-label="@Model.Discussion!.Title" class="sn-text-sm sn-text-error">
+                                                <span class="icon icon-exclamation-triangle sn-h-4 sn-w-4" aria-hidden="true"></span>
                                                 @T.Pages.DiscReportDiscussion
                                             </button>
                                         </li>
@@ -335,25 +314,25 @@
                     </div>
 
                     <!-- Title + OP reactions -->
-                    <div class="flex items-start justify-between gap-4">
+                    <div class="sn-discussion-title-row">
                         <div id="discussion-title-container"
-                             class="flex items-start gap-2 flex-1 min-w-0"
+                             class="sn-discussion-title-container sn-flex-1 sn-min-w-0"
                              data-discussion-id="@Model.Discussion.PublicId"
                              data-current-title="@Model.Discussion!.Title">
-                        <h1 class="text-xl font-bold">
+                        <h1 class="sn-text-xl sn-font-bold">
                             @if (!string.IsNullOrEmpty(Model.Discussion.Type) && Model.Discussion.Type != "Standard")
                             {
                                 var (icon, label, cssClass) = GetTypeBadge(Model.Discussion.Type);
-                                <span class="sn-card-type-badge @cssClass">@icon @label</span>
+                                <span class="sn-card-type-badge sn-shadow-layered @cssClass">@icon @label</span>
                             }
                             @Model.Discussion!.Title
                         </h1>
                         @if (firstPostItem != null && Model.CurrentUserId == firstPostItem.Author.PublicId && !Model.Discussion!.IsLocked)
                         {
                             <button data-action="edit-discussion-title"
-                                    class="btn btn-ghost btn-xs btn-square shrink-0 mt-1"
+                                    class="sn-btn sn-btn-ghost sn-btn-xs sn-btn-square sn-shrink-0 sn-mt-1"
                                     aria-label="Edit discussion title">
-                                <span class="icon icon-pencil h-4 w-4" aria-hidden="true"></span>
+                                <span class="icon icon-pencil sn-h-4 sn-w-4" aria-hidden="true"></span>
                             </button>
                         }
                         </div>
@@ -377,7 +356,7 @@
                             };
                             @if (opHasReactions || Model.IsAuthenticated)
                             {
-                                <div class="sn-reaction-badge shrink-0 @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "cursor-pointer" : "")"
+                                <div class="sn-reaction-badge sn-shrink-0 sn-shadow-layered @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "sn-cursor-pointer" : "")"
                                     @if (Model.IsAuthenticated && !Model.Discussion!.IsLocked)
                                     {
                                         <text>data-action="toggle-reaction-picker" data-post-id="@firstPostItem.PublicId"</text>
@@ -387,27 +366,27 @@
                                     {
                                         @if (!opHasReactions)
                                         {
-                                            <span class="icon icon-plus-circle h-4 w-4" aria-hidden="true"></span>
-                                            <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
+                                            <span class="icon icon-plus-circle sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                            <span class="icon icon-badge-check sn-h-4 sn-w-4" aria-hidden="true"></span>
                                         }
                                         else if (opUserHasReacted)
                                         {
-                                            <span class="icon icon-refresh h-4 w-4" aria-hidden="true"></span>
+                                            <span class="icon icon-refresh sn-h-4 sn-w-4" aria-hidden="true"></span>
                                         }
                                         else
                                         {
-                                            <span class="icon icon-plus-circle h-4 w-4" aria-hidden="true"></span>
+                                            <span class="icon icon-plus-circle sn-h-4 sn-w-4" aria-hidden="true"></span>
                                         }
                                     }
                                     <div id="reactions-@firstPostItem.PublicId"
-                                         class="flex items-center gap-1"
+                                         class="sn-reaction-display"
                                          data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(opReactionCounts.ToDictionary(k => k.Key, k => k.Value))"
                                          data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(opMyReactions)">
                                         @foreach (var kvp in opReactionCounts.Where(c => c.Value > 0))
                                         {
                                             var emoji = opReactionEmojis.GetValueOrDefault(kvp.Key, "?");
                                             var isActive = opMyReactions.Contains(kvp.Key);
-                                            <span data-type="@kvp.Key" class="@(isActive ? "active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
+                                            <span data-type="@kvp.Key" class="@(isActive ? "sn-active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
                                         }
                                     </div>
                                 </div>
@@ -443,7 +422,7 @@
                          data-prompt-remember="@T.Pages.DiscEmbedPromptRemember"
                          data-denied-message="@T.Pages.DiscEmbedDeniedMessage"
                          data-denied-settings="@T.Pages.DiscEmbedDeniedSettings">
-                        <div class="link-preview-card">
+                        <div class="sn-link-preview-card">
                             @if (linkImageSrc is not null)
                             {
                                 var linkBlur = Model.LinkInfo.HasBlurDataUri ? Model.LinkInfo.BlurDataUri : null;
@@ -477,17 +456,17 @@
                             <div class="link-preview-content">
                                 @if (Model.LinkInfo.IsInternal)
                                 {
-                                    <a href="@Model.LinkInfo.Url" class="link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
+                                    <a href="@Model.LinkInfo.Url" class="sn-link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
                                 }
                                 else
                                 {
-                                    <a href="@Model.LinkInfo.Url" target="_blank" rel="nofollow noopener noreferrer" class="link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
+                                    <a href="@Model.LinkInfo.Url" target="_blank" rel="nofollow noopener noreferrer" class="sn-link-preview-title">@(Model.LinkInfo.HasTitle ? Model.LinkInfo.Title : Model.LinkInfo.Url)</a>
                                 }
                                 @if (Model.LinkInfo.HasDescription)
                                 {
-                                    <p class="link-preview-description">@Model.LinkInfo.Description</p>
+                                    <p class="sn-link-preview-description">@Model.LinkInfo.Description</p>
                                 }
-                                <span class="link-preview-domain">
+                                <span class="sn-link-preview-domain">
                                     @if (!Model.LinkInfo.IsInternal)
                                     {
                                         <span class="icon icon-external-link" style="width:12px;height:12px" aria-hidden="true"></span>
@@ -506,7 +485,7 @@
                     var debateColors = new[] { "var(--link-primary)", "oklch(0.6 0.18 15)", "oklch(0.6 0.15 50)" };
 
                     <div class="type-widget-container">
-                        <div class="debate-distribution">
+                        <div class="sn-debate-distribution">
                             @for (var i = 0; i < debatePositions.Count; i++)
                             {
                                 var p = debatePositions[i];
@@ -515,7 +494,7 @@
                                      title="@string.Format(T.Pages.DiscPositionPostsPattern, p.Label, p.PostCount)"></div>
                             }
                         </div>
-                        <div class="debate-legend">
+                        <div class="sn-debate-legend">
                             @for (var i = 0; i < debatePositions.Count; i++)
                             {
                                 var p = debatePositions[i];
@@ -567,7 +546,7 @@
                                 </span>
                                 @if (isOp && iama.Phase == 1)
                                 {
-                                    <button type="button" class="btn btn-sm btn-ghost sn-iama-end-btn"
+                                    <button type="button" class="sn-btn sn-btn-sm sn-btn-ghost sn-iama-end-btn"
                                             data-discussion-id="@Model.Discussion.PublicId"
                                             data-confirm-label="@T.Iama.EndConfirmBtn">
                                         @T.Iama.EndSession
@@ -597,7 +576,7 @@
                                     </div>
                                     @if (iama.Phase == 0 && iama.ScheduledStartUtc.ToDateTime() > DateTime.UtcNow)
                                     {
-                                        <span class="sn-iama-countdown" data-countdown-to="@iama.ScheduledStartUtc.ToDateTime().ToString("o")"><span class="countdown font-mono">
+                                        <span class="sn-iama-countdown" data-countdown-to="@iama.ScheduledStartUtc.ToDateTime().ToString("o")"><span class="countdown sn-font-mono">
                                             <span data-unit="days" style="--value:0;">0</span>d
                                             <span data-unit="hours" style="--value:0;">0</span>h
                                             <span data-unit="minutes" style="--value:0;">0</span>m
@@ -627,7 +606,7 @@
                                     </div>
                                     @if (iama.Phase == 1 && iama.ScheduledEndUtc.ToDateTime() > DateTime.UtcNow)
                                     {
-                                        <span class="sn-iama-countdown" data-countdown-to="@iama.ScheduledEndUtc.ToDateTime().ToString("o")"><span class="countdown font-mono">
+                                        <span class="sn-iama-countdown" data-countdown-to="@iama.ScheduledEndUtc.ToDateTime().ToString("o")"><span class="countdown sn-font-mono">
                                             <span data-unit="days" style="--value:0;">0</span>d
                                             <span data-unit="hours" style="--value:0;">0</span>h
                                             <span data-unit="minutes" style="--value:0;">0</span>m
@@ -645,7 +624,7 @@
                                 <span class="sn-iama-verification-label">@T.Iama.Verification</span>
                                 @if (iama.HasVerificationNoteHtml)
                                 {
-                                    <div class="sn-iama-verification-text prose prose-sm max-w-none">@Html.SanitizedRaw(iama.VerificationNoteHtml)</div>
+                                    <div class="sn-iama-verification-text sn-prose sn-prose-sm sn-max-w-none">@Html.SanitizedRaw(iama.VerificationNoteHtml)</div>
                                 }
                                 else
                                 {
@@ -861,7 +840,7 @@
                                             data-before-blur="@(beforeImg.HasBlurDataUri ? beforeImg.BlurDataUri : "")"
                                             data-after-blur="@(afterImg.HasBlurDataUri ? afterImg.BlurDataUri : "")"
                                             aria-label="@T.Pages.DiscAriaExpandCompare">
-                                        <span class="icon icon-expand-fullscreen w-4 h-4" aria-hidden="true"></span>
+                                        <span class="icon icon-expand-fullscreen sn-w-4 sn-h-4" aria-hidden="true"></span>
                                     </button>
                                 </div>
                             </div>
@@ -920,14 +899,14 @@
                         @if (layout != "compare")
                         {
                             <button type="button" class="images-expand-btn" id="images-expand-btn" aria-label="@T.Pages.DiscAriaViewFullscreen">
-                                <span class="icon icon-expand-fullscreen w-4 h-4" aria-hidden="true"></span>
+                                <span class="icon icon-expand-fullscreen sn-w-4 sn-h-4" aria-hidden="true"></span>
                             </button>
                         }
 
                         @if (Model.ImagesIsSpoiler)
                         {
                             <div class="images-spoiler-overlay" id="images-spoiler-overlay">
-                                <button type="button" class="images-spoiler-btn" data-action="reveal-spoiler">
+                                <button type="button" class="sn-images-spoiler-btn" data-action="reveal-spoiler">
                                     <span class="icon icon-eye" style="width:20px;height:20px" aria-hidden="true"></span>
                                     @(Model.ImagesItems.Count != 1 ? T.Pages.DiscRevealImages : T.Pages.DiscRevealImage)
                                 </button>
@@ -942,11 +921,11 @@
             <!-- Locked Thread Banner -->
             @if (Model.Discussion!.IsLocked)
             {
-                <div class="mb-4">
-                    <div class="bg-warning/10 border-l-4 border-warning px-4 py-3 rounded">
-                        <div class="flex items-center gap-2">
-                            <span class="icon icon-lock-closed h-5 w-5 text-warning" aria-hidden="true"></span>
-                            <p class="text-sm font-medium text-warning-content">
+                <div class="sn-mb-4">
+                    <div class="sn-bg-warning-subtle sn-border-l-4 sn-border-warning sn-px-4 sn-py-3 sn-rounded">
+                        <div class="sn-locked-banner-row">
+                            <span class="icon icon-lock-closed sn-h-5 sn-w-5 sn-text-warning" aria-hidden="true"></span>
+                            <p class="sn-text-sm sn-font-medium text-warning-content">
                                 @T.Pages.DiscLockedBanner
                             </p>
                         </div>
@@ -954,7 +933,7 @@
                 </div>
             }
 
-            
+
 
             @if (Model.Discussion?.Type == "Iama" && Model.IamaInfo?.OfficialAnswers.Count > 0)
             {
@@ -977,11 +956,11 @@
             }
 
             <!-- Posts Container -->
-            <div id="posts-container" class="flex flex-col">
+            <div id="posts-container" class="sn-flex sn-flex-col">
                 <!-- Load-up sentinel: hidden until entering via #post-N fragment, then shown by JS -->
-                <div id="load-up-sentinel" class="hidden">
-                    <div id="load-up-indicator" class="hidden py-4 flex justify-center">
-                        <span class="loading loading-spinner loading-sm text-muted"></span>
+                <div id="load-up-sentinel" class="sn-hidden">
+                    <div id="load-up-indicator" class="sn-hidden sn-py-4 sn-flex sn-justify-center">
+                        <span class="sn-spinner sn-loading-sm sn-text-muted"></span>
                     </div>
                 </div>
                 @if (Model.Posts != null && Model.Posts.Items.Any())
@@ -1008,8 +987,8 @@
                     if (Model.Discussion?.Type == "Iama" && Model.IamaInfo?.OfficialAnswers is { Count: > 0 } iamaOfficialAnswers)
                     {
                         iamaQuestionIds = [..iamaOfficialAnswers.Keys];
-                        iamaAnswerToQuestion = iamaOfficialAnswers.ToDictionary(kv => kv.Value, kv => kv.Key);
-                        var postById = postList.ToDictionary(p => p.PublicId);
+                        iamaAnswerToQuestion = iamaOfficialAnswers.DistinctBy(kv => kv.Value).ToDictionary(kv => kv.Value, kv => kv.Key);
+                        var postById = postList.DistinctBy(p => p.PublicId).ToDictionary(p => p.PublicId);
 
                         if (Model.Sort == "qa")
                         {
@@ -1091,16 +1070,16 @@
 
                         @if (isNecro && previousCreatedAt.HasValue)
                         {
-                            <ul class="timeline timeline-vertical mb-4">
+                            <ul class="sn-timeline-vertical sn-mb-4">
                                 <li>
-                                    <hr class="bg-base-content/20" />
+                                    <hr class="sn-bg-base-content/20" />
                                     <div class="timeline-middle">
-                                        <span class="icon icon-clock-solid w-4 h-4 text-base-content/40" aria-hidden="true"></span>
+                                        <span class="icon icon-clock-solid sn-w-4 sn-h-4 sn-text-faint" aria-hidden="true"></span>
                                     </div>
-                                    <div class="timeline-end text-xs font-semibold text-base-content/50 uppercase tracking-wide">
+                                    <div class="sn-necro-gap-label">
                                         @FormatTimeBetween(previousCreatedAt.Value, post.CreatedAt.ToDateTime())
                                     </div>
-                                    <hr class="bg-base-content/20" />
+                                    <hr class="sn-bg-base-content/20" />
                                 </li>
                             </ul>
                         }
@@ -1127,13 +1106,13 @@
                         }
                         @if (isPositionChange && debatePrevPos is not null && debatePos is not null)
                         {
-                            <ul class="timeline timeline-vertical timeline-position-change">
+                            <ul class="sn-timeline-vertical timeline-position-change">
                                 <li>
                                     <hr />
                                     <div class="timeline-middle">
-                                        <span class="icon icon-exclamation-triangle-solid w-4 h-4" aria-hidden="true"></span>
+                                        <span class="icon icon-exclamation-triangle-solid sn-w-4 sn-h-4" aria-hidden="true"></span>
                                     </div>
-                                    <div class="timeline-end text-xs uppercase tracking-wide">
+                                    <div class="timeline-end sn-text-xs sn-uppercase sn-tracking-wide">
                                         @string.Format(T.Pages.DiscPositionChangePattern, post.Author.DisplayName, debatePrevPos.Label, debatePos.Label)
                                     </div>
                                     <hr />
@@ -1142,7 +1121,7 @@
                         }
 
                         <article id="post-@post.PostNumber"
-                                 class="post-item post-article post-layout group @(isOP ? "first-post" : "") @(isModerator ? "moderator-post" : "") @(isSameAuthorAsPrevious ? "same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "new-author" : "") @(nextIsNecro ? "before-necro" : "") @(isJournalEntry ? "journal-entry" : "") @(isAcceptedAnswer ? "accepted-answer" : "")"
+                                 class="post-item sn-post-article sn-post-layout @(isOP ? "sn-first-post" : "") @(isModerator ? "sn-moderator-post" : "") @(isSameAuthorAsPrevious ? "sn-same-author" : "") @(!isFirstInThread && !isSameAuthorAsPrevious ? "sn-new-author" : "") @(nextIsNecro ? "sn-before-necro" : "") @(isJournalEntry ? "journal-entry" : "") @(isAcceptedAnswer ? "accepted-answer" : "")"
                                  data-author-id="@post.Author.PublicId"
                                  data-post-id="@post.PublicId"
                                  data-public-id="@post.PublicId"
@@ -1154,50 +1133,50 @@
                             @if (!isOP)
                             {
                                 <!-- Left Pane: Avatar + Username -->
-                                <aside class="post-author-pane">
+                                <aside class="sn-post-author-pane">
                                     @if (!isSameAuthorAsPrevious)
                                     {
                                         @if (post.Author.IsDeleted)
                                         {
-                                            <div class="post-avatar post-avatar-deleted">
-                                                <span class="icon icon-user h-5 w-5" aria-hidden="true"></span>
+                                            <div class="sn-post-avatar sn-post-avatar-deleted">
+                                                <span class="icon icon-user sn-h-5 sn-w-5" aria-hidden="true"></span>
                                             </div>
-                                            <span class="post-author-name deleted">@post.Author.DisplayName</span>
+                                            <span class="sn-post-author-name sn-deleted">@post.Author.DisplayName</span>
                                         }
                                         else
                                         {
                                             <img src="@post.Author.AvatarThumbnailUrl"
                                                  alt="@post.Author.DisplayName"
                                                  width="48" height="48"
-                                                 class="post-avatar"
+                                                 class="sn-post-avatar sn-shadow-layered"
                                                  decoding="async"
                                             @(i >= 10 ? "loading=\"lazy\"" : "") />
-                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
-                                               class="post-author-name"
+                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.Slug)"
+                                               class="sn-post-author-name"
                                                data-popup-type="user"
                                                data-popup-id="@post.Author.PublicId"
                                                data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
                                         }
-                                        <div class="post-author-badges">
+                                        <div class="sn-post-author-badges">
                                             @if (post.Author.Role == "admin")
                                             {
-                                                <span class="badge badge-error badge-xs">@T.Pages.DiscBadgeAdmin</span>
+                                                <span class="sn-badge sn-badge-error sn-badge-xs">@T.Pages.DiscBadgeAdmin</span>
                                             }
                                             else if (post.Author.Role == "mod")
                                             {
-                                                <span class="badge badge-info badge-xs">@T.Pages.DiscBadgeMod</span>
+                                                <span class="sn-badge sn-badge-info sn-badge-xs">@T.Pages.DiscBadgeMod</span>
                                             }
                                             @if (post.IsOp)
                                             {
-                                                <span class="badge badge-primary badge-xs post-badge-op">@T.Pages.DiscBadgeOp</span>
+                                                <span class="sn-badge sn-badge-primary sn-badge-xs sn-post-badge-op sn-shadow-layered">@T.Pages.DiscBadgeOp</span>
                                             }
                                             @if (post.IsUsersFirstPostInSpace)
                                             {
-                                                <span class="badge badge-success badge-xs post-badge-new">@T.Pages.DiscBadgeNew</span>
+                                                <span class="sn-badge sn-badge-success sn-badge-xs post-badge-new">@T.Pages.DiscBadgeNew</span>
                                             }
                                             @if (post.IsMilestone)
                                             {
-                                                <span class="badge badge-warning badge-xs post-badge-milestone" title="@T.Pages.DiscBadgeMilestone">&#9733;</span>
+                                                <span class="sn-badge sn-badge-warning sn-badge-xs sn-post-badge-milestone" title="@T.Pages.DiscBadgeMilestone">&#9733;</span>
                                             }
                                         </div>
                                     }
@@ -1205,12 +1184,12 @@
                             }
 
                             <!-- Right Pane: Toolbar + Content -->
-                            <div class="post-main">
+                            <div class="sn-post-main">
                                 <!-- Post Toolbar (hidden for first post — actions moved to header) -->
                                 @if (!isOP)
                                 {
-                                    <div class="post-toolbar">
-                                        <div class="post-toolbar-left">
+                                    <div class="sn-post-toolbar">
+                                        <div class="sn-post-toolbar-left">
                                             @if (isJournalEntry)
                                             {
                                                 <span class="journal-entry-badge">@T.Pages.DiscJournalUpdate</span>
@@ -1236,14 +1215,14 @@
                                             {
                                                 @if (isSameAuthorAsPrevious)
                                                 {
-                                                    <span class="post-author-inline hidden">
+                                                    <span class="sn-post-author-inline sn-hidden">
                                                         @if (post.Author.IsDeleted)
                                                         {
-                                                            <span class="deleted">@post.Author.DisplayName</span>
+                                                            <span class="sn-deleted">@post.Author.DisplayName</span>
                                                         }
                                                         else
                                                         {
-                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.Slug)"
                                                                data-popup-type="user"
                                                                data-popup-id="@post.Author.PublicId"
                                                                data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
@@ -1252,14 +1231,14 @@
                                                 }
                                                 else
                                                 {
-                                                    <span class="post-author-inline">
+                                                    <span class="sn-post-author-inline">
                                                         @if (post.Author.IsDeleted)
                                                         {
-                                                            <span class="deleted">@post.Author.DisplayName</span>
+                                                            <span class="sn-deleted">@post.Author.DisplayName</span>
                                                         }
                                                         else
                                                         {
-                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.PublicId)"
+                                                            <a href="@SnakkUrlHelper.UserProfile(post.Author.Slug)"
                                                                data-popup-type="user"
                                                                data-popup-id="@post.Author.PublicId"
                                                                data-popup-name="@post.Author.DisplayName">@post.Author.DisplayName</a>
@@ -1267,37 +1246,37 @@
                                                     </span>
                                                 }
                                             }
-                                            <span class="post-time">
+                                            <span class="sn-post-time">
                                                 <time data-timestamp="@post.CreatedAt.ToDateTime().ToString("O")">@Model.FormatRelativeTime(post.CreatedAt.ToDateTime())</time>@if (post.EditedAt != null)
                                                 {
                                                     <span class="post-edited"> @T.Pages.DiscEdited</span>
                                                 }
                                             </span>
                                         </div>
-                                        <div class="post-toolbar-right">
+                                        <div class="sn-post-toolbar-right">
                                             @if (!isOP && !Model.Discussion!.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
                                             {
-                                                <div class="hidden group-hover:flex items-center gap-1">
+                                                <div class="sn-post-hover-actions">
                                                     <button data-action="reply-to-post"
                                                             data-post-id="@post.PublicId"
                                                             data-author-name="@post.Author.DisplayName"
-                                                            class="subtle-btn"
+                                                            class="sn-subtle-btn"
                                                             aria-label="@string.Format(T.Pages.DiscAriaReplyTo, post.Author.DisplayName)">
-                                                        <span class="icon icon-reply h-4 w-4" aria-hidden="true"></span>
+                                                        <span class="icon icon-reply sn-h-4 sn-w-4" aria-hidden="true"></span>
                                                         @T.Pages.DiscReply
                                                     </button>
                                                     <button data-action="quote-post"
                                                             data-post-id="@post.PublicId"
                                                             data-content="@post.Content"
                                                             data-author-name="@post.Author.DisplayName"
-                                                            class="subtle-btn"
+                                                            class="sn-subtle-btn"
                                                             aria-label="@string.Format(T.Pages.DiscAriaQuotePost, post.Author.DisplayName)">
-                                                        <span class="icon icon-chat-square h-4 w-4" aria-hidden="true"></span>
+                                                        <span class="icon icon-chat-square sn-h-4 sn-w-4" aria-hidden="true"></span>
                                                         @T.Pages.DiscQuote
                                                     </button>
                                                 </div>
                                             }
-                                            <div class="flex items-center gap-2 text-base text-muted @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "cursor-pointer" : "")"
+                                            <div class="sn-post-reaction-row sn-cursor-pointer @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "sn-cursor-pointer" : "")"
                                                  id="reactions-@post.PublicId"
                                                  data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(reactionCounts.ToDictionary(k => k.Key, k => k.Value))"
                                                  data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(myReactions)"
@@ -1310,28 +1289,29 @@
                                                 {
                                                     var emoji = reactionEmojis.GetValueOrDefault(kvp.Key, "?");
                                                     var isActive = myReactions.Contains(kvp.Key);
-                                                    <span data-type="@kvp.Key" class="@(isActive ? "active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
+                                                    <span data-type="@kvp.Key" class="@(isActive ? "sn-active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
                                                 }
                                                 @if (!hasReactions && !Model.Discussion!.IsLocked && Model.IsAuthenticated)
                                                 {
-                                                    <span class="hidden group-hover:inline" data-reaction-placeholder>
-                                                        <span class="icon icon-badge-check h-4 w-4" aria-hidden="true"></span>
+                                                    <span class="sn-reaction-placeholder" data-reaction-placeholder>
+                                                        <span class="icon icon-badge-check sn-h-4 sn-w-4" aria-hidden="true"></span>
                                                     </span>
                                                 }
                                             </div>
                                             @if (!isOP && Model.IsAuthenticated)
                                             {
-                                                <div class="dropdown dropdown-end">
-                                                    <button tabindex="0" class="subtle-btn" aria-label="@T.Pages.DiscAriaPostOptions">
-                                                        <span class="icon icon-dots-horizontal h-4 w-4" aria-hidden="true"></span>
+                                                <div class="sn-dropdown">
+                                                    <button type="button" class="sn-subtle-btn" aria-label="@T.Pages.DiscAriaPostOptions"
+                                                            popovertarget="sn-post-opts-@(post.PublicId)">
+                                                        <span class="icon icon-dots-horizontal sn-h-4 sn-w-4" aria-hidden="true"></span>
                                                     </button>
-                                                    <ul tabindex="0" class="dropdown-content menu p-1 shadow-lg bg-base-100 border border-subtle rounded-lg w-48 z-[100]">
+                                                    <ul id="sn-post-opts-@(post.PublicId)" popover class="sn-dropdown-panel sn-menu sn-w-48">
                                                         <li>
                                                             <button hx-get="/bff/posts/@post.PublicId/history"
                                                                     hx-target="#history-modal-content"
                                                                     hx-swap="innerHTML"
                                                                     data-modal-open="history_modal"
-                                                                    class="text-sm">
+                                                                    class="sn-text-sm">
                                                                 @T.Pages.DiscHistory
                                                             </button>
                                                         </li>
@@ -1342,20 +1322,20 @@
                                                                     data-saved="false"
                                                                     aria-pressed="false"
                                                                     title="@T.Pages.DiscSaveTitle"
-                                                                    class="text-sm post-save-btn">
-                                                                <span class="icon icon-bookmark-alt h-4 w-4" aria-hidden="true"></span>
+                                                                    class="sn-text-sm sn-post-save-btn">
+                                                                <span class="icon icon-bookmark-alt sn-h-4 sn-w-4" aria-hidden="true"></span>
                                                                 @T.Pages.DiscSavePost
                                                             </button>
                                                         </li>
                                                         @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
                                                         {
-                                                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="text-sm">@T.Pages.DiscEdit</button></li>
+                                                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="sn-text-sm">@T.Pages.DiscEdit</button></li>
                                                             <li>
                                                                 <button hx-delete="/bff/posts/@post.PublicId"
                                                                         hx-target="#post-@post.PublicId"
                                                                         hx-swap="outerHTML"
                                                                         hx-confirm="@T.Pages.DiscDeleteConfirm"
-                                                                        class="text-sm text-error">
+                                                                        class="sn-text-sm sn-text-error">
                                                                     @T.Pages.DiscDelete
                                                                 </button>
                                                             </li>
@@ -1363,12 +1343,12 @@
                                                         @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
                                                         {
                                                             <li>
-                                                                <button data-action="hide-posts-from-user" data-author-id="@post.Author.PublicId" data-author-name="@post.Author.DisplayName" class="text-sm">
+                                                                <button data-action="hide-posts-from-user" data-author-id="@post.Author.PublicId" data-author-name="@post.Author.DisplayName" class="sn-text-sm">
                                                                     @T.Pages.DiscHideFromUser
                                                                 </button>
                                                             </li>
                                                             <li>
-                                                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="text-sm text-error">
+                                                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="sn-text-sm sn-text-error">
                                                                     @T.Pages.DiscReportPost
                                                                 </button>
                                                             </li>
@@ -1383,15 +1363,15 @@
                                 <!-- Reply-to Quote Block -->
                                 @if (hasReplyTo)
                                 {
-                                    <div class="editorial-quote block mb-4 text-sm">
-                                        <span class="quote-author">@string.Format(T.Pages.DiscQuoteWrotePattern, post.ReplyTo!.AuthorName)</span>
-                                        <p class="line-clamp-2 mt-1">@post.ReplyTo!.ContentSnippet</p>
+                                    <div class="sn-post-reply-quote">
+                                        <span class="sn-quote-author">@string.Format(T.Pages.DiscQuoteWrotePattern, post.ReplyTo!.AuthorName)</span>
+                                        <p class="line-clamp-2 sn-mt-1">@post.ReplyTo!.ContentSnippet</p>
                                     </div>
                                 }
 
                                 <!-- Post Content -->
                                 <div id="post-content-@post.PublicId"
-                                     class="prose prose-content flex flex-col gap-4 leading-6"
+                                     class="sn-post-body sn-prose sn-prose-content"
                                      data-author-name="@post.Author.DisplayName"
                                      data-raw-content="@(post.Content ?? "")">
                                     @Html.SanitizedRaw(post.RenderedContent)
@@ -1406,41 +1386,41 @@
 
                     <!-- Endless scroll sentinel -->
                     <div id="scroll-sentinel" class="h-4"></div>
-                    <div id="loading-indicator" class="hidden">
+                    <div id="loading-indicator" class="sn-hidden">
                         <!-- Skeleton loaders -->
-                        <div class="skeleton-post post-layout">
-                            <aside class="post-author-pane">
-                                <div class="skeleton w-12 h-12 rounded-full"></div>
-                                <div class="skeleton h-3 w-16 mt-2"></div>
+                        <div class="sn-skeleton-post sn-post-layout">
+                            <aside class="sn-post-author-pane">
+                                <div class="sn-skeleton sn-w-12 sn-h-12 sn-rounded-full"></div>
+                                <div class="sn-skeleton sn-h-3 sn-w-16 sn-mt-2"></div>
                             </aside>
-                            <div class="post-main">
-                                <div class="skeleton skeleton-line skeleton-width-30"></div>
-                                <div class="skeleton skeleton-line mt-3"></div>
-                                <div class="skeleton skeleton-line"></div>
-                                <div class="skeleton skeleton-line short"></div>
+                            <div class="sn-post-main">
+                                <div class="sn-skeleton sn-skeleton-line skeleton-width-30"></div>
+                                <div class="sn-skeleton sn-skeleton-line sn-mt-3"></div>
+                                <div class="sn-skeleton sn-skeleton-line"></div>
+                                <div class="sn-skeleton sn-skeleton-line sn-short"></div>
                             </div>
                         </div>
-                        <div class="skeleton-post post-layout">
-                            <aside class="post-author-pane">
-                                <div class="skeleton w-12 h-12 rounded-full"></div>
-                                <div class="skeleton h-3 w-14 mt-2"></div>
+                        <div class="sn-skeleton-post sn-post-layout">
+                            <aside class="sn-post-author-pane">
+                                <div class="sn-skeleton sn-w-12 sn-h-12 sn-rounded-full"></div>
+                                <div class="sn-skeleton sn-h-3 sn-w-14 sn-mt-2"></div>
                             </aside>
-                            <div class="post-main">
-                                <div class="skeleton skeleton-line skeleton-width-25"></div>
-                                <div class="skeleton skeleton-line mt-3"></div>
-                                <div class="skeleton skeleton-line short"></div>
+                            <div class="sn-post-main">
+                                <div class="sn-skeleton sn-skeleton-line skeleton-width-25"></div>
+                                <div class="sn-skeleton sn-skeleton-line sn-mt-3"></div>
+                                <div class="sn-skeleton sn-skeleton-line sn-short"></div>
                             </div>
                         </div>
                     </div>
-                    <div id="end-message" class="hidden text-center py-8 text-base-content/50 text-sm">
+                    <div id="end-message" class="sn-thread-end-message sn-hidden">
                         @T.Pages.DiscEndReached
                     </div>
-                    <div id="load-error-message" class="hidden text-center py-8">
-                        <div class="inline-flex flex-col items-center gap-3 p-4 bg-error/10 border border-error/20 rounded-lg">
-                            <span class="icon icon-exclamation-triangle h-8 w-8 text-error" aria-hidden="true"></span>
-                            <p class="text-sm text-error font-medium">@T.Pages.DiscLoadFailed</p>
-                            <button data-action="retry-load-posts" class="btn btn-sm btn-primary">
-                                <span class="icon icon-refresh h-4 w-4" aria-hidden="true"></span>
+                    <div id="load-error-message" class="sn-hidden sn-text-center sn-py-8">
+                        <div class="sn-load-error-card">
+                            <span class="icon icon-exclamation-triangle sn-h-8 sn-w-8 sn-text-error" aria-hidden="true"></span>
+                            <p class="sn-text-sm sn-text-error sn-font-medium">@T.Pages.DiscLoadFailed</p>
+                            <button data-action="retry-load-posts" class="sn-btn sn-btn-sm sn-btn-primary">
+                                <span class="icon icon-refresh sn-h-4 sn-w-4" aria-hidden="true"></span>
                                 @T.Pages.DiscRetry
                             </button>
                         </div>
@@ -1457,19 +1437,19 @@
 
             <!-- Reply Form -->
             <!-- Realtime lock banner (shown dynamically via SignalR when discussion is locked while viewing) -->
-            <div id="discussion-lock-banner" class="mt-8 hidden">
-                <div class="clean-card p-6 text-center">
-                    <h3 class="font-semibold mb-1">@T.Pages.DiscLockedTitle</h3>
-                    <p class="text-sm text-muted">@T.Pages.DiscLockedBody</p>
+            <div id="discussion-lock-banner" class="sn-mt-8 sn-hidden">
+                <div class="sn-clean-card sn-p-6 sn-text-center">
+                    <h3 class="sn-font-semibold sn-mb-1">@T.Pages.DiscLockedTitle</h3>
+                    <p class="sn-text-sm sn-text-muted">@T.Pages.DiscLockedBody</p>
                 </div>
             </div>
 
             @if (Model.Discussion!.IsLocked)
             {
-                <div class="mt-8">
-                    <div class="clean-card p-6 text-center">
-                        <h3 class="font-semibold mb-1">@T.Pages.DiscLockedTitle</h3>
-                        <p class="text-sm text-muted">@T.Pages.DiscLockedBody</p>
+                <div class="sn-mt-8">
+                    <div class="sn-clean-card sn-p-6 sn-text-center">
+                        <h3 class="sn-font-semibold sn-mb-1">@T.Pages.DiscLockedTitle</h3>
+                        <p class="sn-text-sm sn-text-muted">@T.Pages.DiscLockedBody</p>
                     </div>
                 </div>
             }
@@ -1482,20 +1462,20 @@
             else
             {
                 <!-- Typing indicator — below posts, above reply form -->
-                <div id="typing-indicator" class="hidden flex items-center gap-0.5 mt-4 mb-2"></div>
+                <div id="typing-indicator" class="sn-typing-indicator sn-hidden"></div>
 
-                <div id="reply-form-container" class="mt-8">
+                <div id="reply-form-container" class="sn-mt-8">
                     <!-- Reply context indicator -->
-                    <div id="reply-context" class="hidden mb-3 p-3 bg-subtle border border-subtle rounded-lg flex items-center justify-between">
-                        <span class="text-sm text-muted">
-                            @T.Pages.DiscReplyingToPrefix<span id="reply-context-author" class="font-semibold"></span>
+                    <div id="reply-context" class="sn-reply-context-bar sn-hidden">
+                        <span class="sn-text-sm sn-text-muted">
+                            @T.Pages.DiscReplyingToPrefix<span id="reply-context-author" class="sn-font-semibold"></span>
                         </span>
-                        <button type="button" data-action="clear-reply-context" class="subtle-btn">
+                        <button type="button" data-action="clear-reply-context" class="sn-subtle-btn">
                             @T.Pages.DiscCancel
                         </button>
                     </div>
 
-                    <div class="composer-area">
+                    <div class="sn-composer-area">
                         <form method="post" id="reply-form" hx-boost="false">
                             <input type="hidden" name="ReplyToPostId" id="reply-to-post-id" value="" />
 
@@ -1506,33 +1486,33 @@
 
                             <!-- Toast UI Editor mounts here -->
                             <div id="editor-container">
-                                <div class="editor-skeleton">
-                                    <div class="editor-skeleton-toolbar">
-                                        <div class="skeleton-pill"></div>
-                                        <div class="skeleton-pill"></div>
-                                        <div class="skeleton-pill"></div>
-                                        <div class="skeleton-pill w-6"></div>
-                                        <div class="skeleton-pill"></div>
-                                        <div class="skeleton-pill"></div>
+                                <div class="sn-editor-skeleton">
+                                    <div class="sn-editor-skeleton-toolbar">
+                                        <div class="sn-skeleton-pill"></div>
+                                        <div class="sn-skeleton-pill"></div>
+                                        <div class="sn-skeleton-pill"></div>
+                                        <div class="sn-skeleton-pill sn-w-6"></div>
+                                        <div class="sn-skeleton-pill"></div>
+                                        <div class="sn-skeleton-pill"></div>
                                     </div>
-                                    <div class="editor-skeleton-body">
-                                        <div class="skeleton-line w-3/4"></div>
-                                        <div class="skeleton-line w-1/2"></div>
-                                        <div class="skeleton-line w-5/6"></div>
+                                    <div class="sn-editor-skeleton-body">
+                                        <div class="sn-skeleton-line sn-w-3/4"></div>
+                                        <div class="sn-skeleton-line sn-w-1/2"></div>
+                                        <div class="sn-skeleton-line sn-w-5/6"></div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div id="upload-progress-row" class="upload-progress-row hidden">
-                                <div id="upload-image-chips" class="upload-image-chips"></div>
-                                <span id="upload-status-text" class="upload-status-text"></span>
+                            <div id="upload-progress-row" class="sn-upload-progress-row sn-hidden">
+                                <div id="upload-image-chips" class="sn-upload-image-chips"></div>
+                                <span id="upload-status-text" class="sn-upload-status-text"></span>
                             </div>
-                            <div class="flex items-center gap-3">
-                                <button type="submit" id="reply-submit-btn" class="btn btn-primary btn-sm hidden">
+                            <div class="sn-composer-submit-row">
+                                <button type="submit" id="reply-submit-btn" class="sn-btn sn-btn-primary sn-btn-sm sn-hidden">
                                     <span id="reply-submit-label">@T.Pages.DiscPostReply</span>
-                                    <span id="reply-submit-spinner" class="loading loading-spinner loading-xs hidden"></span>
+                                    <span id="reply-submit-spinner" class="sn-spinner sn-loading-xs sn-hidden"></span>
                                 </button>
-                                <span id="draft-restored-msg" class="text-xs text-base-content/40 hidden">@T.Pages.DiscDraftRestored</span>
+                                <span id="draft-restored-msg" class="sn-text-xs sn-text-faint sn-hidden">@T.Pages.DiscDraftRestored</span>
                             </div>
                         </form>
                     </div>
@@ -1543,24 +1523,24 @@
         @if (Model.Discussion.PostCount > 1 && Model.Posts?.HasMoreItems == true)
         {
             <!-- Thread Navigation Bar (sticky bottom, inside sn-center but outside sn-center-inner) -->
-            <div id="thread-nav" class="thread-nav hidden">
-                <div class="thread-nav-controls">
-                    <button class="thread-nav-btn" data-nav="first" title="@T.Pages.DiscTitleFirst" aria-label="@T.Pages.DiscAriaJumpFirst">
-                        <span class="icon icon-thread-nav-first w-3.5 h-3.5" aria-hidden="true"></span>
+            <div id="thread-nav" class="sn-thread-nav sn-hidden">
+                <div class="sn-thread-nav-controls">
+                    <button class="sn-thread-nav-btn" data-nav="first" title="@T.Pages.DiscTitleFirst" aria-label="@T.Pages.DiscAriaJumpFirst">
+                        <span class="icon icon-thread-nav-first sn-w-3\.5 sn-h-3\.5" aria-hidden="true"></span>
                     </button>
-                    <button class="thread-nav-btn" data-nav="prev" title="@T.Pages.DiscAriaBack20" aria-label="@T.Pages.DiscAriaBack20">
-                        <span class="icon icon-thread-nav-prev w-3.5 h-3.5" aria-hidden="true"></span>
+                    <button class="sn-thread-nav-btn" data-nav="prev" title="@T.Pages.DiscAriaBack20" aria-label="@T.Pages.DiscAriaBack20">
+                        <span class="icon icon-thread-nav-prev sn-w-3\.5 sn-h-3\.5" aria-hidden="true"></span>
                     </button>
-                    <div class="thread-nav-position">
-                        <input id="thread-nav-input" type="number" class="thread-nav-input" min="1" max="@Model.Discussion.PostCount" value="1" aria-label="@T.Pages.DiscAriaCurrentPost" />
-                        <span class="thread-nav-separator">/</span>
-                        <span id="thread-nav-total" class="thread-nav-total">@Model.Discussion.PostCount</span>
+                    <div class="sn-thread-nav-position">
+                        <input id="thread-nav-input" type="number" class="sn-thread-nav-input" min="1" max="@Model.Discussion.PostCount" value="1" aria-label="@T.Pages.DiscAriaCurrentPost" />
+                        <span class="sn-thread-nav-separator">/</span>
+                        <span id="thread-nav-total" class="sn-thread-nav-total">@Model.Discussion.PostCount</span>
                     </div>
-                    <button class="thread-nav-btn" data-nav="next" title="@T.Pages.DiscAriaForward20" aria-label="@T.Pages.DiscAriaForward20">
-                        <span class="icon icon-thread-nav-next w-3.5 h-3.5" aria-hidden="true"></span>
+                    <button class="sn-thread-nav-btn" data-nav="next" title="@T.Pages.DiscAriaForward20" aria-label="@T.Pages.DiscAriaForward20">
+                        <span class="icon icon-thread-nav-next sn-w-3\.5 sn-h-3\.5" aria-hidden="true"></span>
                     </button>
-                    <button class="thread-nav-btn" data-nav="last" title="@T.Pages.DiscTitleLast" aria-label="@T.Pages.DiscAriaJumpLast">
-                        <span class="icon icon-thread-nav-last w-3.5 h-3.5" aria-hidden="true"></span>
+                    <button class="sn-thread-nav-btn" data-nav="last" title="@T.Pages.DiscTitleLast" aria-label="@T.Pages.DiscAriaJumpLast">
+                        <span class="icon icon-thread-nav-last sn-w-3\.5 sn-h-3\.5" aria-hidden="true"></span>
                     </button>
                 </div>
             </div>
@@ -1569,19 +1549,21 @@
     else
     {
         <div class="sn-center-inner">
-            <div class="max-w-xl mx-auto empty-state-simple">
+            <div class="sn-max-w-xl sn-mx-auto empty-state-simple">
                 <h3>@T.Pages.DiscNotFoundHeading</h3>
                 <p>@T.Pages.DiscNotFoundBody</p>
-                <a href="/hubs" class="btn btn-primary btn-sm mt-4">@T.Pages.DiscBackToHubs</a>
+                <a href="/hubs" class="sn-btn sn-btn-primary sn-btn-sm sn-mt-4">@T.Pages.DiscBackToHubs</a>
             </div>
         </div>
     }
 
 </div> <!-- End sn-center -->
 <!-- Right Column -->
+@if (!DeviceDetection.IsMobile(HttpContext))
+{
 <aside class="sn-right">
     @{
-        ViewData["RightPane.NewDiscussionUrl"] = Model.Space != null ? "/new?spaceId=" + Model.Space.PublicId : "/new";
+        ViewData["RightPane.NewDiscussionUrl"] = Model.Space != null ? "/create?spaceId=" + Model.Space.PublicId : "/create";
         ViewData["RightPane.Actions"] = new[] { "share", "subscribe", "save" };
         ViewData["RightPane.ShareUrl"] = Model.CanonicalUrl;
         ViewData["RightPane.ShareTitle"] = Model.Discussion!.Title;
@@ -1602,29 +1584,29 @@
                         @T.Sections.SpaceStats
                     </div>
                     <div class="sn-sidebar-stats">
-                        <div class="stats shadow">
-                            <div class="stat">
-                                <div class="stat-title">@T.Pages.DiscStatsDiscussions</div>
-                                <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Pages.DiscStatsDiscussions</div>
+                                <div class="sn-stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
                             </div>
                         </div>
-                        <div class="stats shadow">
-                            <div class="stat">
-                                <div class="stat-title">@T.Pages.DiscStatsReplies</div>
-                                <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Pages.DiscStatsReplies</div>
+                                <div class="sn-stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
                             </div>
                         </div>
-                        <div class="stats shadow">
-                            <div class="stat">
-                                <div class="stat-title">@T.Pages.DiscStatsFollowers</div>
-                                <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Pages.DiscStatsFollowers</div>
+                                <div class="sn-stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
                             </div>
                         </div>
                         @if (Model.Space != null)
                         {
-                            <div class="stats shadow">
-                                <div class="stat">
-                                    <div class="stat-title">@T.Pages.DiscStatsActivity</div>
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.DiscStatsActivity</div>
                                     <div class="sn-sparkline-container sn-right-sparkline"
                                          data-sparkline-type="space"
                                          data-sparkline-id="@Model.Space.PublicId"
@@ -1644,7 +1626,7 @@
                     </div>
                     @if (!string.IsNullOrEmpty(Model.Space?.Description))
                     {
-                        <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
+                        <p class="sn-text-sm sn-mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
                     }
                 </div>
             }
@@ -1653,17 +1635,17 @@
             {
                 <div class="sn-right-section">
                     <a href="@SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Space.Slug)/rules"
-                           class="sn-right-title flex items-center justify-between hover:text-primary transition-colors">
+                           class="sn-sidebar-nav-link--detail">
                         <span>@T.Pages.DiscSpaceRules</span>
-                        <span class="icon icon-chevron-right w-3.5 h-3.5 shrink-0" aria-hidden="true"></span>
+                        <span class="icon icon-chevron-right sn-w-3\.5 sn-h-3\.5 sn-shrink-0" aria-hidden="true"></span>
                     </a>
                     <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
                                     model="Model.InlineSpaceRules"
                                     htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
-                        <div class="flex flex-col gap-2" style="min-height:4rem">
-                            <div class="skeleton h-4 w-full"></div>
-                            <div class="skeleton h-4 w-5/6"></div>
-                            <div class="skeleton h-4 w-4/6"></div>
+                        <div class="sn-sidebar-skeleton-list" style="min-height:4rem">
+                            <div class="sn-skeleton sn-h-4 sn-w-full"></div>
+                            <div class="sn-skeleton sn-h-4 sn-w-5/6"></div>
+                            <div class="sn-skeleton sn-h-4 sn-w-4/6"></div>
                         </div>
                     </inline-or-htmx>
                 </div>
@@ -1673,23 +1655,23 @@
             {
                 <div class="sn-right-section">
                     <a href="@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators"
-                           class="sn-right-title flex items-center justify-between hover:text-primary transition-colors">
+                           class="sn-sidebar-nav-link--detail">
                         <span>@T.Pages.DiscSpaceModerators</span>
-                        <span class="flex items-center gap-1">
+                        <span class="sn-sidebar-title-suffix">
                             @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
                             {
-                                <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
+                                <span class="sn-text-xs sn-font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
                             }
-                            <span class="icon icon-chevron-right w-3.5 h-3.5 shrink-0" aria-hidden="true"></span>
+                            <span class="icon icon-chevron-right sn-w-3\.5 sn-h-3\.5 sn-shrink-0" aria-hidden="true"></span>
                         </span>
                     </a>
                     <inline-or-htmx partial="Shared/Sidebar/_Moderators"
                                     model="Model.InlineModerators"
                                     htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.SpaceSlug))/moderators&rev=@Model.Space.TeamRevision">
-                        <div class="flex flex-col gap-2" style="min-height:6rem">
-                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
-                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
-                            <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-28"></div></div>
+                        <div class="sn-grid sn-grid-cols-8 sn-gap-1">
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
                         </div>
                     </inline-or-htmx>
                 </div>
@@ -1697,92 +1679,93 @@
         </div>
     </div>
 </aside>
+}
 
 <!-- History Modal -->
-<dialog id="history_modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box max-w-2xl">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="font-semibold text-lg">@T.Pages.DiscEditHistoryTitle</h3>
+<dialog id="history_modal" class="sn-modal">
+    <div class="sn-modal-box sn-max-w-2xl">
+        <div class="sn-modal-header">
+            <h3 class="sn-font-semibold sn-text-lg">@T.Pages.DiscEditHistoryTitle</h3>
             <form method="dialog">
-                <button class="subtle-btn">@T.Pages.DiscClose</button>
+                <button class="sn-subtle-btn">@T.Pages.DiscClose</button>
             </form>
         </div>
-        <div id="history-modal-content" class="py-2 min-h-32 flex items-center justify-center">
-            <span class="loading loading-spinner loading-md text-muted"></span>
+        <div id="history-modal-content" class="sn-modal-loading-area">
+            <span class="sn-spinner sn-loading-md sn-text-muted"></span>
         </div>
     </div>
-    <form method="dialog" class="modal-backdrop">
+    <form method="dialog" class="sn-modal-backdrop-overlay">
         <button>close</button>
     </form>
 </dialog>
 
 <!-- Report Modal -->
-<dialog id="report_modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box max-w-md">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="font-semibold text-lg">@T.Pages.DiscReportContentTitle</h3>
+<dialog id="report_modal" class="sn-modal">
+    <div class="sn-modal-box sn-max-w-md">
+        <div class="sn-modal-header">
+            <h3 class="sn-font-semibold sn-text-lg">@T.Pages.DiscReportContentTitle</h3>
             <form method="dialog">
-                <button class="subtle-btn">@T.Pages.DiscClose</button>
+                <button class="sn-subtle-btn">@T.Pages.DiscClose</button>
             </form>
         </div>
-        <p class="text-sm text-muted mb-4">
-            @T.Pages.DiscReportingPrefix<span id="report-target-description" class="font-medium"></span>@T.Pages.DiscReportingSuffix
+        <p class="sn-modal-description">
+            @T.Pages.DiscReportingPrefix<span id="report-target-description" class="sn-font-medium"></span>@T.Pages.DiscReportingSuffix
         </p>
         <form id="report-form" data-submit-action="submit-report">
             <input type="hidden" id="report-type" name="type" value="" />
             <input type="hidden" id="report-target-id" name="targetId" value="" />
 
-            <div class="form-control mb-4">
-                <label class="label">
-                    <span class="label-text">@T.Pages.DiscReportReasonLabel <span class="text-error">*</span></span>
+            <div class="sn-field sn-mb-4">
+                <label class="sn-label">
+                    <span class="sn-label-text">@T.Pages.DiscReportReasonLabel <span class="sn-text-error">*</span></span>
                 </label>
-                <select id="report-reason" name="reasonId" class="select w-full" required>
+                <select id="report-reason" name="reasonId" class="sn-select sn-w-full" required>
                     <option value="">@T.Pages.DiscReportSelectReason</option>
                 </select>
-                <div id="report-reason-description" class="text-xs text-muted mt-1 hidden"></div>
+                <div id="report-reason-description" class="sn-text-xs sn-text-muted sn-mt-1 sn-hidden"></div>
             </div>
 
-            <div class="form-control mb-4">
-                <label class="label">
-                    <span class="label-text">@T.Pages.DiscReportAdditional</span>
+            <div class="sn-field sn-mb-4">
+                <label class="sn-label">
+                    <span class="sn-label-text">@T.Pages.DiscReportAdditional</span>
                 </label>
                 <textarea id="report-details"
                           name="details"
-                          class="textarea w-full"
+                          class="sn-textarea sn-w-full"
                           rows="3"
                           placeholder="@T.Pages.DiscReportDetailsPh"></textarea>
             </div>
 
-            <div id="report-error" class="alert alert-error text-sm mb-4 hidden">
+            <div id="report-error" class="sn-alert sn-alert-error sn-text-sm sn-mb-4 sn-hidden">
                 <span id="report-error-message"></span>
             </div>
 
-            <div class="modal-action">
-                <button type="button" data-modal-close="report_modal" class="btn btn-ghost">@T.Pages.DiscCancel</button>
-                <button type="submit" id="report-submit-btn" class="btn btn-error">
+            <div class="sn-modal-action">
+                <button type="button" data-modal-close="report_modal" class="sn-btn sn-btn-ghost">@T.Pages.DiscCancel</button>
+                <button type="submit" id="report-submit-btn" class="sn-btn sn-btn-error">
                     <span id="report-submit-text">@T.Pages.DiscSubmitReport</span>
-                    <span id="report-submit-loading" class="loading loading-spinner loading-sm hidden"></span>
+                    <span id="report-submit-loading" class="sn-spinner sn-loading-sm sn-hidden"></span>
                 </button>
             </div>
         </form>
     </div>
-    <form method="dialog" class="modal-backdrop">
+    <form method="dialog" class="sn-modal-backdrop-overlay">
         <button>close</button>
     </form>
 </dialog>
 
 <!-- Reaction Picker -->
-<div id="reaction-picker" class="hidden fixed z-50 bg-base-100 border border-subtle rounded-lg shadow-lg p-2" data-post-id="">
-    <div class="grid grid-cols-3 gap-1">
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Agree" title="@T.Pages.DiscReactionAgree">👍</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Love" title="@T.Pages.DiscReactionLove">❤️</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Funny" title="@T.Pages.DiscReactionFunny">😂</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Thinking" title="@T.Pages.DiscReactionThinking">🤔</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Watching" title="@T.Pages.DiscReactionWatching">👀</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Fire" title="@T.Pages.DiscReactionFire">🔥</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="Thanks" title="@T.Pages.DiscReactionThanks">🙏</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="MindBlown" title="@T.Pages.DiscReactionMindBlown">🤯</button>
-        <button type="button" class="reaction-picker-btn" data-reaction-type="ShipIt" title="@T.Pages.DiscReactionShipIt">🚀</button>
+<div id="reaction-picker" class="sn-reaction-picker sn-hidden" data-post-id="">
+    <div class="sn-grid sn-grid-cols-3 sn-gap-1">
+        <button type="button" class="sn-reaction-picker-btn" data-reaction-type="Agree" title="@T.Pages.DiscReactionAgree">👍</button>
+        <button type="button" class="sn-reaction-picker-btn" data-reaction-type="Love" title="@T.Pages.DiscReactionLove">❤️</button>
+        <button type="button" class="sn-reaction-picker-btn" data-reaction-type="Funny" title="@T.Pages.DiscReactionFunny">😂</button>
+        <button type="button" class="sn-reaction-picker-btn" data-reaction-type="Thinking" title="@T.Pages.DiscReactionThinking">🤔</button>
+        <button type="button" class="sn-reaction-picker-btn" data-reaction-type="Watching" title="@T.Pages.DiscReactionWatching">👀</button>
+        <button type="button" class="sn-reaction-picker-btn" data-reaction-type="Fire" title="@T.Pages.DiscReactionFire">🔥</button>
+        <button type="button" class="sn-reaction-picker-btn" data-reaction-type="Thanks" title="@T.Pages.DiscReactionThanks">🙏</button>
+        <button type="button" class="sn-reaction-picker-btn" data-reaction-type="MindBlown" title="@T.Pages.DiscReactionMindBlown">🤯</button>
+        <button type="button" class="sn-reaction-picker-btn" data-reaction-type="ShipIt" title="@T.Pages.DiscReactionShipIt">🚀</button>
     </div>
 </div>
 
@@ -1860,6 +1843,8 @@
         officialAnswers = Model.Discussion?.Type == "Iama" && Model.IamaInfo != null
             ? Model.IamaInfo.OfficialAnswers.ToDictionary(kv => kv.Key, kv => kv.Value)
             : (object?)null,
-        sort = Model.Sort
+        sort = Model.Sort,
+        lastReadPostId = Model.LastReadPostId,
+        unreadLabel = T.Pages.DiscJumpToUnread
     }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
 </script>

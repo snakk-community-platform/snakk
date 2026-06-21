@@ -19,6 +19,7 @@ public interface IFollowRepository
     Task<IEnumerable<(UserId UserId, FollowLevel Level)>> GetFollowersOfSpaceWithLevelAsync(SpaceId spaceId, CancellationToken ct = default);
     Task<IEnumerable<SpaceId>> GetFollowedSpacesByUserAsync(UserId userId, CancellationToken ct = default);
     Task<IEnumerable<DiscussionId>> GetFollowedDiscussionsByUserAsync(UserId userId, CancellationToken ct = default);
+    Task<IEnumerable<(DiscussionId Id, DateTime FollowedAt)>> GetFollowedDiscussionsWithTimestampsAsync(UserId userId, CancellationToken ct = default);
     Task<IEnumerable<UserId>> GetFollowedUsersByUserAsync(UserId userId, CancellationToken ct = default);
     Task AddAsync(Follow follow, CancellationToken ct = default);
     Task UpdateAsync(Follow follow, CancellationToken ct = default);

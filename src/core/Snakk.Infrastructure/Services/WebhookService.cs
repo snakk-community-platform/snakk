@@ -18,7 +18,6 @@ namespace Snakk.Infrastructure.Services;
 
 public class WebhookService(
     SnakkDbContext dbContext,
-    IHttpClientFactory httpClientFactory,
     ILogger<WebhookService> logger) : IWebhookService
 {
     public async Task<List<WebhookResponse>> GetAllWebhooksAsync(CancellationToken cancellationToken = default)

@@ -28,7 +28,7 @@
             this.container = document.getElementById('discussions-container');
             if (!this.container) return;
 
-            this.initialDiscussionCount = this.container.querySelectorAll('.topic-item-wrapper').length;
+            this.initialDiscussionCount = this.container.querySelectorAll('.sn-topic-item-wrapper').length;
             this.cachedDiscussionCount = this.initialDiscussionCount;
             this.initScrollToTop();
         }
@@ -65,16 +65,16 @@
             const shouldShow = window.scrollY > 800 || this.cachedDiscussionCount > this.initialDiscussionCount;
 
             if (shouldShow) {
-                this.scrollWrapper.classList.remove('hidden');
+                this.scrollWrapper.classList.remove('sn-hidden');
             } else {
-                this.scrollWrapper.classList.add('hidden');
+                this.scrollWrapper.classList.add('sn-hidden');
             }
         }
 
         updateScrollCounter(): void {
             if (!this.scrollCounter || !this.container) return;
 
-            this.cachedDiscussionCount = this.container.querySelectorAll('.topic-item-wrapper').length;
+            this.cachedDiscussionCount = this.container.querySelectorAll('.sn-topic-item-wrapper').length;
             this.scrollCounter.textContent = this.cachedDiscussionCount.toString();
         }
 
@@ -106,7 +106,7 @@
     document.body.addEventListener('htmx:beforeSwap', (e: any) => {
         const target = e.detail?.target as Element | null;
         if (target?.closest('#discussions-container')) {
-            prevTopicCount = document.querySelectorAll('#discussions-container .topic-item-wrapper').length;
+            prevTopicCount = document.querySelectorAll('#discussions-container .sn-topic-item-wrapper').length;
         }
     });
 
@@ -116,7 +116,7 @@
         (window as any).SnakkFrontpageDiscussions.handleScrollPosition();
 
         if (prevTopicCount > 0) {
-            const wrappers = document.querySelectorAll<HTMLElement>('#discussions-container .topic-item-wrapper');
+            const wrappers = document.querySelectorAll<HTMLElement>('#discussions-container .sn-topic-item-wrapper');
             wrappers[prevTopicCount]?.scrollIntoView({ behavior: 'instant', block: 'start' });
             prevTopicCount = 0;
         }

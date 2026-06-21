@@ -1,0 +1,148 @@
+@page "/my/saved/{tab?}"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Pages.ViewModels
+@using Snakk.Web.Services
+@model Snakk.Web.Pages.My.SavedModel
+@{
+    ViewData["Title"] = T.Pages.SavedTitle;
+    ViewData["Description"] = "Your saved discussions and posts.";
+    ViewData["Nudge.Title"] = T.Pages.SavedNudgeTitle;
+    ViewData["Nudge.Body"] = T.Pages.SavedNudgeBody;
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+<div class="sn-center">
+    <div class="sn-center-inner">
+        @if (!Model.IsAuthenticated)
+        {
+            <partial name="Shared/_RegistrationNudge" />
+        }
+        else
+        {
+        <div class="sn-section-header">
+        <h2 class="sn-section-title">
+            <span class="icon icon-bookmark-alt" aria-hidden="true"></span>
+            @T.Pages.SavedHeading
+        </h2>
+
+        <!-- Tabs -->
+        <div class="sn-tabs">
+            <a href="/my/saved/discussions" class="sn-tab @(Model.ActiveTab == "discussions" ? "sn-active" : "")">
+                @T.Pages.SavedTabDiscussions
+                @if (Model.DiscussionCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.DiscussionCount</span> }
+            </a>
+            <a href="/my/saved/posts" class="sn-tab @(Model.ActiveTab == "posts" ? "sn-active" : "")">
+                @T.Pages.SavedTabPosts
+                @if (Model.PostCount > 0) { <span class="sn-badge sn-badge-sm sn-badge-ghost sn-ml-1">@Model.PostCount</span> }
+            </a>
+        </div>
+            <p class="sn-section-description">@T.Pages.SavedDescription</p>
+        </div>
+
+        @if (Model.ActiveTab == "discussions")
+        {
+            @if (Model.SavedDiscussions == null || Model.SavedDiscussions.Items.Count == 0)
+            {
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="icon icon-bookmark sn-h-10 sn-w-10 sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
+                    <p>@T.Pages.SavedEmptyDiscussions</p>
+                    <p class="sn-mt-1 sn-text-xs sn-opacity-70">@T.Pages.SavedEmptyDiscussionsHint</p>
+                </div>
+            }
+            else
+            {
+                <div class="sn-card-list">
+                    @foreach (var discussion in Model.SavedDiscussions.Items)
+                    {
+                        @await Html.PartialAsync("Shared/_DiscussionCard",
+                            new DiscussionListItemVM(discussion, Model.ShowCommunityInBreadcrumb, Model.Community, UnsaveId: discussion.PublicId,
+                                SavedAt: discussion.SavedAt?.ToDateTime(),
+                                UnreadCount: discussion.HasUnreadPostCount ? discussion.UnreadPostCount : (int?)null))
+                    }
+                </div>
+                @if (Model.SavedDiscussions.HasMoreItems)
+                {
+                    var nextOffset = Model.Offset + Model.SavedDiscussions.Items.Count;
+                    <div hx-get="/partials/saved-discussions?offset=@nextOffset&pageSize=20"
+                         hx-trigger="revealed once"
+                         hx-swap="outerHTML"
+                         hx-target="this"
+                         hx-push-url="false"
+                         class="sn-py-2">
+                        @for (var i = 0; i < 3; i++)
+                        {
+                            <div class="sn-card-wrap" style="opacity: 0.5">
+                                <div class="sn-card-header">
+                                    <div class="sn-skeleton sn-h-3 sn-w-16 sn-rounded"></div>
+                                    <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-20 sn-rounded"></div>
+                                </div>
+                                <div class="sn-skeleton sn-h-4 sn-w-3/4 sn-rounded sn-mt-2"></div>
+                                <div class="sn-card-stats sn-mt-2">
+                                    <div class="sn-skeleton sn-h-3 sn-w-24 sn-rounded"></div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        }
+        else
+        {
+            @if (Model.SavedPosts == null || Model.SavedPosts.Items.Count == 0)
+            {
+                <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+                    <span class="icon icon-bookmark sn-h-10 sn-w-10 sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
+                    <p>@T.Pages.SavedEmptyPosts</p>
+                    <p class="sn-mt-1 sn-text-xs sn-opacity-70">@T.Pages.SavedEmptyPostsHint</p>
+                </div>
+            }
+            else
+            {
+                <div class="sn-card-list">
+                    @foreach (var post in Model.SavedPosts.Items)
+                    {
+                        @await Html.PartialAsync("Shared/_PostCard", PostListItemVM.FromSavedPost(post) with { UnsaveId = post.PublicId })
+                    }
+                    @if (Model.SavedPosts.HasMoreItems)
+                    {
+                        var nextOffset = Model.Offset + Model.SavedPosts.Items.Count;
+                        <div hx-get="/partials/saved-posts?offset=@nextOffset&pageSize=20"
+                             hx-trigger="revealed once"
+                             hx-swap="outerHTML"
+                             hx-target="this"
+                             hx-push-url="false">
+                            @for (var i = 0; i < 3; i++)
+                            {
+                                <div class="sn-card-wrap" style="opacity: 0.5">
+                                    <div class="sn-card-header">
+                                        <div class="sn-skeleton sn-h-4 sn-w-4 sn-rounded-full"></div>
+                                        <div class="sn-skeleton sn-h-3 sn-w-20 sn-rounded"></div>
+                                        <div class="sn-skeleton sn-h-3 sn-w-16 sn-rounded"></div>
+                                    </div>
+                                    <div class="sn-skeleton sn-h-4 sn-w-3/4 sn-rounded sn-mt-1"></div>
+                                    <div class="sn-skeleton sn-h-3 sn-w-full sn-rounded sn-mt-1"></div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        }
+        } @* end IsAuthenticated *@
+    </div>
+</div>
+
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
+    ViewData["RightPane.AboutTitle"] = T.Pages.SavedHeading;
+    ViewData["RightPane.AboutDescription"] = T.Pages.SavedAboutDesc;
+}
+<vc:global-right-sidebar />
+
+@section Scripts {
+<script src="@SnakkUrlHelper.Js("pages/saved")" asp-append-version="true"></script>
+}

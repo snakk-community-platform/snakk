@@ -122,22 +122,22 @@
             const chipsEl = document.getElementById('upload-image-chips');
             const statusEl = document.getElementById('upload-status-text');
 
-            btnSpinner?.classList.remove('hidden');
+            btnSpinner?.classList.remove('sn-hidden');
 
             const total = toUpload.length;
             if (chipsEl) {
                 chipsEl.innerHTML = '';
                 for (let i = 0; i < total; i++) {
                     const chip = document.createElement('span');
-                    chip.className = 'upload-chip upload-chip-waiting';
+                    chip.className = 'sn-upload-chip sn-upload-chip-waiting';
                     chip.id = `upload-chip-${i}`;
                     chipsEl.appendChild(chip);
                 }
                 const first = document.getElementById('upload-chip-0');
-                if (first) first.className = 'upload-chip upload-chip-uploading';
+                if (first) first.className = 'sn-upload-chip sn-upload-chip-uploading';
             }
             if (statusEl) statusEl.textContent = `Uploading 1 of ${total}…`;
-            progressRow?.classList.remove('hidden');
+            progressRow?.classList.remove('sn-hidden');
 
             let done = 0;
             try {
@@ -148,15 +148,16 @@
                     currentImages = currentImages.map(i => i.url === blobUrl ? { ...i, url: cdnUrl } : i);
                     done++;
                     const doneChip = document.getElementById(`upload-chip-${done - 1}`);
-                    if (doneChip) doneChip.className = 'upload-chip upload-chip-done';
+                    if (doneChip) doneChip.className = 'sn-upload-chip sn-upload-chip-done';
                     const nextChip = document.getElementById(`upload-chip-${done}`);
-                    if (nextChip) nextChip.className = 'upload-chip upload-chip-uploading';
+                    if (nextChip) nextChip.className = 'sn-upload-chip sn-upload-chip-uploading';
                     if (statusEl) statusEl.textContent = done < total ? `Uploading ${done + 1} of ${total}…` : `Uploading ${total} of ${total}…`;
                 }
             } catch (err) {
                 console.error('[Gallery] Upload failed:', err);
-                btnSpinner?.classList.add('hidden');
-                progressRow?.classList.add('hidden');
+                if (statusEl) statusEl.textContent = 'Upload failed. Please try again.';
+                btnSpinner?.classList.add('sn-hidden');
+                progressRow?.classList.add('sn-hidden');
                 setBlocker('flushing', false);
                 return;
             }
@@ -164,7 +165,7 @@
             // Success: keep button disabled and progress visible; page navigates away.
             // Do NOT call setBlocker('flushing', false) here — that would briefly re-enable
             // the button between this line and requestSubmit(), causing a visible flicker.
-            btnSpinner?.classList.add('hidden');
+            btnSpinner?.classList.add('sn-hidden');
             deferredSubmitReady = true;
             form.dataset.allowResubmit = 'true';
             form.requestSubmit();

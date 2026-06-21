@@ -13,7 +13,9 @@ internal static class PagedDiscussionListMapper
 {
     internal static PagedRecentDiscussionList Build(
         PagedResult<RecentDiscussionDto> result,
-        IFileStorage fileStorage)
+        IFileStorage fileStorage,
+        Dictionary<string, string>? authorSlugs = null,
+        Dictionary<string, int>? unreadCounts = null)
     {
         var response = new PagedRecentDiscussionList
         {
@@ -62,31 +64,23 @@ internal static class PagedDiscussionListMapper
                     Slug = d.CommunitySlug ?? "",
                     Name = d.CommunityName ?? ""
                 },
-                Author = new AuthorRef
-                {
-                    PublicId = d.CreatedByUserPublicId ?? "",
-                    DisplayName = d.CreatedByUserDisplayName ?? "",
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
-                }
+                Author = BuildAuthorRef(d.CreatedByUserPublicId, d.CreatedByUserDisplayName, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName, authorSlugs)
             };
 
             if (d.LastActivityAt.HasValue)
                 item.LastActivityAt = ToTimestamp(d.LastActivityAt.Value);
 
+            if (d.SavedAt.HasValue)
+                item.SavedAt = ToTimestamp(d.SavedAt.Value);
+
+            if (unreadCounts?.TryGetValue(d.PublicId, out var unread) == true && unread > 0)
+                item.UnreadPostCount = unread;
+
             item.Tags.AddRange(d.Tags ?? []);
 
             if (d.LastReplierPublicId is not null)
             {
-                item.LastReplier = new AuthorRef
-                {
-                    PublicId = d.LastReplierPublicId,
-                    DisplayName = d.LastReplierDisplayName ?? "",
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName, d.LastReplierAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName)
-                };
+                item.LastReplier = BuildAuthorRef(d.LastReplierPublicId, d.LastReplierDisplayName, d.LastReplierAvatarFileName, d.LastReplierAvatarThumbnailFileName, authorSlugs);
                 item.LastPostExcerpt = d.LastPostExcerpt ?? "";
             }
 
@@ -173,6 +167,27 @@ internal static class PagedDiscussionListMapper
         }
 
         return response;
+    }
+
+    private static AuthorRef BuildAuthorRef(
+        string? publicId,
+        string? displayName,
+        string? avatarFileName,
+        string? avatarThumbnailFileName,
+        Dictionary<string, string>? slugs)
+    {
+        var pid = publicId ?? "";
+        var ref_ = new AuthorRef
+        {
+            PublicId = pid,
+            DisplayName = displayName ?? "",
+            AvatarUrl = AvatarHelper.GetAvatarUrl(pid, AvatarEntityType.User, 0, avatarFileName),
+            AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(pid, AvatarEntityType.User, 0, avatarFileName, avatarThumbnailFileName),
+            AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(pid, AvatarEntityType.User, 0, avatarFileName)
+        };
+        if (pid.Length > 0 && slugs?.TryGetValue(pid, out var slug) == true)
+            ref_.Slug = slug;
+        return ref_;
     }
 
     private static Timestamp ToTimestamp(DateTime dt) =>

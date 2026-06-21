@@ -17,12 +17,13 @@ public class ModerationWorkflowTests
     private readonly IRevocationCache _revocationCache = Substitute.For<IRevocationCache>();
     private readonly IAuthVersionCache _authVersionCache = Substitute.For<IAuthVersionCache>();
     private readonly IUserRepository _userRepository = Substitute.For<IUserRepository>();
+    private readonly IManageScopeDataService _manageScopeData = Substitute.For<IManageScopeDataService>();
     private ModerationUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
-        _useCase = new ModerationUseCase(_moderationRepository, _revocationCache, _authVersionCache, _userRepository);
+        _useCase = new ModerationUseCase(_moderationRepository, _revocationCache, _authVersionCache, _userRepository, _manageScopeData);
     }
 
     #region Report Created -> Moderator Reviews -> Resolves With Action

@@ -1,5 +1,6 @@
 using Grpc.Core;
 using Snakk.Api.Services;
+using Snakk.Application.Services;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
@@ -9,7 +10,8 @@ namespace Snakk.Api.GrpcServices;
 
 public class ReadStateGrpcService(
     IDiscussionReadStateRepository readStateRepository,
-    ICurrentUserService currentUser) : ReadStateService.ReadStateServiceBase
+    ICurrentUserService currentUser,
+    IUserVisitTracker userVisitTracker) : ReadStateService.ReadStateServiceBase
 {
     public override async Task<ReadStateInfo> GetReadState(GetReadStateRequest request, ServerCallContext context)
     {
@@ -63,32 +65,24 @@ public class ReadStateGrpcService(
         var ct = context.CancellationToken;
         var userId = RequireAuth();
 
-        var processed = 0;
+        var states = request.Items
+            .Select(item => DiscussionReadState.Create(
+                userId,
+                DiscussionId.From(item.DiscussionId),
+                PostId.From(item.LastReadPostId)))
+            .ToList();
 
-        foreach (var item in request.Items)
-        {
-            try
-            {
-                var discussionId = DiscussionId.From(item.DiscussionId);
-                var postId = PostId.From(item.LastReadPostId);
+        await readStateRepository.BatchSaveAsync(states, ct);
 
-                var readState = await readStateRepository.GetAsync(userId, discussionId, ct);
+        return new BatchMarkAsReadResponse { Success = true, Processed = states.Count };
+    }
 
-                if (readState is null)
-                    readState = DiscussionReadState.Create(userId, discussionId, postId);
-                else
-                    readState.MarkAsRead(postId);
-
-                await readStateRepository.SaveAsync(readState, ct);
-                processed++;
-            }
-            catch
-            {
-                continue;
-            }
-        }
-
-        return new BatchMarkAsReadResponse { Success = true, Processed = processed };
+    public override async Task<MarkVisitAsReadResponse> MarkVisitAsRead(MarkVisitAsReadRequest request, ServerCallContext context)
+    {
+        var ct = context.CancellationToken;
+        var userId = RequireAuth();
+        await userVisitTracker.ForceNewVisitAsync(userId.Value, ct);
+        return new MarkVisitAsReadResponse { Success = true };
     }
 
     private UserId? TryGetAuthUserId()

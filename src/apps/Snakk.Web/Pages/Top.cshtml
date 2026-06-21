@@ -10,33 +10,36 @@
 }
 
 @section LeftColumn {
-<partial name="Shared/_LeftSidebar" />
+    <partial name="Shared/_LeftSidebar" />
 }
 
 <!-- Center Column -->
 <div class="sn-center">
     <div class="sn-center-inner">
-        <h2 class="sn-section-title">
-            <span class="icon icon-star" aria-hidden="true"></span>
-            @T.Pages.TopHeading
-        </h2>
+        <div class="sn-section-header">
+            <h2 class="sn-section-title">
+                <span class="icon icon-star" aria-hidden="true"></span>
+                @T.Pages.TopHeading
+            </h2>
 
-        <!-- Period tabs -->
-        <div class="sn-tabs mb-4">
-            @{
-                var tabs = new[]
-                {
+            <!-- Period tabs -->
+            <div class="sn-tabs">
+                @{
+                    var tabs = new[]
+                    {
                     ("day",      T.Pages.TopTabToday),
                     ("week",     T.Pages.TopTabWeek),
                     ("month",    T.Pages.TopTabMonth),
                     ("year",     T.Pages.TopTabYear),
                     ("all-time", T.Pages.TopTabAllTime),
                 };
-            }
-            @foreach (var (period, label) in tabs)
-            {
-                <a href="/top/@period" class="sn-tab @(Model.Period == period ? "active" : "")">@label</a>
-            }
+                }
+                @foreach (var (period, label) in tabs)
+                {
+                    <a href="/top/@period" class="sn-tab @(Model.Period == period ? "sn-active" : "")">@label</a>
+                }
+            </div>
+            <p class="sn-section-description">@T.Pages.TopDescription</p>
         </div>
 
         @if (Model.TopDiscussions?.Items == null || !Model.TopDiscussions.Items.Any())
@@ -46,17 +49,20 @@
         else
         {
             <div id="discussions-container" class="h-feed">
+                @{
+                    var topIndex = 0;
+                }
                 @foreach (var discussion in Model.TopDiscussions.Items)
                 {
                     @await Html.PartialAsync("Shared/_DiscussionCard",
-                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community))
+                        new DiscussionListItemVM(discussion, Model.ShowCommunityInDiscussionList, Model.Community, Rank: Model.Offset + topIndex++ + 1))
                 }
 
                 @if (Model.TopDiscussions.HasMoreItems)
                 {
                     var nextOffset = Model.TopDiscussions.Items.Count;
-                    <div class="flex justify-center mt-6">
-                        <a href="/top/@Model.Period?offset=@nextOffset" class="btn btn-ghost btn-sm">@T.Pages.TopLoadMore</a>
+                    <div class="sn-load-more-row">
+                        <a href="/top/@Model.Period?offset=@nextOffset" class="sn-btn sn-btn-ghost sn-btn-sm">@T.Pages.TopLoadMore</a>
                     </div>
                 }
             </div>
@@ -69,89 +75,93 @@
     ViewData["RightPane.AboutTitle"] = T.Pages.TopAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.TopAboutDesc;
 }
+@if (!DeviceDetection.IsMobile(HttpContext))
+{
 <aside class="sn-right">
-<div class="sn-right-sticky">
-    <partial name="Shared/_RightActionPane" />
-    <div class="sn-right-body">
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            @T.Sections.SiteStats
-        </div>
-        @if (Model.InlinePlatformStats != null)
-        {
-            <div class="sn-sidebar-stats">
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsDiscussions</div>
-                        <div class="stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
-                    </div>
+    <div class="sn-right-sticky">
+        <partial name="Shared/_RightActionPane" />
+        <div class="sn-right-body">
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="icon icon-chart-bar" aria-hidden="true"></span>
+                    @T.Sections.SiteStats
                 </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsReplies</div>
-                        <div class="stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
-                    </div>
-                </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Sidebar.StatsActivity</div>
-                        <div class="sn-sparkline-container sn-right-sparkline"
-                             data-sparkline-type="platform"
-                             data-sparkline-days="7"></div>
-                    </div>
-                </div>
-            </div>
-        }
-    </div>
-
-    <partial name="Shared/_RightAboutSection" />
-
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-archive-layers" aria-hidden="true"></span>
-            @T.Sections.TopSpaces
-        </div>
-        @if (Model.InlineTrendingSpaces?.Spaces?.Items?.Count > 0)
-        {
-            <div class="sn-spaces-inline">
-                @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
+                @if (Model.InlinePlatformStats != null)
                 {
-                    <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
-                       class="sn-card-tag sn-card-tag--space"
-                       style="--space-grad: @SpaceGradient(space.PublicId)">@space.Name</a>
+                    <div class="sn-sidebar-stats">
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsDiscussions</div>
+                                <div class="sn-stat-value">@FormatCount(Model.InlinePlatformStats.DiscussionCount)</div>
+                            </div>
+                        </div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsReplies</div>
+                                <div class="sn-stat-value">@FormatCount(Model.InlinePlatformStats.ReplyCount)</div>
+                            </div>
+                        </div>
+                        <div class="sn-stats sn-shadow-layered-light">
+                            <div class="sn-stat">
+                                <div class="sn-stat-title">@T.Sidebar.StatsActivity</div>
+                                <div class="sn-sparkline-container sn-right-sparkline"
+                                     data-sparkline-type="platform"
+                                     data-sparkline-days="7"></div>
+                            </div>
+                        </div>
+                    </div>
                 }
             </div>
-        }
-        else
-        {
-            <p class="sn-right-empty">@T.Sections.EmptyTopSpaces</p>
-        }
-    </div>
 
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-users-group" aria-hidden="true"></span>
-            @T.Sections.TopContributors
-        </div>
-        @if (Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
-        {
-            <div class="sn-trending-list">
-                @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
+            <partial name="Shared/_RightAboutSection" />
+
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="icon icon-archive-layers" aria-hidden="true"></span>
+                    @T.Sections.TopSpaces
+                </div>
+                @if (Model.InlineTrendingSpaces?.Spaces?.Items?.Count > 0)
                 {
-                    <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor">
-                        <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                        <span class="sn-trending-contributor-name">@c.DisplayName</span>
-                        <span class="sn-card-tag sn-card-tag-light sn-tag-sm">@c.PostCountToday</span>
-                    </a>
+                    <div class="sn-spaces-inline">
+                        @foreach (var space in Model.InlineTrendingSpaces.Spaces.Items)
+                        {
+                            <a href="@SnakkUrlHelper.Space(space.CommunitySlug, Model.Community, space.Hub.Slug, space.Slug)"
+                               class="sn-card-tag sn-card-tag--space sn-shadow-layered"
+                               style="--space-grad: @SpaceGradient(space.PublicId)">@space.Name</a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="sn-right-empty">@T.Sections.EmptyTopSpaces</p>
                 }
             </div>
-        }
-        else
-        {
-            <p class="sn-right-empty">@T.Sections.EmptyTopContributors</p>
-        }
+
+            <div class="sn-right-section">
+                <div class="sn-right-title">
+                    <span class="icon icon-users-group" aria-hidden="true"></span>
+                    @T.Sections.TopContributors
+                </div>
+                @if (Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0)
+                {
+                    <div class="sn-grid sn-grid-cols-8 sn-gap-1">
+                        @foreach (var c in Model.InlineTrendingContributors.Contributors.Items)
+                        {
+                            <a href="@SnakkUrlHelper.UserProfile(c.Slug)"
+                               data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
+                                <img src="@c.AvatarMicroUrl" alt="@c.DisplayName"
+                                     class="sn-rounded-full sn-w-full aspect-square sn-object-cover sn-shadow-layered"
+                                     loading="lazy" decoding="async" />
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="sn-right-empty">@T.Sections.EmptyTopContributors</p>
+                }
+            </div>
+        </div>
     </div>
-    </div>
-</div>
 </aside>
+}

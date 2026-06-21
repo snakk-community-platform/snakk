@@ -8,7 +8,7 @@
 
 .htmx-swapping {
     opacity: 0;
-    transition: opacity 150ms ease-out;
+    transition: opacity var(--duration-base) ease-out;
 }
 
 .htmx-settling {
@@ -32,7 +32,7 @@
     transform-origin: left;
     transform: scaleX(0);
     will-change: transform, opacity;
-    transition: opacity 0.2s ease;
+    transition: opacity var(--duration-slow) ease;
 
     &.active {
         opacity: 1;
@@ -42,7 +42,7 @@
     &.complete {
         transform: scaleX(1);
         animation: none;
-        transition: transform 0.15s ease-out, opacity 0.3s ease 0.15s;
+        transition: transform var(--duration-base) ease-out, opacity var(--duration-enter) ease var(--duration-base);
         opacity: 0;
     }
 }

@@ -1,5 +1,6 @@
 namespace Snakk.Worker.Workers;
 
+using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -9,6 +10,7 @@ using Snakk.Application.Repositories;
 public class ActivitySnapshotWorker(
     IServiceProvider serviceProvider,
     IConfiguration configuration,
+    HybridCache cache,
     ILogger<ActivitySnapshotWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -27,6 +29,7 @@ public class ActivitySnapshotWorker(
                 var repo = scope.ServiceProvider.GetRequiredService<IActivitySnapshotRepository>();
 
                 await repo.RefreshSnapshotsAsync(stoppingToken);
+                await cache.RemoveByTagAsync("sparkline", stoppingToken);
                 await repo.PruneAsync(90, stoppingToken);
 
                 var viewRepo = scope.ServiceProvider.GetRequiredService<IDiscussionViewRepository>();

@@ -8,24 +8,18 @@
 
 @if (!Model.Items.Any())
 {
-    <div class="text-sm py-8 text-center" style="color: var(--text-tertiary)">
-        <span class="icon icon-emoji-happy h-10 w-10 mx-auto mb-3 opacity-30" aria-hidden="true"></span>
+    <div class="sn-text-sm sn-py-8 sn-text-center" style="color: var(--text-tertiary)">
+        <span class="sn-icon icon-emoji-happy sn-icon--xl sn-mx-auto sn-mb-3 sn-opacity-30" aria-hidden="true"></span>
         <p>No reactions yet.</p>
-        <p class="mt-1 text-xs opacity-70">Discussions you react to will appear here.</p>
+        <p class="sn-mt-1 sn-text-xs opacity-70">Discussions you react to will appear here.</p>
     </div>
 }
 else
 {
     @foreach (var pair in Model.Items)
     {
-        <div class="sn-reaction-strip">
-            <span class="sn-reaction-emoji">@pair.Reaction.ReactionEmoji</span>
-            <span class="sn-reaction-time">
-                <time data-timestamp="@pair.Reaction.ReactedAt.ToString("O")">@DisplayHelper.FormatRelativeTime(pair.Reaction.ReactedAt)</time>
-            </span>
-        </div>
         @await Html.PartialAsync("Shared/_DiscussionCard",
-            new DiscussionListItemVM(pair.Discussion, ShowCommunity: true, Model.Community))
+            new DiscussionListItemVM(pair.Discussion, ShowCommunity: true, Model.Community, ReactionEmoji: pair.Reaction.ReactionEmoji, ReactedAt: pair.Reaction.ReactedAt))
     }
 
     @if (Model.HasMoreItems)
@@ -35,7 +29,7 @@ else
              hx-swap="outerHTML"
              hx-target="this"
              hx-push-url="false"
-             class="py-2">
+             class="sn-py-2">
             <partial name="Shared/_DiscussionSkeleton" />
         </div>
     }

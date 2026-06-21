@@ -65,6 +65,7 @@
                     var res = await fetch('/', { method: 'GET', cache: 'no-store' });
                     if (res.ok) {
                         clearInterval(timer);
+                        fetch('/bff/setup/warm-cache', { method: 'POST', cache: 'no-store' }).catch(function() {});
                         window.location.href = '/';
                         return;
                     }

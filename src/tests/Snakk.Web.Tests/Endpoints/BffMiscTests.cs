@@ -76,7 +76,7 @@ public class BffMiscTests
         });
 
         app.MockApiClient
-            .GetRecentDiscussionsAsync(0, 10, null, Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .GetRecentDiscussionsAsync(0, 10, null, Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(recentDiscussions);
 
         app.MockApiClient
@@ -164,7 +164,7 @@ public class BffMiscTests
         });
 
         app.MockApiClient
-            .GetRecentDiscussionsAsync(0, 10, null, Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .GetRecentDiscussionsAsync(0, 10, null, Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(recentDiscussions);
 
         // GetTopActiveDiscussionsAsync returns null (simulating gRPC failure caught by SnakkApiClient)

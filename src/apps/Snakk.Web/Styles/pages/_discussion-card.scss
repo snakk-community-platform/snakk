@@ -3,19 +3,22 @@
 .sn-card-list {
     display: flex;
     flex-direction: column;
-    gap: 2.5rem;
+    gap: var(--space-20);
 }
 
 .sn-card {
     display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+    flex-direction: row;
+    gap: 0.65rem;
     position: relative;
     cursor: pointer;
-    border-radius: 0.5rem;
-    padding: 1.25rem .75rem;
-    margin: -1.25rem -.75rem;
-    transition: background 0.15s;
+    border-radius: var(--radius-lg);
+    padding: var(--space-10) var(--space-6);
+    margin: calc(-1 * var(--space-10)) calc(-1 * var(--space-6));
+}
+
+.sn-card {
+    transition: background var(--duration-base);
 
     &:hover {
         background: var(--bg-secondary);
@@ -44,22 +47,31 @@
 }
 
 .sn-card-author {
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
-    color: var(--text-secondary);
     text-decoration: none;
+}
+
+.sn-card-author {
+    color: var(--text-secondary);
 
     &:hover { color: var(--text-primary); }
 }
 
 .sn-card-dot {
-    font-size: 0.625rem;
+    font-size: var(--font-size-2xs);
+}
+
+.sn-card-dot {
     color: var(--text-tertiary);
 }
 
 .sn-card-time {
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
     font-weight: 600;
+}
+
+.sn-card-time {
     color: var(--text-tertiary);
 }
 
@@ -67,51 +79,65 @@
     display: inline-flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 0.25rem;
+    gap: var(--space-2);
     flex-wrap: wrap;
     min-width: 0;
     flex: 1;
 }
 
 .sn-card-path-sep {
-    font-size: 0.75rem;
+    font-size: var(--font-size-sm);
+}
+
+.sn-card-path-sep {
     color: var(--text-tertiary);
 }
 
 .sn-card-tag {
     display: inline-flex;
     align-items: center;
-    font-size: 0.6875rem;
+    font-size: var(--font-size-xs);
     font-weight: 600;
-    padding: 0.125rem 0.4375rem;
-    border-radius: 0.25rem;
+    padding: var(--space-1) 0.4375rem;
+    border-radius: var(--radius-sm);
     text-decoration: none;
+    white-space: nowrap;
+}
+
+.sn-card-tag {
     background: var(--sidebar-bg);
     color: var(--link-primary);
-    white-space: nowrap;
-    transition: background 0.15s, color 0.15s;
+    transition: background var(--duration-base), color var(--duration-base);
 }
 
 .sn-card-tag--space {
     position: relative;
     overflow: hidden;
     isolation: isolate;
-    background-image: var(--space-grad);
-    background-size: cover;
-    background-position: center;
-    color: #fff;
 
     &::before {
         content: '';
         position: absolute;
         inset: 0;
         z-index: -1;
-        background: linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.35));
         pointer-events: none;
+    }
+}
+
+.sn-card-tag--space {
+    background-image: var(--space-grad);
+    background-size: cover;
+    background-position: center;
+    color: var(--text-on-dark);
+
+    &::before {
+        background: linear-gradient(rgba(0,0,0,.15),rgba(0,0,0,.35));
+        backdrop-filter: var(--colored-backdrop-filter);
+        -webkit-backdrop-filter: var(--colored-backdrop-filter);
     }
 
     &:hover {
-        color: #fff;
+        color: var(--text-on-dark);
     }
 
     &:hover::before {
@@ -120,10 +146,13 @@
 }
 
 .sn-card-path-link {
-    font-size: 0.6875rem;
+    font-size: var(--font-size-xs);
     font-weight: 400;
-    color: var(--text-tertiary);
     text-decoration: none;
+}
+
+.sn-card-path-link {
+    color: var(--text-tertiary);
 
     &:hover { color: var(--link-primary); }
 }
@@ -132,21 +161,20 @@
     background: color-mix(in srgb, var(--sidebar-bg) 50%, var(--bg-tertiary));
 }
 
-.sn-card-title-row {
+.sn-card-heading-row {
     display: flex;
     align-items: baseline;
-    gap: 1rem;
+    gap: var(--space-8);
 }
 
-.sn-card-title {
+.sn-card-heading {
     flex: 1;
     min-width: 0;
-    font-size: 0.9375rem;
+    font-size: var(--font-size-prose);
     font-weight: 600;
     line-height: 1.35;
 
     a {
-        color: var(--text-primary);
         text-decoration: none;
 
         // Stretch the title link over the entire card to make it clickable
@@ -159,9 +187,15 @@
     }
 }
 
+.sn-card-heading {
+    a {
+        color: var(--text-primary);
+    }
+}
+
 // Interactive elements inside the card sit above the stretched title link
 .sn-card-header a,
-.sn-card-title-row .sn-card-comments,
+.sn-card-heading-row .sn-card-comments,
 .sn-card-stats a,
 .sn-card-stats button,
 .sn-card-preview a,
@@ -179,11 +213,10 @@
 }
 
 .sn-card-excerpt {
-    padding: 0.125rem 0 0.5rem;
+    padding: var(--space-1) 0 var(--space-4);
 
     .sn-post-preview {
-        font-size: 0.8125rem;
-        color: var(--text-secondary);
+        font-size: var(--font-size-ui);
         line-height: 1.5;
         display: -webkit-box;
         -webkit-line-clamp: 3;
@@ -192,22 +225,34 @@
     }
 }
 
+.sn-card-excerpt {
+    .sn-post-preview {
+        color: var(--text-secondary);
+    }
+}
+
 .sn-card-type-meta {
-    font-size: 0.6875rem;
+    font-size: var(--font-size-xs);
     font-weight: 400;
-    color: var(--text-tertiary);
     vertical-align: middle;
+}
+
+.sn-card-type-meta {
+    color: var(--text-tertiary);
 }
 
 .sn-card-type-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    font-size: 0.6875rem;
+    gap: var(--space-2);
+    font-size: var(--font-size-xs);
     font-weight: 600;
-    padding: 0.125rem 0.4375rem;
-    border-radius: 0.25rem;
+    padding: var(--space-1) 0.4375rem;
+    border-radius: var(--radius-sm);
     vertical-align: middle;
+}
+
+.sn-card-type-badge {
     background: color-mix(in srgb, var(--sidebar-bg) 60%, transparent);
     color: var(--text-secondary);
 }
@@ -218,22 +263,24 @@
     letter-spacing: 0.04em;
 }
 
-
 .sn-card-stats {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-top: 0.375rem;
-    font-size: 0.75rem;
+    gap: var(--space-8);
+    margin-top: var(--space-3);
+    font-size: var(--font-size-sm);
+}
+
+.sn-card-stats {
     color: var(--text-tertiary);
 }
 
 .sn-card-stat {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
+    gap: var(--space-2);
 
-    svg, .icon {
+    svg, .sn-icon {
         width: 0.875rem;
         height: 0.875rem;
     }
@@ -245,25 +292,31 @@
 
 .sn-card-comments {
     flex-shrink: 0;
-    font-size: 0.75rem;
-    color: var(--link-primary);
+    font-size: var(--font-size-sm);
     font-weight: 500;
     text-decoration: none;
+}
 
-    svg, .icon { color: var(--link-primary); }
+.sn-card-comments {
+    color: var(--link-primary);
+
+    svg, .sn-icon { color: var(--link-primary); }
 
     &:hover {
         color: var(--link-hover);
-        svg, .icon { color: var(--link-hover); }
+        svg, .sn-icon { color: var(--link-hover); }
     }
 }
 
 .sn-card-reactions {
-    background: color-mix(in srgb, var(--sidebar-bg) 60%, transparent);
-    padding: 0.125rem 0.5rem;
-    border-radius: 1rem;
-    font-size: 0.75rem;
+    padding: var(--space-1) var(--space-4);
+    border-radius: var(--radius-2xl);
+    font-size: var(--font-size-sm);
     font-weight: 500;
+}
+
+.sn-card-reactions {
+    background: color-mix(in srgb, var(--sidebar-bg) 60%, transparent);
     color: var(--text-secondary);
 }
 
@@ -272,16 +325,10 @@
     display: flex;
     align-items: center;
     gap: 0.35rem;
-    margin-top: 0.25rem;
-    border-radius: 0.375rem;
+    margin-top: var(--space-2);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    background: var(--bg-secondary);
-    padding: 0.5rem;
-    transition: background 0.15s ease;
-
-    .sn-card:hover & {
-        background: var(--bg-hover, color-mix(in srgb, currentColor 6%, transparent));
-    }
+    padding: var(--space-4);
 
     &::after {
         content: '';
@@ -293,8 +340,20 @@
         border-right: 1.5px solid var(--text-tertiary);
         border-top: 1.5px solid var(--text-tertiary);
         transform: translateY(-50%) rotate(45deg);
+    }
+}
+
+.sn-card-reply-strip {
+    background: var(--bg-secondary);
+    transition: background var(--duration-base) ease;
+
+    .sn-card:hover & {
+        background: var(--bg-hover, color-mix(in srgb, currentColor 6%, transparent));
+    }
+
+    &::after {
         opacity: 0;
-        transition: opacity 0.15s ease;
+        transition: opacity var(--duration-base) ease;
     }
 
     &:hover::after {
@@ -321,9 +380,8 @@
 .sn-card-reply-meta {
     display: flex;
     align-items: center;
-    gap: 0.25rem;
-    font-size: 0.75rem;
-    color: var(--text-tertiary);
+    gap: var(--space-2);
+    font-size: var(--font-size-sm);
     min-width: 0;
     overflow: hidden;
 
@@ -331,10 +389,17 @@
         position: relative;
         z-index: 1;
         font-weight: 600;
-        color: var(--text-secondary);
         text-decoration: none;
         white-space: nowrap;
         flex-shrink: 0;
+    }
+}
+
+.sn-card-reply-meta {
+    color: var(--text-secondary);
+
+    a {
+        color: var(--text-secondary);
 
         &:hover { color: var(--text-primary); }
     }
@@ -343,23 +408,29 @@
 .sn-card-op-badge {
     display: inline-block;
     padding: 0.0625rem 0.3125rem;
-    font-size: 0.625rem;
+    font-size: var(--font-size-2xs);
     font-weight: 700;
     letter-spacing: 0.02em;
     text-transform: uppercase;
-    color: var(--link-primary);
-    background: color-mix(in srgb, var(--link-primary) 10%, transparent);
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+.sn-card-op-badge {
+    color: var(--link-primary);
+    background: color-mix(in srgb, var(--link-primary) 10%, transparent);
 }
 
 .sn-card-reply-excerpt {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-style: italic;
     min-width: 0;
+}
+
+.sn-card-reply-excerpt {
+    font-style: italic;
 }
 
 .sn-card-reply-time {
@@ -371,33 +442,36 @@
     display: inline-flex;
     align-items: center;
     margin-left: auto;
-    padding: 0.125rem;
-    background: none;
+    padding: var(--space-1);
     border: none;
     cursor: pointer;
-    color: var(--text-tertiary);
-    transition: color 0.15s ease;
 
-    svg, .icon {
+    svg, .sn-icon {
         width: 0.875rem;
         height: 0.875rem;
     }
+}
+
+.sn-card-save-btn {
+    background: none;
+    color: var(--text-tertiary);
+    transition: color var(--duration-base) ease;
 
     &:hover {
         color: var(--text-secondary);
     }
 
     &[data-saved="true"],
-    &.is-saved,
-    &.text-primary {
+    &.sn-is-saved,
+    &.sn-text-primary {
         color: var(--color-primary);
     }
 }
 
-.post-save-btn.is-saved {
+.sn-post-save-btn.sn-is-saved {
     color: var(--color-primary);
 
-    .icon { background-color: var(--color-primary); }
+    .sn-icon { background-color: var(--color-primary); }
 }
 
 @media (max-width: 767.98px) {
@@ -421,8 +495,17 @@
         -webkit-box-orient: vertical;
         text-overflow: clip;
     }
+
 }
 
 @media (max-width: 767.98px) {
-    .sn-card-title-row { gap: .25rem; }
+    .sn-card-heading-row { gap: var(--space-2); }
+
 }
+
+// .sn-card-content is the generic card body (padding: 1.25rem from _sn-card.scss).
+// Inside a discussion card it acts as a layout wrapper and must have no padding.
+.sn-card .sn-card-content {
+    padding: 0;
+}
+

@@ -7,10 +7,10 @@
 
 
 @section CenterHeader {
-    <a href="/moderation" class="badge badge-ghost badge-sm">@T.Pages.ModCrumb</a>
+    <a href="/moderation" class="sn-badge sn-badge-ghost sn-badge-sm">@T.Pages.ModCrumb</a>
 }
 
-<div class="max-w-5xl mx-auto px-4 py-8">
+<div class="sn-max-w-5xl sn-mx-auto sn-px-4 sn-py-8">
     <!-- Page Header -->
     <div class="page-header">
         <h1>@T.Pages.ModLogsHeading</h1>
@@ -18,31 +18,31 @@
     </div>
 
     <!-- Filters -->
-    <div class="clean-card mb-6">
-        <form method="get" class="flex flex-wrap gap-3">
-            <div class="flex-1 min-w-[200px]">
+    <div class="clean-card sn-mb-6">
+        <form method="get" class="sn-log-filter-row">
+            <div class="sn-flex-1 min-w-[200px]">
                 <input type="text"
                        name="communityId"
                        value="@Model.CommunityId"
                        placeholder="@T.Pages.ModLogsCommunityIdPh"
-                       class="input input-sm w-full" />
+                       class="sn-input sn-input-sm sn-w-full" />
             </div>
-            <div class="flex-1 min-w-[200px]">
+            <div class="sn-flex-1 min-w-[200px]">
                 <input type="text"
                        name="hubId"
                        value="@Model.HubId"
                        placeholder="@T.Pages.ModLogsHubIdPh"
-                       class="input input-sm w-full" />
+                       class="sn-input sn-input-sm sn-w-full" />
             </div>
-            <div class="flex-1 min-w-[200px]">
+            <div class="sn-flex-1 min-w-[200px]">
                 <input type="text"
                        name="spaceId"
                        value="@Model.SpaceId"
                        placeholder="@T.Pages.ModLogsSpaceIdPh"
-                       class="input input-sm w-full" />
+                       class="sn-input sn-input-sm sn-w-full" />
             </div>
-            <button type="submit" class="btn btn-sm btn-primary">@T.Pages.ModLogsFilterBtn</button>
-            <a href="/moderation/logs" class="btn btn-sm btn-ghost">@T.Pages.ModLogsClearBtn</a>
+            <button type="submit" class="sn-btn sn-btn-sm sn-btn-primary">@T.Pages.ModLogsFilterBtn</button>
+            <a href="/moderation/logs" class="sn-btn sn-btn-sm sn-btn-ghost">@T.Pages.ModLogsClearBtn</a>
         </form>
     </div>
 
@@ -75,46 +75,46 @@
                         @foreach (var log in Model.Logs.Items)
                         {
                             <tr class="hover">
-                                <td class="text-xs text-muted whitespace-nowrap">
+                                <td class="sn-log-timestamp-cell">
                                     <span title="@log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss UTC")">
                                         @Model.GetRelativeTime(log.CreatedAt)
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="flex items-center gap-2">
+                                    <div class="sn-actor-identity">
                                         <img src="@SnakkUrlHelper.UserAvatar(log.ActorUserPublicId)"
                                              alt="@log.ActorUserDisplayName"
                                              width="24" height="24"
-                                             class="w-6 h-6 rounded-full" />
-                                        <a href="@SnakkUrlHelper.UserProfile(log.ActorUserPublicId)" class="link link-hover text-sm">@log.ActorUserDisplayName</a>
+                                             class="w-6 h-6 sn-rounded-full" />
+                                        <a href="@SnakkUrlHelper.UserProfile(log.ActorUserPublicId)" class="sn-link sn-link-hover sn-text-sm">@log.ActorUserDisplayName</a>
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge @Model.GetActionBadgeClass(log.Action) badge-sm">
+                                    <span class="sn-badge @Model.GetActionBadgeClass(log.Action) sn-badge-sm">
                                         @Model.GetActionDisplayName(log.Action)
                                     </span>
                                 </td>
-                                <td class="text-sm">
+                                <td class="sn-text-sm">
                                     @if (!string.IsNullOrEmpty(log.TargetUserDisplayName))
                                     {
-                                        <a href="@SnakkUrlHelper.UserProfile(log.TargetUserPublicId ?? "")" class="link link-hover">@log.TargetUserDisplayName</a>
+                                        <a href="@SnakkUrlHelper.UserProfile(log.TargetUserPublicId ?? "")" class="sn-link sn-link-hover">@log.TargetUserDisplayName</a>
                                     }
                                     else if (!string.IsNullOrEmpty(log.TargetDiscussionTitle))
                                     {
-                                        <span class="truncate max-w-[150px] inline-block" title="@log.TargetDiscussionTitle">
+                                        <span class="sn-truncate max-w-[150px] sn-inline-block" title="@log.TargetDiscussionTitle">
                                             @(log.TargetDiscussionTitle.Length > 30 ? log.TargetDiscussionTitle.Substring(0, 30) + "..." : log.TargetDiscussionTitle)
                                         </span>
                                     }
                                     else if (!string.IsNullOrEmpty(log.TargetPostPublicId))
                                     {
-                                        <span class="text-muted">@T.Pages.ModLogsPost</span>
+                                        <span class="sn-text-muted">@T.Pages.ModLogsPost</span>
                                     }
                                     else
                                     {
-                                        <span class="text-muted">-</span>
+                                        <span class="sn-text-muted">-</span>
                                     }
                                 </td>
-                                <td class="text-xs text-muted">
+                                <td class="sn-text-xs sn-text-muted">
                                     @if (!string.IsNullOrEmpty(log.SpaceName))
                                     {
                                         @log.SpaceName
@@ -132,14 +132,14 @@
                                         <span>@T.Pages.ModLogsGlobal</span>
                                     }
                                 </td>
-                                <td class="text-xs text-muted max-w-[200px]">
+                                <td class="sn-text-xs sn-text-muted max-w-[200px]">
                                     @if (!string.IsNullOrEmpty(log.Details))
                                     {
                                         <span title="@log.Details">@(log.Details.Length > 50 ? log.Details.Substring(0, 50) + "..." : log.Details)</span>
                                     }
                                     @if (!string.IsNullOrEmpty(log.Reason))
                                     {
-                                        <span class="italic" title="@log.Reason">@(log.Reason.Length > 50 ? log.Reason.Substring(0, 50) + "..." : log.Reason)</span>
+                                        <span class="sn-italic" title="@log.Reason">@(log.Reason.Length > 50 ? log.Reason.Substring(0, 50) + "..." : log.Reason)</span>
                                     }
                                 </td>
                             </tr>
@@ -152,16 +152,16 @@
         @* Pagination *@
         @if (Model.Offset > 0 || Model.Logs.HasMoreItems)
         {
-            <div class="flex justify-center gap-2 mt-6">
+            <div class="sn-pagination-row--logs">
                 @if (Model.Offset > 0)
                 {
-                    <a href="@Model.BuildUrl(Math.Max(0, Model.Offset - Model.PageSize))" class="btn btn-ghost btn-sm">
+                    <a href="@Model.BuildUrl(Math.Max(0, Model.Offset - Model.PageSize))" class="sn-btn sn-btn-ghost sn-btn-sm">
                         @T.Pages.ModLogsPrevious
                     </a>
                 }
                 @if (Model.Logs.HasMoreItems)
                 {
-                    <a href="@Model.BuildUrl(Model.Offset + Model.PageSize)" class="btn btn-ghost btn-sm">
+                    <a href="@Model.BuildUrl(Model.Offset + Model.PageSize)" class="sn-btn sn-btn-ghost sn-btn-sm">
                         @T.Pages.ModLogsNext
                     </a>
                 }

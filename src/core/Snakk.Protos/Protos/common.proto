@@ -57,6 +57,7 @@ message AuthorRef {
   int32 reply_count = 8;
   optional string avatar_thumbnail_url = 9;
   optional string avatar_micro_url = 10;
+  optional string slug = 11;
 }
 
 // Reference to a post being replied to

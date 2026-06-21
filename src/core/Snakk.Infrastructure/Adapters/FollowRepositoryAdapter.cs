@@ -22,7 +22,7 @@ public class FollowRepositoryAdapter(
                 && f.Discussion != null
                 && f.DiscussionPublicId == discussionId.Value)
             .Select(f => new FollowProjection(
-                f.PublicId, f.UserPublicId, f.TargetTypeId,
+                f.PublicId, f.UserPublicId!, f.TargetTypeId,
                 f.DiscussionPublicId,
                 f.SpacePublicId,
                 f.FollowedUserPublicId,
@@ -39,7 +39,7 @@ public class FollowRepositoryAdapter(
                 && f.Space != null
                 && f.SpacePublicId == spaceId.Value)
             .Select(f => new FollowProjection(
-                f.PublicId, f.UserPublicId, f.TargetTypeId,
+                f.PublicId, f.UserPublicId!, f.TargetTypeId,
                 f.DiscussionPublicId,
                 f.SpacePublicId,
                 f.FollowedUserPublicId,
@@ -56,7 +56,7 @@ public class FollowRepositoryAdapter(
                 && f.FollowedUser != null
                 && f.FollowedUserPublicId == followedUserId.Value)
             .Select(f => new FollowProjection(
-                f.PublicId, f.UserPublicId, f.TargetTypeId,
+                f.PublicId, f.UserPublicId!, f.TargetTypeId,
                 f.DiscussionPublicId,
                 f.SpacePublicId,
                 f.FollowedUserPublicId,
@@ -207,6 +207,20 @@ public class FollowRepositoryAdapter(
 
         var publicIds = await databaseRepository.GetFollowedDiscussionPublicIdsByUserAsync(user.Id, ct);
         return publicIds.Select(DiscussionId.From);
+    }
+
+    public async Task<IEnumerable<(DiscussionId Id, DateTime FollowedAt)>> GetFollowedDiscussionsWithTimestampsAsync(UserId userId, CancellationToken ct = default)
+    {
+        var results = await context.UserFollows
+            .Where(f => f.UserPublicId == userId.Value
+                     && f.TargetTypeId == (int)FollowTargetTypeEnum.Discussion
+                     && f.DiscussionPublicId != null)
+            .OrderByDescending(f => f.CreatedAt)
+            .Select(f => new { f.DiscussionPublicId, f.CreatedAt })
+            .ToListAsync(ct);
+        return results
+            .Where(x => x.DiscussionPublicId != null)
+            .Select(x => (DiscussionId.From(x.DiscussionPublicId!), x.CreatedAt));
     }
 
     public async Task<IEnumerable<UserId>> GetFollowedUsersByUserAsync(UserId userId, CancellationToken ct = default)

@@ -8,8 +8,11 @@
         left: 0;
         right: 0;
         z-index: 15;
-        background: var(--bg-secondary);
         border-bottom: 1px solid var(--border-secondary);
+    }
+
+    .sn-right:has(.sn-scrollspy) {
+        background: var(--bg-secondary);
     }
 
     .sn-right:has(.sn-scrollspy) .sn-right-sticky {
@@ -51,7 +54,7 @@
         white-space: nowrap;
         border-left: none;
         border-bottom: 2px solid transparent;
-        padding: 0.5rem 0.75rem;
+        padding: var(--space-4) var(--space-6);
     }
 
     .sn-right:has(.sn-scrollspy) .sn-scrollspy-page.active {
@@ -64,6 +67,7 @@
     // Settings center content needs to clear the fixed pill bar
     // (2.5rem tall: 0.5rem + ~1.5rem text + 0.5rem + 1px border).
     .sn-layout:has(.sn-right .sn-scrollspy) .sn-center {
-        padding-top: 2.5rem;
+        padding-top: var(--space-20);
     }
+
 }

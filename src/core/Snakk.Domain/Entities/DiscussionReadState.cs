@@ -1,5 +1,6 @@
 namespace Snakk.Domain.Entities;
 
+using System.Text.Json.Serialization;
 using Snakk.Domain.ValueObjects;
 
 /// <summary>
@@ -17,6 +18,7 @@ public class DiscussionReadState
     private DiscussionReadState() { }
 #pragma warning restore CS8618
 
+    [JsonConstructor]
     private DiscussionReadState(
         UserId userId,
         DiscussionId discussionId,

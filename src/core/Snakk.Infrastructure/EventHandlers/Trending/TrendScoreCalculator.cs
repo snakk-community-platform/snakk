@@ -8,12 +8,12 @@ internal static class TrendScoreCalculator
     private const double PostWeight = 3.0;
     private const double ReactionWeight = 1.0;
     private const double Gravity = 1.8;
-    private const int WindowHours = 48;
+    private static readonly TimeSpan DefaultWindow = TimeSpan.FromHours(48);
 
-    public static async Task RecalculateAsync(SnakkDbContext context, string discussionPublicId, CancellationToken cancellationToken = default)
+    public static async Task RecalculateAsync(SnakkDbContext context, string discussionPublicId, TimeSpan? window = null, CancellationToken cancellationToken = default)
     {
         var now = DateTime.UtcNow;
-        var cutoff = now.AddHours(-WindowHours);
+        var cutoff = now - (window ?? DefaultWindow);
 
         var discussion = await context.Discussions
             .AsTracking()

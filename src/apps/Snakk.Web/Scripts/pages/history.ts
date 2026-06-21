@@ -6,18 +6,26 @@
 
     interface ReadHistoryEntry {
         discussionPublicId: string;
+        visitedAt?: string;
+    }
+
+    interface HistoryItem {
+        id: string;
+        visitedAt?: string;
     }
 
     // Incremented each time init() starts; lets in-flight fetches from a
     // superseded init() detect they're stale and bail out cleanly.
     let generation = 0;
 
-    function readIds(): string[] {
+    function readEntries(): HistoryItem[] {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (!raw) return [];
             const entries = JSON.parse(raw) as ReadHistoryEntry[];
-            return entries.map(e => e.discussionPublicId).filter(Boolean);
+            return entries
+                .filter(e => e.discussionPublicId)
+                .map(e => ({ id: e.discussionPublicId, visitedAt: e.visitedAt }));
         } catch {
             return [];
         }
@@ -31,14 +39,41 @@
         return chunks;
     }
 
+    function removeEntry(publicId: string): void {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const entries = JSON.parse(raw) as ReadHistoryEntry[];
+            const filtered = entries.filter(e => e.discussionPublicId !== publicId);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+        } catch { }
+    }
+
+    function handleRemove(btn: HTMLElement): void {
+        const publicId = btn.dataset['removeHistoryId'];
+        if (!publicId) return;
+
+        const card = btn.closest('.sn-card') as HTMLElement | null;
+        card?.remove();
+
+        removeEntry(publicId);
+
+        const container = document.getElementById('history-container');
+        const empty     = document.getElementById('history-empty');
+        if (container && !container.querySelector('.sn-card')) {
+            container.classList.add('sn-hidden');
+            empty?.classList.remove('sn-hidden');
+        }
+    }
+
     function handleClear(): void {
         try { localStorage.removeItem(STORAGE_KEY); } catch { }
 
         const container = document.getElementById('history-container');
         const empty     = document.getElementById('history-empty');
 
-        if (container) { container.innerHTML = ''; container.classList.add('hidden'); }
-        empty?.classList.remove('hidden');
+        if (container) { container.innerHTML = ''; container.classList.add('sn-hidden'); }
+        empty?.classList.remove('sn-hidden');
     }
 
     async function init(): Promise<void> {
@@ -51,24 +86,26 @@
 
         // Always reset before (re-)loading — prevents double-render on HTMX back-nav
         container.innerHTML = '';
-        container.classList.add('hidden');
-        empty?.classList.add('hidden');
-        loadingEl?.classList.remove('hidden');
+        container.classList.add('sn-hidden');
+        empty?.classList.add('sn-hidden');
+        loadingEl?.classList.remove('sn-hidden');
 
-        const allIds = readIds();
+        const allEntries = readEntries();
 
-        if (allIds.length === 0) {
-            loadingEl?.classList.add('hidden');
-            empty?.classList.remove('hidden');
+        if (allEntries.length === 0) {
+            loadingEl?.classList.add('sn-hidden');
+            empty?.classList.remove('sn-hidden');
             return;
         }
 
         // Fire all batches concurrently; history is capped at 50 entries so
         // this is at most 3 parallel requests (batch size 20).
         const htmlParts = await Promise.all(
-            chunk(allIds, BATCH_SIZE).map(async (batch) => {
+            chunk(allEntries, BATCH_SIZE).map(async (batch) => {
                 try {
-                    const resp = await fetch(`/partials/history-discussions?ids=${batch.join(',')}`, {
+                    const ids = batch.map(e => e.id).join(',');
+                    const tss = batch.map(e => e.visitedAt ?? '').join(',');
+                    const resp = await fetch(`/partials/history-discussions?ids=${ids}&timestamps=${encodeURIComponent(tss)}`, {
                         credentials: 'include'
                     });
                     if (myGen !== generation) return '';
@@ -80,16 +117,16 @@
 
         if (myGen !== generation) return;
 
-        loadingEl?.classList.add('hidden');
+        loadingEl?.classList.add('sn-hidden');
 
         const combinedHtml = htmlParts.join('');
         if (combinedHtml.trim()) {
             container.insertAdjacentHTML('beforeend', combinedHtml);
             // Let card-animations.js observe the newly inserted poll/debate/gallery cards
-            document.dispatchEvent(new Event('htmx:afterSwap'));
-            container.classList.remove('hidden');
+            document.dispatchEvent(new CustomEvent('htmx:afterSwap', { detail: { target: container } }));
+            container.classList.remove('sn-hidden');
         } else {
-            empty?.classList.remove('hidden');
+            empty?.classList.remove('sn-hidden');
         }
     }
 
@@ -101,6 +138,15 @@
             clearBtn.parentNode?.replaceChild(fresh, clearBtn);
             fresh.addEventListener('click', handleClear);
         }
+
+        if (!(window as any).__historyRemoveListenerRegistered) {
+            (window as any).__historyRemoveListenerRegistered = true;
+            document.addEventListener('click', function(e: Event) {
+                const btn = (e.target as HTMLElement).closest('[data-action="remove-from-history"]') as HTMLElement | null;
+                if (btn) handleRemove(btn);
+            });
+        }
+
         void init();
     }
 

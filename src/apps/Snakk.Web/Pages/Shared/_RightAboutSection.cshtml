@@ -7,15 +7,15 @@
 }
 <div class="sn-right-section">
     <div class="sn-right-title">
-        <span class="icon icon-info-circle" aria-hidden="true"></span>
+        <span class="sn-icon icon-info-circle" aria-hidden="true"></span>
         @title
     </div>
     @if (!string.IsNullOrEmpty(desc))
     {
-        <p class="text-sm" style="color: var(--text-secondary)">@desc</p>
+        <p class="sn-text-sm" style="color: var(--text-secondary)">@desc</p>
     }
     @if (!string.IsNullOrEmpty(linkText) && !string.IsNullOrEmpty(linkUrl))
     {
-        <a href="@linkUrl" class="btn btn-outline btn-sm w-full mt-3">@linkText</a>
+        <a href="@linkUrl" class="sn-btn sn-btn-outline sn-btn-sm sn-w-full mt-3">@linkText</a>
     }
 </div>

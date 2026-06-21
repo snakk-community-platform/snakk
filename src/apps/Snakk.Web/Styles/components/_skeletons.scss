@@ -2,48 +2,52 @@
 // Skeleton Loaders
 // ============================================
 
-.skeleton {
+.sn-skeleton {
     position: relative;
     overflow: hidden;
-    background: var(--bg-subtle) !important;
-    background-image: none !important;
-    border-radius: 4px;
-
-    // Disable daisyUI's non-composited background-position animation
-    animation: none !important;
+    border-radius: var(--radius-sm);
 
     // Use composited transform animation on pseudo-element instead
     &::after {
         content: '';
         position: absolute;
         inset: 0;
-        background: linear-gradient(90deg, transparent 25%, var(--border-primary) 50%, transparent 75%);
-        animation: skeleton-loading 1.5s infinite;
-        will-change: transform;
+    }
+}
+
+.sn-skeleton {
+    background: var(--bg-subtle) !important;
+    background-image: none !important;
+
+    // Disable daisyUI's non-composited background-position animation
+    animation: none !important;
+
+    &::after {
+        background: rgba(255,255,255,0.08);
     }
 }
 
 @keyframes skeleton-loading {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0%, 100% { opacity: .3; }
+    50% { opacity: .8; }
 }
 
-.skeleton-post {
-    padding: 1.5rem 0;
+.sn-skeleton-post {
+    padding: var(--space-12) 0;
     border-bottom: 1px solid var(--border-secondary);
 }
 
-.skeleton-avatar {
+.sn-skeleton-avatar {
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 50%;
 }
 
-.skeleton-line {
+.sn-skeleton-line {
     height: 1rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: var(--space-4);
 
-    &.short {
+    &.sn-short {
         width: 60%;
     }
 }
@@ -51,6 +55,7 @@
 // Avatar placeholder — visible while <img> src is loading,
 // covered naturally once the image renders.
 img.rounded-full,
-.avatar img {
+.sn-avatar img {
     background: var(--bg-subtle);
 }
+

@@ -10,6 +10,7 @@ using System.Text.Json;
 namespace Snakk.Web.Pages.Users;
 
 public record ProfileSocialLink(string Platform, string DisplayName, string Username, string? Url);
+public record ProfileModRole(string Role, string EntityType, string? EntityId, string? EntityName, string? AccessLevel);
 
 [OutputCache(PolicyName = "AnonymousProfile")]
 public class ProfileModel(
@@ -25,6 +26,7 @@ public class ProfileModel(
     public PagedRecentDiscussionList? RecentDiscussions { get; set; }
     public List<RecentDiscussionInfo> TopDiscussionsFull { get; set; } = [];
     public List<ProfileSocialLink>? SocialLinks { get; set; }
+    public List<ProfileModRole> ModerationRoles { get; set; } = [];
     public bool IsMessagingEnabled { get; private set; }
     public string ActiveTab { get; set; } = "discussions";
 
@@ -34,14 +36,13 @@ public class ProfileModel(
         return FormatRelativeTime(dateTime.Value);
     }
 
-    public async Task<IActionResult> OnGetAsync(string publicId, string? tab, CancellationToken cancellationToken)
+    public async Task<IActionResult> OnGetAsync(string slug, string? tab, CancellationToken cancellationToken)
     {
+        Preload("profile");
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
-        string decodedPublicId;
-        try { decodedPublicId = UlidBase62.Decode(publicId); }
-        catch { return NotFound(); }
 
-        var profileResult = await _apiClient.GetUserProfileResultAsync(decodedPublicId);
+        var profileResult = await _apiClient.GetUserBySlugResultAsync(slug, cancellationToken);
 
         if (!profileResult.IsSuccess)
             return profileResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
@@ -52,16 +53,18 @@ public class ProfileModel(
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
 
-        // Fetch recent discussions, top discussions, and social links in parallel
-        var discussionsTask = FetchDiscussionsAsync(decodedPublicId, viewerAllowsAdult);
-        var topDiscussionsTask = FetchTopDiscussionsFullAsync(Profile!);
-        var socialLinksTask = FetchSocialLinksAsync(decodedPublicId);
+        var publicId = Profile!.PublicId;
+        var discussionsTask = FetchDiscussionsAsync(publicId, viewerAllowsAdult);
+        var topDiscussionsTask = FetchTopDiscussionsFullAsync(Profile);
+        var socialLinksTask = FetchSocialLinksAsync(publicId);
+        var modRolesTask = FetchModerationRolesAsync(publicId);
 
-        await Task.WhenAll(discussionsTask, topDiscussionsTask, socialLinksTask);
+        await Task.WhenAll(discussionsTask, topDiscussionsTask, socialLinksTask, modRolesTask);
 
         RecentDiscussions = discussionsTask.Result;
         TopDiscussionsFull = topDiscussionsTask.Result;
         SocialLinks = socialLinksTask.Result;
+        ModerationRoles = modRolesTask.Result;
 
         return Page();
     }
@@ -111,5 +114,22 @@ public class ProfileModel(
             )).ToList();
         }
         catch { return null; }
+    }
+
+    private async Task<List<ProfileModRole>> FetchModerationRolesAsync(string decodedPublicId)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("InternalApi");
+            var response = await client.GetAsync($"/users/{Uri.EscapeDataString(decodedPublicId)}/mod-roles");
+            if (!response.IsSuccessStatusCode) return [];
+
+            using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
+            if (!doc.RootElement.TryGetProperty("items", out var itemsEl)) return [];
+
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            return itemsEl.Deserialize<List<ProfileModRole>>(options) ?? [];
+        }
+        catch { return []; }
     }
 }

@@ -1,72 +1,162 @@
+@using Microsoft.Extensions.Options
+@using Snakk.Web.Services
 @using Snakk.Web.Helpers
+@inject IOptions<OAuthProvidersOptions> OAuthOptions
 @{
-    string? hintEmail = null, hintName = null, hintAvatar = null;
-    var hintCookie = Context.Request.Cookies[".Snakk.ReloginHint"];
-    if (!string.IsNullOrEmpty(hintCookie))
+    var oauth    = OAuthOptions.Value;
+    var isAuth   = Context.User.Identity?.IsAuthenticated == true;
+
+    string? displayName = null, avatarSrc = null, avatarMicroSrc = null;
+
+    if (isAuth)
     {
-        try
+        displayName = Context.User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+        var publicId         = Context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "";
+        var avatarFileName   = Context.User.FindFirst("AvatarFileName")?.Value;
+        var avatarThumb      = Context.User.FindFirst("AvatarThumbnailFileName")?.Value;
+        var avatarMicroFile  = Context.User.FindFirst("AvatarMicroFileName")?.Value;
+        if (!string.IsNullOrEmpty(publicId))
         {
-            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(hintCookie));
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            var root = doc.RootElement;
-            hintEmail  = root.TryGetProperty("e", out var ep) ? ep.GetString() : null;
-            hintName   = root.TryGetProperty("n", out var np) ? np.GetString() : null;
-            hintAvatar = root.TryGetProperty("a", out var ap) ? ap.GetString() : null;
+            avatarSrc      = SnakkUrlHelper.UserAvatarThumbnail(publicId, avatarFileName: avatarFileName, avatarThumbnailFileName: avatarThumb);
+            avatarMicroSrc = SnakkUrlHelper.UserAvatarMicro(publicId, avatarFileName: avatarFileName, avatarMicroFileName: avatarMicroFile);
         }
-        catch { }
+    }
+    else
+    {
+        var hintCookie = Context.Request.Cookies[".Snakk.ReloginHint"];
+        if (!string.IsNullOrEmpty(hintCookie))
+        {
+            try
+            {
+                var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(hintCookie));
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                displayName = root.TryGetProperty("n", out var np) ? np.GetString() : null;
+                var hintAvatar = root.TryGetProperty("a", out var ap) ? ap.GetString() : null;
+                var hintMicro  = root.TryGetProperty("m", out var mp) ? mp.GetString() : null;
+                if (!string.IsNullOrEmpty(hintAvatar)) avatarSrc      = hintAvatar;
+                if (!string.IsNullOrEmpty(hintMicro))  avatarMicroSrc = hintMicro;
+            }
+            catch { }
+        }
     }
 
-    if (hintEmail is null) return;
+    if (!isAuth && displayName is null) return;
 
-    var autoOpen   = Context.Request.Query["session-expired"] == "1";
-    var returnPath = Uri.EscapeDataString(Context.Request.Path.Value ?? "/");
-    var loginUrl   = $"/auth/login?returnUrl={returnPath}";
-    var avatarSrc  = !string.IsNullOrEmpty(hintAvatar) ? $"/media/avatars/{Html.Encode(hintAvatar)}" : null;
+    var autoOpen  = Context.Request.Query["session-expired"] == "1";
+    var returnPath = Context.Request.Path.Value ?? "/";
+    var returnUrl  = Uri.EscapeDataString(returnPath);
+
+    var providerCount = (oauth.Google ? 1 : 0) + (oauth.GitHub ? 1 : 0) + (oauth.Discord ? 1 : 0)
+                      + (oauth.Facebook ? 1 : 0) + (oauth.Microsoft ? 1 : 0) + (oauth.Steam ? 1 : 0);
+    var googleUrl   = $"/auth/oauth/Google/challenge?returnUrl={returnUrl}";
+    var githubUrl   = $"/auth/oauth/GitHub/challenge?returnUrl={returnUrl}";
+    var discordUrl  = $"/auth/oauth/Discord/challenge?returnUrl={returnUrl}";
+    var facebookUrl = $"/auth/oauth/Facebook/challenge?returnUrl={returnUrl}";
+    var microsoftUrl = $"/auth/oauth/Microsoft/challenge?returnUrl={returnUrl}";
+    var steamUrl    = $"/auth/oauth/Steam/challenge?returnUrl={returnUrl}";
 }
-<dialog id="relogin-modal" class="modal modal-bottom sm:modal-middle"
+<dialog id="relogin-modal" class="sn-modal"
         @(autoOpen ? "data-auto-open" : "")
-        data-return-path="@Html.Encode(Context.Request.Path.Value ?? "/")">
-    <div class="modal-box max-w-sm text-center flex flex-col items-center gap-3">
-        <form method="dialog">
-            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-        </form>
+        data-return-path="@Html.Encode(returnPath)">
+    <div class="sn-relogin-modal-body sn-modal-box">
+        <div class="sn-alert sn-alert-warning sn-w-full" style="flex-direction:column;gap:var(--space-1);text-align:left">
+            <strong class="sn-text-sm sn-font-semibold">@T.Relogin.Title</strong>
+            <span id="relogin-subtitle" class="sn-text-sm">@T.Relogin.Subtitle</span>
+        </div>
 
         @if (avatarSrc is not null)
         {
-            <img src="@avatarSrc" alt="" class="w-14 h-14 rounded-full object-cover" />
+            <img src="@(avatarMicroSrc ?? avatarSrc)"
+                 srcset="@(avatarMicroSrc ?? avatarSrc) 1x, @avatarSrc 2x"
+                 alt="@displayName"
+                 loading="lazy"
+                 style="width:3.5rem;height:3.5rem;border-radius:var(--radius-full);object-fit:cover" />
         }
         else
         {
-            <div class="w-14 h-14 rounded-full bg-base-300 flex items-center justify-center">
-                <span class="icon icon-user w-7 h-7 text-base-content/40" aria-hidden="true"></span>
+            <div class="sn-relogin-avatar-placeholder">
+                <span class="icon icon-user w-7 h-7 sn-text-faint" aria-hidden="true"></span>
             </div>
         }
 
-        <div>
-            <h3 class="font-semibold text-base">@T.Relogin.Title</h3>
-            <p class="text-sm text-base-content/70 mt-1">@T.Relogin.Subtitle</p>
-        </div>
-        @if (!string.IsNullOrEmpty(hintName))
+        @if (!string.IsNullOrEmpty(displayName))
         {
-            <p class="text-sm font-medium">@hintName</p>
+            <p class="sn-text-sm sn-font-medium">@displayName</p>
         }
 
-        <form id="relogin-form" class="w-full flex flex-col gap-3">
-            <input type="hidden" name="email" value="@Html.Encode(hintEmail)" />
+        <div class="sn-nudge-oauth @(providerCount > 2 ? "sn-nudge-oauth--grid" : "")">
+            @if (oauth.Google)
+            {
+                <a href="@googleUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Google">
+                    <img src="/icons/brand-google-color.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
+                    <span class="oauth-text-full">@T.Nudge.ContinueGoogle</span><span class="oauth-text-short">Google</span>
+                </a>
+            }
+            @if (oauth.GitHub)
+            {
+                <a href="@githubUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="GitHub">
+                    <img src="/icons/brand-github.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
+                    <span class="oauth-text-full">@T.Nudge.ContinueGitHub</span><span class="oauth-text-short">GitHub</span>
+                </a>
+            }
+            @if (oauth.Discord)
+            {
+                <a href="@discordUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Discord">
+                    <img src="/icons/brand-discord-color.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
+                    <span class="oauth-text-full">@T.Nudge.ContinueDiscord</span><span class="oauth-text-short">Discord</span>
+                </a>
+            }
+            @if (oauth.Facebook)
+            {
+                <a href="@facebookUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Facebook">
+                    <img src="/icons/brand-facebook-color.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
+                    <span class="oauth-text-full">@T.Nudge.ContinueFacebook</span><span class="oauth-text-short">Facebook</span>
+                </a>
+            }
+            @if (oauth.Microsoft)
+            {
+                <a href="@microsoftUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Microsoft">
+                    <img src="/icons/brand-microsoft-color.svg" class="sn-w-4 sn-h-4 sn-shrink-0" aria-hidden="true" alt="">
+                    <span class="oauth-text-full">@T.Nudge.ContinueMicrosoft</span><span class="oauth-text-short">Microsoft</span>
+                </a>
+            }
+            @if (oauth.Steam)
+            {
+                <a href="@steamUrl" class="sn-nudge-oauth-btn" hx-boost="false" data-provider="Steam">
+                    <img src="/icons/brand-steam.svg" class="sn-w-5 sn-h-5 sn-shrink-0" aria-hidden="true" alt="">
+                    <span class="oauth-text-full">@T.Nudge.ContinueSteam</span><span class="oauth-text-short">Steam</span>
+                </a>
+            }
+            <button type="button" class="sn-nudge-oauth-btn" style="display:none"
+                    data-nudge-passkey data-provider="passkey" data-return-url="@returnPath">
+                <img src="/icons/passkey.svg" class="sn-w-5 sn-h-5 sn-shrink-0" aria-hidden="true" alt="">
+                <span class="oauth-text-full">@T.Nudge.ContinuePasskey</span><span class="oauth-text-short">Passkey</span>
+            </button>
+        </div>
+        <p id="relogin-passkey-error" class="sn-nudge-passkey-error sn-hidden"></p>
+        <div class="sn-nudge-divider" id="relogin-alt-divider"@(oauth.HasAny ? "" : " style=\"display:none\"")>
+            <span>@T.Nudge.Or</span>
+        </div>
+
+        <form id="relogin-form" class="sn-relogin-form sn-w-full" method="post" action="/bff/auth/relogin" hx-boost="false">
             <input type="password" name="password" id="relogin-password"
-                   class="input input-bordered w-full"
+                   class="sn-input sn-w-full"
                    placeholder="@T.Relogin.PasswordPlaceholder"
                    autocomplete="current-password"
                    required />
-            <p id="relogin-error" class="text-sm text-error hidden"></p>
-            <button type="submit" id="relogin-submit" class="btn btn-primary btn-sm w-full">
-                @T.Relogin.Submit
-            </button>
+            <p id="relogin-error" class="sn-text-sm sn-text-error sn-hidden"></p>
         </form>
 
-        <a href="@loginUrl" class="text-xs text-base-content/60 hover:underline" hx-boost="false">
-            @T.Relogin.OtherAccount
-        </a>
+        <div style="display:flex;flex-direction:column;gap:var(--space-4);width:100%">
+            <button type="submit" form="relogin-form" id="relogin-submit" class="sn-btn sn-btn-primary sn-btn-sm sn-w-full">
+                @T.Relogin.Submit
+            </button>
+            <form method="dialog" style="width:100%">
+                <button type="submit" style="width:100%;text-align:center;font-size:var(--font-size-sm);color:var(--text-tertiary);background:transparent;border:none;padding:var(--space-1) 0;cursor:pointer">
+                    @T.Relogin.StayLoggedOut
+                </button>
+            </form>
+        </div>
     </div>
-    <form method="dialog" class="modal-backdrop"><button>@T.Nudge.Close</button></form>
 </dialog>

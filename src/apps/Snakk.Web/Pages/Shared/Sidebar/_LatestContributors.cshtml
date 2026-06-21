@@ -9,30 +9,17 @@
 }
 else
 {
-    <ul class="sidebar-list">
+    <div class="sn-grid sn-grid-cols-8 sn-gap-1">
         @foreach (var contributor in Model.Contributors.Items)
         {
-            var lastPostAt = DateTimeOffset.TryParse(contributor.LastPostAt, out var dt) ? dt : DateTimeOffset.MinValue;
-
-            <li>
-                <a href="@SnakkUrlHelper.UserProfile(contributor.PublicId)" class="sidebar-link">
-                    <img src="@contributor.AvatarThumbnailUrl"
-                         alt="@contributor.DisplayName"
-                         width="32" height="32"
-                         class="sidebar-avatar"
-                         loading="lazy" decoding="async" />
-                    <span class="sidebar-link-content">
-                        <span class="sidebar-link-title">@contributor.DisplayName</span>
-                        <span class="sidebar-link-meta">
-                            @if (lastPostAt != DateTimeOffset.MinValue)
-                            {
-                                <time class="sidebar-badge" datetime="@lastPostAt.ToString("o")" data-relative="true">@lastPostAt.ToString("MMM d")</time>
-                            }
-                        </span>
-                    </span>
-                </a>
-            </li>
+            <a href="@SnakkUrlHelper.UserProfile(contributor.Slug)" title="@contributor.DisplayName"
+               hx-target="#main-content" hx-swap="outerHTML show:window:top">
+                <img src="@contributor.AvatarThumbnailUrl"
+                     alt="@contributor.DisplayName"
+                     class="sn-rounded-full sn-w-full aspect-square sn-object-cover"
+                     loading="lazy" decoding="async" />
+            </a>
         }
-    </ul>
+    </div>
 }
 </div>

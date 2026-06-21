@@ -8,6 +8,9 @@ using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
+using Snakk.Shared.Helpers;
+using System.Diagnostics;
+using System.Text;
 
 public class DatabaseSeeder(
     SnakkDbContext context,
@@ -94,6 +97,62 @@ public class DatabaseSeeder(
     private readonly Dictionary<int, int> _discussionLinkIndex = new();
     private readonly Dictionary<int, int> _discussionDebateTopicIndex = new();
 
+    // Cache: hubId → community entity (avoids per-space FindAsync)
+    private readonly Dictionary<int, CommunityDatabaseEntity> _hubCommunities = new();
+
+    // Tracks slugs assigned during this seeder run to avoid collisions
+    private readonly HashSet<string> _usedUserSlugs = [];
+    private bool _userSlugsLoaded;
+
+    private async Task EnsureUserSlugsLoadedAsync()
+    {
+        if (_userSlugsLoaded) return;
+        var existing = await _context.Users
+            .Where(u => u.Slug != null)
+            .Select(u => u.Slug!)
+            .ToListAsync();
+        foreach (var s in existing) _usedUserSlugs.Add(s);
+        _userSlugsLoaded = true;
+    }
+
+    private string GenerateUniqueUserSlug(string displayName, string publicId)
+    {
+        var baseSlug = SlugHelper.ToSlug(displayName);
+        if (baseSlug.Length < 3)
+            baseSlug = SlugHelper.ToSlug(publicId[..Math.Min(20, publicId.Length)]);
+        if (baseSlug.Length > 30)
+            baseSlug = baseSlug[..30].TrimEnd('-');
+
+        var candidate = baseSlug;
+        var counter = 0;
+        while (_usedUserSlugs.Contains(candidate))
+        {
+            counter++;
+            var suffix = counter.ToString();
+            candidate = baseSlug.Length + suffix.Length > 30
+                ? baseSlug[..(30 - suffix.Length)] + suffix
+                : baseSlug + suffix;
+        }
+        _usedUserSlugs.Add(candidate);
+        return candidate;
+    }
+
+    private async Task BackfillMissingUserSlugsAsync()
+    {
+        await EnsureUserSlugsLoadedAsync();
+        var usersWithoutSlugs = await _context.Users
+            .Where(u => u.Slug == null)
+            .ToListAsync();
+
+        if (usersWithoutSlugs.Count == 0) return;
+
+        foreach (var user in usersWithoutSlugs)
+            user.Slug = GenerateUniqueUserSlug(user.DisplayName ?? "", user.PublicId);
+
+        await _context.SaveChangesAsync();
+        Console.WriteLine($"Backfilled slugs for {usersWithoutSlugs.Count} users.");
+    }
+
     /// <summary>
     /// Run migrations only + ensure admin exists. No test data.
     /// </summary>
@@ -102,6 +161,8 @@ public class DatabaseSeeder(
         await EnsureSystemSettingsAsync();
         await EnsureDefaultAdminExistsAsync();
         await EnsureFirstCommunityAsync();
+        await BackfillMissingUserSlugsAsync();
+        await UpdateDenormalizedCountsAsync();
         if (!string.Equals(configuration["AvatarSettings:GenerateOnStartup"], "false", StringComparison.OrdinalIgnoreCase))
             await GenerateAllAvatarsAsync();
         else
@@ -187,44 +248,74 @@ public class DatabaseSeeder(
     /// </summary>
     public async Task SeedAsync()
     {
+        var sw = Stopwatch.StartNew();
+
         await EnsureSystemSettingsAsync();
         await EnsureTestUserExistsAsync();
         await EnsureDefaultAdminExistsAsync();
         await EnsureFirstCommunityAsync(alwaysCreate: true);
 
-        // Idempotency: if many users already exist, seeding was already done
+        // Idempotency: if many users already exist, seeding was already done.
+        // Still backfill any missing slugs and refresh denormalized counts so
+        // re-runs repair a partial first run (e.g. one that failed before UpdateDenormalizedCountsAsync).
         var userCount = await _context.Users.CountAsync();
         if (userCount > 10)
         {
-            Console.WriteLine("Database already fully seeded. Skipping.");
+            Console.WriteLine("Database already fully seeded. Refreshing slugs and counts...");
+            await BackfillMissingUserSlugsAsync();
+            await UpdateDenormalizedCountsAsync();
             return;
         }
 
-        var users = await SeedUsersAsync();
-
-        var communitySlug = _configuration["Snakk:DefaultCommunitySlug"] ?? "main";
-        var community = await _context.Communities.FirstOrDefaultAsync(c => c.Slug == communitySlug);
-        if (community is null)
+        _context.ChangeTracker.AutoDetectChangesEnabled = false;
+        try
         {
-            Console.WriteLine($"Community '{communitySlug}' not found. Skipping content seeding.");
-            return;
+            var users = await SeedUsersAsync();
+            Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Users done ({users.Count} users).");
+
+            var communitySlug = _configuration["Snakk:DefaultCommunitySlug"] ?? "main";
+            var community = await _context.Communities.FirstOrDefaultAsync(c => c.Slug == communitySlug);
+            if (community is null)
+            {
+                Console.WriteLine($"Community '{communitySlug}' not found. Skipping content seeding.");
+                return;
+            }
+
+            await CreateHubsAndSpacesForDefaultCommunity(community, users);
+            Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Hubs/spaces/discussions/posts done.");
+
+            await SeedBannersAsync(community, users);
+            await SeedModerationDataAsync(users);
+
+            await SeedReactionsAsync(users);
+            Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Reactions done.");
+
+            await SeedRulesAsync();
+            await SeedFollowsAsync(users);
+            await SeedReportsAsync(users);
+            await SeedPostRevisionsAsync(users);
+            await SeedHighVolumeDiscussionsAsync(users);
+            Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Follows/reports/revisions/high-volume done.");
+
+            await SeedActivitySnapshotsAsync();
+            await WarmPreviewCacheAsync();
+
+            var postCount = await _context.Posts.CountAsync();
+            var discussionCount = await _context.Discussions.CountAsync();
+            var reactionCount = await _context.PostReactions.CountAsync();
+            Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Database seeding completed. " +
+                $"Discussions={discussionCount}, Posts={postCount}, Reactions={reactionCount}");
+        }
+        finally
+        {
+            _context.ChangeTracker.AutoDetectChangesEnabled = true;
         }
 
-        await CreateHubsAndSpacesForDefaultCommunity(community, users);
-        await SeedBannersAsync(community, users);
-        await SeedModerationDataAsync(users);
-        await SeedReactionsAsync(users);
-        await SeedRulesAsync();
-        await SeedFollowsAsync(users);
-        await SeedReportsAsync(users);
-        await SeedPostRevisionsAsync(users);
-        await SeedHighVolumeDiscussionsAsync(users);
         await UpdateDenormalizedCountsAsync();
-        await SeedActivitySnapshotsAsync();
-        await WarmPreviewCacheAsync();
+        Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Denormalized counts updated.");
 
-        Console.WriteLine("Database seeding completed successfully.");
         await GenerateAllAvatarsAsync();
+        Console.WriteLine($"[{sw.Elapsed:mm\\:ss\\.f}] Avatars generated. Total wall-clock time: {sw.Elapsed:mm\\:ss}.");
     }
 
     private async Task ClearExistingDataAsync()
@@ -325,6 +416,7 @@ public class DatabaseSeeder(
 
     private async Task EnsureTestUserExistsAsync()
     {
+        await EnsureUserSlugsLoadedAsync();
         var testPasswordHash = _passwordHasher.HashPassword("test123!");
 
         var testUsers = new[]
@@ -362,6 +454,7 @@ public class DatabaseSeeder(
                 EmailHash = _emailProtector.ComputeHash(email),
                 PasswordHash = testPasswordHash,
                 DisplayName = name,
+                Slug = GenerateUniqueUserSlug(name, publicId),
                 EmailVerified = true,
                 CreatedAt = EarliestDate.AddDays(-30),
                 LastSeenAt = Now
@@ -376,6 +469,7 @@ public class DatabaseSeeder(
 
     internal async Task EnsureDefaultAdminExistsAsync()
     {
+        await EnsureUserSlugsLoadedAsync();
         // Read admin credentials from config (setup wizard writes these), fall back to defaults
         var adminEmail = _configuration["Setup:AdminEmail"] ?? "admin@snakk.local";
         var configuredPassword = _configuration["Setup:AdminPassword"];
@@ -445,6 +539,7 @@ public class DatabaseSeeder(
             EmailHash = _emailProtector.ComputeHash(adminEmail),
             PasswordHash = passwordHash,
             DisplayName = adminDisplayName,
+            Slug = GenerateUniqueUserSlug(adminDisplayName, adminPublicId),
             EmailVerified = true,
             CreatedAt = DateTime.UtcNow,
             LastSeenAt = DateTime.UtcNow
@@ -519,6 +614,7 @@ public class DatabaseSeeder(
             .UseSeed(Seed)
             .RuleFor(u => u.PublicId, _ => Ulid.NewUlid().ToString())
             .RuleFor(u => u.DisplayName, f => f.Name.FullName())
+            .RuleFor(u => u.Slug, (_, u) => GenerateUniqueUserSlug(u.DisplayName!, u.PublicId))
             .RuleFor(u => u.Email, (f, u) => f.Internet.Email(u.DisplayName!.Split(' ')[0], u.DisplayName!.Split(' ').Last()).ToLower())
             .RuleFor(u => u.EmailHash, (_, u) => _emailProtector.ComputeHash(u.Email!))
             .RuleFor(u => u.CreatedAt, f => f.Date.Between(EarliestDate.AddDays(-30), Now.AddDays(-7)))
@@ -862,6 +958,7 @@ public class DatabaseSeeder(
         _context.Hubs.Add(hub);
         await _context.SaveChangesAsync();
 
+        _hubCommunities[hub.Id] = community;
         return hub;
     }
 
@@ -870,7 +967,9 @@ public class DatabaseSeeder(
     private async Task<(SpaceDatabaseEntity Space, int[] AllowedTypes)> CreateSpaceAsync(
         HubDatabaseEntity hub, string name, string slug, string description)
     {
-        var community = await _context.Communities.FindAsync(hub.CommunityId);
+        var community = _hubCommunities.TryGetValue(hub.Id, out var cached)
+            ? cached
+            : await _context.Communities.FindAsync(hub.CommunityId);
         var space = new SpaceDatabaseEntity
         {
             PublicId = Ulid.NewUlid().ToString(),
@@ -1000,6 +1099,7 @@ public class DatabaseSeeder(
                 CreatedByUserId = author.Id,
                 CreatedByUserPublicId = author.PublicId,
                 AuthorDisplayName = author.DisplayName,
+                AuthorSlug = author.Slug,
                 AuthorAvatarFileName = author.AvatarFileName,
                 AuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName,
                 CreatedAt = createdAt,
@@ -1029,8 +1129,8 @@ public class DatabaseSeeder(
         var milestoneThresholds = new HashSet<int> { 100, 500, 1000, 2500, 5000, 10000 };
         var necroDays = 30;
 
-        // Process posts in batches to avoid OOM when SaveChangesAsync builds a massive SQL command
-        const int postBatchSize = 10;
+        // Process posts in batches; MaxBatchSize(1000) in Npgsql splits large saves into round-trips automatically
+        const int postBatchSize = 300;
         for (var batchStart = 0; batchStart < discussions.Count; batchStart += postBatchSize)
         {
             var batchDiscussions = discussions.GetRange(batchStart, Math.Min(postBatchSize, discussions.Count - batchStart));
@@ -1047,7 +1147,7 @@ public class DatabaseSeeder(
                 var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
                 usersWhoPostedInDiscussion.Add(author.Id);
                 var firstPostContent = GenerateTypedFirstPostContent((DiscussionTypeEnum)discussion.Type);
-                var firstPostPlainText = _markupParser.ToPlainText(firstPostContent);
+                var firstPostPlainText = RenderPlainText(firstPostContent);
                 batchPosts.Add(new PostDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
@@ -1060,7 +1160,7 @@ public class DatabaseSeeder(
                     CommunityId = hub!.CommunityId,
                     CommunityPublicId = space.CommunityPublicId,
                     Content = firstPostContent,
-                    RenderedContent = _markupParser.ToHtml(firstPostContent),
+                    RenderedContent = RenderHtml(firstPostContent),
                     PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
                     CreatedByUserId = author.Id,
                     CreatedByUserPublicId = author.PublicId,
@@ -1109,7 +1209,7 @@ public class DatabaseSeeder(
                     var isNecro = (replyCreatedAt - lastActivityAt).TotalDays >= necroDays;
 
                     var replyContent = GeneratePostContent(isOpeningPost: false);
-                    var replyPlainText = _markupParser.ToPlainText(replyContent);
+                    var replyPlainText = RenderPlainText(replyContent);
                     batchPosts.Add(new PostDatabaseEntity
                     {
                         PublicId = Ulid.NewUlid().ToString(),
@@ -1122,7 +1222,7 @@ public class DatabaseSeeder(
                         CommunityId = hub!.CommunityId,
                         CommunityPublicId = space.CommunityPublicId,
                         Content = replyContent,
-                        RenderedContent = _markupParser.ToHtml(replyContent),
+                        RenderedContent = RenderHtml(replyContent),
                         PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
                         CreatedByUserId = replyAuthor.Id,
                         CreatedByUserPublicId = replyAuthor.PublicId,
@@ -1153,6 +1253,7 @@ public class DatabaseSeeder(
                 {
                     discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
                     discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
+                    discussion.LastPostAuthorSlug = lastReplyAuthor.Slug;
                     discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
                     discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
                     discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
@@ -1161,6 +1262,7 @@ public class DatabaseSeeder(
                 {
                     discussion.LastPostAuthorPublicId = author.PublicId;
                     discussion.LastPostAuthorDisplayName = author.DisplayName;
+                    discussion.LastPostAuthorSlug = author.Slug;
                     discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
                     discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
                     discussion.LastPostPlainTextExcerpt = firstPostPlainText.Length > 150 ? firstPostPlainText[..150] : firstPostPlainText;
@@ -1188,6 +1290,17 @@ public class DatabaseSeeder(
         List<PostDatabaseEntity> posts,
         List<UserDatabaseEntity> users)
     {
+        // State threaded across the 3 passes
+        var pollHeaders     = new Dictionary<int, DiscussionTypePollDatabaseEntity>();
+        var pollVoterData   = new Dictionary<int, (List<int> VoterPool, int VoterCount)>();
+        var debateHeaders   = new Dictionary<int, DiscussionTypeDebateDatabaseEntity>();
+        var debateTopicData = new Dictionary<int, (string Title, string[] Positions, bool AllowNeutral)>();
+        var journalHeaders  = new Dictionary<int, DiscussionTypeJournalDatabaseEntity>();
+        var journalOpReplies = new Dictionary<int, List<(PostDatabaseEntity Post, bool Include)>>();
+        var iamaHeaders     = new Dictionary<int, DiscussionTypeIamaDatabaseEntity>();
+        var iamaData        = new Dictionary<int, (List<PostDatabaseEntity> HostReplies, List<PostDatabaseEntity> Questions)>();
+
+        // PASS 1: header entities for all discussion types
         foreach (var discussion in discussions)
         {
             var discussionPosts = posts.Where(p => p.DiscussionId == discussion.Id).ToList();
@@ -1198,7 +1311,6 @@ public class DatabaseSeeder(
                 case DiscussionTypeEnum.Question:
                 {
                     var question = new DiscussionTypeQuestionDatabaseEntity { DiscussionId = discussion.Id };
-
                     // ~40% of questions are solved with an accepted answer
                     if (replyPosts.Count > 0 && _faker.Random.Bool(0.4f))
                     {
@@ -1206,16 +1318,12 @@ public class DatabaseSeeder(
                         question.AcceptedPostId = acceptedPost.Id;
                         question.SolvedAt = acceptedPost.CreatedAt.AddMinutes(_faker.Random.Int(5, 60));
                     }
-
                     _context.DiscussionQuestions.Add(question);
                     break;
                 }
 
                 case DiscussionTypeEnum.Guide:
-                    _context.DiscussionGuides.Add(new DiscussionTypeGuideDatabaseEntity
-                    {
-                        DiscussionId = discussion.Id
-                    });
+                    _context.DiscussionGuides.Add(new DiscussionTypeGuideDatabaseEntity { DiscussionId = discussion.Id });
                     break;
 
                 case DiscussionTypeEnum.Poll:
@@ -1225,53 +1333,19 @@ public class DatabaseSeeder(
                         DiscussionId = discussion.Id,
                         AllowMultipleChoices = _faker.Random.Bool(0.2f),
                         AllowChangeVote = _faker.Random.Bool(0.3f),
-                        ClosesAt = _faker.Random.Bool(0.4f)
-                            ? DateTime.UtcNow.AddDays(_faker.Random.Int(1, 30))
-                            : null
+                        ClosesAt = _faker.Random.Bool(0.4f) ? DateTime.UtcNow.AddDays(_faker.Random.Int(1, 30)) : null
                     };
                     _context.DiscussionPolls.Add(poll);
-                    await _context.SaveChangesAsync();
-
-                    var optionCount = _faker.Random.Int(2, 6);
-                    var options = new List<DiscussionTypePollOptionDatabaseEntity>();
-                    for (var o = 0; o < optionCount; o++)
-                    {
-                        var option = new DiscussionTypePollOptionDatabaseEntity
-                        {
-                            PollId = poll.Id,
-                            Text = _faker.Lorem.Sentence(2, 4).TrimEnd('.'),
-                            DisplayOrder = o
-                        };
-                        _context.DiscussionPollOptions.Add(option);
-                        options.Add(option);
-                    }
-                    await _context.SaveChangesAsync();
-
-                    // Seed votes — 30-80% of users who replied vote
+                    pollHeaders[discussion.Id] = poll;
                     var voterPool = replyPosts.Select(p => p.CreatedByUserId).Distinct().ToList();
                     if (voterPool.Count == 0) voterPool = users.Select(u => u.Id).Take(10).ToList();
-
-                    var voterCount = Math.Max(1, (int)(voterPool.Count * _faker.Random.Double(0.3, 0.8)));
-                    var voters = _faker.PickRandom(voterPool, Math.Min(voterCount, voterPool.Count)).ToList();
-
-                    foreach (var voterId in voters)
-                    {
-                        var chosenOption = _faker.PickRandom(options);
-                        _context.DiscussionPollVotes.Add(new DiscussionTypePollVoteDatabaseEntity
-                        {
-                            OptionId = chosenOption.Id,
-                            UserId = voterId,
-                            VotedAt = discussion.CreatedAt.AddMinutes(_faker.Random.Int(10, 10000))
-                        });
-                        chosenOption.VoteCount++;
-                    }
+                    pollVoterData[discussion.Id] = (voterPool, Math.Max(1, (int)(voterPool.Count * _faker.Random.Double(0.3, 0.8))));
                     break;
                 }
 
                 case DiscussionTypeEnum.Link:
                 {
-                    var linkIdx = _discussionLinkIndex.GetValueOrDefault(
-                        discussion.Id, discussion.Id % _curatedLinkUrls.Length);
+                    var linkIdx = _discussionLinkIndex.GetValueOrDefault(discussion.Id, discussion.Id % _curatedLinkUrls.Length);
                     var link = _curatedLinkUrls[linkIdx];
                     _context.DiscussionLinks.Add(new DiscussionTypeLinkDatabaseEntity
                     {
@@ -1286,33 +1360,128 @@ public class DatabaseSeeder(
 
                 case DiscussionTypeEnum.Debate:
                 {
-                    var topicIdx = _discussionDebateTopicIndex.GetValueOrDefault(
-                        discussion.Id, discussion.Id % _curatedDebateTopics.Length);
+                    var topicIdx = _discussionDebateTopicIndex.GetValueOrDefault(discussion.Id, discussion.Id % _curatedDebateTopics.Length);
                     var topic = _curatedDebateTopics[topicIdx];
+                    var debate = new DiscussionTypeDebateDatabaseEntity { DiscussionId = discussion.Id, AllowNeutral = topic.AllowNeutral };
+                    _context.DiscussionDebates.Add(debate);
+                    debateHeaders[discussion.Id] = debate;
+                    debateTopicData[discussion.Id] = topic;
+                    break;
+                }
 
-                    var debate = new DiscussionTypeDebateDatabaseEntity
+                case DiscussionTypeEnum.Journal:
+                {
+                    var journal = new DiscussionTypeJournalDatabaseEntity { DiscussionId = discussion.Id };
+                    _context.DiscussionJournals.Add(journal);
+                    journalHeaders[discussion.Id] = journal;
+                    journalOpReplies[discussion.Id] = replyPosts
+                        .Where(p => p.CreatedByUserId == discussion.CreatedByUserId)
+                        .Select(p => (p, _faker.Random.Bool(0.5f)))
+                        .ToList();
+                    break;
+                }
+
+                case DiscussionTypeEnum.Iama:
+                {
+                    var isScheduled = _faker.Random.Bool(0.3f);
+                    var verificationNote = _faker.Random.Bool(0.6f)
+                        ? $"I'm {_faker.Name.FullName()}, {_faker.Name.JobTitle()} at {_faker.Company.CompanyName()}. Proof: {_faker.Internet.Url()}"
+                        : null;
+                    var iama = new DiscussionTypeIamaDatabaseEntity
                     {
                         DiscussionId = discussion.Id,
-                        AllowNeutral = topic.AllowNeutral
+                        Phase = _faker.Random.WeightedRandom([0, 1, 2, 3], [0.1f, 0.4f, 0.3f, 0.2f]),
+                        IsScheduled = isScheduled,
+                        ScheduledStartUtc = isScheduled ? discussion.CreatedAt.AddDays(_faker.Random.Int(1, 7)) : null,
+                        ScheduledEndUtc = isScheduled && _faker.Random.Bool(0.5f)
+                            ? discussion.CreatedAt.AddDays(_faker.Random.Int(1, 7)).AddHours(_faker.Random.Int(1, 3))
+                            : null,
+                        VerificationNote = verificationNote,
+                        VerificationNoteHtml = verificationNote != null ? _markupParser.ToHtml(verificationNote) : null
                     };
-                    _context.DiscussionDebates.Add(debate);
-                    await _context.SaveChangesAsync();
+                    _context.DiscussionIamas.Add(iama);
+                    iamaHeaders[discussion.Id] = iama;
+                    iamaData[discussion.Id] = (
+                        replyPosts.Where(p => p.CreatedByUserId == discussion.CreatedByUserId).ToList(),
+                        replyPosts.Where(p => p.CreatedByUserId != discussion.CreatedByUserId && p.ReplyToPostId == null).ToList()
+                    );
+                    break;
+                }
+            }
+        }
+        await _context.SaveChangesAsync(); // PASS 1: all header IDs populated
 
-                    var positions = new List<DiscussionTypeDebatePositionDatabaseEntity>();
-                    for (var p = 0; p < topic.Positions.Length; p++)
+        // PASS 2: first-level children that reference header IDs (poll options, debate positions)
+        var pollOptionsMap = new Dictionary<int, List<DiscussionTypePollOptionDatabaseEntity>>();
+        var debatePositionsMap = new Dictionary<int, List<DiscussionTypeDebatePositionDatabaseEntity>>();
+
+        foreach (var discussion in discussions.Where(d => (DiscussionTypeEnum)d.Type == DiscussionTypeEnum.Poll))
+        {
+            var poll = pollHeaders[discussion.Id];
+            var options = new List<DiscussionTypePollOptionDatabaseEntity>();
+            for (var o = 0; o < _faker.Random.Int(2, 6); o++)
+            {
+                var option = new DiscussionTypePollOptionDatabaseEntity
+                {
+                    PollId = poll.Id,
+                    Text = _faker.Lorem.Sentence(2, 4).TrimEnd('.'),
+                    DisplayOrder = o
+                };
+                _context.DiscussionPollOptions.Add(option);
+                options.Add(option);
+            }
+            pollOptionsMap[discussion.Id] = options;
+        }
+
+        foreach (var discussion in discussions.Where(d => (DiscussionTypeEnum)d.Type == DiscussionTypeEnum.Debate))
+        {
+            var debate = debateHeaders[discussion.Id];
+            var topic = debateTopicData[discussion.Id];
+            var positions = new List<DiscussionTypeDebatePositionDatabaseEntity>();
+            for (var p = 0; p < topic.Positions.Length; p++)
+            {
+                var pos = new DiscussionTypeDebatePositionDatabaseEntity { DebateId = debate.Id, Index = p, Label = topic.Positions[p] };
+                _context.DiscussionDebatePositions.Add(pos);
+                positions.Add(pos);
+            }
+            debatePositionsMap[discussion.Id] = positions;
+        }
+
+        if (pollOptionsMap.Count > 0 || debatePositionsMap.Count > 0)
+            await _context.SaveChangesAsync(); // PASS 2: option/position IDs populated
+
+        // PASS 3: second-level children (votes, post-positions, journal entries, iama answers)
+        foreach (var discussion in discussions)
+        {
+            var discussionPosts = posts.Where(p => p.DiscussionId == discussion.Id).ToList();
+            var replyPosts = discussionPosts.Where(p => !p.IsFirstPost).ToList();
+
+            switch ((DiscussionTypeEnum)discussion.Type)
+            {
+                case DiscussionTypeEnum.Poll:
+                {
+                    var options = pollOptionsMap[discussion.Id];
+                    var (voterPool, voterCount) = pollVoterData[discussion.Id];
+                    foreach (var voterId in _faker.PickRandom(voterPool, Math.Min(voterCount, voterPool.Count)))
                     {
-                        var pos = new DiscussionTypeDebatePositionDatabaseEntity
+                        var chosenOption = _faker.PickRandom(options);
+                        _context.DiscussionPollVotes.Add(new DiscussionTypePollVoteDatabaseEntity
                         {
-                            DebateId = debate.Id,
-                            Index    = p,
-                            Label    = topic.Positions[p]
-                        };
-                        _context.DiscussionDebatePositions.Add(pos);
-                        positions.Add(pos);
+                            OptionId = chosenOption.Id,
+                            UserId = voterId,
+                            VotedAt = discussion.CreatedAt.AddMinutes(_faker.Random.Int(10, 10000))
+                        });
+                        chosenOption.VoteCount++;
                     }
-                    await _context.SaveChangesAsync();
+                    // Mark mutated options Modified (AutoDetectChanges is off in SeedAsync)
+                    foreach (var opt in options.Where(o => o.VoteCount > 0))
+                        _context.Entry(opt).State = EntityState.Modified;
+                    break;
+                }
 
-                    // All posts (including OP) pick a side; 10% chance to flip on subsequent posts
+                case DiscussionTypeEnum.Debate:
+                {
+                    var positions = debatePositionsMap[discussion.Id];
                     var allPostsOrdered = discussionPosts.OrderBy(p => p.CreatedAt).ToList();
                     var userPositions = new Dictionary<int, DiscussionTypeDebatePositionDatabaseEntity>();
                     var postPositionEntries = new List<(PostDatabaseEntity Post, DiscussionTypeDebatePositionDatabaseEntity Pos)>();
@@ -1337,14 +1506,8 @@ public class DatabaseSeeder(
                     }
 
                     // Guarantee at least one position change when a user has multiple posts
-                    var multiPosters = allPostsOrdered
-                        .GroupBy(p => p.CreatedByUserId)
-                        .Where(g => g.Count() >= 2)
-                        .ToList();
-
-                    var hasFlip = postPositionEntries
-                        .GroupBy(e => e.Post.CreatedByUserId)
-                        .Any(g => g.Select(e => e.Pos.Id).Distinct().Count() > 1);
+                    var multiPosters = allPostsOrdered.GroupBy(p => p.CreatedByUserId).Where(g => g.Count() >= 2).ToList();
+                    var hasFlip = postPositionEntries.GroupBy(e => e.Post.CreatedByUserId).Any(g => g.Select(e => e.Pos.Id).Distinct().Count() > 1);
 
                     if (multiPosters.Count > 0 && !hasFlip)
                     {
@@ -1372,62 +1535,23 @@ public class DatabaseSeeder(
 
                 case DiscussionTypeEnum.Journal:
                 {
-                    var journal = new DiscussionTypeJournalDatabaseEntity
+                    var journal = journalHeaders[discussion.Id];
+                    foreach (var (opReply, include) in journalOpReplies[discussion.Id])
                     {
-                        DiscussionId = discussion.Id
-                    };
-                    _context.DiscussionJournals.Add(journal);
-                    await _context.SaveChangesAsync();
-
-                    // Mark some OP replies as journal entries (~50% of OP's posts)
-                    var opReplies = replyPosts
-                        .Where(p => p.CreatedByUserId == discussion.CreatedByUserId)
-                        .ToList();
-
-                    foreach (var opReply in opReplies)
-                    {
-                        if (_faker.Random.Bool(0.5f))
-                        {
+                        if (include)
                             _context.DiscussionJournalEntryPosts.Add(new DiscussionTypeJournalEntryPostDatabaseEntity
                             {
                                 PostId = opReply.Id,
                                 JournalId = journal.Id
                             });
-                        }
                     }
                     break;
                 }
 
                 case DiscussionTypeEnum.Iama:
                 {
-                    var isScheduled = _faker.Random.Bool(0.3f);
-                    var verificationNote = _faker.Random.Bool(0.6f)
-                        ? $"I'm {_faker.Name.FullName()}, {_faker.Name.JobTitle()} at {_faker.Company.CompanyName()}. Proof: {_faker.Internet.Url()}"
-                        : null;
-                    var iama = new DiscussionTypeIamaDatabaseEntity
-                    {
-                        DiscussionId = discussion.Id,
-                        Phase = _faker.Random.WeightedRandom([0, 1, 2, 3], [0.1f, 0.4f, 0.3f, 0.2f]),
-                        IsScheduled = isScheduled,
-                        ScheduledStartUtc = isScheduled
-                            ? discussion.CreatedAt.AddDays(_faker.Random.Int(1, 7))
-                            : null,
-                        ScheduledEndUtc = isScheduled && _faker.Random.Bool(0.5f)
-                            ? discussion.CreatedAt.AddDays(_faker.Random.Int(1, 7)).AddHours(_faker.Random.Int(1, 3))
-                            : null,
-                        VerificationNote = verificationNote,
-                        VerificationNoteHtml = verificationNote != null ? _markupParser.ToHtml(verificationNote) : null
-                    };
-                    _context.DiscussionIamas.Add(iama);
-                    await _context.SaveChangesAsync();
-
-                    // Mark ~40% of host replies as official answers to questions
-                    var hostReplies = replyPosts
-                        .Where(p => p.CreatedByUserId == discussion.CreatedByUserId)
-                        .ToList();
-                    var questions = replyPosts
-                        .Where(p => p.CreatedByUserId != discussion.CreatedByUserId && p.ReplyToPostId == null)
-                        .ToList();
+                    var iama = iamaHeaders[discussion.Id];
+                    var (hostReplies, questions) = iamaData[discussion.Id];
 
                     var officialAnswerCount = 0;
                     foreach (var question in questions)
@@ -1445,14 +1569,12 @@ public class DatabaseSeeder(
                         }
                     }
 
-                    // Mark 1-3 best questions on ~30% of closed/archived AMAs
                     var bestQuestionCount = 0;
                     if (iama.Phase >= 2 && questions.Count > 0 && _faker.Random.Bool(0.3f))
                     {
                         var bestCount = Math.Min(_faker.Random.Int(1, 3), questions.Count);
                         var bestPicks = _faker.PickRandom(questions, bestCount).ToList();
                         bestQuestionCount = bestPicks.Count;
-
                         for (var i = 0; i < bestPicks.Count; i++)
                         {
                             _context.DiscussionIamaBestQuestions.Add(new DiscussionTypeIamaBestQuestionDatabaseEntity
@@ -1465,12 +1587,13 @@ public class DatabaseSeeder(
                     }
                     iama.OfficialAnswerCount = officialAnswerCount;
                     iama.BestQuestionCount = bestQuestionCount;
+                    // Mark Modified so EF saves the updated counts (AutoDetectChanges is off in SeedAsync)
+                    _context.Entry(iama).State = EntityState.Modified;
                     break;
                 }
             }
         }
-
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(); // PASS 3: votes, post-positions, journal entries, iama children
     }
 
     /// <summary>
@@ -1687,6 +1810,7 @@ public class DatabaseSeeder(
                 CreatedByUserId = author.Id,
                 CreatedByUserPublicId = author.PublicId,
                 AuthorDisplayName = author.DisplayName,
+                AuthorSlug = author.Slug,
                 AuthorAvatarFileName = author.AvatarFileName,
                 AuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName,
                 CreatedAt = createdAt,
@@ -1710,7 +1834,7 @@ public class DatabaseSeeder(
             usersWhoPostedInDiscussion.Add(author.Id);
             var isFirstInSpace = usersWhoPostedInSpace.Add(author.Id);
             var firstPostContent = GeneratePostContent(isOpeningPost: true);
-            var firstPostPlainText = _markupParser.ToPlainText(firstPostContent);
+            var firstPostPlainText = RenderPlainText(firstPostContent);
             posts.Add(new PostDatabaseEntity
             {
                 PublicId = Ulid.NewUlid().ToString(),
@@ -1723,7 +1847,7 @@ public class DatabaseSeeder(
                 CommunityId = hub.CommunityId,
                 CommunityPublicId = space.CommunityPublicId,
                 Content = firstPostContent,
-                RenderedContent = _markupParser.ToHtml(firstPostContent),
+                RenderedContent = RenderHtml(firstPostContent),
                 PlainTextExcerpt = firstPostPlainText.Length > 200 ? firstPostPlainText[..200] : firstPostPlainText,
                 CreatedByUserId = author.Id,
                 CreatedByUserPublicId = author.PublicId,
@@ -1758,7 +1882,7 @@ public class DatabaseSeeder(
                 var isFirstInSpaceReply = usersWhoPostedInSpace.Add(replyAuthor.Id);
 
                 var replyContent = GeneratePostContent(isOpeningPost: false);
-                var replyPlainText = _markupParser.ToPlainText(replyContent);
+                var replyPlainText = RenderPlainText(replyContent);
                 posts.Add(new PostDatabaseEntity
                 {
                     PublicId = Ulid.NewUlid().ToString(),
@@ -1771,7 +1895,7 @@ public class DatabaseSeeder(
                     CommunityId = hub!.CommunityId,
                     CommunityPublicId = space.CommunityPublicId,
                     Content = replyContent,
-                    RenderedContent = _markupParser.ToHtml(replyContent),
+                    RenderedContent = RenderHtml(replyContent),
                     PlainTextExcerpt = replyPlainText.Length > 200 ? replyPlainText[..200] : replyPlainText,
                     CreatedByUserId = replyAuthor.Id,
                     CreatedByUserPublicId = replyAuthor.PublicId,
@@ -1802,6 +1926,7 @@ public class DatabaseSeeder(
             {
                 discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
                 discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
+                discussion.LastPostAuthorSlug = lastReplyAuthor.Slug;
                 discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
                 discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
                 discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
@@ -1810,6 +1935,7 @@ public class DatabaseSeeder(
             {
                 discussion.LastPostAuthorPublicId = author.PublicId;
                 discussion.LastPostAuthorDisplayName = author.DisplayName;
+                discussion.LastPostAuthorSlug = author.Slug;
                 discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
                 discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
                 discussion.LastPostPlainTextExcerpt = firstPostPlainText.Length > 150 ? firstPostPlainText[..150] : firstPostPlainText;
@@ -1857,6 +1983,7 @@ public class DatabaseSeeder(
                 CreatedByUserId = author.Id,
                 CreatedByUserPublicId = author.PublicId,
                 AuthorDisplayName = author.DisplayName,
+                AuthorSlug = author.Slug,
                 AuthorAvatarFileName = author.AvatarFileName,
                 AuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName,
                 CreatedAt = createdAt,
@@ -2003,6 +2130,7 @@ public class DatabaseSeeder(
             {
                 discussion.LastPostAuthorPublicId = lastReplyAuthor.PublicId;
                 discussion.LastPostAuthorDisplayName = lastReplyAuthor.DisplayName;
+                discussion.LastPostAuthorSlug = lastReplyAuthor.Slug;
                 discussion.LastPostAuthorAvatarFileName = lastReplyAuthor.AvatarFileName;
                 discussion.LastPostAuthorAvatarThumbnailFileName = lastReplyAuthor.AvatarThumbnailFileName;
                 discussion.LastPostPlainTextExcerpt = lastReplyExcerpt;
@@ -2011,6 +2139,7 @@ public class DatabaseSeeder(
             {
                 discussion.LastPostAuthorPublicId = author.PublicId;
                 discussion.LastPostAuthorDisplayName = author.DisplayName;
+                discussion.LastPostAuthorSlug = author.Slug;
                 discussion.LastPostAuthorAvatarFileName = author.AvatarFileName;
                 discussion.LastPostAuthorAvatarThumbnailFileName = author.AvatarThumbnailFileName;
                 discussion.LastPostPlainTextExcerpt = firstPlainText.Length > 150 ? firstPlainText[..150] : firstPlainText;
@@ -2098,36 +2227,45 @@ public class DatabaseSeeder(
             }
         }
 
-        // Batch insert in chunks of 1000 to avoid memory issues
-        const int chunkSize = 1000;
+        // Batch insert in chunks to avoid memory issues
+        const int chunkSize = 5000;
         for (var i = 0; i < reactions.Count; i += chunkSize)
         {
             _context.PostReactions.AddRange(reactions.Skip(i).Take(chunkSize));
             await _context.SaveChangesAsync();
+            _context.ChangeTracker.Clear();
             Console.WriteLine($"  Inserted reactions {Math.Min(i + chunkSize, reactions.Count)}/{reactions.Count}");
         }
 
-        // Update denormalized reaction counts on posts and discussions
-        var postsToUpdate = await _context.Posts
-            .Where(p => postReactionCounts.Keys.Contains(p.Id))
-            .ToListAsync();
-
-        foreach (var post in postsToUpdate)
-            post.ReactionCount = postReactionCounts.GetValueOrDefault(post.Id);
-
-        var discussionsToUpdate = await _context.Discussions
-            .Where(d => discussionReactionCounts.Keys.Contains(d.Id))
-            .ToListAsync();
-
-        foreach (var discussion in discussionsToUpdate)
-        {
-            discussion.ReactionCount = discussionReactionCounts.GetValueOrDefault(discussion.Id);
-            discussion.EngagementScore = discussion.PostCount + discussion.ReactionCount;
-        }
-
-        await _context.SaveChangesAsync();
+        // Update denormalized reaction counts via raw SQL VALUES join — avoids loading all posts into the tracker
+        await BulkUpdateReactionCountsAsync(postReactionCounts, discussionReactionCounts);
 
         Console.WriteLine($"Seeded {reactions.Count} reactions across {postReactionCounts.Count} posts.");
+    }
+
+    private async Task BulkUpdateReactionCountsAsync(
+        Dictionary<int, int> postReactionCounts,
+        Dictionary<int, int> discussionReactionCounts)
+    {
+        const int batchSize = 5000;
+
+        var postEntries = postReactionCounts.ToList();
+        for (var i = 0; i < postEntries.Count; i += batchSize)
+        {
+            var batch = postEntries.Skip(i).Take(batchSize);
+            var values = string.Join(",", batch.Select(e => $"({e.Key},{e.Value})"));
+            await _context.Database.ExecuteSqlRawAsync(
+                $"UPDATE \"Post\" SET \"ReactionCount\" = v.count FROM (VALUES {values}) AS v(id, count) WHERE \"Post\".\"Id\" = v.id");
+        }
+
+        var discEntries = discussionReactionCounts.ToList();
+        for (var i = 0; i < discEntries.Count; i += batchSize)
+        {
+            var batch = discEntries.Skip(i).Take(batchSize);
+            var values = string.Join(",", batch.Select(e => $"({e.Key},{e.Value})"));
+            await _context.Database.ExecuteSqlRawAsync(
+                $"UPDATE \"Discussion\" SET \"ReactionCount\" = v.count, \"EngagementScore\" = \"Discussion\".\"PostCount\" + v.count FROM (VALUES {values}) AS v(id, count) WHERE \"Discussion\".\"Id\" = v.id");
+        }
     }
 
     private async Task UpdateDenormalizedCountsAsync()
@@ -3486,4 +3624,22 @@ public class DatabaseSeeder(
 
         Console.WriteLine($"✓ Preview cache warmed for {count} discussions.");
     }
+
+    // Fast-path renderers: skip the full Markdig pipeline for plain lorem-ipsum content.
+    // Falls back to the real parser for any content containing markdown-significant characters.
+    private static bool IsPlainContent(string s) =>
+        s.AsSpan().IndexOfAny("#`*_[|!>~<&-") < 0;
+
+    private string RenderHtml(string content)
+    {
+        if (!IsPlainContent(content))
+            return _markupParser.ToHtml(content);
+        var paragraphs = content.Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
+        return string.Concat(paragraphs.Select(p => $"<p>{p.Trim()}</p>"));
+    }
+
+    private string RenderPlainText(string content) =>
+        IsPlainContent(content)
+            ? content.Replace("\n\n", " ").Trim()
+            : _markupParser.ToPlainText(content);
 }

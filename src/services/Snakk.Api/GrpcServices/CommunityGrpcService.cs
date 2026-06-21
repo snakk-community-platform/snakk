@@ -1,5 +1,6 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Api.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.ValueObjects;
@@ -18,8 +19,11 @@ public class CommunityGrpcService(
     IGroupAccessService groupAccessService,
     ICurrentUserService currentUser,
     IUserGrantsCacheService grantsCache,
-    IEntityHierarchyCacheService hierarchyCache) : CommunityService.CommunityServiceBase
+    IEntityHierarchyCacheService hierarchyCache,
+    HybridCache cache) : CommunityService.CommunityServiceBase
 {
+    private static readonly HybridCacheEntryOptions CommunitiesListCacheOptions = new() { Expiration = TimeSpan.FromHours(24) };
+
     public override async Task<CommunityInfo> GetCommunityBySlug(GetCommunityBySlugRequest request, ServerCallContext context)
     {
         var ct = context.CancellationToken;
@@ -71,12 +75,21 @@ public class CommunityGrpcService(
         return info;
     }
 
-    public override async Task<PagedCommunityList> ListCommunities(ListCommunitiesRequest request, ServerCallContext context)
+    public override Task<PagedCommunityList> ListCommunities(ListCommunitiesRequest request, ServerCallContext context)
     {
         var ct = context.CancellationToken;
-        var result = await communityUseCase.GetPublicCommunitiesAsync(request.Offset, request.PageSize);
+        var cacheKey = $"communities:public-list:{request.Offset}:{request.PageSize}";
+        return cache.GetOrCreateAsync(cacheKey,
+            cToken => FetchCommunitiesListAsync(request.Offset, request.PageSize, cToken),
+            CommunitiesListCacheOptions,
+            tags: ["communities:public-list"],
+            cancellationToken: ct).AsTask();
+    }
 
-        // Fetch denormalized counts via data service (no direct DbContext)
+    private async ValueTask<PagedCommunityList> FetchCommunitiesListAsync(int offset, int pageSize, CancellationToken ct)
+    {
+        var result = await communityUseCase.GetPublicCommunitiesAsync(offset, pageSize);
+
         var publicIds = result.Items.Select(c => c.PublicId.Value).ToList();
         var counts = await communityData.GetCountsByPublicIdsAsync(publicIds, ct);
 

@@ -11,7 +11,8 @@ public class ModerationUseCase(
     IModerationRepository moderationRepository,
     IRevocationCache revocationCache,
     IAuthVersionCache authVersionCache,
-    IUserRepository userRepository) : UseCaseBase
+    IUserRepository userRepository,
+    IManageScopeDataService manageScopeData) : UseCaseBase
 {
     // ==================== Role Management ====================
 
@@ -34,6 +35,9 @@ public class ModerationUseCase(
 
             var role = await moderationRepository.AssignRoleAsync(
                 targetUserPublicId, roleType, communityPublicId, hubPublicId, spacePublicId, assignedByUserPublicId);
+
+            if (roleType == UserRoleType.GlobalAdmin)
+                await manageScopeData.InvalidateGlobalAdminCacheAsync();
 
             return Result<UserRoleDto>.Success(role);
         }
@@ -63,6 +67,9 @@ public class ModerationUseCase(
                 return Result.Failure("You don't have permission to revoke roles at this scope");
 
             await moderationRepository.RevokeRoleAsync(rolePublicId, revokedByUserPublicId);
+
+            if (role.Role == nameof(UserRoleType.GlobalAdmin))
+                await manageScopeData.InvalidateGlobalAdminCacheAsync();
 
             return Result.Success();
         }

@@ -33,6 +33,7 @@ public class IndexModel(
 
     public async Task<IActionResult> OnGetAsync(int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("community");
         cancellationToken.ThrowIfCancellationRequested();
         if (!CommunityContext.IsMultiCommunityEnabled)
             return RedirectToPage("/Index");
@@ -44,15 +45,16 @@ public class IndexModel(
 
         if (Communities?.Items is { Count: > 0 } communityItems)
         {
-            var communityIds = communityItems.Select(c => c.PublicId).ToList();
-            var sparklineTasks = communityIds.Select(id => _apiClient.GetActivitySparklineAsync("community", id, 7)).ToList();
-            var sparklineResults = await Task.WhenAll(sparklineTasks);
-            for (var i = 0; i < communityIds.Count; i++)
+            var communityPublicIds = communityItems.Select(c => c.PublicId).ToList();
+            var batchResult = await _apiClient.GetActivitySparklinesBatchAsync(communityPublicIds, days: 7, entityType: "community");
+            if (batchResult is not null)
             {
-                var result = sparklineResults[i];
-                if (result?.Days.Count > 0)
-                    CommunitySparklineJson[communityIds[i]] = System.Text.Json.JsonSerializer.Serialize(
-                        result.Days.Select(d => new { date = d.Date, postCount = d.PostCount, discussionCount = d.DiscussionCount }));
+                foreach (var entry in batchResult.Entries)
+                {
+                    if (entry.Days.Count > 0)
+                        CommunitySparklineJson[entry.PublicId] = System.Text.Json.JsonSerializer.Serialize(
+                            entry.Days.Select(d => new { date = d.Date, postCount = d.PostCount, discussionCount = d.DiscussionCount }));
+                }
             }
         }
 

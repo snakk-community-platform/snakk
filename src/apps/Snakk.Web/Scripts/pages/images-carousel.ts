@@ -287,7 +287,7 @@
                         img.dataset.loaded = '1';
                     }
                 });
-                el.classList.add('revealed');
+                el.classList.add('sn-revealed');
                 if (storageKey) sessionStorage.setItem(storageKey, '1');
             }
 
@@ -299,10 +299,10 @@
             // unrevealed and spoiler-restore.ts may not have run before this
             // init pass. Checking storage here makes the behavior independent
             // of that timing.
-            const alreadyRevealed = el.classList.contains('revealed')
+            const alreadyRevealed = el.classList.contains('sn-revealed')
                 || (storageKey !== '' && sessionStorage.getItem(storageKey) === '1');
             if (alreadyRevealed) {
-                el.classList.add('revealed');
+                el.classList.add('sn-revealed');
                 reveal();
                 return;
             }
@@ -365,8 +365,8 @@
             const storageKey = discussionId ? `snakk:adult-revealed:${discussionId}` : '';
 
             function reveal(): void {
-                el.classList.add('revealed');
-                img!.classList.add('revealed');
+                el.classList.add('sn-revealed');
+                img!.classList.add('sn-revealed');
                 if (storageKey) sessionStorage.setItem(storageKey, '1');
             }
 

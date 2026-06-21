@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Infrastructure.Database;
@@ -11,7 +12,8 @@ namespace Snakk.Infrastructure.Services;
 /// Handles scope resolution and hierarchy lookups for manage endpoints and gRPC services.
 /// </summary>
 public class ManageScopeDataService(
-    IDbContextFactory<SnakkDbContext> dbFactory) : IManageScopeDataService
+    IDbContextFactory<SnakkDbContext> dbFactory,
+    HybridCache cache) : IManageScopeDataService
 {
     // ===== Scope resolution by publicId (ManageContextEndpoints) =====
 
@@ -128,6 +130,9 @@ public class ManageScopeDataService(
 
     // ===== Global admin check =====
 
+    private const string GlobalAdminCacheKey = "roles:global-admins";
+    private static readonly HybridCacheEntryOptions GlobalAdminCacheOptions = new() { Expiration = TimeSpan.FromHours(24) };
+
     public async Task<bool> IsGlobalAdminAsync(string userPublicId, CancellationToken ct = default)
     {
         await using var db = await dbFactory.CreateDbContextAsync(ct);
@@ -136,6 +141,28 @@ public class ManageScopeDataService(
             .Select(u => u.Roles.Any(r =>
                 r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null))
             .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<IReadOnlySet<string>> GetGlobalAdminPublicIdsAsync(CancellationToken ct = default)
+    {
+        return await cache.GetOrCreateAsync<HashSet<string>>(
+            GlobalAdminCacheKey,
+            async cancel =>
+            {
+                await using var db = await dbFactory.CreateDbContextAsync(cancel);
+                var ids = await db.UserRoles
+                    .Where(r => r.RoleId == (int)UserRoleTypeEnum.GlobalAdmin && r.RevokedAt == null)
+                    .Select(r => r.User.PublicId)
+                    .ToListAsync(cancel);
+                return ids.ToHashSet();
+            },
+            GlobalAdminCacheOptions,
+            cancellationToken: ct);
+    }
+
+    public async Task InvalidateGlobalAdminCacheAsync(CancellationToken ct = default)
+    {
+        await cache.RemoveAsync(GlobalAdminCacheKey, ct);
     }
 
     // ===== Parent hierarchy for inherited bans/team =====
@@ -325,7 +352,8 @@ public class ManageScopeDataService(
             {
                 UserPublicId = ur.User.PublicId,
                 DisplayName = ur.User.DisplayName ?? "",
-                Role = ((UserRoleTypeEnum)ur.RoleId).ToString()
+                Role = ((UserRoleTypeEnum)ur.RoleId).ToString(),
+                Slug = ur.User.Slug ?? ""
             })
             .ToListAsync(ct);
     }

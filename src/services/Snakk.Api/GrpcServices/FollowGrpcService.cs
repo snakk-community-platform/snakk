@@ -145,6 +145,26 @@ public class FollowGrpcService(
         return response;
     }
 
+    public override async Task<FollowedDiscussionsDetailedResponse> GetFollowedDiscussionsDetailed(GetFollowedDiscussionsRequest request, ServerCallContext context)
+    {
+        var ct = context.CancellationToken;
+        var userId = TryGetAuthUserId();
+
+        if (userId is null)
+            return new FollowedDiscussionsDetailedResponse();
+
+        var items = await followUseCase.GetFollowedDiscussionsWithTimestampsAsync(userId);
+
+        var response = new FollowedDiscussionsDetailedResponse();
+        response.Items.AddRange(items.Select(x => new FollowedDiscussionEntry
+        {
+            PublicId = x.Id.Value,
+            FollowedAt = Google.Protobuf.WellKnownTypes.Timestamp.FromDateTime(x.FollowedAt.ToUniversalTime())
+        }));
+
+        return response;
+    }
+
     public override async Task<FollowedIdsResponse> GetFollowedUsers(GetFollowedUsersRequest request, ServerCallContext context)
     {
         var ct = context.CancellationToken;

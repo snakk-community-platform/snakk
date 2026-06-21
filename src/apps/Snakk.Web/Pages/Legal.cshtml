@@ -5,11 +5,11 @@
     ViewData["Title"] = Model.Title;
 }
 
-<div class="max-w-3xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold mb-2">@Model.Title</h1>
-    <p class="text-xs text-base-content/40 mb-8">@T.Pages.LegalVersion @Model.VersionNumber</p>
+<div class="sn-legal-page-wrapper">
+    <h1 class="sn-legal-page-title">@Model.Title</h1>
+    <p class="sn-legal-version-label">@T.Pages.LegalVersion @Model.VersionNumber</p>
 
-    <div class="prose prose-content max-w-none">
+    <div class="sn-prose sn-prose-content sn-max-w-none">
         @Html.SanitizedRaw(Model.Content)
     </div>
 </div>

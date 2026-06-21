@@ -1,0 +1,131 @@
+﻿@page "/create/poll"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@inject ICommunityContext CommunityCtx
+@model Snakk.Web.Pages.Spaces.NewPollModel
+@{
+    Layout = "~/Pages/Shared/_NewDiscussionLayout.cshtml";
+    ViewData["Title"] = string.Format(T.Pages.SpacesNewPollTitlePattern, Model.Space?.Name);
+    ViewData["NewDiscussion.Crumb"]        = T.Pages.SpacesNewPollCrumb;
+    ViewData["NewDiscussion.Heading"]      = T.Pages.SpacesNewPollHeading;
+    ViewData["NewDiscussion.TitlePh"]      = T.Pages.SpacesNewPollTitlePh;
+    ViewData["NewDiscussion.SubmitLabel"]  = T.Pages.SpacesNewPollSubmit;
+    ViewData["NewDiscussion.EditorHeight"] = "150px";
+}
+
+@section ExtraFormFields {
+    <!-- Poll options -->
+    <div class="sn-space-y-3">
+        <div class="sn-text-sm sn-font-medium">@T.Pages.SpacesNewPollOptionsLabel</div>
+        <div id="poll-options-list" class="sn-space-y-2">
+            <input type="text" name="PollOptions" class="sn-input sn-w-full sn-input-sm" placeholder="@T.Pages.SpacesNewPollOption1Ph" />
+            <input type="text" name="PollOptions" class="sn-input sn-w-full sn-input-sm" placeholder="@T.Pages.SpacesNewPollOption2Ph" />
+        </div>
+        <button type="button" class="sn-btn sn-btn-ghost sn-btn-xs" data-action="add-poll-option">@T.Pages.SpacesNewPollAddOption</button>
+
+        <div class="sn-poll-settings-heading">@T.Pages.SpacesNewPollSettingsLabel</div>
+        <div class="sn-poll-settings-list">
+            <div class="sn-clean-card sn-p-3">
+                <label class="sn-poll-setting-label">
+                    <input type="checkbox" name="PollAllowMultiple" value="true" class="sn-toggle sn-toggle-primary sn-toggle-sm" />
+                    <span>
+                        <span class="sn-font-medium sn-text-sm">@T.Pages.SpacesNewPollMultiple</span>
+                        <span class="sn-block sn-text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollMultipleDesc</span>
+                    </span>
+                </label>
+            </div>
+            <div class="sn-clean-card sn-p-3">
+                <label class="sn-poll-setting-label">
+                    <input type="checkbox" name="PollAllowChangeVote" value="true" class="sn-toggle sn-toggle-primary sn-toggle-sm" />
+                    <span>
+                        <span class="sn-font-medium sn-text-sm">@T.Pages.SpacesNewPollChange</span>
+                        <span class="sn-block sn-text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollChangeDesc</span>
+                    </span>
+                </label>
+            </div>
+            <div class="sn-clean-card sn-p-3">
+                <label class="sn-poll-setting-label">
+                    <input type="checkbox" name="PollSecret" value="true" class="sn-toggle sn-toggle-primary sn-toggle-sm" />
+                    <span>
+                        <span class="sn-font-medium sn-text-sm">@T.Pages.SpacesNewPollSecret</span>
+                        <span class="sn-block sn-text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollSecretDesc</span>
+                    </span>
+                </label>
+            </div>
+            <div class="sn-clean-card sn-p-3">
+                <label class="sn-poll-setting-label">
+                    <input type="checkbox" name="PollIsSegmented" value="true" class="sn-toggle sn-toggle-primary sn-toggle-sm" id="poll-segmented-check" />
+                    <span>
+                        <span class="sn-font-medium sn-text-sm">@T.Pages.SpacesNewPollGroup</span>
+                        <span class="sn-block sn-text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollGroupDesc</span>
+                    </span>
+                </label>
+                <div id="segment-fields" class="sn-hidden mt-3 ml-11 sn-space-y-2">
+                    <div>
+                        <label class="sn-text-xs sn-font-medium" style="color: var(--text-secondary)">@T.Pages.SpacesNewPollGroupQ</label>
+                        <input type="text" name="PollSegmentLabel" class="sn-input sn-input-sm sn-w-full" placeholder="@T.Pages.SpacesNewPollGroupQPh" />
+                    </div>
+                    <div class="sn-flex sn-gap-2">
+                        <div class="sn-flex-1">
+                            <label class="sn-text-xs sn-font-medium" style="color: var(--text-secondary)">@T.Pages.SpacesNewPollGroupA</label>
+                            <input type="text" name="PollSegmentOptionA" class="sn-input sn-input-sm sn-w-full" placeholder="@T.Pages.SpacesNewPollGroupAPh" />
+                        </div>
+                        <div class="sn-flex-1">
+                            <label class="sn-text-xs sn-font-medium" style="color: var(--text-secondary)">@T.Pages.SpacesNewPollGroupB</label>
+                            <input type="text" name="PollSegmentOptionB" class="sn-input sn-input-sm sn-w-full" placeholder="@T.Pages.SpacesNewPollGroupBPh" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sn-clean-card sn-p-3">
+                <label class="sn-poll-setting-label">
+                    <input type="checkbox" class="sn-toggle sn-toggle-primary sn-toggle-sm" id="poll-close-date-check" />
+                    <span>
+                        <span class="sn-font-medium sn-text-sm">@T.Pages.SpacesNewPollCloseDate</span>
+                        <span class="sn-block sn-text-xs" style="color: var(--text-tertiary)">@T.Pages.SpacesNewPollCloseDateDesc</span>
+                    </span>
+                </label>
+                <div id="close-date-field" class="sn-hidden mt-3 ml-11">
+                    <input type="datetime-local" name="PollClosesAt" class="sn-input sn-input-sm sn-w-full max-w-xs" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section EditorContainer {
+    <textarea name="NewContent" id="new-discussion-content" style="display:none">@Model.NewContent</textarea>
+    <div id="editor-container" data-hide-image="true" data-placeholder="@T.Pages.SpacesNewPollEditorPh">
+        <div class="sn-editor-skeleton"><div class="sn-editor-skeleton-toolbar"><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div><div class="sn-skeleton-pill"></div></div><div class="sn-editor-skeleton-body" style="min-height:150px"><div class="sn-skeleton-line w-3/4"></div><div class="sn-skeleton-line w-1/2"></div></div></div>
+    </div>
+}
+
+@section ExtraScripts {
+    <script src="@SnakkUrlHelper.Js("pages/new-poll")" asp-append-version="true" defer></script>
+}
+
+<div class="sn-poll-howto-section">
+    <h3 class="sn-section-label--createpoll">@T.Pages.SpacesNewPollHowHeading</h3>
+    <div class="sn-poll-howto-body">
+        <p>@T.Pages.SpacesNewPollIntro</p>
+        <div>
+            <div class="sn-font-medium sn-text-muted sn-mb-1">@T.Pages.SpacesNewAfterYouPost</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
+                <li>@T.Pages.SpacesNewPollAfter1</li>
+                <li>@T.Pages.SpacesNewPollAfter2</li>
+                <li>@T.Pages.SpacesNewPollAfter3</li>
+                <li>@T.Pages.SpacesNewPollAfter4</li>
+            </ul>
+        </div>
+        <div>
+            <div class="sn-font-medium sn-text-muted sn-mb-1">@T.Pages.SpacesNewTips</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
+                <li>@T.Pages.SpacesNewPollTip1</li>
+                <li>@T.Pages.SpacesNewPollTip2</li>
+                <li>@T.Pages.SpacesNewPollTip3</li>
+                <li>@T.Pages.SpacesNewPollTip4</li>
+            </ul>
+        </div>
+    </div>
+</div>
+

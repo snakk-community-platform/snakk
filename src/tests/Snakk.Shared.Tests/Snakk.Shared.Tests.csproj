@@ -12,8 +12,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
-    <PackageReference Include="TUnit" Version="1.45.29" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.9" />
+    <PackageReference Include="TUnit" Version="1.56.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\core\Snakk.Shared\Snakk.Shared.csproj" />

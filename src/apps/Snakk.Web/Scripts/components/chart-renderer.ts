@@ -155,7 +155,7 @@
         const commonOptions: any = {
             responsive: true,
             aspectRatio: 3,
-            animation: { duration: document.documentElement.classList.contains('no-animations') ? 0 : 380 },
+            animation: { duration: document.documentElement.classList.contains('sn-no-animations') ? 0 : 380 },
             plugins: {
                 title: parsed.title
                     ? { display: true, text: parsed.title, color: textColor, font: { size: 14 } }
@@ -262,7 +262,7 @@
 
     async function renderAll(container?: HTMLElement): Promise<void> {
         const root = container || document;
-        const els = root.querySelectorAll<HTMLElement>('.snakk-chart[data-chart-config]:not([data-chart-rendered])');
+        const els = root.querySelectorAll<HTMLElement>('.sn-snakk-chart[data-chart-config]:not([data-chart-rendered])');
         if (!els.length) return;
 
         const Chart = await loadChartJs();

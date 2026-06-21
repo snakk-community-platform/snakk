@@ -8,7 +8,7 @@
     'use strict';
 
     function initDiscussionPreviews(): void {
-        if (document.documentElement.classList.contains('no-discussion-previews')) return;
+        if (document.documentElement.classList.contains('sn-no-discussion-previews')) return;
 
         const container = document.getElementById('discussions-container');
         if (!container) return;
@@ -50,22 +50,22 @@
         }
 
         function togglePreview(button: HTMLElement, previewDiv: HTMLElement, discussionId: string): void {
-            const isCurrentlyVisible = !previewDiv.classList.contains('hidden');
+            const isCurrentlyVisible = !previewDiv.classList.contains('sn-hidden');
 
             if (isCurrentlyVisible) {
-                previewDiv.classList.add('hidden');
-                button.classList.remove('active');
+                previewDiv.classList.add('sn-hidden');
+                button.classList.remove('sn-active');
             } else {
-                const previewContent = previewDiv.querySelector('.preview-content') as HTMLElement | null;
+                const previewContent = previewDiv.querySelector('.sn-preview-content') as HTMLElement | null;
                 if (!previewContent) return;
 
                 if (previewContent.textContent) {
-                    previewDiv.classList.remove('hidden');
-                    button.classList.add('active');
+                    previewDiv.classList.remove('sn-hidden');
+                    button.classList.add('sn-active');
                 } else {
-                    previewContent.innerHTML = '<div class="skeleton h-3 w-full rounded"></div><div class="skeleton h-3 w-3/4 rounded mt-2"></div>';
-                    previewDiv.classList.remove('hidden');
-                    button.classList.add('active');
+                    previewContent.innerHTML = '<div class="sn-skeleton h-3 w-full rounded"></div><div class="sn-skeleton h-3 w-3/4 rounded mt-2"></div>';
+                    previewDiv.classList.remove('sn-hidden');
+                    button.classList.add('sn-active');
 
                     fetchPreview(discussionId).then(content => {
                         if (content) {
@@ -81,13 +81,13 @@
         // Event delegation: catches clicks on both initial and HTMX-loaded preview buttons
         container.addEventListener('click', (e: MouseEvent) => {
             const target = e.target as HTMLElement;
-            const button = target.closest('.preview-btn') as HTMLElement | null;
+            const button = target.closest('.sn-preview-btn') as HTMLElement | null;
             if (!button || !button.dataset.discussionId) return;
 
             e.preventDefault();
             const discussionId = button.dataset.discussionId;
-            const wrapper = button.closest('.topic-item-wrapper');
-            const previewDiv = wrapper?.querySelector('.discussion-preview') as HTMLElement | null;
+            const wrapper = button.closest('.sn-topic-item-wrapper');
+            const previewDiv = wrapper?.querySelector('.sn-discussion-preview') as HTMLElement | null;
 
             if (previewDiv) {
                 togglePreview(button, previewDiv, discussionId);

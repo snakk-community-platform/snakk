@@ -78,8 +78,15 @@ public class ResetPasswordModel(
         }
         catch (RpcException ex) when (ex.StatusCode == Grpc.Core.StatusCode.InvalidArgument)
         {
+            logger.LogWarning("ResetPassword invalid argument: {Detail}", ex.Status.Detail);
             Token = Input.Token;
-            ErrorMessage = ex.Status.Detail;
+            ErrorMessage = ex.Status.Detail switch
+            {
+                "TOKEN_EXPIRED"      => "This reset link has expired. Please request a new one.",
+                "TOKEN_INVALID"      => "Invalid reset link. Please request a new one.",
+                "TOKEN_ALREADY_USED" => "This reset link has already been used.",
+                _                    => "Invalid request. Please request a new reset link."
+            };
             return Page();
         }
         catch (RpcException ex)

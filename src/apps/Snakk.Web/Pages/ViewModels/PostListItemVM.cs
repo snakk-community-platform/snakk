@@ -10,6 +10,7 @@ public record PostListItemVM
     public required string ContentExcerpt { get; init; }
     public required DateTime CreatedAt { get; init; }
     public required string AuthorPublicId { get; init; }
+    public string? AuthorSlug { get; init; }
     public required string AuthorDisplayName { get; init; }
     public required string AuthorAvatarUrl { get; init; }
     public required string DiscussionPublicId { get; init; }
@@ -21,6 +22,8 @@ public record PostListItemVM
     public string HubName { get; init; } = "";
     public string SpaceName { get; init; } = "";
     public string SpacePublicId { get; init; } = "";
+    public string? ReactionEmoji { get; init; }
+    public string? UnsaveId { get; init; }
 
     public static PostListItemVM FromSavedPost(SavedPostInfo p) => new()
     {
@@ -28,6 +31,7 @@ public record PostListItemVM
         ContentExcerpt = p.ContentExcerpt,
         CreatedAt = p.CreatedAt.ToDateTime(),
         AuthorPublicId = p.AuthorPublicId,
+        AuthorSlug = p.HasAuthorSlug ? p.AuthorSlug : null,
         AuthorDisplayName = p.AuthorDisplayName,
         AuthorAvatarUrl = SnakkUrlHelper.UserAvatar(p.AuthorPublicId,
             avatarFileName: p.HasAuthorAvatarFileName ? p.AuthorAvatarFileName : null),
@@ -47,6 +51,7 @@ public record PostListItemVM
         ContentExcerpt = p.ContentHighlight,
         CreatedAt = p.CreatedAt.ToDateTime(),
         AuthorPublicId = p.Author.PublicId,
+        AuthorSlug = p.Author.HasSlug ? p.Author.Slug : null,
         AuthorDisplayName = p.Author.DisplayName,
         AuthorAvatarUrl = p.Author.HasAvatarUrl
             ? p.Author.AvatarUrl

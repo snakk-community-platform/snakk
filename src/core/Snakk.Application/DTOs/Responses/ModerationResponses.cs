@@ -15,6 +15,15 @@ public record UserRoleItemResponse(
     string? SpaceName,
     DateTime AssignedAt);
 
+public record UserModRolesResponse(IEnumerable<UserModRoleResponse> Items);
+
+public record UserModRoleResponse(
+    string Role,
+    string EntityType,
+    string? EntityId,
+    string? EntityName,
+    string? AccessLevel);   // "public" | "registered" | "members" | "unlisted"
+
 public record BanCreatedResponse(
     string PublicId,
     string BanType,

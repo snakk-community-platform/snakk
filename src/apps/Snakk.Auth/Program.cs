@@ -123,8 +123,11 @@ builder.Services.AddSingleton<Snakk.Auth.Services.IJwtCookieValidator,
 // Auth database — OpenIddict store (isolated from main domain DB)
 builder.Services.AddDbContext<SnakkAuthDbContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("AuthDbConnection")
-        ?? throw new InvalidOperationException("AuthDbConnection not configured"));
+    options.UseNpgsql(
+        new Npgsql.NpgsqlConnectionStringBuilder(
+            builder.Configuration.GetConnectionString("AuthDbConnection")
+            ?? throw new InvalidOperationException("AuthDbConnection not configured"))
+        { MaxPoolSize = 20, MinPoolSize = 2 }.ToString());
     options.UseOpenIddict();
 });
 
@@ -340,9 +343,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // durable as app data, and read at most once per 24 h (cached in memory).
 builder.Services.AddDbContext<DataProtectionDbContext>(opts =>
     opts.UseNpgsql(
-        builder.Configuration.GetConnectionString("DbConnection")
-        ?? builder.Configuration.GetConnectionString("AuthDbConnection")
-        ?? throw new InvalidOperationException("No DB connection string for Data Protection")));
+        new Npgsql.NpgsqlConnectionStringBuilder(
+            builder.Configuration.GetConnectionString("DbConnection")
+            ?? builder.Configuration.GetConnectionString("AuthDbConnection")
+            ?? throw new InvalidOperationException("No DB connection string for Data Protection"))
+        { MaxPoolSize = 5, MinPoolSize = 1 }.ToString()));
 
 builder.Services.AddDataProtection()
     .SetApplicationName("Snakk")
@@ -395,7 +400,7 @@ app.Use(async (context, next) =>
     var headers = context.Response.Headers;
     headers.Append("Content-Security-Policy",
         "default-src 'self'; " +
-        $"script-src 'self' 'nonce-{nonce}' https://challenges.cloudflare.com; " +
+        $"script-src 'nonce-{nonce}' 'strict-dynamic' 'unsafe-inline'; " +
         "style-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data: https:; " +
         "font-src 'self'; " +
@@ -408,6 +413,7 @@ app.Use(async (context, next) =>
     headers.Append("X-Content-Type-Options", "nosniff");
     headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
     headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
+    headers.Append("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
     await next();
 });

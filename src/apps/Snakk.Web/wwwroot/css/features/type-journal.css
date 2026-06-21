@@ -1,0 +1,1 @@
+.journal-entry{border-left:3px solid oklch(.6 .1 30)}.journal-entry-badge{font-size:var(--font-size-xs);font-weight:500;margin-right:var(--space-4)}.journal-entry-badge{color:oklch(.5 .1 30)}[data-theme=dark] .journal-entry{border-left-color:oklch(.5 .08 30)}[data-theme=dark] .journal-entry-badge{color:oklch(.7 .08 30)}

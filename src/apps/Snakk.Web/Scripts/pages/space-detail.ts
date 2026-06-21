@@ -118,13 +118,13 @@
         if (rpBtn) {
             const rpText = rpBtn.querySelector('span');
             if (isFollowing) {
-                rpBtn.classList.add('btn-primary');
-                rpBtn.classList.remove('btn-ghost');
-                if (rpText) rpText.textContent = 'Subscribed';
+                rpBtn.classList.add('sn-btn-primary');
+                rpBtn.classList.remove('sn-btn-ghost');
+                if (rpText) rpText.textContent = 'Followed';
             } else {
-                rpBtn.classList.remove('btn-primary');
-                rpBtn.classList.add('btn-ghost');
-                if (rpText) rpText.textContent = 'Subscribe';
+                rpBtn.classList.remove('sn-btn-primary');
+                rpBtn.classList.add('sn-btn-ghost');
+                if (rpText) rpText.textContent = 'Follow';
             }
         }
 
@@ -138,35 +138,35 @@
         if (!toggleBtn || !followText || !followIcon || !levelToggle || !discussionsBtn || !postsBtn) return;
 
         if (isFollowing) {
-            toggleBtn.classList.add('btn-primary');
-            toggleBtn.classList.remove('btn-ghost');
+            toggleBtn.classList.add('sn-btn-primary');
+            toggleBtn.classList.remove('sn-btn-ghost');
             toggleBtn.classList.remove('rounded-r-none', 'border-r-0');
             toggleBtn.classList.add('rounded-l-lg', 'rounded-r-none');
-            followText.textContent = 'Subscribed';
+            followText.textContent = 'Followed';
             followIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />';
 
-            levelToggle.classList.remove('hidden');
+            levelToggle.classList.remove('sn-hidden');
 
             if (currentFollowLevel === 'DiscussionsAndPosts') {
-                discussionsBtn.classList.remove('btn-primary');
-                discussionsBtn.classList.add('btn-ghost');
-                postsBtn.classList.add('btn-primary');
-                postsBtn.classList.remove('btn-ghost');
+                discussionsBtn.classList.remove('sn-btn-primary');
+                discussionsBtn.classList.add('sn-btn-ghost');
+                postsBtn.classList.add('sn-btn-primary');
+                postsBtn.classList.remove('sn-btn-ghost');
             } else {
-                discussionsBtn.classList.add('btn-primary');
-                discussionsBtn.classList.remove('btn-ghost');
-                postsBtn.classList.remove('btn-primary');
-                postsBtn.classList.add('btn-ghost');
+                discussionsBtn.classList.add('sn-btn-primary');
+                discussionsBtn.classList.remove('sn-btn-ghost');
+                postsBtn.classList.remove('sn-btn-primary');
+                postsBtn.classList.add('sn-btn-ghost');
             }
         } else {
-            toggleBtn.classList.remove('btn-primary');
-            toggleBtn.classList.add('btn-ghost');
-            toggleBtn.classList.add('rounded-lg');
+            toggleBtn.classList.remove('sn-btn-primary');
+            toggleBtn.classList.add('sn-btn-ghost');
+            toggleBtn.classList.add('sn-rounded-lg');
             toggleBtn.classList.remove('rounded-l-lg', 'rounded-r-none');
-            followText.textContent = 'Subscribe';
+            followText.textContent = 'Follow';
             followIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />';
 
-            levelToggle.classList.add('hidden');
+            levelToggle.classList.add('sn-hidden');
         }
     }
 

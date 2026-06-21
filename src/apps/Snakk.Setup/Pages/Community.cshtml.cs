@@ -56,6 +56,6 @@ public class CommunityModel : SetupPageBase
         }
 
         SaveState(state);
-        return RedirectToPage("TestData");
+        return RedirectToPage("Trending");
     }
 }

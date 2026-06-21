@@ -1,5 +1,6 @@
 using NSubstitute;
 using Snakk.Application.Repositories;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
@@ -14,12 +15,13 @@ public class StatisticsUseCaseTests
     private readonly IDiscussionRepository _discussionRepo = Substitute.For<IDiscussionRepository>();
     private readonly IUserRepository _userRepo = Substitute.For<IUserRepository>();
     private readonly IStatsRepository _statsRepo = Substitute.For<IStatsRepository>();
+    private readonly IManageScopeDataService _manageScopeData = Substitute.For<IManageScopeDataService>();
     private StatisticsUseCase _useCase = null!;
 
     [Before(Test)]
     public void Setup()
     {
-        _useCase = new StatisticsUseCase(_postRepo, _discussionRepo, _userRepo, _statsRepo);
+        _useCase = new StatisticsUseCase(_postRepo, _discussionRepo, _userRepo, _statsRepo, _manageScopeData);
     }
 
     #region GetTopContributorsTodayAsync Tests

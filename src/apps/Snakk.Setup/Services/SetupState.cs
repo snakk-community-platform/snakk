@@ -74,7 +74,15 @@ public class SetupState
     public string MicrosoftClientSecret { get; set; } = "";
     public string SteamApiKey { get; set; } = "";
 
-    // Step 9: First Community
+    // Step 10: Trending Window
+    public bool AdaptiveVolumeWindowEnabled { get; set; } = true;
+    public int TrendingTargetPosts { get; set; } = 500;
+    public int TrendingTargetDiscussions { get; set; } = 100;
+    public int TrendingLookbackHours { get; set; } = 24;
+    public int SpacesLookbackDays { get; set; } = 7;
+    public int ContributorsLookbackDays { get; set; } = 7;
+
+    // Step 11: First Community
     public string CommunityName { get; set; } = "";
     public string CommunityDescription { get; set; } = "";
     public string FirstHubName { get; set; } = "";

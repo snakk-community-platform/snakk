@@ -1,0 +1,85 @@
+@page "/setup/trending"
+@model Snakk.Setup.Pages.TrendingModel
+
+<h2 class="text-xl font-semibold mb-4">Trending Window</h2>
+<p class="text-base-content/70 mb-6">
+    Trending lists (top discussions, spaces, contributors) are computed by looking back over a time window.
+    Choose how that window is determined.
+</p>
+
+<form method="post" class="space-y-6">
+    <!-- Mode selection -->
+    <div class="form-control">
+        <label class="label"><span class="label-text font-medium">Window mode</span></label>
+        <div class="space-y-3">
+            <label class="label cursor-pointer justify-start gap-3 border border-base-300 rounded-lg p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                <input type="radio" name="AdaptiveVolumeWindowEnabled" value="true"
+                       class="radio radio-primary"
+                       checked="@(Model.AdaptiveVolumeWindowEnabled)"
+                       onchange="toggleWindowMode(this.value)" />
+                <div class="min-w-0">
+                    <span class="label-text font-semibold">Adaptive <span class="badge badge-primary badge-sm ml-1">Recommended</span></span>
+                    <p class="text-sm text-base-content/60 mt-0.5">
+                        Automatically estimates how far back to look based on your platform's activity volume.
+                        Uses the 33rd percentile of daily volume over 30 days — sized for quieter days so the window is robust to traffic spikes.
+                    </p>
+                </div>
+            </label>
+
+            <label class="label cursor-pointer justify-start gap-3 border border-base-300 rounded-lg p-3 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                <input type="radio" name="AdaptiveVolumeWindowEnabled" value="false"
+                       class="radio radio-primary"
+                       checked="@(!Model.AdaptiveVolumeWindowEnabled)"
+                       onchange="toggleWindowMode(this.value)" />
+                <div class="min-w-0">
+                    <span class="label-text font-semibold">Fixed</span>
+                    <p class="text-sm text-base-content/60 mt-0.5">
+                        You specify explicit lookback periods. Simple to reason about, but may need manual tuning as your platform grows.
+                    </p>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <!-- Adaptive options: no inputs needed — defaults (500 posts, 100 discussions) work across all platform sizes -->
+
+    <!-- Fixed options -->
+    <div id="fixed-fields" style="display: @(!Model.AdaptiveVolumeWindowEnabled ? "block" : "none");">
+        <div class="divider">Fixed lookback periods</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="form-control">
+                <label class="label"><span class="label-text">Trending discussions lookback (hours)</span></label>
+                <input type="number" asp-for="TrendingLookbackHours" class="input w-full" min="1" max="8760" />
+                <label class="label"><span class="label-text-alt text-base-content/50">Default: 24</span></label>
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Trending spaces lookback (days)</span></label>
+                <input type="number" asp-for="SpacesLookbackDays" class="input w-full" min="1" max="365" />
+                <label class="label"><span class="label-text-alt text-base-content/50">Default: 7</span></label>
+            </div>
+            <div class="form-control">
+                <label class="label"><span class="label-text">Trending contributors lookback (days)</span></label>
+                <input type="number" asp-for="ContributorsLookbackDays" class="input w-full" min="1" max="365" />
+                <label class="label"><span class="label-text-alt text-base-content/50">Default: 7</span></label>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert">
+        @await Html.PartialAsync("_AlertIconInfo")
+        <span>In adaptive mode, the window is recomputed hourly once your platform has at least 3 days of activity data. Until then it falls back to 24 hours.</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="flex justify-between">
+        <a asp-page="Community" class="btn btn-ghost">Back</a>
+        <button type="submit" class="btn btn-primary">Next</button>
+    </div>
+</form>
+
+<script>
+function toggleWindowMode(value) {
+    document.getElementById('fixed-fields').style.display = value === 'true' ? 'none' : 'block';
+}
+</script>

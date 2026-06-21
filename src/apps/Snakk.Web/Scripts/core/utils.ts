@@ -152,17 +152,17 @@ interface SnakkUtilsAPI {
         let badges = '';
 
         if (discussion.isPinned) {
-            badges += '<span class="badge badge-primary badge-xs ml-2">Pinned</span>';
+            badges += '<span class="sn-badge sn-badge-primary sn-badge-xs ml-2">Pinned</span>';
         }
         if (discussion.isLocked) {
-            badges += '<span class="badge badge-warning badge-xs ml-2">Locked</span>';
+            badges += '<span class="sn-badge sn-badge-warning sn-badge-xs ml-2">Locked</span>';
         }
         if (discussion.tags && Array.isArray(discussion.tags) && discussion.tags.length > 0) {
             discussion.tags.slice(0, 3).forEach(tag => {
-                badges += `<span class="badge badge-ghost badge-xs ml-2">${escapeHtml(tag)}</span>`;
+                badges += `<span class="sn-badge sn-badge-ghost sn-badge-xs ml-2">${escapeHtml(tag)}</span>`;
             });
             if (discussion.tags.length > 3) {
-                badges += '<span class="text-muted ml-1">...</span>';
+                badges += '<span class="sn-text-muted ml-1">...</span>';
             }
         }
 
@@ -394,20 +394,56 @@ interface SnakkUtilsAPI {
     function addCarouselSwipe(track: HTMLElement, goTo: (idx: number) => void, getCurrent: () => number): void {
         let startX = 0;
         let active = false;
-        const THRESHOLD = 40;
-        track.addEventListener('pointerdown', (e) => { startX = e.clientX; active = true; track.setPointerCapture(e.pointerId); });
-        track.addEventListener('pointerup', (e) => {
-            if (!active) return;
+
+        function applyDragOffset(delta: number): void {
+            const cur = getCurrent();
+            const count = track.children.length;
+            // Apply resistance when dragging past the first or last slide.
+            const atStart = cur === 0 && delta > 0;
+            const atEnd   = cur === count - 1 && delta < 0;
+            const offset  = (atStart || atEnd) ? delta * 0.3 : delta;
+            track.style.transform = `translateX(calc(-${cur * 100}% + ${offset}px))`;
+        }
+
+        track.addEventListener('pointerdown', (e: PointerEvent) => {
+            if (!e.isPrimary) return;
+            startX = e.clientX;
+            active = true;
+            track.setPointerCapture(e.pointerId);
+            track.style.transition = 'none';
+        });
+
+        track.addEventListener('pointermove', (e: PointerEvent) => {
+            if (!active || !e.isPrimary) return;
+            applyDragOffset(e.clientX - startX);
+        });
+
+        const onEnd = (e: PointerEvent) => {
+            if (!active || !e.isPrimary) return;
             active = false;
             const delta = e.clientX - startX;
-            if (Math.abs(delta) >= THRESHOLD) {
+            // Re-enable the CSS transition so the snap animates.
+            track.style.transition = '';
+            const threshold = track.clientWidth * 0.3;
+            if (Math.abs(delta) >= threshold) {
                 goTo(getCurrent() + (delta < 0 ? 1 : -1));
-                // Suppress the synthesized click that follows a pointer swipe so
-                // lightbox opens and card navigation don't fire after a swipe.
+            } else {
+                goTo(getCurrent()); // snap back to current slide
+            }
+            // Suppress the synthesized click that follows a pointer swipe so
+            // lightbox opens and card navigation don't fire after a swipe.
+            if (Math.abs(delta) > 4) {
                 track.addEventListener('click', (ev) => ev.stopPropagation(), { once: true, capture: true });
             }
+        };
+
+        track.addEventListener('pointerup', onEnd);
+        track.addEventListener('pointercancel', () => {
+            if (!active) return;
+            active = false;
+            track.style.transition = '';
+            goTo(getCurrent()); // snap back
         });
-        track.addEventListener('pointercancel', () => { active = false; });
     }
 
     // Export all utilities

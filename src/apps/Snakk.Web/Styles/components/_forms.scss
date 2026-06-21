@@ -2,11 +2,17 @@
 // Form Elements
 // ============================================
 
-.input, .textarea, .select {
+// Shared structural styles for all form controls
+%form-control-base {
     background: var(--bg-primary);
     border: 1px solid var(--border-primary);
-    border-radius: 6px;
-    transition: border-color 0.15s ease;
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-6);
+    font-size: var(--font-size-base);
+    font-weight: 400;
+    min-height: 2.5rem;
+    color: var(--text-primary);
+    transition: border-color var(--duration-base) ease;
 
     &:focus {
         border-color: var(--text-primary);
@@ -15,58 +21,113 @@
     }
 }
 
+// Inputs and textareas are full-width by default (used in form columns)
+.sn-input, .sn-textarea {
+    @extend %form-control-base;
+    display: block;
+    width: 100%;
+}
+
+// Selects size to their content by default — matches old daisyUI behaviour.
+// Use .w-full to opt in to full width when needed.
+.sn-select {
+    @extend %form-control-base;
+    display: inline-block;
+    width: auto;
+}
+
+// Size modifiers
+.sn-input-sm,
+.sn-select-sm,
+.sn-textarea-sm {
+    padding: var(--space-2) var(--space-5);
+    font-size: var(--font-size-ui);
+    min-height: 2rem;
+}
+
+// Range input
+.sn-range {
+    width: 100%;
+    cursor: pointer;
+}
+
+.sn-range {
+    accent-color: var(--link-primary);
+}
+
+.sn-range-sm {
+    height: 0.375rem;
+}
+
+.sn-range-primary {
+    accent-color: var(--link-primary);
+}
+
 // Cloudflare Turnstile widget — transparent background to match cards
 .cf-turnstile iframe {
     background: transparent !important;
 }
 
 // Disabled buttons
-.btn:disabled,
-.btn[disabled] {
-    opacity: 0.4;
+.sn-btn:disabled,
+.sn-btn[disabled] {
     cursor: not-allowed;
     pointer-events: none;
 }
 
+.sn-btn:disabled,
+.sn-btn[disabled] {
+    opacity: 0.4;
+}
+
 // Composer area (Milkdown editor provides its own frame)
-.composer-area {
-    margin-top: 1.5rem;
+.sn-composer-area {
+    margin-top: var(--space-12);
 }
 
 // Editor skeleton (shown while Milkdown editor lazy-loads)
-.editor-skeleton {
+.sn-editor-skeleton {
     border: 1px solid var(--border-secondary);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
     overflow: hidden;
 }
 
-.editor-skeleton-toolbar {
+.sn-editor-skeleton-toolbar {
     display: flex;
-    gap: 0.5rem;
-    padding: 0.625rem 0.75rem;
+    gap: var(--space-4);
+    padding: var(--space-5) var(--space-6);
     border-bottom: 1px solid var(--border-secondary);
+}
+
+.sn-editor-skeleton-toolbar {
     background: var(--bg-secondary);
 }
 
-.skeleton-pill {
+.sn-skeleton-pill {
     width: 2rem;
     height: 1.5rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
+}
+
+.sn-skeleton-pill {
     background: var(--bg-tertiary);
     animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
-.editor-skeleton-body {
-    padding: 1rem;
+.sn-editor-skeleton-body {
+    padding: var(--space-8);
     min-height: 200px;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: var(--space-6);
 }
 
-.skeleton-line {
+.sn-skeleton-line {
     height: 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-sm);
+}
+
+.sn-skeleton-line {
     background: var(--bg-tertiary);
     animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
@@ -82,70 +143,239 @@
 }
 
 *:focus-visible {
-    outline: 2px solid var(--accent-info-outline);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
 }
 
 button:focus-visible,
 a:focus-visible {
-    outline: 2px solid var(--accent-info-outline);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
 }
 
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible {
-    outline: 2px solid var(--accent-info-outline);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 0;
     border-color: var(--link-primary);
 }
 
-// daisyUI v5 lofi theme toggle fix — calc() chain for --size-selector produces wrong dimensions
-.toggle {
+// Toggle switch — complete CSS-only replacement for daisyUI .toggle
+.sn-toggle {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
     width: 3rem !important;
     height: 1.5rem !important;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-full);
+    flex-shrink: 0;
+
+    &::before {
+        content: '';
+        position: absolute;
+        left: 3px;
+        width: 1.125rem;
+        height: 1.125rem;
+        border-radius: 50%;
+    }
 
     &:checked {
-        --input-color: var(--link-primary) !important;
+        &::before {
+            transform: translateX(1.375rem);
+        }
     }
+
+    &:disabled { cursor: not-allowed; }
 }
 
-// daisyUI v4 → v5 compatibility shims (form-control, label, label-text removed in v5)
-// These preserve existing form styling until views are gradually migrated to fieldset/legend
-.form-control {
+.sn-toggle {
+    background: var(--bg-tertiary);
+    transition: background var(--duration-slow) ease, border-color var(--duration-slow) ease;
+
+    &::before {
+        background: var(--text-tertiary);
+        transition: transform var(--duration-slow) ease, background var(--duration-slow) ease;
+    }
+
+    &:checked {
+        background: var(--link-primary);
+        border-color: var(--link-primary);
+
+        &::before {
+            background: var(--text-on-dark);
+        }
+    }
+
+    &:disabled { opacity: 0.4; }
+}
+
+// Toggle size variants
+.sn-toggle-sm {
+    width: 2.25rem !important;
+    height: 1.25rem !important;
+    &::before { width: 0.875rem; height: 0.875rem; }
+    &:checked::before { transform: translateX(0.875rem); }
+}
+
+.sn-toggle-xs {
+    width: 1.75rem !important;
+    height: 1rem !important;
+    &::before { width: 0.625rem; height: 0.625rem; }
+    &:checked::before { transform: translateX(0.75rem); }
+}
+
+// Toggle color variants (override checked state color)
+.sn-toggle-primary:checked { background: var(--link-primary); border-color: var(--link-primary); }
+.sn-toggle-info:checked    { background: var(--accent-info); border-color: var(--accent-info); }
+.sn-toggle-error:checked   { background: var(--accent-danger); border-color: var(--accent-danger); }
+.sn-toggle-warning:checked { background: var(--accent-warning); border-color: var(--accent-warning); }
+
+// Checkbox
+.sn-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &::before {
+        content: '';
+        display: none;
+        width: 0.5rem;
+        height: 0.3rem;
+        border-left: 2px solid var(--text-on-dark);
+        border-bottom: 2px solid var(--text-on-dark);
+        transform: rotate(-45deg) translateY(-1px);
+    }
+
+    &:checked {
+        border-color: var(--link-primary);
+        &::before { display: block; }
+    }
+
+    &:disabled { cursor: not-allowed; }
+}
+
+.sn-checkbox {
+    background: var(--bg-primary);
+    transition: background var(--duration-base), border-color var(--duration-base);
+
+    &:checked {
+        background: var(--link-primary);
+    }
+
+    &:disabled { opacity: 0.4; }
+}
+
+.sn-checkbox-primary:checked { background: var(--link-primary); border-color: var(--link-primary); }
+.sn-checkbox-info:checked    { background: var(--accent-info); border-color: var(--accent-info); }
+
+// Radio
+.sn-radio {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid var(--border-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &::before {
+        content: '';
+        display: none;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+    }
+
+    &:checked {
+        border-color: var(--link-primary);
+        &::before { display: block; }
+    }
+
+    &:disabled { cursor: not-allowed; }
+}
+
+.sn-radio {
+    background: var(--bg-primary);
+    transition: background var(--duration-base), border-color var(--duration-base);
+
+    &::before {
+        background: var(--text-on-dark);
+    }
+
+    &:checked {
+        background: var(--link-primary);
+    }
+
+    &:disabled { opacity: 0.4; }
+}
+
+// Form field layout — replaces daisyUI .form-control / .label / .label-text
+// Dual selectors: sn-field/sn-label/sn-label-text (new) and form-control/label/label-text (shim)
+.sn-field {
     display: flex;
     flex-direction: column;
 }
 
-.label {
+.sn-label {
     display: flex;
     user-select: none;
     align-items: center;
     justify-content: space-between;
-    padding: 0.5rem 0.25rem;
+    padding: var(--space-4) var(--space-2);
 }
 
-.label-text {
-    font-size: 0.875rem;
+.sn-label-text {
+    font-size: var(--font-size-base);
     line-height: 1.25rem;
+}
+
+.sn-label-text {
     color: var(--text-primary);
 }
 
-.label-text-alt {
-    font-size: 0.75rem;
+.sn-label-text-alt {
+    font-size: var(--font-size-sm);
+}
+
+.sn-label-text-alt {
     color: var(--text-tertiary);
 }
 
 // Settings scrollspy nav
-.settings-nav-item {
+.sn-settings-nav-item {
     display: block;
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.375rem;
-    color: var(--text-secondary);
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius-md);
     text-decoration: none;
-    transition: color 0.15s, background 0.15s;
     border-left: 2px solid transparent;
+
+    &.active {
+        border-left-color: var(--link-primary);
+        font-weight: 500;
+    }
+}
+
+.sn-settings-nav-item {
+    color: var(--text-secondary);
+    transition: color var(--duration-base), background var(--duration-base);
 
     &:hover {
         color: var(--text-primary);
@@ -154,21 +384,22 @@ select:focus-visible {
 
     &.active {
         color: var(--link-primary);
-        border-left-color: var(--link-primary);
-        font-weight: 500;
     }
 }
 
 // Skin tone preference swatches
-.skin-tone-swatch {
-    font-size: 1.5rem;
+.sn-skin-tone-swatch {
+    font-size: var(--font-size-2xl);
     line-height: 1;
-    padding: 0.25rem;
-    border-radius: 0.375rem;
+    padding: var(--space-2);
+    border-radius: var(--radius-md);
     border: 2px solid transparent;
-    background: none;
     cursor: pointer;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.sn-skin-tone-swatch {
+    background: none;
+    transition: border-color var(--duration-base) ease, background-color var(--duration-base) ease;
 
     &:hover {
         background: var(--bg-tertiary);
@@ -179,3 +410,4 @@ select:focus-visible {
         background: var(--bg-secondary);
     }
 }
+

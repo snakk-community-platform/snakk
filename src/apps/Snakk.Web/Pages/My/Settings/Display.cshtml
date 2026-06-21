@@ -1,0 +1,135 @@
+@page "/my/settings/display"
+@using Snakk.Web.Helpers
+@model Snakk.Web.Pages.My.Settings.DisplayModel
+@{
+    Layout = "~/Pages/Shared/_SettingsLayout.cshtml";
+    ViewData["Title"] = T.Settings.TitleDisplay;
+    ViewData["AuthPrompt.Title"] = T.Settings.NudgeTitleAccess;
+    ViewData["Settings.Icon"] = "icon-display-monitor";
+    ViewData["Settings.Heading"] = T.Settings.HeadingDisplay;
+}
+
+            <!-- Timezone -->
+            <div id="section-timezone" class="sn-settings-section">
+                <h3 class="sn-settings-section-title">@T.Settings.TimezoneTitle</h3>
+
+                <div class="tz-map-wrapper">
+                    <object id="timezone-map-object"
+                            class="tz-map-object"
+                            data="/svg/world-map.svg"
+                            type="image/svg+xml"
+                            aria-label="@T.Settings.TimezoneMapAria">
+                    </object>
+                    <div id="tz-map-tooltip" class="tz-map-tooltip sn-hidden"></div>
+                </div>
+
+                <select id="timezone-select" name="timezone" class="sn-select sn-w-full">
+                    <option value="UTC">UTC</option>
+                    <optgroup label="Americas">
+                        <option value="America/Adak">Adak (USA)</option>
+                        <option value="America/Anchorage">Anchorage (USA)</option>
+                        <option value="America/Asuncion">Asuncion (Paraguay)</option>
+                        <option value="America/Bogota">Bogota (Colombia)</option>
+                        <option value="America/Argentina/Buenos_Aires">Buenos Aires (Argentina)</option>
+                        <option value="America/Cancun">Cancun (Mexico)</option>
+                        <option value="America/Caracas">Caracas (Venezuela)</option>
+                        <option value="America/Cayenne">Cayenne (French Guiana)</option>
+                        <option value="America/Chicago">Chicago (USA)</option>
+                        <option value="America/Cuiaba">Cuiaba (Brazil)</option>
+                        <option value="America/Denver">Denver (USA)</option>
+                        <option value="America/Edmonton">Edmonton (Canada)</option>
+                        <option value="America/Noronha">Fernando de Noronha (Brazil)</option>
+                        <option value="America/Fortaleza">Fortaleza (Brazil)</option>
+                        <option value="America/Guatemala">Guatemala City (Guatemala)</option>
+                        <option value="America/Guayaquil">Guayaquil (Ecuador)</option>
+                        <option value="America/Halifax">Halifax (Canada)</option>
+                        <option value="America/Havana">Havana (Cuba)</option>
+                        <option value="Pacific/Honolulu">Honolulu (USA)</option>
+                        <option value="America/Jamaica">Kingston (Jamaica)</option>
+                        <option value="America/La_Paz">La Paz (Bolivia)</option>
+                        <option value="America/Lima">Lima (Peru)</option>
+                        <option value="America/Los_Angeles">Los Angeles (USA)</option>
+                        <option value="America/Manaus">Manaus (Brazil)</option>
+                        <option value="America/Mazatlan">Mazatlan (Mexico)</option>
+                        <option value="America/Mexico_City">Mexico City (Mexico)</option>
+                        <option value="America/Montevideo">Montevideo (Uruguay)</option>
+                        <option value="America/New_York">New York (USA)</option>
+                        <option value="America/Godthab">Nuuk (Greenland)</option>
+                        <option value="America/Panama">Panama City (Panama)</option>
+                        <option value="America/Paramaribo">Paramaribo (Suriname)</option>
+                        <option value="America/Phoenix">Phoenix (USA, no DST)</option>
+                        <option value="America/Regina">Regina (Canada, no DST)</option>
+                        <option value="America/Rio_Branco">Rio Branco (Brazil)</option>
+                        <option value="America/Santiago">Santiago (Chile)</option>
+                        <option value="America/Santo_Domingo">Santo Domingo (Dominican Republic)</option>
+                        <option value="America/Sao_Paulo">Sao Paulo (Brazil)</option>
+                        <option value="America/St_Johns">St. John's (Canada)</option>
+                        <option value="America/Tijuana">Tijuana (Mexico)</option>
+                        <option value="America/Toronto">Toronto (Canada)</option>
+                        <option value="America/Vancouver">Vancouver (Canada)</option>
+                        <option value="America/Winnipeg">Winnipeg (Canada)</option>
+                    </optgroup>
+                    <optgroup label="Europe">
+                        <option value="Europe/Amsterdam">Amsterdam (Netherlands)</option>
+                        <option value="Europe/Athens">Athens (Greece)</option>
+                        <option value="Atlantic/Azores">Azores (Portugal)</option>
+                        <option value="Europe/Berlin">Berlin (Germany)</option>
+                        <option value="Europe/Brussels">Brussels (Belgium)</option>
+                        <option value="Europe/Bucharest">Bucharest (Romania)</option>
+                        <option value="Europe/Budapest">Budapest (Hungary)</option>
+                        <option value="Europe/Copenhagen">Copenhagen (Denmark)</option>
+                        <option value="Europe/Dublin">Dublin (Ireland)</option>
+                        <option value="Europe/Helsinki">Helsinki (Finland)</option>
+                        <option value="Europe/Istanbul">Istanbul (Turkey)</option>
+                        <option value="Europe/Kiev">Kyiv (Ukraine)</option>
+                        <option value="Europe/Lisbon">Lisbon (Portugal)</option>
+                        <option value="Europe/London">London (United Kingdom)</option>
+                        <option value="Europe/Madrid">Madrid (Spain)</option>
+                        <option value="Europe/Moscow">Moscow (Russia)</option>
+                        <option value="Europe/Oslo">Oslo (Norway)</option>
+                        <option value="Europe/Paris">Paris (France)</option>
+                        <option value="Europe/Prague">Prague (Czechia)</option>
+                        <option value="Atlantic/Reykjavik">Reykjavik (Iceland)</option>
+                        <option value="Europe/Rome">Rome (Italy)</option>
+                        <option value="Europe/Stockholm">Stockholm (Sweden)</option>
+                        <option value="Europe/Vienna">Vienna (Austria)</option>
+                        <option value="Europe/Warsaw">Warsaw (Poland)</option>
+                        <option value="Europe/Zurich">Zurich (Switzerland)</option>
+                    </optgroup>
+                    <optgroup label="Africa">
+                        <option value="Africa/Cairo">Cairo (Egypt)</option>
+                        <option value="Africa/Casablanca">Casablanca (Morocco)</option>
+                        <option value="Africa/Johannesburg">Johannesburg (South Africa)</option>
+                        <option value="Africa/Lagos">Lagos (Nigeria)</option>
+                        <option value="Africa/Nairobi">Nairobi (Kenya)</option>
+                    </optgroup>
+                    <optgroup label="Middle East">
+                        <option value="Asia/Dubai">Dubai (UAE)</option>
+                        <option value="Asia/Jerusalem">Jerusalem (Israel)</option>
+                        <option value="Asia/Riyadh">Riyadh (Saudi Arabia)</option>
+                        <option value="Asia/Tehran">Tehran (Iran)</option>
+                    </optgroup>
+                    <optgroup label="Asia">
+                        <option value="Asia/Bangkok">Bangkok (Thailand)</option>
+                        <option value="Asia/Dhaka">Dhaka (Bangladesh)</option>
+                        <option value="Asia/Hong_Kong">Hong Kong (China)</option>
+                        <option value="Asia/Jakarta">Jakarta (Indonesia)</option>
+                        <option value="Asia/Kolkata">Kolkata (India)</option>
+                        <option value="Asia/Seoul">Seoul (South Korea)</option>
+                        <option value="Asia/Shanghai">Shanghai (China)</option>
+                        <option value="Asia/Singapore">Singapore</option>
+                        <option value="Asia/Tokyo">Tokyo (Japan)</option>
+                    </optgroup>
+                    <optgroup label="Australia & Pacific">
+                        <option value="Australia/Brisbane">Brisbane (Australia)</option>
+                        <option value="Australia/Melbourne">Melbourne (Australia)</option>
+                        <option value="Australia/Perth">Perth (Australia)</option>
+                        <option value="Australia/Sydney">Sydney (Australia)</option>
+                        <option value="Pacific/Auckland">Auckland (New Zealand)</option>
+                    </optgroup>
+                </select>
+                <span class="sn-text-xs" style="color: var(--text-tertiary)">@T.Settings.TimezoneHelp</span>
+            </div>
+
+<script src="@SnakkUrlHelper.Js("pages/settings")" asp-append-version="true"></script>
+<script src="/js/dist/components/timezone-map.js"></script>

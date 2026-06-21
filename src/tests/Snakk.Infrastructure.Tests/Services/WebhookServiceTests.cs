@@ -13,7 +13,6 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class WebhookServiceTests : IDisposable
 {
     private readonly SnakkDbContext _context;
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<WebhookService> _logger;
     private readonly WebhookService _service;
 
@@ -23,10 +22,9 @@ public class WebhookServiceTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"WebhookTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
-        _httpClientFactory = Substitute.For<IHttpClientFactory>();
         _logger = Substitute.For<ILogger<WebhookService>>();
 
-        _service = new WebhookService(_context, _httpClientFactory, _logger);
+        _service = new WebhookService(_context, _logger);
 
         // Create the admin user referenced by webhook CreatedBy FK
         _context.Users.Add(new UserDatabaseEntity

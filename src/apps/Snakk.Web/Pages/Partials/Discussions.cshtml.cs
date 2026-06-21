@@ -50,7 +50,7 @@ public class DiscussionsModel(
         cancellationToken.ThrowIfCancellationRequested();
         Response.Headers.CacheControl = "public, max-age=5";
 
-        Sort = sort == "trending" ? "trending" : sort == "new" ? "new" : sort == "my-feed" ? "my-feed" : "recent";
+        Sort = sort == "trending" ? "trending" : sort == "new" ? "new" : sort == "my-feed" ? "my-feed" : sort == "since" ? "since" : "recent";
         CommunityId = communityId;
         HubId = hubId;
         SpaceId = spaceId;
@@ -113,6 +113,15 @@ public class DiscussionsModel(
                         NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
                     }
                 }
+            }
+            else if (Sort == "since")
+            {
+                Response.Headers.CacheControl = "private, no-store";
+                var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, cursor: cursor, viewerAllowsAdult: viewerAllowsAdult, sinceLastVisit: true);
+                Items = result?.Items ?? [];
+                HasMoreItems = result?.HasMoreItems ?? false;
+                NextOffset = offset + pageSize;
+                NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
             }
             else
             {

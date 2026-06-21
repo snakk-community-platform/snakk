@@ -1,0 +1,73 @@
+@page "/create"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@inject ICommunityContext CommunityCtx
+@model Snakk.Web.Pages.CreateDiscussionModel
+@{
+    ViewData["Title"] = T.Pages.NewDiscussionTitle;
+}
+
+@section LeftColumn {
+<partial name="Shared/_LeftSidebar" />
+}
+
+@if (User.Identity?.IsAuthenticated != true) {
+    ViewData["Nudge.Title"] = T.Pages.NewDiscussionNudgeTitle;
+    ViewData["Nudge.Body"] = T.Pages.NewDiscussionNudgeBody;
+    <div class="sn-center"><div class="sn-center-inner"><partial name="Shared/_RegistrationNudge" /></div></div>
+    return;
+}
+
+<div class="sn-center">
+    <div class="sn-center-inner">
+        <div class="sn-max-w-3xl sn-py-8">
+            <h1 class="sn-create-discussion-heading">@T.Pages.NewDiscussionHeading</h1>
+
+            <!-- Space Selector -->
+            <div class="sn-mb-6">
+                <label class="sn-section-label--creatediscussion">@T.Pages.NewDiscussionSpaceLabel <span class="sn-text-error">*</span></label>
+                <div id="space-selector"
+                     class="sn-relative"
+                     data-scope-hub-id="@(Model.ScopeHubId ?? "")"
+                     data-scope-community-id="@(Model.ScopeCommunityId ?? "")"
+                     data-scope-hub-name="@(Model.ScopeHubName ?? "")"
+                     data-scope-community-name="@(Model.ScopeCommunityName ?? "")"
+                     data-preselected-space-id="@(Model.PreselectedSpaceId ?? "")">
+                    <div>
+                        <input type="text"
+                               id="space-search-input"
+                               class="sn-input sn-w-full"
+                               placeholder="@T.Pages.NewDiscussionSearchPh"
+                               autocomplete="off" />
+                        <input type="hidden" id="selected-space-id" />
+                        <input type="hidden" id="selected-space-slug" />
+                        <input type="hidden" id="selected-hub-slug" />
+                        <input type="hidden" id="selected-community-slug" />
+                    </div>
+
+                    <!-- Dropdown -->
+                    <div id="space-dropdown" class="sn-space-search-dropdown sn-hidden">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Type Picker (shown after space is selected) -->
+            <div id="type-picker-section" class="sn-hidden">
+                <p class="sn-create-discussion-type-prompt">@T.Pages.NewDiscussionTypePrompt</p>
+                <div class="sn-grid sn-grid-cols-1 sn-sm:grid-cols-2 sn-gap-3" id="type-cards">
+                </div>
+            </div>
+
+            <div class="sn-mt-6">
+                <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm" data-action="go-back">@T.Pages.NewDiscussionCancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
+}
+<vc:global-right-sidebar />
+
+<script src="@SnakkUrlHelper.Js("pages/new-discussion-entry")" asp-append-version="true"></script>

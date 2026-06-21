@@ -167,7 +167,7 @@ interface Subscriptions {
         if (!indicator) {
             indicator = document.createElement('button');
             indicator.id = 'new-post-indicator';
-            indicator.className = 'fixed bottom-24 right-6 btn btn-primary btn-sm shadow-lg z-50 animate-bounce';
+            indicator.className = 'sn-fixed sn-bottom-24 sn-right-6 sn-btn sn-btn-primary sn-btn-sm sn-shadow-lg sn-z-50 sn-animate-bounce';
             indicator.innerHTML = '↓ New post';
             indicator.onclick = function() {
                 const posts = document.querySelectorAll<HTMLElement>('[id^="post-"]');
@@ -202,7 +202,7 @@ interface Subscriptions {
             if (countsDiv) {
                 const makeIcon = (name: string): HTMLSpanElement => {
                     const span = document.createElement('span');
-                    span.className = `icon ${name} h-4 w-4`;
+                    span.className = `sn-icon ${name} sn-h-4 sn-w-4`;
                     span.setAttribute('aria-hidden', 'true');
                     return span;
                 };
@@ -217,15 +217,15 @@ interface Subscriptions {
             }
         } else {
             if (!html) {
-                html = '<span class="hidden group-hover:inline" data-reaction-placeholder><span class="icon icon-emoji-happy h-4 w-4" aria-hidden="true"></span></span>';
+                html = '<span class="sn-reaction-placeholder" data-reaction-placeholder><span class="icon icon-emoji-happy h-4 w-4" aria-hidden="true"></span></span>';
             }
             reactionsBar.innerHTML = html;
         }
     }
 
     function handleDiscussionLockChange(isLocked: boolean): void {
-        document.getElementById('discussion-lock-banner')?.classList.toggle('hidden', !isLocked);
-        document.getElementById('reply-form')?.classList.toggle('hidden', isLocked);
+        document.getElementById('discussion-lock-banner')?.classList.toggle('sn-hidden', !isLocked);
+        document.getElementById('reply-form')?.classList.toggle('sn-hidden', isLocked);
     }
 
     function handleDiscussionPinned(discussionId: string, isPinned: boolean): void {
@@ -235,7 +235,7 @@ interface Subscriptions {
              article.sn-card[data-discussion-id="${escaped}"]`
         );
         if (!item) return;
-        item.classList.toggle('is-pinned', isPinned);
+        item.classList.toggle('sn-is-pinned', isPinned);
         const container = item.parentElement;
         if (!container) return;
         if (isPinned) container.prepend(item);
@@ -321,7 +321,7 @@ interface Subscriptions {
             const current = parseInt(countEl.textContent || '0', 10);
             const next = Math.max(0, (isNaN(current) ? 0 : current) + delta);
             countEl.textContent = String(next);
-            badge.classList.toggle('hidden', next === 0);
+            badge.classList.toggle('sn-hidden', next === 0);
         });
     }
 
@@ -350,7 +350,7 @@ interface Subscriptions {
                 meta.className = 'sn-card-reply-meta';
 
                 const icon = document.createElement('span');
-                icon.className = 'icon icon-chat-bubble-filled';
+                icon.className = 'sn-icon icon-chat-bubble-filled';
                 icon.style.cssText = 'width:1rem;height:1rem';
                 icon.setAttribute('aria-hidden', 'true');
 
@@ -450,8 +450,8 @@ interface Subscriptions {
 
             const newEl = container.lastElementChild as HTMLElement | null;
             if (newEl) {
-                newEl.classList.add('post-new');
-                setTimeout(() => newEl.classList.remove('post-new'), 500);
+                newEl.classList.add('sn-post-new');
+                setTimeout(() => newEl.classList.remove('sn-post-new'), 500);
                 if (wasNearBottom) newEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
                 else showNewPostIndicator();
             }
@@ -510,7 +510,7 @@ interface Subscriptions {
 
     function renderPresenceBubbles(el: HTMLElement, users: ViewerInfo[]): void {
         if (users.length === 0) {
-            el.classList.add('hidden');
+            el.classList.add('sn-hidden');
             el.innerHTML = '';
             return;
         }
@@ -523,16 +523,16 @@ interface Subscriptions {
         el.innerHTML = '';
         shown.forEach(v => {
             const wrap = document.createElement('div');
-            wrap.className = 'tooltip tooltip-bottom';
+            wrap.className = 'sn-tooltip tooltip-bottom';
             wrap.setAttribute('data-tip', v.isAnon ? '?' : v.displayName);
 
             const bubble = document.createElement('div');
-            bubble.className = 'w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold leading-none select-none cursor-default overflow-hidden';
+            bubble.className = 'sn-w-6 sn-h-6 sn-rounded-full sn-flex sn-items-center sn-justify-center sn-text-xs sn-font-semibold sn-leading-none sn-select-none sn-cursor-pointer sn-overflow-hidden';
 
             if (v.isAnon) {
-                bubble.classList.add('bg-base-300', 'text-base-content/50');
+                bubble.classList.add('sn-bg-base-300', 'text-base-content/50');
                 const icon = document.createElement('span');
-                icon.className = 'icon icon-user';
+                icon.className = 'sn-icon icon-user';
                 icon.style.cssText = 'width:0.875rem;height:0.875rem';
                 icon.setAttribute('aria-hidden', 'true');
                 bubble.appendChild(icon);
@@ -542,17 +542,17 @@ interface Subscriptions {
                 img.alt = '';
                 img.width = 24;
                 img.height = 24;
-                img.className = 'w-full h-full object-cover';
+                img.className = 'sn-w-full sn-h-full sn-object-cover';
                 img.onerror = () => {
                     // Fall back to initial on load failure
                     img.remove();
                     bubble.style.background = `oklch(0.55 0.15 ${viewerHue(v.userId)})`;
-                    bubble.classList.add('text-white');
+                    bubble.classList.add('sn-text-white');
                     bubble.textContent = (v.displayName.trim().charAt(0) || '?').toUpperCase();
                 };
                 bubble.appendChild(img);
             } else {
-                bubble.classList.add('text-white');
+                bubble.classList.add('sn-text-white');
                 bubble.style.background = `oklch(0.55 0.15 ${viewerHue(v.userId)})`;
                 bubble.textContent = (v.displayName.trim().charAt(0) || '?').toUpperCase();
             }
@@ -563,12 +563,12 @@ interface Subscriptions {
 
         if (overflow > 0) {
             const more = document.createElement('div');
-            more.className = 'w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium leading-none select-none cursor-default bg-base-300 text-base-content/70';
+            more.className = 'sn-w-6 sn-h-6 sn-rounded-full sn-flex sn-items-center sn-justify-center sn-text-xs sn-font-medium sn-leading-none sn-select-none sn-cursor-pointer sn-bg-base-300 text-base-content/70';
             more.textContent = `+${overflow}`;
             el.appendChild(more);
         }
 
-        el.classList.remove('hidden');
+        el.classList.remove('sn-hidden');
     }
 
     // Fallback timeout: 5 min safety net for missed StopTyping (crash/network drop).

@@ -60,7 +60,8 @@ public class UserRepositoryAdapter(
             .Where(u => ids.Contains(u.PublicId))
             .Select(u => new UserAvatarSlim(
                 u.PublicId, u.DisplayName,
-                u.AvatarFileName, u.AvatarThumbnailFileName, u.AvatarMicroFileName, u.AvatarRevision))
+                u.AvatarFileName, u.AvatarThumbnailFileName, u.AvatarMicroFileName, u.AvatarRevision,
+                u.Slug))
             .ToListAsync(ct);
     }
 
@@ -74,7 +75,7 @@ public class UserRepositoryAdapter(
             .Select(u => new PostAuthorSlim(
                 u.PublicId, u.DisplayName,
                 u.AvatarFileName, u.AvatarThumbnailFileName, u.AvatarMicroFileName, u.AvatarRevision,
-                u.CreatedAt, u.DiscussionCount, u.ReplyCount))
+                u.CreatedAt, u.DiscussionCount, u.ReplyCount, u.Slug))
             .ToListAsync(ct);
     }
 
@@ -86,8 +87,47 @@ public class UserRepositoryAdapter(
                 u.PublicId, u.DisplayName,
                 u.AvatarFileName, u.AvatarThumbnailFileName,
                 u.CreatedAt, u.LastSeenAt,
-                u.DiscussionCount, u.FollowerCount, u.ReplyCount, u.Bio))
+                u.DiscussionCount, u.FollowerCount, u.ReplyCount, u.Bio, u.Slug))
             .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<UserProfileSlim?> GetProfileSlimBySlugAsync(string slug, CancellationToken ct = default)
+    {
+        return await context.Users
+            .Where(u => u.Slug == slug)
+            .Select(u => new UserProfileSlim(
+                u.PublicId, u.DisplayName,
+                u.AvatarFileName, u.AvatarThumbnailFileName,
+                u.CreatedAt, u.LastSeenAt,
+                u.DiscussionCount, u.FollowerCount, u.ReplyCount, u.Bio, u.Slug))
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<string?> ResolveOldSlugAsync(string oldSlug, CancellationToken ct = default)
+    {
+        var history = await context.UserSlugHistory
+            .Where(h => h.OldSlug == oldSlug)
+            .Select(h => new { h.UserId })
+            .FirstOrDefaultAsync(ct);
+
+        if (history is null) return null;
+
+        return await context.Users
+            .Where(u => u.Id == history.UserId)
+            .Select(u => u.Slug)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<Dictionary<string, string>> GetSlugsByPublicIdsAsync(
+        IEnumerable<string> publicIds, CancellationToken ct = default)
+    {
+        var ids = publicIds.Distinct().ToList();
+        if (ids.Count == 0) return [];
+
+        return await context.Users
+            .Where(u => ids.Contains(u.PublicId) && u.Slug != null)
+            .Select(u => new { u.PublicId, u.Slug })
+            .ToDictionaryAsync(u => u.PublicId, u => u.Slug!, ct);
     }
 
     // Aggregate/TTL-only: caches mutable user state (display name, avatar, preferences)
@@ -95,6 +135,9 @@ public class UserRepositoryAdapter(
     // the hot current-user resolution path. HybridCache provides stampede protection.
     private static readonly HybridCacheEntryOptions CurrentUserCacheOptions =
         new() { Expiration = TimeSpan.FromSeconds(30) };
+
+    private static readonly HybridCacheEntryOptions LastVisitAtCacheOptions =
+        new() { Expiration = TimeSpan.FromHours(24) };
 
     public async Task<CurrentUserSlim?> GetCurrentUserSlimAsync(UserId publicId, CancellationToken ct = default)
     {
@@ -180,6 +223,16 @@ public class UserRepositoryAdapter(
             .Where(u => u.PublicId == publicId)
             .Select(u => (int?)u.Id)
             .FirstOrDefaultAsync(ct);
+
+    public async Task<DateTime?> GetLastVisitAtAsync(string publicId, CancellationToken ct = default) =>
+        await cache.GetOrCreateAsync<DateTime?>(
+            $"last-visit-at:{publicId}",
+            async cancel => await context.Users
+                .Where(u => u.PublicId == publicId)
+                .Select(u => u.LastVisitAt)
+                .FirstOrDefaultAsync(cancel),
+            LastVisitAtCacheOptions,
+            cancellationToken: ct);
 
     public async Task AddAsync(User user, CancellationToken ct = default)
     {
@@ -373,6 +426,7 @@ public class UserRepositoryAdapter(
         public int ReplyCount { get; init; }
         public long AuthVersion { get; init; }
         public DateTime AuthVersionUpdatedAt { get; init; }
+        public string? Slug { get; init; }
 
         public UserProjection(Database.Entities.UserDatabaseEntity u)
         {
@@ -406,6 +460,7 @@ public class UserRepositoryAdapter(
             ReplyCount = u.ReplyCount;
             AuthVersion = u.AuthVersion;
             AuthVersionUpdatedAt = u.AuthVersionUpdatedAt;
+            Slug = u.Slug;
         }
 
         public User ToDomain(IEmailProtector emailProtector)
@@ -429,7 +484,8 @@ public class UserRepositoryAdapter(
                 lockoutEnd: LockoutEnd,
                 emailVerificationTokenCreatedAt: EmailVerificationTokenCreatedAt,
                 authVersion: AuthVersion,
-                authVersionUpdatedAt: AuthVersionUpdatedAt);
+                authVersionUpdatedAt: AuthVersionUpdatedAt,
+                slug: Slug);
         }
     }
 }

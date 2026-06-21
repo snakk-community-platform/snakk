@@ -3,19 +3,25 @@
 // ============================================
 
 .guide-toc {
-    padding: 0.75rem 1rem;
+    padding: var(--space-6) var(--space-8);
     border: 1px solid var(--border-primary);
-    border-radius: 0.5rem;
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-ui);
+}
+
+.guide-toc {
     background: var(--bg-secondary);
-    font-size: 0.8125rem;
 }
 
 .guide-toc-title {
     font-weight: 600;
-    margin-bottom: 0.5rem;
-    font-size: 0.75rem;
+    margin-bottom: var(--space-4);
+    font-size: var(--font-size-sm);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+
+.guide-toc-title {
     color: var(--text-tertiary);
 }
 
@@ -26,7 +32,7 @@
 }
 
 .guide-toc li {
-    margin: 0.25rem 0;
+    margin: var(--space-2) 0;
 }
 
 .guide-toc a {
@@ -39,5 +45,6 @@
 }
 
 .guide-toc-indent {
-    padding-left: 1rem;
+    padding-left: var(--space-8);
 }
+

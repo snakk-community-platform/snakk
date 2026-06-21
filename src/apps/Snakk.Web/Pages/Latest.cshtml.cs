@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
-using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
 using Snakk.Protos.Discussion;
 
@@ -10,9 +9,7 @@ namespace Snakk.Web.Pages;
 public class LatestModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
-    ICommunityContext communityContext,
-    IPrefetchCacheService prefetchCache,
-    ILogger<LatestModel> logger) : BasePageModel(configuration, communityContext)
+    ICommunityContext communityContext) : BasePageModel(configuration, communityContext)
 {
     private readonly SnakkApiClient _apiClient = apiClient;
 
@@ -27,12 +24,9 @@ public class LatestModel(
         && string.IsNullOrEmpty(CommunityContext.CommunitySlug)
         && !CommunityContext.IsCustomDomain;
 
-    public SidebarPlatformStatsVM? InlinePlatformStats { get; set; }
-    public SidebarLatestSpacesVM? InlineLatestSpaces { get; set; }
-    public SidebarLatestContributorsVM? InlineLatestContributors { get; set; }
-
     public async Task OnGetAsync(int offset = 0, string? cursor = null, CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         string? communityId = null;
         if (CommunityContext.IsCustomDomain && !string.IsNullOrEmpty(CommunityContext.CommunitySlug))
@@ -47,9 +41,6 @@ public class LatestModel(
             SidebarScopeId = communityId;
         }
 
-        ResolveSidebarData(communityId);
-        await EnsureSidebarDataAsync(communityId);
-
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
         try
         {
@@ -58,94 +49,5 @@ public class LatestModel(
             NextCursor = result?.HasNextCursor == true ? result.NextCursor : null;
         }
         catch { }
-    }
-
-    private async Task EnsureSidebarDataAsync(string? communityId)
-    {
-        var tasks = new List<Task>();
-        if (InlinePlatformStats is null) tasks.Add(FetchPlatformStatsAsync(communityId));
-        if (InlineLatestSpaces is null) tasks.Add(FetchSpacesAsync(communityId));
-        if (InlineLatestContributors is null) tasks.Add(FetchContributorsAsync(communityId));
-        await Task.WhenAll(tasks);
-    }
-
-    private async Task FetchPlatformStatsAsync(string? communityId)
-    {
-        try
-        {
-            if (!string.IsNullOrEmpty(communityId))
-            {
-                var result = await prefetchCache.GetOrFetchAsync(
-                    $"platform-stats:community:{communityId}",
-                    () => _apiClient.GetCommunityStatsAsync(communityId),
-                    sharedTtl: TimeSpan.FromSeconds(30));
-                if (result.Value is not null)
-                    InlinePlatformStats = new(result.Value.SpaceCount, result.Value.DiscussionCount, result.Value.ReplyCount, result.Source);
-            }
-            else
-            {
-                var result = await prefetchCache.GetOrFetchAsync(
-                    "platform-stats:platform:global",
-                    () => _apiClient.GetPlatformStatsAsync(),
-                    sharedTtl: TimeSpan.FromMinutes(5));
-                if (result.Value is not null)
-                    InlinePlatformStats = new(result.Value.SpaceCount, result.Value.DiscussionCount, result.Value.ReplyCount, result.Source);
-            }
-        }
-        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch platform stats"); }
-    }
-
-    private async Task FetchSpacesAsync(string? communityId)
-    {
-        try
-        {
-            var result = await prefetchCache.GetOrFetchAsync(
-                $"latest-spaces:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetLatestActiveSpacesAsync(communityId: communityId));
-            if (result.Value is not null)
-                InlineLatestSpaces = new(result.Value, CommunityContext, result.Source);
-        }
-        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch latest spaces"); }
-    }
-
-    private async Task FetchContributorsAsync(string? communityId)
-    {
-        try
-        {
-            var result = await prefetchCache.GetOrFetchAsync(
-                $"latest-contributors:{SidebarScopeType}:{SidebarScopeId}",
-                () => _apiClient.GetLatestContributorsAsync(communityId: communityId));
-            if (result.Value is not null)
-                InlineLatestContributors = new(result.Value, CommunityContext, result.Source);
-        }
-        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch latest contributors"); }
-    }
-
-    private void ResolveSidebarData(string? communityId)
-    {
-        if (!string.IsNullOrEmpty(communityId))
-        {
-            var data = prefetchCache.ResolveOrPrefetch(
-                $"platform-stats:community:{communityId}",
-                () => _apiClient.GetCommunityStatsAsync(communityId));
-            if (data is not null) InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "cache");
-        }
-        else
-        {
-            var data = prefetchCache.ResolveOrPrefetch(
-                "platform-stats:platform:global",
-                () => _apiClient.GetPlatformStatsAsync());
-            if (data is not null) InlinePlatformStats = new(data.SpaceCount, data.DiscussionCount, data.ReplyCount, "cache");
-        }
-
-        InlineLatestSpaces = prefetchCache.ResolveOrPrefetch(
-            $"latest-spaces:{SidebarScopeType}:{SidebarScopeId}",
-            () => _apiClient.GetLatestActiveSpacesAsync(communityId: communityId),
-            d => new SidebarLatestSpacesVM(d, CommunityContext, "cache"));
-
-        InlineLatestContributors = prefetchCache.ResolveOrPrefetch(
-            $"latest-contributors:{SidebarScopeType}:{SidebarScopeId}",
-            () => _apiClient.GetLatestContributorsAsync(communityId: communityId),
-            d => new SidebarLatestContributorsVM(d, CommunityContext, "cache"));
     }
 }

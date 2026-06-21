@@ -2,28 +2,27 @@
 // Notification Badge & Bell
 // ============================================
 
-.notification-badge {
+.sn-notification-badge {
     position: absolute;
     top: -2px;
     right: -2px;
     min-width: 18px;
     height: 18px;
     padding: 0 5px;
-    font-size: 0.6875rem;
+    font-size: var(--font-size-xs);
     font-weight: 600;
     line-height: 18px;
     text-align: center;
-    color: var(--bg-secondary);
-    background-color: var(--accent-danger-strong);
     border-radius: 9px;
 }
 
-.notification-item {
-    transition: background-color 0.15s ease;
+.sn-notification-badge {
+    color: var(--bg-secondary);
+    background-color: var(--accent-danger-strong);
+}
 
+.sn-notification-item {
     &.unread {
-        background-color: var(--accent-info-bg-soft);
-
         &::before {
             content: '';
             position: absolute;
@@ -32,8 +31,19 @@
             transform: translateY(-50%);
             width: 6px;
             height: 6px;
-            background-color: var(--accent-info);
             border-radius: 50%;
+        }
+    }
+}
+
+.sn-notification-item {
+    transition: background-color var(--duration-base) ease;
+
+    &.unread {
+        background-color: var(--accent-info-bg-soft);
+
+        &::before {
+            background-color: var(--accent-info);
         }
     }
 
@@ -42,13 +52,17 @@
     }
 }
 
-.notification-icon {
+.sn-notification-icon {
     flex-shrink: 0;
     width: 28px;
     height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: var(--bg-subtle);
     border-radius: 50%;
 }
+
+.sn-notification-icon {
+    background-color: var(--bg-subtle);
+}
+

@@ -247,9 +247,9 @@ public class AdminContentService(
                     Slug = s.Slug,
                     Name = s.Name,
                     Description = s.Description,
-                    HubSlug = s.HubSlug,
-                    HubName = s.HubName,
-                    CommunitySlug = s.CommunitySlug,
+                    HubSlug = s.HubSlug!,
+                    HubName = s.HubName!,
+                    CommunitySlug = s.CommunitySlug!,
                     DiscussionCount = s.Discussions.Count,
                     CreatedAt = s.CreatedAt
                 })
@@ -461,6 +461,8 @@ public class AdminContentService(
         // has a very long TTL (write-invalidated), and the latest-discussion query filters on
         // NOT IsDeleted, so a missed removal here would persist a stale result for months.
         await cache.RemoveAsync($"space-latest-discussion:{discussion.SpaceId}", ct);
+        await cache.RemoveAsync($"preview:link:{publicId}", ct);
+        await cache.RemoveAsync($"preview:images:{publicId}", ct);
 
         logger.LogWarning("Discussion {PublicId} soft-deleted by admin {ActorPublicId}", publicId, actorPublicId);
         return AdminDiscussionMutationResult.Ok();
@@ -836,12 +838,15 @@ public class AdminContentService(
 
         var title = discussion.Title; // Store for audit log
         var spaceId = discussion.SpaceId;
+        var discussionPublicId = discussion.PublicId;
         context.Discussions.Remove(discussion);
         await context.SaveChangesAsync(ct);
 
         // The deleted discussion may be the cached "latest" for its space — the entry has a
         // very long TTL (write-invalidated), so a missed removal here would persist for months.
         await cache.RemoveAsync($"space-latest-discussion:{spaceId}", ct);
+        await cache.RemoveAsync($"preview:link:{discussionPublicId}", ct);
+        await cache.RemoveAsync($"preview:images:{discussionPublicId}", ct);
 
         await securityService.LogAuditAsync(
             adminUserId,

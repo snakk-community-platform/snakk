@@ -114,7 +114,8 @@ public record UserStatsDto(
     int FollowerCount,
     string? AvatarFileName = null,
     string? Bio = null,
-    string? AvatarThumbnailFileName = null);
+    string? AvatarThumbnailFileName = null,
+    bool IsGlobalAdmin = false);
 
 public record DiscussionStatsDto(
     string PublicId,

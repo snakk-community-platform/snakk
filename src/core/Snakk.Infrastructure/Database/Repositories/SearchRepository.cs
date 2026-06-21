@@ -280,9 +280,9 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 p.Discussion.Slug,
                 p.Discussion.Space.Slug,
                 p.Discussion.Space.Name,
-                p.Discussion.Space.HubSlug,
-                p.Discussion.Space.HubName,
-                p.Discussion.Space.CommunitySlug,
+                p.Discussion.Space.HubSlug!,
+                p.Discussion.Space.HubName!,
+                p.Discussion.Space.CommunitySlug!,
                 p.CreatedAt))
             .ToPagedResultAsync(offset, pageSize, ct);
     }
@@ -360,7 +360,7 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 d.Id,
                 Dto = new DiscussionListItemDto(
                     d.PublicId,
-                    d.SpacePublicId,
+                    d.SpacePublicId!,
                     d.Title,
                     d.Slug,
                     d.Type,
@@ -467,8 +467,8 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
             .ToListAsync(ct);
 
         return raw.Select(s => new SpaceSearchItemDto(
-            s.PublicId, s.Name, s.Slug, s.HubSlug, s.HubName,
-            s.CommunitySlug, s.DiscussionCount, s.CommunityName,
+            s.PublicId, s.Name, s.Slug, s.HubSlug!, s.HubName!,
+            s.CommunitySlug!, s.DiscussionCount, s.CommunityName!,
             Snakk.Shared.Helpers.AvatarHelper.GetAvatarUrl(s.PublicId, Snakk.Shared.Helpers.AvatarEntityType.Space, 0)))
             .ToList();
     }
@@ -513,7 +513,7 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 latestBySpace.TryGetValue(s.Id, out var ld);
                 return new SpaceListItemDto(
                     s.PublicId,
-                    s.HubPublicId,
+                    s.HubPublicId!,
                     s.Name,
                     s.Slug,
                     s.Description,
@@ -794,14 +794,27 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
             .Select(d => new SitemapDiscussionDto(
                 d.PublicId,
                 d.Slug,
-                d.Space.HubSlug,
+                d.Space.HubSlug!,
                 d.Space.Slug,
-                d.Space.CommunitySlug,
+                d.Space.CommunitySlug!,
                 d.LastModifiedAt ?? d.CreatedAt,
                 d.IsPinned))
             .ToListAsync(ct);
 
         return (discussions, totalCount);
+    }
+
+    public async Task<int> GetUnreadDiscussionCountAsync(
+        DateTime since,
+        string? userId = null,
+        bool viewerAllowsAdult = false,
+        CancellationToken ct = default)
+    {
+        var query = _context.Discussions.AsQueryable();
+        query = await WithAccessFilterAsync(query, userId, ct);
+        query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
+        query = query.Where(d => d.LastActivityAt > since);
+        return await query.CountAsync(ct);
     }
 
     public async Task<PagedResult<Application.Repositories.RecentDiscussionDto>> GetRecentDiscussionsAsync(
@@ -815,12 +828,17 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         string? authorId = null,
         IReadOnlyList<string>? spaceIds = null,
         bool viewerAllowsAdult = false,
+        bool sinceLastVisit = false,
+        DateTime? lastVisitAt = null,
         CancellationToken ct = default)
     {
         var query = _context.Discussions.AsQueryable();
 
         query = await WithAccessFilterAsync(query, userId, ct);
         query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
+
+        if (sinceLastVisit && lastVisitAt.HasValue)
+            query = query.Where(d => d.LastActivityAt > lastVisitAt.Value);
 
         // Filter by author if specified
         if (!string.IsNullOrEmpty(authorId))
@@ -916,12 +934,12 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 d.LastActivityAt,
                 d.IsPinned,
                 d.IsLocked,
-                d.SpacePublicId,
+                d.SpacePublicId!,
                 space?.Slug ?? "",
                 space?.Name ?? "",
-                d.HubPublicId,
-                space?.HubSlug,
-                space?.HubName,
+                d.HubPublicId!,
+                space?.HubSlug ?? "",
+                space?.HubName ?? "",
                 d.CommunityPublicId,
                 space?.CommunitySlug,
                 space?.CommunityName,
@@ -1045,12 +1063,12 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 d.LastActivityAt,
                 d.IsPinned,
                 d.IsLocked,
-                d.SpacePublicId,
+                d.SpacePublicId!,
                 space?.Slug ?? "",
                 space?.Name ?? "",
-                d.HubPublicId,
-                space?.HubSlug,
-                space?.HubName,
+                d.HubPublicId!,
+                space?.HubSlug ?? "",
+                space?.HubName ?? "",
                 d.CommunityPublicId,
                 space?.CommunitySlug,
                 space?.CommunityName,
@@ -1341,12 +1359,12 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 d.LastActivityAt,
                 d.IsPinned,
                 d.IsLocked,
-                d.SpacePublicId,
+                d.SpacePublicId!,
                 space?.Slug ?? "",
                 space?.Name ?? "",
-                d.HubPublicId,
-                space?.HubSlug,
-                space?.HubName,
+                d.HubPublicId!,
+                space?.HubSlug ?? "",
+                space?.HubName ?? "",
                 d.CommunityPublicId,
                 space?.CommunitySlug,
                 space?.CommunityName,
@@ -1471,12 +1489,12 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 d.LastActivityAt,
                 d.IsPinned,
                 d.IsLocked,
-                d.SpacePublicId,
+                d.SpacePublicId!,
                 space?.Slug ?? "",
                 space?.Name ?? "",
-                d.HubPublicId,
-                space?.HubSlug,
-                space?.HubName,
+                d.HubPublicId!,
+                space?.HubSlug ?? "",
+                space?.HubName ?? "",
                 d.CommunityPublicId,
                 space?.CommunitySlug,
                 space?.CommunityName,
@@ -1602,12 +1620,12 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 d.LastActivityAt,
                 d.IsPinned,
                 d.IsLocked,
-                d.SpacePublicId,
+                d.SpacePublicId!,
                 space?.Slug ?? "",
                 space?.Name ?? "",
-                d.HubPublicId,
-                space?.HubSlug,
-                space?.HubName,
+                d.HubPublicId!,
+                space?.HubSlug ?? "",
+                space?.HubName ?? "",
                 d.CommunityPublicId,
                 space?.CommunitySlug,
                 space?.CommunityName,

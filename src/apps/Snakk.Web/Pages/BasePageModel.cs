@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Snakk.Web.Helpers;
 using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages;
@@ -12,6 +14,41 @@ public abstract class BasePageModel : PageModel
     {
         Configuration = configuration;
         CommunityContext = communityContext;
+    }
+
+    // ===== Feature CSS preloading =====
+
+    private const string CssFeaturesKey = "snakk.css.features";
+
+    [Microsoft.AspNetCore.Mvc.FromServices]
+    public IFileVersionProvider? FileVersionProvider { get; set; }
+
+    /// <summary>
+    /// Declares a CSS feature needed by this page. Writes an HTTP Link preload header
+    /// (so the browser fetches before parsing HTML) and stores the versioned path for
+    /// the layout to emit as a stylesheet link.
+    /// </summary>
+    protected void Preload(string feature)
+    {
+        var basePath = SnakkUrlHelper.Feature(feature);
+        var versioned = FileVersionProvider?.AddFileVersionToPath(HttpContext.Request.PathBase, basePath) ?? basePath;
+        Response.Headers.Append("Link", $"<{versioned}>; rel=preload; as=style");
+        CssFeatureList.Add(versioned);
+    }
+
+    /// <summary>
+    /// Versioned feature CSS paths declared via Preload(), read by _Layout.cshtml.
+    /// </summary>
+    public IReadOnlyList<string> CssFeatures => CssFeatureList;
+
+    private List<string> CssFeatureList
+    {
+        get
+        {
+            if (!HttpContext.Items.TryGetValue(CssFeaturesKey, out var val))
+                HttpContext.Items[CssFeaturesKey] = val = new List<string>();
+            return (List<string>)val!;
+        }
     }
 
     // Common helper methods that can be used across all pages

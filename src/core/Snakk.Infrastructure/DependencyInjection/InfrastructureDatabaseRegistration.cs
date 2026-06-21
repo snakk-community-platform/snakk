@@ -17,10 +17,8 @@ public static class InfrastructureDatabaseRegistration
         var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(
             configuration.GetConnectionString("DbConnection"))
         {
-            // Keep well below Postgres max_connections (150) — Worker/Auth/DbSeeder
-            // pools share the same server. 50 pooled connections is ample with fast
-            // queries; each PG connection costs real memory in the postgres container.
-            MaxPoolSize = 50,
+            // max_connections=300 on server. Budget: Api=200, Worker=20, Auth=20+5 → 245 peak, 55 headroom.
+            MaxPoolSize = 200,
             MinPoolSize = 5,
             Timeout = 30,
             ConnectionIdleLifetime = 300

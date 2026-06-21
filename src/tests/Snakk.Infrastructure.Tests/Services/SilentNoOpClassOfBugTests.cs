@@ -33,8 +33,23 @@ namespace Snakk.Infrastructure.Tests.Services;
 public class SilentNoOpClassOfBugTests : IDisposable
 {
     private readonly NoTrackingSqliteTestDatabase _db = new();
+    private readonly ServiceProvider _cacheProvider;
+    private readonly HybridCache _hybridCache;
 
-    public void Dispose() => _db.Dispose();
+    public SilentNoOpClassOfBugTests()
+    {
+        var services = new ServiceCollection();
+        services.AddMemoryCache();
+        services.AddHybridCache();
+        _cacheProvider = services.BuildServiceProvider();
+        _hybridCache = _cacheProvider.GetRequiredService<HybridCache>();
+    }
+
+    public void Dispose()
+    {
+        _db.Dispose();
+        _cacheProvider.Dispose();
+    }
 
     // ───────── helpers ─────────
 
@@ -153,7 +168,7 @@ public class SilentNoOpClassOfBugTests : IDisposable
 
         using (var initialCtx = _db.CreateSeparateContext())
         {
-            var repo = new DiscussionReadStateRepositoryAdapter(initialCtx);
+            var repo = new DiscussionReadStateRepositoryAdapter(initialCtx, _hybridCache);
             await repo.SaveAsync(DiscussionReadState.Rehydrate(
                 UserId.From(userId),
                 DiscussionId.From(discussionId),
@@ -164,7 +179,7 @@ public class SilentNoOpClassOfBugTests : IDisposable
         var updatedAt = DateTime.UtcNow;
         using (var updateCtx = _db.CreateSeparateContext())
         {
-            var repo = new DiscussionReadStateRepositoryAdapter(updateCtx);
+            var repo = new DiscussionReadStateRepositoryAdapter(updateCtx, _hybridCache);
             await repo.SaveAsync(DiscussionReadState.Rehydrate(
                 UserId.From(userId),
                 DiscussionId.From(discussionId),

@@ -36,7 +36,8 @@ public class ConsentModel(
         catch (Exception ex)
         {
             logger.LogError(ex, "Failed to load pending consents");
-            return Redirect(Url.IsLocalUrl(ReturnUrl) ? ReturnUrl! : "/");
+            ErrorMessage = "Unable to load required agreements. Please try again.";
+            return Page();
         }
 
         return Page();

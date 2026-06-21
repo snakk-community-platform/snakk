@@ -1,4 +1,4 @@
-@using Snakk.Web.Helpers
+﻿@using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @inject Snakk.Web.Services.ICommunityContext CommunityContext
@@ -13,6 +13,27 @@
     var themeCookie = isAuth ? Context.Request.Cookies[AuthCookieHelper.ThemeCookieName] : null;
     var initialTheme = themeCookie == "dark" ? "dark" : "lofi";
     var isMessagingEnabled = Configuration.GetValue<bool>("Features:PrivateMessagingEnabled");
+    var cdnPublicBase = Configuration["FileStorage:S3:PublicUrlBase"]?.TrimEnd('/');
+    var cdnOrigin = !string.IsNullOrEmpty(cdnPublicBase) && Uri.TryCreate(cdnPublicBase, UriKind.Absolute, out var cdnUri)
+        ? cdnUri.GetLeftPart(UriPartial.Authority)
+        : null;
+
+    long? sessionExpiresUnix = null;
+    if (isAuth)
+    {
+        var jwtStr = Context.Request.Cookies[AuthCookieHelper.AccessCookieName]
+                  ?? Context.Request.Cookies[AuthCookieHelper.SessionCookieName];
+        if (!string.IsNullOrEmpty(jwtStr))
+        {
+            try
+            {
+                var jwtHandler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                var parsedJwt  = jwtHandler.ReadJwtToken(jwtStr);
+                sessionExpiresUnix = new DateTimeOffset(parsedJwt.ValidTo, TimeSpan.Zero).ToUnixTimeSeconds();
+            }
+            catch { }
+        }
+    }
 }
 <!DOCTYPE html>
 <html lang="en" data-theme="@initialTheme">
@@ -20,10 +41,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Snakk</title>
+    @if (cdnOrigin != null)
+    {
+        <link rel="preconnect" href="@cdnOrigin" />
+    }
     <link rel="apple-touch-icon" sizes="180x180" href="/img/favicon/apple-touch-icon.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/img/favicon/favicon-16x16.png" />
-    <link rel="manifest" href="/img/favicon/site.webmanifest" />
 
     @{
         var siteBase = Configuration["WebBaseUrl"]?.TrimEnd('/')
@@ -77,67 +101,86 @@
     }
     <meta name="csrf-token" content="@tokens.RequestToken" />
 
-    <link rel="preload" href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" as="style" asp-append-version="true" fetchpriority="high" />
-    <link rel="preload" href="@SnakkUrlHelper.Css("site")" as="style" asp-append-version="true" fetchpriority="high" />
+    @* Non-blocking: critical CSS provides grayscale shell; common.css upgrades to brand colors + components.
+       Uses meta+script injection (mirrors dm-widget-css pattern) so the CSP nonce covers the script.
+       onload on <link rel="preload"> is blocked by strict-dynamic CSP — don't use it. *@
+    @{
+        var commonCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Feature("common"));
+    }
+    <link rel="preload" href="@commonCssUrl" as="style" fetchpriority="high" />
+    <meta name="snakk-common-css" content="@Html.Raw(commonCssUrl)" />
+    <script>(function(){var m=document.querySelector('meta[name="snakk-common-css"]');if(m){var l=document.createElement('link');l.rel='stylesheet';l.href=m.content;document.head.appendChild(l);}})();</script>
+    <noscript><link rel="stylesheet" href="@commonCssUrl" /></noscript>
+    @* Dark theme: variable + component overrides, loaded only for dark/auto users. *@
+    @if (themeCookie == "dark" || themeCookie == "auto")
+    {
+        var darkCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Feature("theme-dark"));
+        <link rel="preload" href="@darkCssUrl" as="style" fetchpriority="high" />
+        <meta name="snakk-theme-dark-css" content="@Html.Raw(darkCssUrl)" />
+        <script>(function(){var m=document.querySelector('meta[name="snakk-theme-dark-css"]');if(m){var l=document.createElement('link');l.rel='stylesheet';l.href=m.content;document.head.appendChild(l);}})();</script>
+        <noscript><link rel="stylesheet" href="@darkCssUrl" /></noscript>
+    }
     <link rel="preload" href="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" as="script" asp-append-version="true" fetchpriority="high" />
 
-    @{
-        var darkThemeCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Css("dark-theme", isVendor: true));
+    @* INLINE REASON: Runs synchronously before first paint. Only needed for "auto" theme: server
+       sets data-theme="lofi" as the safe default; this corrects it to "dark" when system prefers dark. *@
+    @if (themeCookie == "auto")
+    {
+        <script id="theme-fouc-script" hx-preserve="true">(function(){try{if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
     }
-    <meta name="dark-theme-css" content="@darkThemeCssUrl" />
 
-    @* INLINE REASON: Must run synchronously before first paint to prevent theme flash (FOUC).
-       For authenticated users: server already rendered the correct data-theme from the cookie.
-       This script only needs to handle the "auto" case (system dark preference) and inject the
-       dark CSS link. For unauthenticated users: always lofi, nothing to do. *@
-    <script id="theme-fouc-script" hx-preserve nonce="@(Context.Items["csp-nonce"] as string)">
-        (function () {
-            try {
-                @if (isAuth) {
-                <text>
-                var p = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(themeCookie ?? ""));
-                var isDark = p === 'dark' || (p === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-                if (isDark) {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    var l = document.createElement('link');
-                    l.id = 'dark-theme-css';
-                    l.rel = 'stylesheet';
-                    l.href = '@Html.Raw(darkThemeCssUrl)';
-                    document.head.appendChild(l);
-                }
-                </text>
-                }
-            } catch (e) { }
-        })();
-    </script>
-
-    <link href="@SnakkUrlHelper.Css("tailwind", isVendor: true)" rel="stylesheet" asp-append-version="true" />
-    <link rel="stylesheet" href="@SnakkUrlHelper.Css("site")" asp-append-version="true" />
+    @* Critical shell CSS inlined — enables correct first paint before full CSS arrives *@
+    <partial name="_CriticalCss" />
+    @* Feature CSS: HTTP Link preload headers (set in code-behind OnGet) start the fetch
+       before HTML parsing; the inline script applies the already-cached resources non-blocking.
+       <link rel="stylesheet"> is intentionally avoided here — it would render-block even when cached. *@
+    @{
+        var featureCssPaths = Context.Items["snakk.css.features"] as List<string> ?? new List<string>();
+    }
+    @if (featureCssPaths.Count > 0)
+    {
+        <meta name="snakk-feature-css" content="@(System.Text.Json.JsonSerializer.Serialize(featureCssPaths))" />
+        <script>(function(){var m=document.querySelector('meta[name="snakk-feature-css"]');if(!m)return;JSON.parse(m.content).forEach(function(u){var l=document.createElement('link');l.rel='stylesheet';l.href=u;document.head.appendChild(l);});})();</script>
+        <noscript>
+            @foreach (var path in featureCssPaths)
+            {
+                <link rel="stylesheet" href="@path" />
+            }
+        </noscript>
+    }
     @if (isAuth && isMessagingEnabled)
     {
         var dmWidgetCssUrl = FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Css("dm-widget"));
-        @* Non-blocking: DM widget only appears on user action, so late CSS is fine.
-           Inline onload is blocked by CSP (no unsafe-inline), so inject via nonce'd script. *@
-        <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='@Html.Raw(dmWidgetCssUrl)';document.head.appendChild(l);})();</script>
+        @* Non-blocking: DM widget only appears on user action, so late CSS is fine. *@
+        <meta name="dm-widget-css" content="@Html.Raw(dmWidgetCssUrl)" />
+        <script>(function(){var m=document.querySelector('meta[name="dm-widget-css"]');if(m){var l=document.createElement('link');l.rel='stylesheet';l.href=m.content;document.head.appendChild(l);}})();</script>
         <noscript><link rel="stylesheet" href="@SnakkUrlHelper.Css("dm-widget")" asp-append-version="true" /></noscript>
     }
     @await RenderSectionAsync("Styles", required: false)
 
-    <script id="js-htmx"         hx-preserve src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
-    <script id="js-htmx-head"    hx-preserve src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
-    @if (!string.IsNullOrEmpty(Context.Request.Cookies[".Snakk.ReloginHint"]))
+    <script id="js-htmx"         hx-preserve="true" src="@SnakkUrlHelper.Js("htmx.min", isVendor: true)" asp-append-version="true" defer></script>
+    <script id="js-htmx-head"    hx-preserve="true" src="@SnakkUrlHelper.Js("htmx-head-support", isVendor: true)" asp-append-version="true" defer></script>
+    <script id="js-head-bundle"  hx-preserve="true" src="@SnakkUrlHelper.Js("bundles/head-bundle")" asp-append-version="true" defer></script>
+    @{
+        var hasReloginContext = isAuth || !string.IsNullOrEmpty(Context.Request.Cookies[".Snakk.ReloginHint"]);
+    }
+    @if (hasReloginContext)
     {
-        <script nonce="@(Context.Items["csp-nonce"] as string)">window.snakkReloginStrings={wrongPassword:@Json.Serialize(T.Relogin.ErrorWrongPassword),generic:@Json.Serialize(T.Relogin.ErrorGeneric)};</script>
-        @* relogin-modal only functions when the modal DOM exists, which _ReloginModal
-           renders only when this hint cookie is present — gate the script the same way.
-           (Not isAuth: an expired session means the user is no longer authenticated.) *@
+        <meta name="snakk-relogin-wrong-password" content="@T.Relogin.ErrorWrongPassword" />
+        <meta name="snakk-relogin-generic" content="@T.Relogin.ErrorGeneric" />
+        <meta name="snakk-relogin-full-expired" content="@T.Relogin.ErrorFullExpired" />
+        <meta name="snakk-relogin-inactivity" content="@T.Relogin.InactivitySubtitle" />
         <script src="@SnakkUrlHelper.Js("core/relogin-modal")" asp-append-version="true" defer></script>
     }
-    <script id="js-head-bundle"  hx-preserve src="@SnakkUrlHelper.Js("bundles/head-bundle")" asp-append-version="true" defer></script>
+    @if (isAuth && sessionExpiresUnix.HasValue)
+    {
+        <meta name="snakk-session-expires" content="@sessionExpiresUnix.Value" />
+        <script src="@SnakkUrlHelper.Js("services/session-guard")" asp-append-version="true" defer></script>
+    }
 
     @* INLINE REASON: Reads localStorage synchronously before first paint to apply
        layout/animation preferences without a flash. Replaces core/prefs.js external file. *@
-    <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){try{var l=localStorage.getItem('snakk:discussion-list-layout');if(l==='none'){document.documentElement.classList.add('no-discussion-previews');}else if(l!=='full'){document.documentElement.classList.add('discussion-list-compact');}if(localStorage.getItem('snakk:disable-animations')==='true'){document.documentElement.classList.add('no-animations');}if(localStorage.getItem('snakk:link-preview-compact')==='true'){document.documentElement.classList.add('link-preview-compact');}var s=localStorage.getItem('snakk:sidebar-sticky');if(s==='none'){document.documentElement.classList.add('sticky-none');}else if(s!=='both'){document.documentElement.classList.add('sticky-left-only');}var cw=localStorage.getItem('snakk:content-width');if(cw){document.documentElement.style.setProperty('--content-width',cw+'rem');}}catch(e){}})();</script>
+    <script>(function(){try{var l=localStorage.getItem('snakk:discussion-list-layout');if(l==='none'){document.documentElement.classList.add('no-discussion-previews');}else if(l!=='full'){document.documentElement.classList.add('discussion-list-compact');}if(localStorage.getItem('snakk:disable-animations')==='true'){document.documentElement.classList.add('no-animations');}if(localStorage.getItem('snakk:link-preview-compact')==='true'){document.documentElement.classList.add('link-preview-compact');}var s=localStorage.getItem('snakk:sidebar-sticky');if(s==='none'){document.documentElement.classList.add('sticky-none');}else if(s!=='both'){document.documentElement.classList.add('sticky-left-only');}var cw=localStorage.getItem('snakk:content-width');if(cw){document.documentElement.style.setProperty('--content-width',cw+'rem');}}catch(e){}})();</script>
 
     <meta name="realtime-service-url" content="@(Configuration["RealtimeServiceUrl"] ?? "/realtime")" />
     @{
@@ -146,12 +189,14 @@
     }
     <meta name="social-icons-src" content="@socialIconsUrl" />
     <meta name="lang-icons-src" content="@langIconsUrl" />
+    <script>window.addEventListener('load',function(){var l=document.createElement('link');l.rel='manifest';l.href='/img/favicon/site.webmanifest';document.head.appendChild(l);});</script>
 </head>
+@{ await Context.Response.Body.FlushAsync(); }
 @* GOTCHA: hx-target on <body> inherits to ALL descendants. Any element with hx-get
    inside the body MUST set hx-target="this" (or its own target), otherwise its response
    will replace #main-content and wipe the whole page. Required by hx-boost — boosted
    anchors look up hx-target via inheritance, so we can't disinherit at body level. *@
-<body class="antialiased" data-auth="@(isAuth ? "1" : "0")" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="head-support">
+<body data-auth="@(isAuth ? "1" : "0")" data-messaging="@(isMessagingEnabled ? "1" : "0")" hx-boost="true" hx-target="#main-content" hx-swap="outerHTML show:window:top" hx-ext="head-support">
     <div id="loading-bar" class="loading-bar"></div>
 
     @{
@@ -177,7 +222,7 @@
     }
     @* Lazy social icons: injected only when [data-platform] elements are present.
        lang-icons-src meta tag consumed by syntax-highlight (another agent wires it). *@
-    <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){function hydrateSocialIcons(){var icons=window.snakkSocialIcons;if(!icons)return;document.querySelectorAll('[data-platform] .sn-social-icon-box:not([data-si])').forEach(function(box){var el=box.closest('[data-platform]');if(!el)return;var icon=icons[el.dataset.platform];if(!icon)return;box.style.background='#'+icon.hex;box.innerHTML='<svg viewBox="'+icon.viewBox+'" fill="white" style="width:13px;height:13px;display:block">'+icon.inner+'</svg>';box.dataset.si='1';});}function loadAndHydrate(){var meta=document.querySelector('meta[name="social-icons-src"]');if(!meta||!meta.content)return;if(window.snakkSocialIcons){hydrateSocialIcons();return;}var s=document.createElement('script');s.src=meta.content;s.onload=hydrateSocialIcons;document.body.appendChild(s);}function checkAndLoad(){if(document.querySelector('[data-platform]'))loadAndHydrate();}document.addEventListener('DOMContentLoaded',checkAndLoad);document.addEventListener('htmx:afterSettle',checkAndLoad);}());</script>
+    <script>(function(){function hydrateSocialIcons(){var icons=window.snakkSocialIcons;if(!icons)return;document.querySelectorAll('[data-platform] .sn-social-icon-box:not([data-si])').forEach(function(box){var el=box.closest('[data-platform]');if(!el)return;var icon=icons[el.dataset.platform];if(!icon)return;box.style.background='#'+icon.hex;box.innerHTML='<svg viewBox="'+icon.viewBox+'" fill="white" style="width:13px;height:13px;display:block">'+icon.inner+'</svg>';box.dataset.si='1';});}function loadAndHydrate(){var meta=document.querySelector('meta[name="social-icons-src"]');if(!meta||!meta.content)return;if(window.snakkSocialIcons){hydrateSocialIcons();return;}var s=document.createElement('script');s.src=meta.content;s.onload=hydrateSocialIcons;document.body.appendChild(s);}function checkAndLoad(){if(document.querySelector('[data-platform]'))loadAndHydrate();}document.addEventListener('DOMContentLoaded',checkAndLoad);document.addEventListener('htmx:afterSettle',checkAndLoad);}());</script>
 
     @{
         var siteName = CommunityContext.IsCustomDomain && CommunityContext.CommunityName != null
@@ -246,7 +291,7 @@
                             </button>
                             <div class="sn-filter-dropdown" id="sn-dropdown-date" hidden>
                                 <div class="sn-search-date-slider">
-                                    <input type="range" class="range range-xs" id="sn-date-range-d"
+                                    <input type="range" class="sn-range range-xs" id="sn-date-range-d"
                                            min="0" max="5" step="1" value="2"
                                            aria-label="@T.Pages.SearchDateLabel" />
                                     <div class="sn-search-date-ticks" aria-hidden="true">
@@ -290,7 +335,7 @@
                         <div class="sn-search-popup-group" id="sn-date-group">
                             <p class="sn-search-popup-group-label">@T.Pages.SearchDateLabel</p>
                             <div class="sn-search-date-slider">
-                                <input type="range" class="range range-xs" id="sn-date-range"
+                                <input type="range" class="sn-range range-xs" id="sn-date-range"
                                        min="0" max="5" step="1" value="2"
                                        aria-label="@T.Pages.SearchDateLabel" />
                                 <div class="sn-search-date-ticks" aria-hidden="true">
@@ -305,7 +350,7 @@
                         </div>
                         <div class="sn-search-popup-footer" id="sn-popup-footer">
                             <span class="sn-search-popup-hint"><kbd>↵</kbd> to search</span>
-                            <button type="button" class="btn btn-primary btn-xs" id="sn-search-submit">@T.Common.Search</button>
+                            <button type="button" class="sn-btn sn-btn-primary sn-btn-xs" id="sn-search-submit">@T.Common.Search</button>
                         </div>
                     </div>
                 </div>
@@ -314,23 +359,44 @@
         </div>
         <div class="sn-header-right">
             <div class="sn-header-right-inner">
-                <div id="auth-nav" class="flex items-center">
+                <div id="auth-nav" class="sn-flex sn-items-center">
                     <partial name="Shared/_AuthNav" />
                 </div>
             </div>
         </div>
     </header>
-    <!-- 3-column layout -->
+    @{
+        // CF-Device-Type (Cloudflare) or UA fallback (local dev / direct origin).
+        // On mobile we skip SSR of the sidebar and lazy-load it on hamburger tap instead.
+        var isMobileHint = DeviceDetection.IsMobile(Context);
+    }
+    <!-- 3-column layout: center/right come first in DOM so the browser discovers the
+         LCP element before parsing the left sidebar. sn-left has grid-column:1 in
+         critical CSS to keep it visually in the first column. -->
     <div class="sn-layout">
-        @await RenderSectionAsync("LeftColumn", required: false)
-        <div id="main-content" class="sn-main-body">
+        <main id="main-content" class="sn-main-body">
             @RenderBody()
             @* INLINE REASON: Synchronous restore of spoiler/adult-content reveal state
                from sessionStorage before first paint on cold loads. HTMX swaps are
                handled by components/spoiler-restore.ts (app-bundle, htmx:afterSettle) —
                keep the logic in sync with that file. *@
-            <script nonce="@(Context.Items["csp-nonce"] as string)">(function(){'use strict';var kp='snakk:spoiler-revealed:';var sel='.sn-images-spoiler[data-discussion-id],.images-display.images-spoiler[data-discussion-id]';document.querySelectorAll(sel).forEach(function(el){var id=el.dataset.discussionId;if(id&&sessionStorage.getItem(kp+id)==='1')el.classList.add('revealed');});var akp='snakk:adult-revealed:';document.querySelectorAll('.sn-link-card-thumb-adult-blur[data-discussion-id]').forEach(function(el){var id=el.dataset.discussionId;if(!id)return;if(sessionStorage.getItem(akp+id)==='1'){el.classList.add('revealed');var img=el.querySelector('.sn-link-card-img-adult-blur');if(img)img.classList.add('revealed');}});})();</script>
-        </div>
+            <script>(function(){'use strict';var kp='snakk:spoiler-revealed:';var sel='.sn-images-spoiler[data-discussion-id],.images-display.images-spoiler[data-discussion-id]';document.querySelectorAll(sel).forEach(function(el){var id=el.dataset.discussionId;if(id&&sessionStorage.getItem(kp+id)==='1')el.classList.add('revealed');});var akp='snakk:adult-revealed:';document.querySelectorAll('.sn-link-card-thumb-adult-blur[data-discussion-id]').forEach(function(el){var id=el.dataset.discussionId;if(!id)return;if(sessionStorage.getItem(akp+id)==='1'){el.classList.add('revealed');var img=el.querySelector('.sn-link-card-img-adult-blur');if(img)img.classList.add('revealed');}});})();</script>
+        </main>
+        @if (isMobileHint)
+        {
+            @* Mobile: sidebar is skipped from SSR. The bare shell is populated via HTMX
+               on the first hamburger tap (hx-trigger="once" prevents repeat fetches).
+               innerHTML swap keeps the is-open class that mobile-nav.ts adds to the element. *@
+            if (IsSectionDefined("LeftColumn")) { IgnoreSection("LeftColumn"); }
+            <aside id="sn-left-drawer" class="sn-left"
+                   hx-get="/partials/left-sidebar"
+                   hx-trigger="click from:[data-mobile-nav-toggle] once"
+                   hx-swap="innerHTML"></aside>
+        }
+        else
+        {
+            @await RenderSectionAsync("LeftColumn", required: false)
+        }
     </div>
 
     <meta name="signalr-src" content="@FileVersionProvider.AddFileVersionToPath(Context.Request.PathBase, SnakkUrlHelper.Js("signalr.min", isVendor: true))" />
@@ -351,22 +417,22 @@
     <partial name="Shared/_MobileTabBar" />
 
     <!-- External Link Warning Modal -->
-    <dialog id="external-link-modal" class="modal">
-        <div class="modal-box max-w-sm">
-            <h3 class="text-base font-semibold mb-2">@string.Format(T.ExternalLink.Leaving, CommunityContext.CommunityName ?? "Snakk")</h3>
-            <p class="text-sm text-base-content/70 mb-1">
+    <dialog id="external-link-modal" class="sn-modal">
+        <div class="sn-modal-box sn-max-w-sm">
+            <h3 class="sn-modal-title---layout">@string.Format(T.ExternalLink.Leaving, CommunityContext.CommunityName ?? "Snakk")</h3>
+            <p class="sn-text-sm sn-text-muted sn-mb-1">
                 @T.ExternalLink.Redirecting <strong data-domain></strong>.
             </p>
-            <p class="text-sm text-base-content/60 mb-4">
+            <p class="sn-text-sm sn-text-muted sn-mb-4">
                 @T.ExternalLink.Disclaimer
             </p>
-            <label class="flex items-center gap-2 cursor-pointer mb-4 text-sm">
-                <input type="checkbox" class="toggle toggle-sm toggle-primary" />
+            <label class="sn-modal-checkbox-row">
+                <input type="checkbox" class="sn-toggle sn-toggle-sm sn-toggle-primary" />
                 @T.ExternalLink.DontWarn
             </label>
-            <div class="flex justify-end gap-2">
-                <button type="button" class="btn btn-ghost btn-sm" data-cancel>@T.Common.Cancel</button>
-                <a href="#" class="btn btn-primary btn-sm" data-url target="_blank" rel="nofollow noopener noreferrer">@T.Common.ContinueAction</a>
+            <div class="sn-modal-actions">
+                <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm" data-cancel>@T.Common.Cancel</button>
+                <a href="#" class="sn-btn sn-btn-primary sn-btn-sm" data-url target="_blank" rel="nofollow noopener noreferrer">@T.Common.ContinueAction</a>
             </div>
         </div>
     </dialog>

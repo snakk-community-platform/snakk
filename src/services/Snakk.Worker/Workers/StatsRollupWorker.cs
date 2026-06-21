@@ -1,20 +1,19 @@
 namespace Snakk.Worker.Workers;
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Snakk.Application.Repositories;
+using Snakk.Application.Services;
 using Snakk.Application.UseCases;
 using System.Text.Json;
 
 public class StatsRollupWorker(
     IServiceProvider serviceProvider,
-    IConfiguration configuration,
     ILogger<StatsRollupWorker> logger) : BackgroundService
 {
     private static readonly string[] Periods = ["day", "week", "month", "year", "all_time"];
-    private const int DefaultLimit = 10;
+    private const int DefaultLimit = 20;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -46,15 +45,14 @@ public class StatsRollupWorker(
         using var scope = serviceProvider.CreateScope();
         var useCase = scope.ServiceProvider.GetRequiredService<StatisticsUseCase>();
         var rollupRepo = scope.ServiceProvider.GetRequiredService<IStatsRollupRepository>();
+        var volumeWindow = scope.ServiceProvider.GetRequiredService<IVolumeWindowService>();
 
         var now = DateTime.UtcNow;
-        var trendingLookbackHours = configuration.GetValue("Trending:LookbackHours", 24);
-        var spacesLookbackDays = configuration.GetValue("Trending:SpacesLookbackDays", 7);
-        var contributorsLookbackDays = configuration.GetValue("Trending:ContributorsLookbackDays", 7);
+        var postSince = now - await volumeWindow.EstimatePostWindowAsync(ct);
 
-        var trendingSince = now.AddHours(-trendingLookbackHours);
-        var spacesTrendingSince = now.AddDays(-spacesLookbackDays);
-        var contributorsTrendingSince = now.AddDays(-contributorsLookbackDays);
+        var trendingSince = postSince;
+        var spacesTrendingSince = postSince;
+        var contributorsTrendingSince = postSince;
 
         // platform-stats (single row)
         var platformStats = await useCase.GetPlatformStatsAsync();

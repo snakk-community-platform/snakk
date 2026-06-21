@@ -53,6 +53,7 @@ interface EntityStats {
     spaceCount?: number;
     hubCount?: number;
     gradientCss?: string;
+    isGlobalAdmin?: boolean;
 }
 
 interface EntityResolveResult {
@@ -105,37 +106,38 @@ class SnakkPopup {
      */
     createPopupElement(): HTMLElement {
         const popup = document.createElement('div');
-        popup.className = 'snakk-popup';
+        popup.className = 'sn-snakk-popup';
         popup.innerHTML = `
-            <div class="card card-xs snakk-popup-inner">
-                <figure class="snakk-popup-banner">
-                    <div class="snakk-popup-banner-info">
-                        <div class="snakk-popup-name"></div>
-                        <div class="snakk-popup-type"></div>
+            <div class="sn-card-wrap card-xs sn-snakk-popup-inner">
+                <figure class="sn-snakk-popup-banner">
+                    <div class="sn-snakk-popup-banner-info">
+                        <div class="sn-snakk-popup-name"></div>
+                        <span class="snakk-popup-admin-badge sn-badge sn-badge-sm sn-badge-warning" style="display:none">Admin</span>
+                        <div class="sn-snakk-popup-type"></div>
                     </div>
                 </figure>
-                <div class="card-body snakk-popup-body">
-                    <div class="snakk-popup-description"></div>
-                    <div class="snakk-popup-stats"></div>
-                    <div class="snakk-popup-actions">
-                        <a class="snakk-popup-message btn btn-xs btn-ghost" href="#" style="display:none">
-                            <span class="icon icon-chat-bubbles" style="width:0.85rem;height:0.85rem" aria-hidden="true"></span>
+                <div class="sn-card-content sn-snakk-popup-body">
+                    <div class="sn-snakk-popup-description"></div>
+                    <div class="sn-snakk-popup-stats"></div>
+                    <div class="sn-snakk-popup-actions">
+                        <a class="sn-snakk-popup-message sn-btn sn-btn-xs sn-btn-ghost" href="#" style="display:none">
+                            <span class="sn-icon icon-chat-bubbles" style="width:0.85rem;height:0.85rem" aria-hidden="true"></span>
                             Message
                         </a>
-                        <a class="snakk-popup-goto" href="#" style="display:none"></a>
+                        <a class="sn-snakk-popup-goto" href="#" style="display:none"></a>
                     </div>
-                    <div class="snakk-popup-stats-skeleton snakk-popup-stats-grid">
-                        <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
-                        <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
-                        <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
-                        <div class="stat"><div class="skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="skeleton" style="height:.875rem;width:1.75rem"></div></div>
+                    <div class="sn-snakk-popup-stats-skeleton sn-snakk-popup-stats-grid">
+                        <div class="sn-stat"><div class="sn-skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="sn-skeleton" style="height:.875rem;width:1.75rem"></div></div>
+                        <div class="sn-stat"><div class="sn-skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="sn-skeleton" style="height:.875rem;width:1.75rem"></div></div>
+                        <div class="sn-stat"><div class="sn-skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="sn-skeleton" style="height:.875rem;width:1.75rem"></div></div>
+                        <div class="sn-stat"><div class="sn-skeleton" style="height:.55rem;width:3rem;margin-bottom:.3rem"></div><div class="sn-skeleton" style="height:.875rem;width:1.75rem"></div></div>
                     </div>
                 </div>
             </div>
-            <div class="snakk-popup-avatar-skeleton skeleton"></div>
-            <img class="snakk-popup-avatar" src="" alt="" style="display:none" />
-            <button type="button" class="snakk-popup-close" aria-label="Close">
-                <span class="icon icon-x" aria-hidden="true"></span>
+            <div class="sn-snakk-popup-avatar-skeleton sn-skeleton"></div>
+            <img class="sn-snakk-popup-avatar" src="" alt="" style="display:none" />
+            <button type="button" class="sn-snakk-popup-close" aria-label="Close">
+                <span class="sn-icon icon-x" aria-hidden="true"></span>
             </button>
         `;
         popup.style.display = 'none';
@@ -154,7 +156,7 @@ class SnakkPopup {
         });
 
         // Touch close button
-        popup.querySelector('.snakk-popup-close')?.addEventListener('click', (e) => {
+        popup.querySelector('.sn-snakk-popup-close')?.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
             this.dismissPopup();
@@ -255,14 +257,14 @@ class SnakkPopup {
 
     createStatElement(label: string, value: number): HTMLElement {
         const stat = document.createElement('div');
-        stat.className = 'stat';
+        stat.className = 'sn-stat';
 
         const titleEl = document.createElement('div');
-        titleEl.className = 'stat-title';
+        titleEl.className = 'sn-stat-title';
         titleEl.textContent = label;
 
         const valueEl = document.createElement('div');
-        valueEl.className = 'stat-value';
+        valueEl.className = 'sn-stat-value';
         valueEl.textContent = this.formatCount(value);
 
         stat.appendChild(titleEl);
@@ -279,14 +281,14 @@ class SnakkPopup {
 
         if (!stats) {
             const error = document.createElement('div');
-            error.className = 'snakk-popup-error';
+            error.className = 'sn-snakk-popup-error';
             error.textContent = 'Could not load stats';
             fragment.appendChild(error);
             return fragment;
         }
 
         const container = document.createElement('div');
-        container.className = 'snakk-popup-stats-grid';
+        container.className = 'sn-snakk-popup-stats-grid';
 
         // Always show discussion count and reply count
         if (stats.discussionCount !== undefined) {
@@ -381,7 +383,7 @@ class SnakkPopup {
 
         // Render off-screen while fetching so we can measure final dimensions before revealing.
         // This prevents the popup from visibly jumping as content loads and the size changes.
-        popup.classList.remove('snakk-popup--ready');
+        popup.classList.remove('sn-snakk-popup--ready');
         popup.style.visibility = 'hidden';
         popup.style.display = 'block';
 
@@ -398,15 +400,15 @@ class SnakkPopup {
         if (this.currentTrigger !== triggerEl) return;
 
         // Populate all content with final data before measuring/positioning
-        const avatarSkeleton = popup.querySelector('.snakk-popup-avatar-skeleton') as HTMLElement;
-        const avatarImg = popup.querySelector('.snakk-popup-avatar') as HTMLImageElement;
-        const nameEl = popup.querySelector('.snakk-popup-name') as HTMLElement;
-        const typeEl = popup.querySelector('.snakk-popup-type') as HTMLElement;
-        const descriptionEl = popup.querySelector('.snakk-popup-description') as HTMLElement;
-        const statsSkeleton = popup.querySelector('.snakk-popup-stats-skeleton') as HTMLElement;
-        const statsContainer = popup.querySelector('.snakk-popup-stats') as HTMLElement;
-        const gotoLink = popup.querySelector('.snakk-popup-goto') as HTMLAnchorElement;
-        const messageLink = popup.querySelector('.snakk-popup-message') as HTMLAnchorElement;
+        const avatarSkeleton = popup.querySelector('.sn-snakk-popup-avatar-skeleton') as HTMLElement;
+        const avatarImg = popup.querySelector('.sn-snakk-popup-avatar') as HTMLImageElement;
+        const nameEl = popup.querySelector('.sn-snakk-popup-name') as HTMLElement;
+        const typeEl = popup.querySelector('.sn-snakk-popup-type') as HTMLElement;
+        const descriptionEl = popup.querySelector('.sn-snakk-popup-description') as HTMLElement;
+        const statsSkeleton = popup.querySelector('.sn-snakk-popup-stats-skeleton') as HTMLElement;
+        const statsContainer = popup.querySelector('.sn-snakk-popup-stats') as HTMLElement;
+        const gotoLink = popup.querySelector('.sn-snakk-popup-goto') as HTMLAnchorElement;
+        const messageLink = popup.querySelector('.sn-snakk-popup-message') as HTMLAnchorElement;
 
         if (statsSkeleton) statsSkeleton.style.display = 'none';
         if (avatarSkeleton) avatarSkeleton.style.display = 'none';
@@ -420,9 +422,11 @@ class SnakkPopup {
         }
 
         if (nameEl) nameEl.textContent = stats?.name || stats?.displayName || stats?.title || name;
+        const adminBadgeEl = popup.querySelector('.snakk-popup-admin-badge') as HTMLElement;
+        if (adminBadgeEl) adminBadgeEl.style.display = stats?.isGlobalAdmin ? '' : 'none';
         if (typeEl) typeEl.textContent = this.getTypeDisplayName(type);
 
-        const bannerEl = popup.querySelector('.snakk-popup-banner') as HTMLElement;
+        const bannerEl = popup.querySelector('.sn-snakk-popup-banner') as HTMLElement;
         if (bannerEl) {
             if (stats?.gradientCss) {
                 bannerEl.style.background = stats.gradientCss;
@@ -438,13 +442,13 @@ class SnakkPopup {
 
         const sparklineTypes = new Set(['space', 'hub', 'community', 'discussion', 'user']);
         if (sparklineTypes.has(type)) {
-            const grid = statsContainer?.querySelector('.snakk-popup-stats-grid');
+            const grid = statsContainer?.querySelector('.sn-snakk-popup-stats-grid');
             if (grid) {
                 const sparklineStat = document.createElement('div');
-                sparklineStat.className = 'stat snakk-popup-sparkline-stat';
+                sparklineStat.className = 'sn-stat sn-snakk-popup-sparkline-stat';
 
                 const titleEl = document.createElement('div');
-                titleEl.className = 'stat-title';
+                titleEl.className = 'sn-stat-title';
                 titleEl.textContent = 'Activity';
 
                 const sparklineContainer = document.createElement('div');
@@ -478,7 +482,8 @@ class SnakkPopup {
         if (messageLink) {
             const currentUserPublicId = document.querySelector<HTMLMetaElement>('meta[name="current-user-id"]')?.content ?? '';
             const isOwnProfile = publicId === currentUserPublicId;
-            if (type === 'user' && currentUserPublicId && !isOwnProfile) {
+            const isMessagingEnabled = document.body.dataset.messaging !== '0';
+            if (type === 'user' && currentUserPublicId && !isOwnProfile && isMessagingEnabled) {
                 messageLink.href = `/messages/start?recipient=${encodeURIComponent(publicId)}`;
                 messageLink.style.display = '';
             } else {
@@ -492,7 +497,7 @@ class SnakkPopup {
         this.positionPopup(popup, triggerEl);
         void popup.offsetHeight;
         popup.style.visibility = '';
-        popup.classList.add('snakk-popup--ready');
+        popup.classList.add('sn-snakk-popup--ready');
     }
 
     /**
@@ -542,10 +547,9 @@ class SnakkPopup {
      * Handle mouse over on trigger elements (mouseover bubbles, mouseenter doesn't)
      */
     handleMouseOver(e: Event): void {
-        // Touch devices get tap-to-open via handleTriggerClick; ignore hover paths.
-        // Also skip when the last pointer event was touch, to handle hybrid devices
-        // (e.g. iPad with keyboard) that report (hover: hover) but still fire a
-        // synthetic mouseover before the click when the user taps a link.
+        // Popups are desktop-only. Also skip when the last pointer event was touch
+        // to handle hybrid devices (e.g. iPad with keyboard) that report (hover: hover)
+        // but still fire a synthetic mouseover before the click when the user taps a link.
         if (isCoarse || lastPointerType === 'touch') return;
         try { if (localStorage.getItem('snakk:disable-hover-popup') === 'true') return; } catch { /* ignore */ }
 
@@ -616,6 +620,18 @@ class SnakkPopup {
     /**
      * Immediately dismiss popup and clear all state
      */
+    syncPopupTitles(): void {
+        let disabled = false;
+        try { disabled = localStorage.getItem('snakk:disable-hover-popup') === 'true'; } catch { /* ignore */ }
+        document.querySelectorAll<HTMLElement>('[data-popup-type][data-popup-name]').forEach(el => {
+            if (disabled) {
+                el.title = el.dataset.popupName!;
+            } else {
+                el.removeAttribute('title');
+            }
+        });
+    }
+
     dismissPopup(): void {
         if (this.showTimeout) clearTimeout(this.showTimeout);
         if (this.hideTimeout) clearTimeout(this.hideTimeout);
@@ -643,41 +659,6 @@ class SnakkPopup {
         document.addEventListener('mouseover', this._mouseOverHandler, false);
         document.addEventListener('mouseout', this._mouseOutHandler, false);
 
-        // Tap-to-open on coarse pointers. First tap on a trigger opens the popup
-        // and suppresses the link navigation; tapping the "Go to" link navigates.
-        document.addEventListener('click', (e: Event) => {
-            if (!isCoarse) return;
-            const target = e.target as HTMLElement;
-
-            // Tap inside an already-open popup is for its own controls — do nothing here.
-            if (this.currentPopup && this.currentPopup.contains(target)) return;
-
-            let triggerEl = target.closest('[data-popup-type]') as HTMLElement | null;
-            const isEntityLink = !triggerEl
-                && !!(triggerEl = target.closest('a.entity-link') as HTMLElement | null);
-            if (!triggerEl || triggerEl.classList.contains('breadcrumb-current')) return;
-
-            e.preventDefault();
-            if (this.showTimeout) clearTimeout(this.showTimeout);
-            if (this.hideTimeout) clearTimeout(this.hideTimeout);
-            this.currentTrigger = triggerEl;
-            if (isEntityLink && !triggerEl.dataset.popupType) {
-                this.showEntityLinkPopup(triggerEl);
-            } else {
-                this.showPopup(triggerEl);
-            }
-        }, false);
-
-        // Outside-tap close on coarse pointers.
-        document.addEventListener('pointerdown', (e: Event) => {
-            if (!isCoarse) return;
-            if (!this.currentPopup || this.currentPopup.style.display === 'none') return;
-            const target = e.target as HTMLElement;
-            if (this.currentPopup.contains(target)) return;
-            if (target.closest('[data-popup-type], a.entity-link')) return;
-            this.dismissPopup();
-        }, false);
-
         // Close popup on HTMX navigation so it doesn't linger after page swap
         document.addEventListener('htmx:beforeRequest', () => this.dismissPopup(), false);
 
@@ -691,7 +672,6 @@ class SnakkPopup {
             const anchor = (e.target as HTMLElement).closest('a') as HTMLAnchorElement | null;
             if (!anchor) return;
             if (this.currentPopup && this.currentPopup.contains(anchor)) return;
-            if (isCoarse && anchor.closest('[data-popup-type], a.entity-link')) return;
             this.dismissPopup();
         };
         document.addEventListener('mousedown', dismissOnAnchor, false);
@@ -699,6 +679,14 @@ class SnakkPopup {
 
         // Close popup on browser back/forward navigation
         window.addEventListener('popstate', () => this.dismissPopup());
+
+        // Keep title attributes on [data-popup-type] elements in sync with the
+        // hover-popup preference so tooltip and popup are never shown together.
+        this.syncPopupTitles();
+        document.addEventListener('htmx:afterSettle', () => { this.dismissPopup(); this.syncPopupTitles(); }, false);
+        window.addEventListener('storage', (e: StorageEvent) => {
+            if (e.key === 'snakk:disable-hover-popup') this.syncPopupTitles();
+        });
     }
 
     /**
@@ -781,7 +769,7 @@ document.addEventListener('pointerdown', (e: Event) => {
         a.href = item.href;
         a.target = '_blank';
         a.rel = 'noopener';
-        a.innerHTML = `<span class="icon ${item.iconClass} h-4 w-4 shrink-0 ${item.color}" aria-hidden="true"></span>${item.label}`;
+        a.innerHTML = `<span class="sn-icon ${item.iconClass} sn-h-4 sn-w-4 sn-shrink-0 ${item.color}" aria-hidden="true"></span>${item.label}`;
         li.appendChild(a);
         menu.appendChild(li);
     }
@@ -831,7 +819,7 @@ function initNudgeOAuthLastUsed(): void {
 
         const moreBtn = document.createElement('button');
         moreBtn.type = 'button';
-        moreBtn.className = 'w-full text-center text-sm text-base-content/40 hover:text-base-content/70 py-1.5 transition-colors cursor-pointer';
+        moreBtn.className = 'sn-w-full sn-text-center sn-text-sm text-base-content/40 hover:text-base-content/70 sn-py-1.5 sn-transition-colors sn-cursor-pointer';
         moreBtn.textContent = 'More sign-in options';
         container.appendChild(moreBtn);
 
@@ -909,7 +897,7 @@ function initNudgePasskey(): void {
 
     btn.addEventListener('click', () => {
         btn.disabled = true;
-        if (errorEl) { errorEl.textContent = ''; errorEl.classList.add('hidden'); }
+        if (errorEl) { errorEl.textContent = ''; errorEl.classList.add('sn-hidden'); }
 
         fetch('/auth/passkey/begin-login', {
             method: 'POST',
@@ -924,7 +912,7 @@ function initNudgePasskey(): void {
             if (errorEl) {
                 errorEl.style.color = 'var(--text-secondary)';
                 errorEl.textContent = (window as any).T?.nudge?.passkeyPromptHint ?? '';
-                errorEl.classList.remove('hidden');
+                errorEl.classList.remove('sn-hidden');
             }
             return navigator.credentials.get({ publicKey: prepareOptions(data.optionsJson) })
                 .then(cred => fetch('/auth/passkey/complete-login', {
@@ -954,11 +942,11 @@ function initNudgePasskey(): void {
         })
         .catch((err: unknown) => {
             btn.disabled = false;
-            if (errorEl) { errorEl.style.color = ''; errorEl.classList.add('hidden'); }
+            if (errorEl) { errorEl.style.color = ''; errorEl.classList.add('sn-hidden'); }
             if (err instanceof Error && err.name === 'NotAllowedError') return;
             if (errorEl) {
                 errorEl.textContent = err instanceof Error ? err.message : 'Passkey login failed. Please try again.';
-                errorEl.classList.remove('hidden');
+                errorEl.classList.remove('sn-hidden');
             }
         });
     });
@@ -967,5 +955,13 @@ function initNudgePasskey(): void {
 initNudgePasskey();
 initNudgeOAuthLastUsed();
 document.addEventListener('htmx:afterSettle', () => { initNudgePasskey(); initNudgeOAuthLastUsed(); });
+
+// Reload on back-navigation so page-specific CSS injected via htmx-head-support
+// is always present. htmx:historyRestore covers HTMX-managed history; pageshow
+// with persisted:true covers the native browser back/forward cache (bfcache).
+document.addEventListener('htmx:historyRestore', () => window.location.reload());
+window.addEventListener('pageshow', (e: PageTransitionEvent) => {
+    if (e.persisted) window.location.reload();
+});
 
 })();

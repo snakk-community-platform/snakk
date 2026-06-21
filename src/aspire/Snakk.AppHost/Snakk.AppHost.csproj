@@ -11,8 +11,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.8" />
-    <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.9" />
+    <!-- Pin to patched version to override vulnerable transitive 2.5.192 from KubernetesClient (GHSA-hv8m-jj95-wg3x) -->
+    <PackageReference Include="MessagePack" Version="2.5.302" />
+    <PackageReference Include="MessagePack.Annotations" Version="2.5.302" />
   </ItemGroup>
 
   <ItemGroup>

@@ -8,7 +8,15 @@ public class UnitOfWork(SnakkDbContext db) : IUnitOfWork
     public async Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken ct = default)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
-        await operation();
-        await tx.CommitAsync(ct);
+        try
+        {
+            await operation();
+            await tx.CommitAsync(ct);
+        }
+        catch
+        {
+            await tx.RollbackAsync(ct);
+            throw;
+        }
     }
 }

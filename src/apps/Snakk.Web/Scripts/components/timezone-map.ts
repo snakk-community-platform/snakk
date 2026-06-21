@@ -324,7 +324,7 @@
             });
         });
 
-        showAllBtn?.classList.add('hidden');
+        showAllBtn?.classList.add('sn-hidden');
     }
 
     function filterToTimezones(tzList: string[]) {
@@ -344,7 +344,7 @@
             og.hidden = !hasVisible;
         });
 
-        showAllBtn?.classList.remove('hidden');
+        showAllBtn?.classList.remove('sn-hidden');
     }
 
     function selectTimezone(tz: string) {
@@ -410,8 +410,8 @@
 
         const borderSubtle = cs.getPropertyValue('--border-subtle').trim() || '#C5D1C5';
         const bgTertiary = cs.getPropertyValue('--bg-tertiary').trim() || '#ffffff';
-        const linkPrimary = cs.getPropertyValue('--link-primary').trim() || '#3d9a6c';
-        const linkHover = cs.getPropertyValue('--link-hover').trim() || '#145A41';
+        const linkPrimary = cs.getPropertyValue('--sn-link-primary').trim() || '#3d9a6c';
+        const linkHover = cs.getPropertyValue('--sn-link-hover').trim() || '#145A41';
 
         svg.style.setProperty('--tz-land', borderSubtle);
         svg.style.setProperty('--tz-stroke', bgTertiary);
@@ -626,7 +626,7 @@
             }
             if (tooltipEl && label) {
                 tooltipEl.textContent = label;
-                tooltipEl.classList.remove('hidden');
+                tooltipEl.classList.remove('sn-hidden');
             }
         });
 
@@ -637,12 +637,12 @@
             if (!countryId) return;
 
             setCountryClass(countryId, 'tz-hover', false);
-            tooltipEl?.classList.add('hidden');
+            tooltipEl?.classList.add('sn-hidden');
         });
 
         svgDoc.addEventListener('mousemove', (e: Event) => {
             if (coarsePointer) return;
-            if (!tooltipEl || tooltipEl.classList.contains('hidden')) return;
+            if (!tooltipEl || tooltipEl.classList.contains('sn-hidden')) return;
             const me = e as MouseEvent;
             const objRect = obj!.getBoundingClientRect();
             const wrapperRect = obj!.parentElement!.getBoundingClientRect();
@@ -659,7 +659,7 @@
             const countryId = getCountryId(target);
             if (!countryId) return;
 
-            tooltipEl?.classList.add('hidden');
+            tooltipEl?.classList.add('sn-hidden');
             resetZoom();
             handleCountryClick(countryId);
         });

@@ -28,7 +28,7 @@ public class DiscussionRepositoryAdapter(
         var projection = await context.Discussions
             .Where(d => d.Id == id)
             .Select(d => new DiscussionProjection(
-                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
+                d.PublicId, d.SpacePublicId!, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .FirstOrDefaultAsync(ct);
@@ -40,7 +40,7 @@ public class DiscussionRepositoryAdapter(
         var projection = await context.Discussions
             .Where(d => d.PublicId == publicId.Value)
             .Select(d => new DiscussionProjection(
-                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
+                d.PublicId, d.SpacePublicId!, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized, d.PostCount))
             .FirstOrDefaultAsync(ct);
@@ -52,7 +52,7 @@ public class DiscussionRepositoryAdapter(
         var projection = await context.Discussions
             .Where(d => d.Slug == slug)
             .Select(d => new DiscussionProjection(
-                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
+                d.PublicId, d.SpacePublicId!, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .FirstOrDefaultAsync(ct);
@@ -115,7 +115,7 @@ public class DiscussionRepositoryAdapter(
             .OrderByDescending(d => d.LastActivityAt)
             .Take(count)
             .Select(d => new DiscussionProjection(
-                d.PublicId, d.SpacePublicId, d.CreatedByUserPublicId,
+                d.PublicId, d.SpacePublicId!, d.CreatedByUserPublicId,
                 d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized))
             .ToListAsync(ct);
@@ -136,7 +136,7 @@ public class DiscussionRepositoryAdapter(
                 && !d.Space.Hub.Community.IsRestricted)
             .Select(d => new Domain.Repositories.DiscussionSummary(
                 d.PublicId, d.Title, d.Slug,
-                d.SpacePublicId,
+                d.SpacePublicId!,
                 d.CreatedAt, d.LastActivityAt,
                 d.IsPinned, d.IsLocked, d.Type, d.PostCount))
             .ToListAsync(ct);
@@ -306,15 +306,15 @@ public class DiscussionRepositoryAdapter(
                     d.Title,
                     d.Slug,
                     d.PostCount,
-                    d.SpacePublicId,
+                    d.SpacePublicId!,
                     space?.Slug ?? "",
                     space?.Name ?? "",
-                    d.HubPublicId,
-                    space?.HubSlug,
-                    space?.HubName,
+                    d.HubPublicId!,
+                    space?.HubSlug ?? "",
+                    space?.HubName ?? "",
                     d.AuthorPublicId,
                     d.AuthorDisplayName,
-                    space?.CommunitySlug,
+                    space?.CommunitySlug ?? "",
                     d.AuthorAvatarFileName);
             })
             .ToList();
@@ -371,10 +371,10 @@ public class DiscussionRepositoryAdapter(
                 d.CreatedAt,
                 d.Space.Slug,
                 d.Space.Name,
-                d.Space.HubSlug,
-                d.Space.HubName,
-                d.Space.CommunitySlug,
-                d.Space.CommunityName))
+                d.Space.HubSlug!,
+                d.Space.HubName!,
+                d.Space.CommunitySlug!,
+                d.Space.CommunityName!))
             .ToListAsync(ct);
     }
 

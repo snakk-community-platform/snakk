@@ -269,7 +269,7 @@
                 const footer = container.querySelector('.milkdown-footer');
                 if (submitBtn && footer) {
                     footer.appendChild(submitBtn);
-                    submitBtn.classList.remove('hidden');
+                    submitBtn.classList.remove('sn-hidden');
                 }
             }
         }

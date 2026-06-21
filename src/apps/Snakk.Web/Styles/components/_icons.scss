@@ -9,6 +9,24 @@
     flex-shrink: 0;
 }
 
+// sn-icon: namespaced alias with default 1rem size + size modifiers
+.sn-icon {
+    display: inline-block;
+    background-color: currentColor;
+    mask-repeat: no-repeat;
+    mask-size: contain;
+    mask-position: center;
+    vertical-align: middle;
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+}
+.sn-icon--xs { width: 0.875rem; height: 0.875rem; }
+.sn-icon--sm { width: 1rem;     height: 1rem; }
+.sn-icon--md { width: 1.25rem;  height: 1.25rem; }
+.sn-icon--lg { width: 2rem;     height: 2rem; }
+.sn-icon--xl { width: 2.5rem;   height: 2.5rem; }
+
 .icon-archive-layers              { mask-image: url('/icons/archive-layers.svg?v=ddf70c4a'); }
 .icon-at-sign                     { mask-image: url('/icons/at-sign.svg?v=011acaf4'); }
 .icon-atom                        { mask-image: url('/icons/atom.svg?v=b62e5e2c'); }

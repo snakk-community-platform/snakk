@@ -3,7 +3,8 @@ namespace Snakk.Web.Models.Bff;
 public record BffDmUserResponse(
     string PublicId,
     string DisplayName,
-    string AvatarUrl);
+    string AvatarUrl,
+    string? Slug = null);
 
 public record BffDmConversationResponse(
     string PublicId,

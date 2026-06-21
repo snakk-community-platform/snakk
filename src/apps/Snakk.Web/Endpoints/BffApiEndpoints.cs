@@ -115,6 +115,13 @@ public static class BffApiEndpoints
         authGroup.MapPost("/read-states/batch", BatchUpdateReadStatesAsync)
             .WithName("BffBatchUpdateReadStates");
 
+        // "New since last visit" feed
+        authGroup.MapGet("/me/unread-count", GetUnreadSinceLastVisitCountAsync)
+            .WithName("BffGetUnreadSinceLastVisitCount");
+
+        authGroup.MapPost("/me/mark-all-read", MarkAllAsReadSinceLastVisitAsync)
+            .WithName("BffMarkAllAsReadSinceLastVisit");
+
         // Post reactions
         group.MapGet("/posts/{postId}/reactions", GetPostReactionsAsync)
             .WithName("BffGetPostReactions");
@@ -162,6 +169,11 @@ public static class BffApiEndpoints
 
         group.MapPost("/auth/login", ReloginAsync)
             .WithName("BffRelogin")
+            .AllowAnonymous()
+            .RequireRateLimiting("auth");
+
+        group.MapPost("/auth/relogin", PasswordReloginAsync)
+            .WithName("BffPasswordRelogin")
             .AllowAnonymous()
             .RequireRateLimiting("auth");
 
@@ -605,7 +617,8 @@ public static class BffApiEndpoints
         if (!result.IsSuccess)
             return MapGrpcError(result.Status, result.Error);
 
-        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? httpContext.User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.NameId)?.Value;
         if (userId is not null) await followedSpacesCache.InvalidateAsync(userId, ct);
 
         var bffResponse = new Models.Bff.BffFollowResultResponse
@@ -898,6 +911,25 @@ public static class BffApiEndpoints
         return Results.Ok();
     }
 
+    private static async Task<IResult> GetUnreadSinceLastVisitCountAsync(
+        SnakkApiClient apiClient,
+        HttpContext httpContext,
+        CancellationToken ct)
+    {
+        var count = await apiClient.GetUnreadDiscussionCountAsync(ct);
+        SetCacheControl(httpContext, "private, max-age=120");
+        return Results.Ok(new { count });
+    }
+
+    private static async Task<IResult> MarkAllAsReadSinceLastVisitAsync(
+        SnakkApiClient apiClient,
+        HttpContext httpContext,
+        CancellationToken ct)
+    {
+        await apiClient.MarkVisitAsReadAsync(ct);
+        return Results.Ok();
+    }
+
     // Auth endpoints
     private static async Task<IResult> GetAuthStatusAsync(SnakkApiClient apiClient, HttpContext httpContext, CancellationToken ct)
     {
@@ -949,6 +981,45 @@ public static class BffApiEndpoints
                 Email    = body.Email,
                 Password = body.Password
             }, cancellationToken: ct);
+            if (string.IsNullOrEmpty(response.AccessToken))
+                return Results.Unauthorized();
+
+            AuthCookieHelper.SetAuthCookies(httpContext, response.AccessToken, response.RefreshToken);
+            httpContext.Response.Cookies.Delete(".Snakk.ReloginHint", new CookieOptions { Path = "/" });
+            return Results.Ok(new { displayName = response.User?.DisplayName });
+        }
+        catch (RpcException ex) when (
+            ex.StatusCode is StatusCode.Unauthenticated
+                          or StatusCode.NotFound
+                          or StatusCode.PermissionDenied)
+        {
+            return Results.Unauthorized();
+        }
+    }
+
+    private static async Task<IResult> PasswordReloginAsync(
+        [FromBody] PasswordReloginRequest body,
+        Snakk.Protos.Auth.AuthService.AuthServiceClient authClient,
+        HttpContext httpContext,
+        CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (string.IsNullOrWhiteSpace(body.Password))
+            return Results.BadRequest();
+
+        var refreshToken = httpContext.Request.Cookies[AuthCookieHelper.RefreshCookieName];
+        if (string.IsNullOrEmpty(refreshToken))
+            return Results.Json(new { error = "no_session" }, statusCode: StatusCodes.Status401Unauthorized);
+
+        try
+        {
+            var response = await authClient.ReloginWithRefreshTokenAsync(
+                new Snakk.Protos.Auth.ReloginWithRefreshTokenRequest
+                {
+                    RefreshToken = refreshToken,
+                    Password     = body.Password
+                }, cancellationToken: ct);
+
             if (string.IsNullOrEmpty(response.AccessToken))
                 return Results.Unauthorized();
 
@@ -1809,7 +1880,8 @@ public static class BffApiEndpoints
             ReplyCount = apiResult.ReplyCount,
             FollowerCount = apiResult.FollowerCount,
             FollowingCount = apiResult.FollowingCount,
-            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"user:{apiResult.PublicId}")
+            GradientCss = Snakk.Shared.Avatars.AvatarGenerator.GenerateGradientCss($"user:{apiResult.PublicId}"),
+            IsGlobalAdmin = apiResult.IsGlobalAdmin
         };
 
         // Public user profile stats — identical for all viewers
@@ -3245,7 +3317,8 @@ public static class BffApiEndpoints
                 c.OtherUser.DisplayName,
                 SnakkUrlHelper.UserAvatarThumbnail(
                     c.OtherUser.PublicId,
-                    avatarThumbnailFileName: c.OtherUser.HasAvatarThumbnailFileName ? c.OtherUser.AvatarThumbnailFileName : null)),
+                    avatarThumbnailFileName: c.OtherUser.HasAvatarThumbnailFileName ? c.OtherUser.AvatarThumbnailFileName : null),
+                c.OtherUser.HasSlug ? c.OtherUser.Slug : null),
             c.HasLastMessageExcerpt ? c.LastMessageExcerpt : null,
             c.LastMessageAt != null ? c.LastMessageAt.ToDateTime().ToString("O") : DateTime.UtcNow.ToString("O"),
             c.IsPinned);
@@ -3261,5 +3334,6 @@ public record UpdateProfileWithSudoDto(string DisplayName);
 public record ValidateHistoryIdsRequest(IReadOnlyList<string>? Ids);
 public record UpdatePreferencesRequestDto(bool? AutoFollowOnReply, string? Timezone = null, string? Bio = null, bool? AllowAdultContent = null, bool ClearAllowAdultContent = false, int? AdultPreviewImageMode = null, bool? HidePresence = null);
 public record ReloginRequest(string Email, string Password);
+public record PasswordReloginRequest(string Password);
 public record RevokeAllOtherBffRequest(string ExcludeSessionId);
 

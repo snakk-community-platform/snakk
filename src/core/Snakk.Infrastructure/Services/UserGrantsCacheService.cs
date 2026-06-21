@@ -57,8 +57,11 @@ public class UserGrantsCacheService(
                 .ToHashSet());
     }
 
-    public void Invalidate(string userId) =>
+    public void Invalidate(string userId)
+    {
         _ = cache.RemoveAsync(UserGrantsKey(userId)).AsTask();
+        _ = cache.RemoveByTagAsync($"group-access:u:{userId}").AsTask();
+    }
 
     public void InvalidateAll() =>
         _ = cache.RemoveByTagAsync("user-grants").AsTask();

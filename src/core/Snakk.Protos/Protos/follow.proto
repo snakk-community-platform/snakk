@@ -4,6 +4,8 @@ option csharp_namespace = "Snakk.Protos.Follow";
 
 package snakk.follow;
 
+import "google/protobuf/timestamp.proto";
+
 service FollowService {
   // Space follows
   rpc ToggleSpaceFollow (ToggleSpaceFollowRequest) returns (SpaceFollowToggleResponse);
@@ -15,6 +17,7 @@ service FollowService {
   rpc ToggleDiscussionFollow (ToggleDiscussionFollowRequest) returns (FollowToggleResponse);
   rpc GetDiscussionFollowStatus (GetDiscussionFollowStatusRequest) returns (FollowToggleResponse);
   rpc GetFollowedDiscussions (GetFollowedDiscussionsRequest) returns (FollowedIdsResponse);
+  rpc GetFollowedDiscussionsDetailed (GetFollowedDiscussionsRequest) returns (FollowedDiscussionsDetailedResponse);
 
   // User follows
   rpc ToggleUserFollow (ToggleUserFollowRequest) returns (FollowToggleResponse);
@@ -82,4 +85,13 @@ message FollowLevelResponse {
 
 message FollowedIdsResponse {
   repeated string public_ids = 1;
+}
+
+message FollowedDiscussionEntry {
+  string public_id = 1;
+  google.protobuf.Timestamp followed_at = 2;
+}
+
+message FollowedDiscussionsDetailedResponse {
+  repeated FollowedDiscussionEntry items = 1;
 }

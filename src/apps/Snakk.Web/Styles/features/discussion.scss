@@ -1,0 +1,16 @@
+// Discussion feature CSS — lazy-loaded on discussion detail and composition pages.
+// Extracted from site.scss to remove ~130 KB of source from the critical CSS path.
+// Loaded via BasePageModel.Preload() in Detail.cshtml and all New*.cshtml pages.
+// Note: base/variables is NOT @used here — site.css (loaded on every page) emits
+// the :root custom-property declarations; these partials consume them via var(--x).
+
+@use '../features/discussions';
+@use '../features/posts';
+@use '../features/poll';
+@use '../features/_type-debate';
+@use '../features/_type-images';
+@use '../features/_type-iama';
+@use '../features/type-widgets';
+@use '../features/inline-image-group';
+@use '../components/reactions';
+@use '../pages/discussion-header';

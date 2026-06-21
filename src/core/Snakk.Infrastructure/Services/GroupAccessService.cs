@@ -23,7 +23,7 @@ public class GroupAccessService(
         CancellationToken ct = default)
     {
         var cacheKey = $"group-access:{userPublicId ?? "anon"}:{communityPublicId}:{hubPublicId ?? ""}:{spacePublicId ?? ""}";
-        var tags = BuildTags(communityPublicId, hubPublicId, spacePublicId);
+        var tags = BuildTags(userPublicId, communityPublicId, hubPublicId, spacePublicId);
 
         return await cache.GetOrCreateAsync(
             cacheKey,
@@ -501,10 +501,11 @@ public class GroupAccessService(
         return new GroupAccessResult { AccessLevel = (AccessLevelEnum)effectiveLevel, IsRestricted = true };
     }
 
-    private static IEnumerable<string> BuildTags(string communityPublicId, string? hubPublicId, string? spacePublicId)
+    private static IEnumerable<string> BuildTags(string? userPublicId, string communityPublicId, string? hubPublicId, string? spacePublicId)
     {
         yield return $"group-access:c:{communityPublicId}";
         if (hubPublicId is not null) yield return $"group-access:h:{hubPublicId}";
         if (spacePublicId is not null) yield return $"group-access:s:{spacePublicId}";
+        if (userPublicId is not null) yield return $"group-access:u:{userPublicId}";
     }
 }

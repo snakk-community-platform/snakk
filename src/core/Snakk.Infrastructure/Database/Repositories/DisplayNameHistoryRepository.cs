@@ -37,11 +37,12 @@ public class DisplayNameHistoryRepository(SnakkDbContext context) : IDisplayName
         await context.SaveChangesAsync(ct);
     }
 
-    public async Task<bool> WasNameEverUsedAsync(string displayName, CancellationToken ct = default)
+    public async Task<bool> WasNameEverUsedAsync(string displayName, string? excludeUserPublicId = null, CancellationToken ct = default)
         => await context.UserDisplayNameHistories
             .AnyAsync(h =>
-                h.NewName.ToLower() == displayName.ToLower()
-                || h.PreviousName.ToLower() == displayName.ToLower(), ct);
+                (h.NewName.ToLower() == displayName.ToLower()
+                 || h.PreviousName.ToLower() == displayName.ToLower())
+                && (excludeUserPublicId == null || h.User.PublicId != excludeUserPublicId), ct);
 
     public async Task<List<DisplayNameHistoryDto>> GetHistoryForUserAsync(string userPublicId, int limit = 20, CancellationToken ct = default)
         => await context.UserDisplayNameHistories

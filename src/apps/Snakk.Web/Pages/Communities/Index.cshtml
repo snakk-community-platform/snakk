@@ -1,4 +1,4 @@
-﻿@page "/communities"
+@page "/communities"
 @using Snakk.Web.Helpers
 @using Snakk.Web.Services
 @using static Snakk.Web.Helpers.DisplayHelper
@@ -15,10 +15,12 @@
 <!-- Center Column -->
 <div class="sn-center">
     <div class="sn-center-inner">
-        <h2 class="sn-section-title">
-            <span class="icon icon-users-group" aria-hidden="true"></span>
-            @T.Pages.CommunitiesHeading
-        </h2>
+        <div class="sn-section-header">
+            <h2 class="sn-section-title">
+                <span class="icon icon-users-group" aria-hidden="true"></span>
+                @T.Pages.CommunitiesHeading
+            </h2>
+        </div>
 
         @if (Model.Communities?.Items == null || !Model.Communities.Items.Any())
         {
@@ -45,11 +47,11 @@
                             }
                             <div class="sn-community-stat-row">
                                 <div class="sn-community-stat-pill">
-                                    <span class="sn-community-stat-value">@FormatCount(community.DiscussionCount)</span>
+                                    <span class="sn-community-sn-stat-value">@FormatCount(community.DiscussionCount)</span>
                                     <span class="sn-community-stat-label">@T.Pages.CommunitiesLabelDiscussions</span>
                                 </div>
                                 <div class="sn-community-stat-pill">
-                                    <span class="sn-community-stat-value">@FormatCount(community.ReplyCount)</span>
+                                    <span class="sn-community-sn-stat-value">@FormatCount(community.ReplyCount)</span>
                                     <span class="sn-community-stat-label">@T.Pages.CommunitiesLabelReplies</span>
                                 </div>
                                 @if (Model.CommunitySparklineJson.TryGetValue(community.PublicId, out var sparkJson))
@@ -66,9 +68,9 @@
 
             @if (Model.Communities.HasMoreItems)
             {
-                <div class="flex justify-center mt-6">
+                <div class="sn-pagination-row">
                     <a href="/communities?offset=@(Model.Communities.Offset + Model.Communities.PageSize)"
-                       class="btn btn-ghost btn-sm">
+                       class="sn-btn sn-btn-ghost sn-btn-sm">
                         @T.Pages.CommunitiesLoadMore
                     </a>
                 </div>
@@ -79,8 +81,8 @@
 
 <!-- Right Column -->
 @{
-    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
     ViewData["RightPane.AboutTitle"] = T.Pages.CommunitiesAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.CommunitiesAboutDesc;
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />

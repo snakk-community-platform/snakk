@@ -6,7 +6,7 @@
 }
 
 
-<div class="max-w-[90rem] mx-auto px-4 py-8">
+<div class="max-w-[90rem] sn-mx-auto sn-px-4 sn-py-8">
     <!-- Page Header -->
     <div class="page-header">
         <h1>@T.Pages.ModIndexHeading</h1>
@@ -14,51 +14,51 @@
     </div>
 
     <!-- Quick Stats -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="clean-card text-center">
-            <div class="text-3xl font-bold text-primary">@Model.PendingReportCount</div>
-            <div class="text-sm text-muted">@T.Pages.ModIndexPendingReports</div>
+    <div class="sn-grid sn-grid-cols-2 sn-md:grid-cols-4 sn-gap-4 sn-mb-6">
+        <div class="clean-card sn-text-center">
+            <div class="sn-text-3xl sn-font-bold sn-text-primary">@Model.PendingReportCount</div>
+            <div class="sn-text-sm sn-text-muted">@T.Pages.ModIndexPendingReports</div>
         </div>
-        <div class="clean-card text-center">
-            <div class="text-3xl font-bold">@(Model.MyRoles?.Count() ?? 0)</div>
-            <div class="text-sm text-muted">@T.Pages.ModIndexActiveRoles</div>
+        <div class="clean-card sn-text-center">
+            <div class="sn-text-3xl sn-font-bold">@(Model.MyRoles?.Count() ?? 0)</div>
+            <div class="sn-text-sm sn-text-muted">@T.Pages.ModIndexActiveRoles</div>
         </div>
-        <div class="clean-card text-center">
-            <a href="/moderation/reports" class="btn btn-primary btn-sm">@T.Pages.ModIndexViewReports</a>
+        <div class="clean-card sn-text-center">
+            <a href="/moderation/reports" class="sn-btn sn-btn-primary sn-btn-sm">@T.Pages.ModIndexViewReports</a>
         </div>
-        <div class="clean-card text-center">
-            <a href="/moderation/logs" class="btn btn-ghost btn-sm">@T.Pages.ModIndexViewLogs</a>
+        <div class="clean-card sn-text-center">
+            <a href="/moderation/logs" class="sn-btn sn-btn-ghost sn-btn-sm">@T.Pages.ModIndexViewLogs</a>
         </div>
     </div>
 
-    <div class="grid md:grid-cols-3 gap-3">
+    <div class="sn-grid sn-md:grid-cols-3 sn-gap-3">
         <!-- My Roles -->
-        <div class="md:col-span-1">
+        <div class="sn-md:col-span-1">
             <div class="clean-card">
-                <h2 class="text-lg font-semibold mb-4">@T.Pages.ModIndexMyRoles</h2>
+                <h2 class="sn-text-lg sn-font-semibold sn-mb-4">@T.Pages.ModIndexMyRoles</h2>
                 @if (Model.MyRoles == null || !Model.MyRoles.Any())
                 {
-                    <p class="text-muted text-sm">@T.Pages.ModIndexNoActiveRoles</p>
+                    <p class="sn-text-muted sn-text-sm">@T.Pages.ModIndexNoActiveRoles</p>
                 }
                 else
                 {
-                    <div class="space-y-3">
+                    <div class="sn-space-y-3">
                         @foreach (var role in Model.MyRoles)
                         {
-                            <div class="flex items-center justify-between p-2 bg-base-200 rounded-lg">
+                            <div class="sn-mod-role-row">
                                 <div>
-                                    <span class="badge @Model.GetRoleBadgeClass(role.Role) badge-sm">@Model.GetRoleDisplayName(role.Role)</span>
+                                    <span class="sn-badge @Model.GetRoleBadgeClass(role.Role) sn-badge-sm">@Model.GetRoleDisplayName(role.Role)</span>
                                     @if (!string.IsNullOrEmpty(role.CommunityName))
                                     {
-                                        <div class="text-xs text-muted mt-1">@role.CommunityName</div>
+                                        <div class="sn-text-xs sn-text-muted sn-mt-1">@role.CommunityName</div>
                                     }
                                     else if (!string.IsNullOrEmpty(role.HubName))
                                     {
-                                        <div class="text-xs text-muted mt-1">@role.HubName</div>
+                                        <div class="sn-text-xs sn-text-muted sn-mt-1">@role.HubName</div>
                                     }
                                     else if (!string.IsNullOrEmpty(role.SpaceName))
                                     {
-                                        <div class="text-xs text-muted mt-1">@role.SpaceName</div>
+                                        <div class="sn-text-xs sn-text-muted sn-mt-1">@role.SpaceName</div>
                                     }
                                 </div>
                             </div>
@@ -68,34 +68,34 @@
             </div>
 
             <!-- Quick Links -->
-            <div class="clean-card mt-4">
-                <h2 class="text-lg font-semibold mb-4">@T.Pages.ModIndexQuickLinks</h2>
-                <nav class="space-y-2">
-                    <a href="/moderation/reports" class="block p-2 hover:bg-base-200 rounded-lg transition-colors">
-                        <div class="flex items-center gap-2">
-                            <span class="icon icon-exclamation-triangle h-5 w-5 text-warning" aria-hidden="true"></span>
+            <div class="clean-card sn-mt-4">
+                <h2 class="sn-text-lg sn-font-semibold sn-mb-4">@T.Pages.ModIndexQuickLinks</h2>
+                <nav class="sn-space-y-2">
+                    <a href="/moderation/reports" class="sn-block sn-p-2 sn-hover:bg-base-200 sn-rounded-lg sn-transition-colors">
+                        <div class="sn-icon-label-row">
+                            <span class="sn-icon icon-exclamation-triangle sn-icon--md sn-text-warning" aria-hidden="true"></span>
                             @T.Pages.ModIndexReports
                             @if (Model.PendingReportCount > 0)
                             {
-                                <span class="badge badge-warning badge-sm">@Model.PendingReportCount</span>
+                                <span class="sn-badge sn-badge-warning sn-badge-sm">@Model.PendingReportCount</span>
                             }
                         </div>
                     </a>
-                    <a href="/moderation/bans" class="block p-2 hover:bg-base-200 rounded-lg transition-colors">
-                        <div class="flex items-center gap-2">
-                            <span class="icon icon-ban h-5 w-5 text-error" aria-hidden="true"></span>
+                    <a href="/moderation/bans" class="sn-block sn-p-2 sn-hover:bg-base-200 sn-rounded-lg sn-transition-colors">
+                        <div class="sn-icon-label-row">
+                            <span class="sn-icon icon-ban sn-icon--md sn-text-error" aria-hidden="true"></span>
                             @T.Pages.ModIndexBans
                         </div>
                     </a>
-                    <a href="/moderation/roles" class="block p-2 hover:bg-base-200 rounded-lg transition-colors">
-                        <div class="flex items-center gap-2">
-                            <span class="icon icon-users-group h-5 w-5 text-info" aria-hidden="true"></span>
+                    <a href="/moderation/roles" class="sn-block sn-p-2 sn-hover:bg-base-200 sn-rounded-lg sn-transition-colors">
+                        <div class="sn-icon-label-row">
+                            <span class="sn-icon icon-users-group sn-icon--md sn-text-info" aria-hidden="true"></span>
                             @T.Pages.ModIndexRoles
                         </div>
                     </a>
-                    <a href="/moderation/logs" class="block p-2 hover:bg-base-200 rounded-lg transition-colors">
-                        <div class="flex items-center gap-2">
-                            <span class="icon icon-clipboard-list h-5 w-5 text-secondary" aria-hidden="true"></span>
+                    <a href="/moderation/logs" class="sn-block sn-p-2 sn-hover:bg-base-200 sn-rounded-lg sn-transition-colors">
+                        <div class="sn-icon-label-row">
+                            <span class="sn-icon icon-clipboard-list sn-icon--md text-secondary" aria-hidden="true"></span>
                             @T.Pages.ModIndexAuditLog
                         </div>
                     </a>
@@ -104,59 +104,59 @@
         </div>
 
         <!-- Recent Activity -->
-        <div class="md:col-span-2">
+        <div class="sn-md:col-span-2">
             <!-- Pending Reports -->
-            <div class="clean-card mb-4">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold">@T.Pages.ModIndexPendingReports</h2>
-                    <a href="/moderation/reports" class="text-sm text-primary hover:underline">@T.Pages.ModIndexViewAll</a>
+            <div class="clean-card sn-mb-4">
+                <div class="sn-card-section-header">
+                    <h2 class="sn-text-lg sn-font-semibold">@T.Pages.ModIndexPendingReports</h2>
+                    <a href="/moderation/reports" class="sn-text-sm sn-text-primary sn-hover:underline">@T.Pages.ModIndexViewAll</a>
                 </div>
                 @if (Model.PendingReports?.Items == null || !Model.PendingReports.Items.Any())
                 {
-                    <div class="text-center py-8 text-muted">
-                        <span class="icon icon-check-circle h-12 w-12 mx-auto mb-2 opacity-50" aria-hidden="true"></span>
+                    <div class="sn-text-center sn-py-8 sn-text-muted">
+                        <span class="sn-icon icon-check-circle sn-h-12 sn-w-12 sn-mx-auto sn-mb-2 sn-opacity-50" aria-hidden="true"></span>
                         <p>@T.Pages.ModIndexNoPendingReports</p>
                     </div>
                 }
                 else
                 {
-                    <div class="space-y-3">
+                    <div class="sn-space-y-3">
                         @foreach (var report in Model.PendingReports.Items.Take(5))
                         {
-                            <a href="/moderation/reports/@report.PublicId" class="block p-3 hover:bg-base-200 rounded-lg transition-colors border border-base-300">
-                                <div class="flex items-start gap-3">
+                            <a href="/moderation/reports/@report.PublicId" class="sn-block sn-p-3 sn-hover:bg-base-200 sn-rounded-lg sn-transition-colors sn-border sn-border-base-300">
+                                <div class="sn-mod-report-row">
                                     <img src="@SnakkUrlHelper.UserAvatar(report.ReporterUserPublicId)"
                                          alt="@report.ReporterUserDisplayName"
                                          width="32" height="32"
-                                         class="w-8 h-8 rounded-full" />
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex items-center gap-2">
-                                            <span class="font-medium text-sm">@report.ReporterUserDisplayName</span>
-                                            <span class="text-xs text-muted">@T.Pages.ModIndexReported</span>
+                                         class="sn-avatar-sm" />
+                                    <div class="sn-flex-1 sn-min-w-0">
+                                        <div class="sn-icon-label-row">
+                                            <span class="sn-font-medium sn-text-sm">@report.ReporterUserDisplayName</span>
+                                            <span class="sn-text-xs sn-text-muted">@T.Pages.ModIndexReported</span>
                                             @if (!string.IsNullOrEmpty(report.ReportedUserDisplayName))
                                             {
-                                                <span class="text-sm font-medium">@report.ReportedUserDisplayName</span>
+                                                <span class="sn-text-sm sn-font-medium">@report.ReportedUserDisplayName</span>
                                             }
                                             else if (!string.IsNullOrEmpty(report.ReportedPostContentSnippet))
                                             {
-                                                <span class="text-sm">@T.Pages.ModIndexAPost</span>
+                                                <span class="sn-text-sm">@T.Pages.ModIndexAPost</span>
                                             }
                                             else if (!string.IsNullOrEmpty(report.ReportedDiscussionTitle))
                                             {
-                                                <span class="text-sm">@T.Pages.ModIndexADiscussion</span>
+                                                <span class="sn-text-sm">@T.Pages.ModIndexADiscussion</span>
                                             }
                                         </div>
                                         @if (!string.IsNullOrEmpty(report.ReasonName))
                                         {
-                                            <div class="text-xs text-muted mt-1">@T.Pages.ModIndexReason @report.ReasonName</div>
+                                            <div class="sn-text-xs sn-text-muted sn-mt-1">@T.Pages.ModIndexReason @report.ReasonName</div>
                                         }
                                         @if (!string.IsNullOrEmpty(report.Details))
                                         {
-                                            <div class="text-sm mt-1 text-muted truncate">@report.Details</div>
+                                            <div class="sn-text-sm sn-mt-1 sn-text-muted sn-truncate">@report.Details</div>
                                         }
-                                        <div class="text-xs text-muted mt-1">@Model.GetRelativeTime(report.CreatedAt)</div>
+                                        <div class="sn-text-xs sn-text-muted sn-mt-1">@Model.GetRelativeTime(report.CreatedAt)</div>
                                     </div>
-                                    <span class="badge badge-warning badge-sm">@T.Pages.ModIndexPendingBadge</span>
+                                    <span class="sn-badge sn-badge-warning sn-badge-sm">@T.Pages.ModIndexPendingBadge</span>
                                 </div>
                             </a>
                         }
@@ -166,51 +166,51 @@
 
             <!-- Recent Activity Log -->
             <div class="clean-card">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold">@T.Pages.ModIndexRecentActivity</h2>
-                    <a href="/moderation/logs" class="text-sm text-primary hover:underline">@T.Pages.ModIndexViewAll</a>
+                <div class="sn-card-section-header">
+                    <h2 class="sn-text-lg sn-font-semibold">@T.Pages.ModIndexRecentActivity</h2>
+                    <a href="/moderation/logs" class="sn-text-sm sn-text-primary sn-hover:underline">@T.Pages.ModIndexViewAll</a>
                 </div>
                 @if (Model.RecentLogs?.Items == null || !Model.RecentLogs.Items.Any())
                 {
-                    <p class="text-muted text-sm">@T.Pages.ModIndexNoRecentActivity</p>
+                    <p class="sn-text-muted sn-text-sm">@T.Pages.ModIndexNoRecentActivity</p>
                 }
                 else
                 {
-                    <div class="space-y-3">
+                    <div class="sn-space-y-3">
                         @foreach (var log in Model.RecentLogs.Items.Take(10))
                         {
-                            <div class="flex items-start gap-3 p-2 rounded-lg">
+                            <div class="sn-mod-log-row">
                                 <img src="@SnakkUrlHelper.UserAvatar(log.ActorUserPublicId)"
                                      alt="@log.ActorUserDisplayName"
                                      width="32" height="32"
-                                     class="w-8 h-8 rounded-full" />
-                                <div class="flex-1 min-w-0">
-                                    <div class="text-sm">
-                                        <span class="font-medium">@log.ActorUserDisplayName</span>
-                                        <span class="text-muted">@Model.GetActionDisplayName(log.Action).ToLower()</span>
+                                     class="sn-avatar-sm" />
+                                <div class="sn-flex-1 sn-min-w-0">
+                                    <div class="sn-text-sm">
+                                        <span class="sn-font-medium">@log.ActorUserDisplayName</span>
+                                        <span class="sn-text-muted">@Model.GetActionDisplayName(log.Action).ToLower()</span>
                                         @if (!string.IsNullOrEmpty(log.TargetUserDisplayName))
                                         {
-                                            <span class="font-medium">@log.TargetUserDisplayName</span>
+                                            <span class="sn-font-medium">@log.TargetUserDisplayName</span>
                                         }
                                         @if (!string.IsNullOrEmpty(log.TargetDiscussionTitle))
                                         {
-                                            <span class="truncate">"@log.TargetDiscussionTitle"</span>
+                                            <span class="sn-truncate">"@log.TargetDiscussionTitle"</span>
                                         }
                                     </div>
                                     @if (!string.IsNullOrEmpty(log.SpaceName))
                                     {
-                                        <div class="text-xs text-muted">@T.Pages.ModIndexIn @log.SpaceName</div>
+                                        <div class="sn-text-xs sn-text-muted">@T.Pages.ModIndexIn @log.SpaceName</div>
                                     }
                                     else if (!string.IsNullOrEmpty(log.HubName))
                                     {
-                                        <div class="text-xs text-muted">@T.Pages.ModIndexIn @log.HubName</div>
+                                        <div class="sn-text-xs sn-text-muted">@T.Pages.ModIndexIn @log.HubName</div>
                                     }
                                     else if (!string.IsNullOrEmpty(log.CommunityName))
                                     {
-                                        <div class="text-xs text-muted">@T.Pages.ModIndexIn @log.CommunityName</div>
+                                        <div class="sn-text-xs sn-text-muted">@T.Pages.ModIndexIn @log.CommunityName</div>
                                     }
                                 </div>
-                                <div class="text-xs text-muted whitespace-nowrap">@Model.GetRelativeTime(log.CreatedAt)</div>
+                                <div class="sn-text-xs sn-text-muted sn-whitespace-nowrap">@Model.GetRelativeTime(log.CreatedAt)</div>
                             </div>
                         }
                     </div>

@@ -1,0 +1,4 @@
+﻿// Note: base/variables is NOT @used here â€” site.css emits the :root custom properties.
+// Loaded via BasePageModel.Preload()
+@use './_type-debate';
+

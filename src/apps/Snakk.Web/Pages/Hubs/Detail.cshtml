@@ -51,303 +51,311 @@ else
     <div id="page-context" data-hub-id="@Model.Hub.PublicId" hidden></div>
 
 
-@section LeftColumn {
-@{
-    ViewData["LeftNav.NewDiscussionUrl"] = "/new?hubId=" + Model.Hub?.PublicId;
-}
-<partial name="Shared/_LeftSidebar" />
-}
+    @section LeftColumn {
+        @{
+            ViewData["LeftNav.NewDiscussionUrl"] = "/create?hubId=" + Model.Hub?.PublicId;
+        }
+        <partial name="Shared/_LeftSidebar" />
+    }
 
-<!-- Center Column -->
-<div class="sn-center">
-    @* Hero card lives outside .sn-center-inner so it sits flush against the
+    <!-- Center Column -->
+    <div class="sn-center">
+        @* Hero card lives outside .sn-center-inner so it sits flush against the
        sides of the center column (no padding around it). *@
-    <div class="sn-breadcrumb-bar sn-breadcrumb-bar--colored" style="background-image: @HubGradient(Model.Hub.PublicId, 45)">
-        @if (Model.ShowCommunityInBreadcrumb)
-        {
-            <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
-               data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
-               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-        }
-        else if (!Model.Community.IsMultiCommunityEnabled)
-        {
-            <a href="/c" class="badge badge-ghost badge-sm"
-               data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
-               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-        }
-    </div>
-    <div class="sn-hub-card">
-        <div class="sn-hub-card-banner" style="background-image: @HubGradient(Model.Hub.PublicId)">
-            <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId, avatarFileName: Model.Hub.HasAvatarFileName ? Model.Hub.AvatarFileName : null)"
-                 alt="" width="56" height="56"
-                 class="sn-hub-avatar" decoding="async" />
-            <h1 class="sn-hub-name">@Model.Hub.Name</h1>
+        <div class="sn-breadcrumb-bar sn-breadcrumb-bar--colored" style="background-image: @HubGradient(Model.Hub.PublicId, 45)">
+            @if (Model.ShowCommunityInBreadcrumb)
+            {
+                <a href="/c/@Model.Community.CommunitySlug" class="sn-badge sn-badge-ghost sn-badge-sm"
+                   data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
+                   data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+            }
+            else if (!Model.Community.IsMultiCommunityEnabled)
+            {
+                <a href="/c" class="sn-badge sn-badge-ghost sn-badge-sm"
+                   data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
+                   data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+            }
+        </div>
+        <div class="sn-hub-card">
+            <div class="sn-hub-card-banner" style="background-image: @HubGradient(Model.Hub.PublicId)">
+                <img src="@SnakkUrlHelper.HubAvatar(Model.Hub.PublicId, avatarFileName: Model.Hub.HasAvatarFileName ? Model.Hub.AvatarFileName : null)"
+                     alt="" width="56" height="56"
+                     class="sn-hub-avatar" decoding="async" />
+                <h1 class="sn-hub-name">@Model.Hub.Name</h1>
+            </div>
+        </div>
+
+        <div class="sn-center-inner">
+            <partial name="_Banners" model="Model.Banners?.Banners" />
+
+            <!-- Spaces -->
+            @if (Model.Spaces?.Items != null && Model.Spaces.Items.Any())
+            {
+                <div class="sn-section-header">
+                    <h2 class="sn-section-title">
+                        <span class="icon icon-archive-layers" aria-hidden="true"></span>
+                        @T.Pages.HubDetailSpacesHeading
+                    </h2>
+                </div>
+                <div class="sn-space-list-grid">
+                    @foreach (var space in Model.Spaces.Items)
+                    {
+                        <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)"
+                           class="sn-space-list-card"
+                           data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">
+                            <div class="sn-space-list-banner"
+                                 style="background-image: @SpaceGradient(space.PublicId)">
+                                <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId, avatarFileName: space.HasAvatarFileName ? space.AvatarFileName : null)"
+                                     alt="" width="34" height="34"
+                                     class="sn-space-list-avatar"
+                                     loading="lazy" decoding="async" />
+                                <span class="sn-space-list-name">@space.Name</span>
+                            </div>
+                            <div class="sn-space-list-body">
+                                @if (!string.IsNullOrEmpty(space.Description))
+                                {
+                                    <p class="sn-space-list-desc">@space.Description</p>
+                                }
+                                <div class="sn-space-list-stat-row">
+                                    <div class="sn-community-stat-pill">
+                                        <span class="sn-community-sn-stat-value">@FormatCount(space.DiscussionCount)</span>
+                                        <span class="sn-community-stat-label">@T.Pages.HubDetailLabelDiscussions</span>
+                                    </div>
+                                    <div class="sn-community-stat-pill">
+                                        <span class="sn-community-sn-stat-value">@FormatCount(space.ReplyCount)</span>
+                                        <span class="sn-community-stat-label">@T.Pages.HubDetailLabelReplies</span>
+                                    </div>
+                                    @if (Model.SpaceSparklineJson.TryGetValue(space.PublicId, out var sparkJson))
+                                    {
+                                        <div class="sn-sparkline-container sn-space-list-sparkline"
+                                             data-sparkline-data="@sparkJson"
+                                             data-sparkline-metric="postCount"></div>
+                                    }
+                                </div>
+                            </div>
+                        </a>
+                    }
+                </div>
+            }
+
+            <!-- Active Discussions -->
+            <div class="sn-section-header">
+                <h2 class="sn-section-title">
+                    <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
+                    @T.Pages.HubDetailActiveDiscussionsHeading
+                </h2>
+            </div>
+
+            @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
+            {
+                <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.HubDetailNoDiscussions)" />
+            }
+            else
+            {
+                <div id="discussions-container" class="h-feed">
+                    @foreach (var discussion in Model.RecentDiscussions.Items)
+                    {
+                        @await Html.PartialAsync("Shared/_DiscussionCard",
+                            new DiscussionListItemVM(discussion, Model.ShowCommunityInBreadcrumb, Model.Community, ShowHub: false))
+                    }
+
+                    @if (Model.RecentDiscussions.HasMoreItems && Model.RecentDiscussions.HasNextCursor)
+                    {
+                        var nextCursor = Model.RecentDiscussions.NextCursor;
+
+                        <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20&hubId=@Model.Hub.PublicId&hideHub=true"
+                             hx-trigger="revealed once"
+                             hx-swap="outerHTML"
+                             hx-target="this"
+                             hx-push-url="false"
+                             class="sn-py-2">
+                            <partial name="Shared/_DiscussionSkeleton" />
+                        </div>
+                    }
+                    else
+                    {
+                        <partial name="Shared/_EndOfScroll" />
+                    }
+                </div>
+            }
         </div>
     </div>
 
-    <div class="sn-center-inner">
-        <partial name="_Banners" model="Model.Banners?.Banners" />
-
-        <!-- Spaces -->
-        @if (Model.Spaces?.Items != null && Model.Spaces.Items.Any())
-        {
-            <h2 class="sn-section-title">
-                <span class="icon icon-archive-layers" aria-hidden="true"></span>
-                @T.Pages.HubDetailSpacesHeading
-            </h2>
-            <div class="sn-space-list-grid">
-                @foreach (var space in Model.Spaces.Items)
+    <!-- Right Column -->
+    @if (!DeviceDetection.IsMobile(HttpContext))
+    {
+    <aside class="sn-right">
+        @{
+            ViewData["RightPane.NewDiscussionUrl"] = "/create?hubId=" + Model.Hub.PublicId;
+            ViewData["RightPane.Actions"] = new[] { "feed", "share", "manage" };
+            ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.Slug}/feed";
+            ViewData["RightPane.ShareTitle"] = Model.Hub?.Name ?? T.Pages.HubDetailFallbackTitle;
+            ViewData["RightPane.ShareIsPublic"] = Model.Hub is not { IsRestricted: true };
+            ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageHub(Model.Community, Model.Hub!.Slug);
+        }
+        <div class="sn-right-sticky">
+            <partial name="Shared/_RightActionPane" />
+            <div class="sn-right-body">
+                <!-- Stats -->
+                @if (Model.HubStats != null)
                 {
-                    <a href="@SnakkUrlHelper.Space(Model.Community, Model.Slug, space.Slug)"
-                       class="sn-space-list-card"
-                       data-popup-type="space" data-popup-id="@space.PublicId" data-popup-name="@space.Name">
-                        <div class="sn-space-list-banner"
-                             style="background-image: @SpaceGradient(space.PublicId)">
-                            <img src="@SnakkUrlHelper.SpaceAvatar(space.PublicId, avatarFileName: space.HasAvatarFileName ? space.AvatarFileName : null)"
-                                 alt="" width="34" height="34"
-                                 class="sn-space-list-avatar"
-                                 loading="lazy" decoding="async" />
-                            <span class="sn-space-list-name">@space.Name</span>
+                    <div class="sn-right-section">
+                        <div class="sn-right-title">
+                            <span class="icon icon-chart-bar" aria-hidden="true"></span>
+                            @T.Sections.HubStats
                         </div>
-                        <div class="sn-space-list-body">
-                            @if (!string.IsNullOrEmpty(space.Description))
-                            {
-                                <p class="sn-space-list-desc">@space.Description</p>
-                            }
-                            <div class="sn-space-list-stat-row">
-                                <div class="sn-community-stat-pill">
-                                    <span class="sn-community-stat-value">@FormatCount(space.DiscussionCount)</span>
-                                    <span class="sn-community-stat-label">@T.Pages.HubDetailLabelDiscussions</span>
+                        <div class="sn-sidebar-stats">
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.HubDetailStatsDiscussions</div>
+                                    <div class="sn-stat-value">@FormatCount(Model.HubStats.DiscussionCount)</div>
                                 </div>
-                                <div class="sn-community-stat-pill">
-                                    <span class="sn-community-stat-value">@FormatCount(space.ReplyCount)</span>
-                                    <span class="sn-community-stat-label">@T.Pages.HubDetailLabelReplies</span>
+                            </div>
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.HubDetailStatsReplies</div>
+                                    <div class="sn-stat-value">@FormatCount(Model.HubStats.ReplyCount)</div>
                                 </div>
-                                @if (Model.SpaceSparklineJson.TryGetValue(space.PublicId, out var sparkJson))
-                                {
-                                    <div class="sn-sparkline-container sn-space-list-sparkline"
-                                         data-sparkline-data="@sparkJson"
-                                         data-sparkline-metric="postCount"></div>
-                                }
+                            </div>
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.HubDetailStatsActivity</div>
+                                    <div class="sn-sparkline-container sn-right-sparkline"
+                                         data-sparkline-type="hub"
+                                         data-sparkline-id="@Model.Hub.PublicId"
+                                         data-sparkline-days="7"></div>
+                                </div>
                             </div>
                         </div>
-                    </a>
+                    </div>
                 }
-            </div>
-        }
 
-        <!-- Active Discussions -->
-        <h2 class="sn-section-title">
-            <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
-            @T.Pages.HubDetailActiveDiscussionsHeading
-        </h2>
+                <!-- About -->
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="icon icon-info-circle" aria-hidden="true"></span>
+                        @T.Pages.HubDetailAboutPrefix@Model.Hub.Name
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Hub.Description))
+                    {
+                        <p class="sn-text-sm sn-mb-3" style="color: var(--text-secondary)">@Model.Hub.Description</p>
+                    }
+                </div>
 
-        @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
-        {
-            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.HubDetailNoDiscussions)" />
-        }
-        else
-        {
-            <div id="discussions-container" class="h-feed">
-                @foreach (var discussion in Model.RecentDiscussions.Items)
+                <!-- Rules -->
+                @if (Model.Hub.HasRules)
                 {
-                    @await Html.PartialAsync("Shared/_DiscussionCard",
-                        new DiscussionListItemVM(discussion, Model.ShowCommunityInBreadcrumb, Model.Community, ShowHub: false))
-                }
-
-                @if (Model.RecentDiscussions.HasMoreItems && Model.RecentDiscussions.HasNextCursor)
-                {
-                    var nextCursor = Model.RecentDiscussions.NextCursor;
-
-                    <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20&hubId=@Model.Hub.PublicId&hideHub=true"
-                         hx-trigger="revealed once"
-                         hx-swap="outerHTML"
-                         hx-target="this"
-                         hx-push-url="false"
-                         class="py-2">
-                        <partial name="Shared/_DiscussionSkeleton" />
+                    <div class="sn-right-section">
+                        <div class="sn-right-title">
+                            <span class="icon icon-document-text" aria-hidden="true"></span>
+                            @T.Pages.HubDetailRules
+                        </div>
+                        <inline-or-htmx partial="Shared/Sidebar/_HubRules"
+                                        model="Model.InlineHubRules"
+                                        htmx-url="/partials/hub-rules?hubId=@Model.Hub.PublicId&rev=@Model.Hub.RulesRevision">
+                            <div class="sn-sidebar-skeleton-list">
+                                <div class="sn-skeleton h-3 w-3/4"></div>
+                                <div class="sn-skeleton h-3 w-2/3"></div>
+                                <div class="sn-skeleton h-3 w-1/2"></div>
+                            </div>
+                        </inline-or-htmx>
                     </div>
                 }
-                else
-                {
-                    <partial name="Shared/_EndOfScroll" />
-                }
-            </div>
-        }
-    </div>
-</div>
 
-<!-- Right Column -->
-<aside class="sn-right">
-@{
-    ViewData["RightPane.NewDiscussionUrl"] = "/new?hubId=" + Model.Hub.PublicId;
-    ViewData["RightPane.Actions"] = new[] { "feed", "share", "manage" };
-    ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.Slug}/feed";
-    ViewData["RightPane.ShareTitle"] = Model.Hub?.Name ?? T.Pages.HubDetailFallbackTitle;
-    ViewData["RightPane.ShareIsPublic"] = Model.Hub is not { IsRestricted: true };
-    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageHub(Model.Community, Model.Hub!.Slug);
-}
-<div class="sn-right-sticky">
-    <partial name="Shared/_RightActionPane" />
-    <div class="sn-right-body">
-    <!-- Stats -->
-    @if (Model.HubStats != null)
-    {
-        <div class="sn-right-section">
-            <div class="sn-right-title">
-                <span class="icon icon-chart-bar" aria-hidden="true"></span>
-                @T.Sections.HubStats
-            </div>
-            <div class="sn-sidebar-stats">
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Pages.HubDetailStatsDiscussions</div>
-                        <div class="stat-value">@FormatCount(Model.HubStats.DiscussionCount)</div>
-                    </div>
-                </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Pages.HubDetailStatsReplies</div>
-                        <div class="stat-value">@FormatCount(Model.HubStats.ReplyCount)</div>
-                    </div>
-                </div>
-                <div class="stats shadow">
-                    <div class="stat">
-                        <div class="stat-title">@T.Pages.HubDetailStatsActivity</div>
-                        <div class="sn-sparkline-container sn-right-sparkline"
-                             data-sparkline-type="hub"
-                             data-sparkline-id="@Model.Hub.PublicId"
-                             data-sparkline-days="7"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-
-    <!-- About -->
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-info-circle" aria-hidden="true"></span>
-            @T.Pages.HubDetailAboutPrefix@Model.Hub.Name
-        </div>
-        @if (!string.IsNullOrEmpty(Model.Hub.Description))
-        {
-            <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Hub.Description</p>
-        }
-    </div>
-
-    <!-- Rules -->
-    @if (Model.Hub.HasRules)
-    {
-        <div class="sn-right-section">
-            <div class="sn-right-title">
-                <span class="icon icon-document-text" aria-hidden="true"></span>
-                @T.Pages.HubDetailRules
-            </div>
-            <inline-or-htmx partial="Shared/Sidebar/_HubRules"
-                             model="Model.InlineHubRules"
-                             htmx-url="/partials/hub-rules?hubId=@Model.Hub.PublicId&rev=@Model.Hub.RulesRevision">
-                <div class="flex flex-col gap-2">
-                    <div class="skeleton h-3 w-3/4"></div>
-                    <div class="skeleton h-3 w-2/3"></div>
-                    <div class="skeleton h-3 w-1/2"></div>
-                </div>
-            </inline-or-htmx>
-        </div>
-    }
-
-    <!-- Moderators -->
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-shield-check" aria-hidden="true"></span>
-            @T.Pages.HubDetailModerators
-            @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
-            {
-                <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
-            }
-        </div>
-        <inline-or-htmx partial="Shared/Sidebar/_Moderators"
-                         model="Model.InlineModerators"
-                         htmx-url="/partials/moderators?scopeType=Hub&scopeId=@Model.Hub.PublicId&moderatorsUrl=@(SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug))/moderators&rev=@Model.Hub.TeamRevision">
-            <div class="flex flex-col gap-2">
-                <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
-                <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
-            </div>
-        </inline-or-htmx>
-    </div>
-
-    <!-- Trending -->
-    @{
-        var hasDiscussions = Model.ShowTrendingDiscussions && Model.InlineTrendingDiscussions?.Discussions?.Items?.Count > 0;
-        var hasContributors = Model.ShowTrendingContributors && Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0;
-    }
-    @if (hasDiscussions || hasContributors)
-    {
-        <div class="sn-right-section">
-            <div class="sn-right-title">
-                <span class="icon icon-trending-up" aria-hidden="true"></span>
-                @T.Pages.HubDetailTrending
-            </div>
-
-            @if (hasDiscussions)
-            {
-                <div class="sn-right-subsection">
-                    <div class="sn-right-subtitle">@T.Pages.HubDetailTrendingDiscussions</div>
-                    <div class="sn-trending-list">
-                        @foreach (var d in Model.InlineTrendingDiscussions!.Discussions!.Items)
+                <!-- Moderators -->
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="icon icon-shield-check" aria-hidden="true"></span>
+                        @T.Pages.HubDetailModerators
+                        @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
                         {
-                            var trendUrl = SnakkUrlHelper.Discussion(
-                                d.CommunitySlug, Model.Community,
-                                d.Hub.Slug,
-                                d.Space.Slug,
-                                SnakkUrlHelper.DiscussionSlugId(d.Slug, d.PublicId));
-
-                            <a href="@trendUrl" class="sn-trending-discussion">
-                                <div class="sn-trending-discussion-header">
-                                    <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" loading="lazy" decoding="async" />
-                                    <span>@d.Author.DisplayName</span>
-                                </div>
-                                <div class="sn-trending-discussion-title-row">
-                                    <span class="sn-trending-discussion-title">@d.Title</span>
-                                    <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
-                                        <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
-                                        @d.PostCountToday
-                                    </span>
-                                </div>
-                            </a>
+                            <span class="sn-text-xs sn-font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
                         }
                     </div>
+                    <inline-or-htmx partial="Shared/Sidebar/_Moderators"
+                                    model="Model.InlineModerators"
+                                    htmx-url="/partials/moderators?scopeType=Hub&scopeId=@Model.Hub.PublicId&moderatorsUrl=@(SnakkUrlHelper.Hub(Model.Community, Model.Hub.Slug))/moderators&rev=@Model.Hub.TeamRevision">
+                        <div class="sn-grid sn-grid-cols-8 sn-gap-1">
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                        </div>
+                    </inline-or-htmx>
                 </div>
-            }
 
-            @if (hasContributors)
-            {
-                <div class="sn-right-subsection">
-                    <div class="sn-right-subtitle">@T.Pages.HubDetailTrendingContributors</div>
-                    <div class="sn-trending-list">
-                        @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
+                <!-- Trending -->
+                @{
+                    var hasDiscussions = Model.ShowTrendingDiscussions && Model.InlineTrendingDiscussions?.Discussions?.Items?.Count > 0;
+                    var hasContributors = Model.ShowTrendingContributors && Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0;
+                }
+                @if (hasDiscussions || hasContributors)
+                {
+                    <div class="sn-right-section">
+                        <div class="sn-right-title">
+                            <span class="icon icon-trending-up" aria-hidden="true"></span>
+                            @T.Pages.HubDetailTrending
+                        </div>
+
+                        @if (hasDiscussions)
                         {
-                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor"
-                               data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
-                                <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                                <span class="sn-trending-contributor-name">@c.DisplayName</span>
-                                <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
-                                    <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
-                                    @c.PostCountToday
-                                </span>
-                            </a>
+                            <div class="sn-right-subsection">
+                                <div class="sn-right-subtitle">@T.Pages.HubDetailTrendingDiscussions</div>
+                                <div class="sn-trending-list">
+                                    @foreach (var d in Model.InlineTrendingDiscussions!.Discussions!.Items)
+                                    {
+                                        var trendUrl = SnakkUrlHelper.Discussion(
+                                            d.CommunitySlug, Model.Community,
+                                            d.Hub.Slug,
+                                            d.Space.Slug,
+                                            SnakkUrlHelper.DiscussionSlugId(d.Slug, d.PublicId));
+
+                                        <a href="@trendUrl" class="sn-trending-discussion">
+                                            <div class="sn-trending-discussion-header">
+                                                <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" class="sn-shadow-layered" loading="lazy" decoding="async" />
+                                                <span>@d.Author.DisplayName</span>
+                                            </div>
+                                            <div class="sn-trending-discussion-title-row">
+                                                <span class="sn-trending-discussion-title">@d.Title</span>
+                                                <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
+                                                    <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
+                                                    @d.PostCountToday
+                                                </span>
+                                            </div>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (hasContributors)
+                        {
+                            <div class="sn-right-subsection">
+                                <div class="sn-right-subtitle">@T.Pages.HubDetailTrendingContributors</div>
+                                <div class="sn-trending-list">
+                                    @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
+                                    {
+                                        <a href="@SnakkUrlHelper.UserProfile(c.Slug)" class="sn-trending-contributor"
+                                           data-popup-type="user" data-popup-id="@c.PublicId" data-popup-name="@c.DisplayName">
+                                            <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square sn-shadow-layered" width="28" height="28" loading="lazy" decoding="async" />
+                                            <span class="sn-trending-contributor-name">@c.DisplayName</span>
+                                            <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
+                                                <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
+                                                @c.PostCountToday
+                                            </span>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
                         }
                     </div>
-                </div>
-            }
+                }
+            </div>
         </div>
+    </aside>
     }
-    </div>
-</div>
-</aside>
 
-@section Scripts {
-    <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("pages/frontpage")" asp-append-version="true" defer></script>
-}
+    @section Scripts {
+        <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>
+        <script src="@SnakkUrlHelper.Js("pages/frontpage")" asp-append-version="true" defer></script>
+    }
 }

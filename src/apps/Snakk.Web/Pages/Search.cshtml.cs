@@ -75,6 +75,8 @@ public class SearchModel(
 
     public async Task<IActionResult> OnGetAsync(int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("search");
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         // Backward compatibility: map old "tab" parameter to new "searchType"
         if (!string.IsNullOrEmpty(Tab))

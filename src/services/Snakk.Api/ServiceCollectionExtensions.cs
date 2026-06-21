@@ -107,7 +107,7 @@ public static class ServiceCollectionExtensions
 
                     var jti = principal.FindFirst(
                         System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti)?.Value;
-                    if (jti is not null && jwtService.IsRevoked(jti))
+                    if (jti is not null && await jwtService.IsRevokedAsync(jti, context.HttpContext.RequestAborted))
                     {
                         context.Fail("Token has been revoked");
                         return;
@@ -117,7 +117,7 @@ public static class ServiceCollectionExtensions
                     // SessionManagementService.RevokeSessionAsync but no validator read it.
                     var sid = principal.FindFirst(
                         Snakk.Application.Auth.CustomClaimTypes.SessionId)?.Value;
-                    if (sid is not null && jwtService.IsSessionRevoked(sid))
+                    if (sid is not null && await jwtService.IsSessionRevokedAsync(sid, context.HttpContext.RequestAborted))
                     {
                         context.Fail("Session has been revoked");
                         return;
@@ -388,6 +388,9 @@ public static class ServiceCollectionExtensions
             opts.Origins = origins;
         });
         services.AddScoped<Application.Services.IPasskeyService, Infrastructure.Services.PasskeyService>();
+
+        // Volume window estimation for adaptive trending lookback
+        services.AddScoped<Application.Services.IVolumeWindowService, Infrastructure.Services.VolumeWindowService>();
 
         // Admin Services
         services.AddScoped<Application.Services.IAdminUserService, Infrastructure.Services.AdminUserService>();

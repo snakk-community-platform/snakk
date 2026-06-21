@@ -87,13 +87,18 @@ builder.Services.AddHttpLogging(options =>
 
 // Add services to the container
 builder.Services.AddOpenApi();
-builder.Services.AddGrpc(o => o.Interceptors.Add<Snakk.Api.Interceptors.AuthValidationInterceptor>());
+builder.Services.AddGrpc(o =>
+{
+    o.Interceptors.Add<Snakk.Api.Interceptors.AuthValidationInterceptor>();
+    o.Interceptors.Add<Snakk.Api.Interceptors.UserVisitInterceptor>();
+});
 builder.Services.AddSnakkServices(builder.Configuration);
 
 builder.Services.AddSingleton<Snakk.Application.Services.IRevocationCache, Snakk.Api.Services.RevocationCache>();
 // IAuthVersionCache + AuthVersionSweeper are registered by AddAuthDataServices()
 // (implementations moved to Snakk.Infrastructure — they query the database).
 builder.Services.AddScoped<Snakk.Api.Interceptors.AuthValidationInterceptor>();
+builder.Services.AddScoped<Snakk.Api.Interceptors.UserVisitInterceptor>();
 builder.Services.AddRateLimiting();
 
 // Warn if ConsoleEmailSender is used outside Development/Testing (self-hosted installs may have no SMTP configured)
@@ -233,6 +238,7 @@ app.MapManageContextEndpoints();
 app.MapBannerManagementEndpoints();
 app.MapMediaEndpoints();
 app.MapRealtimeInternalEndpoints();
+app.MapCacheWarmupEndpoints();
 // Sitemap moved to Snakk.Web (public-facing app)
 
 app.Run();

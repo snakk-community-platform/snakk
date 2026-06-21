@@ -9,21 +9,21 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.8" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <!-- gRPC -->
     <PackageReference Include="Grpc.AspNetCore" Version="2.80.0" />
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
-    <PackageReference Include="Npgsql" Version="10.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="8.2.1" />
     <PackageReference Include="prometheus-net.DotNetRuntime" Version="4.4.1" />
     <PackageReference Include="SixLabors.ImageSharp" Version="[3.1.12, 4.0.0)" />
-    <PackageReference Include="System.IO.Hashing" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.8" />
+    <PackageReference Include="System.IO.Hashing" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.9" />
 
   </ItemGroup>
 

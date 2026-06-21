@@ -159,13 +159,14 @@
     <partial name="_ValidationScriptsPartial" />
     @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
     {
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" nonce="@(ViewContext.HttpContext.Items["csp-nonce"] as string)" async defer></script>
     }
     <script nonce="@(ViewContext.HttpContext.Items["csp-nonce"] as string)">
     (function () {
         var form = document.querySelector('form');
         if (!form) return;
         form.addEventListener('submit', function (e) {
+            try { localStorage.removeItem('snakk:lastOAuthProvider'); } catch (ignore) {}
             if (e.defaultPrevented) return;
             var btn = form.querySelector('button[type="submit"]');
             if (!btn) return;

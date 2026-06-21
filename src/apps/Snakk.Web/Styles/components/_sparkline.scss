@@ -2,13 +2,6 @@
     width: 100%;
     overflow: hidden;
     line-height: 0;
-    opacity: 0;
-    color: var(--link-primary);
-    transition: opacity 0.25s ease;
-
-    &.sn-sparkline--loaded {
-        opacity: 1;
-    }
 
     .sn-sparkline-svg {
         display: block;
@@ -17,8 +10,21 @@
     }
 }
 
+.sn-sparkline-container {
+    opacity: 0;
+    color: var(--link-primary);
+    transition: opacity var(--duration-slower) ease;
+
+    &.sn-sparkline--loaded {
+        opacity: 1;
+    }
+}
+
 .sn-right-sparkline {
+    height: 28px;
+
     .sn-sparkline-svg {
         height: 28px;
     }
 }
+

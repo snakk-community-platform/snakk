@@ -34,6 +34,10 @@ interface SnakkAuthAPI {
         fetch('/bff/auth/logout', {
             method: 'POST',
             credentials: 'include'
+        }).then(resp => {
+            if (!resp.ok) console.error('Logout request failed', resp.status);
+        }).catch(err => {
+            console.error('Logout request error:', err);
         }).finally(() => {
             window.location.href = '/';
         });

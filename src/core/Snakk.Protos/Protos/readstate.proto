@@ -10,6 +10,7 @@ service ReadStateService {
   rpc GetReadState (GetReadStateRequest) returns (ReadStateInfo);
   rpc MarkAsRead (MarkAsReadRequest) returns (MarkAsReadResponse);
   rpc BatchMarkAsRead (BatchMarkAsReadRequest) returns (BatchMarkAsReadResponse);
+  rpc MarkVisitAsRead (MarkVisitAsReadRequest) returns (MarkVisitAsReadResponse);
 }
 
 // --- Requests ---
@@ -46,4 +47,11 @@ message MarkAsReadResponse {
 message BatchMarkAsReadResponse {
   bool success = 1;
   int32 processed = 2;
+}
+
+message MarkVisitAsReadRequest {
+}
+
+message MarkVisitAsReadResponse {
+  bool success = 1;
 }

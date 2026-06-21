@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.DependencyInjection;
 using Snakk.Infrastructure.Tests.Helpers;
 using Snakk.Infrastructure.Adapters;
 using Snakk.Infrastructure.Database.Entities;
@@ -13,15 +15,25 @@ public class DiscussionReadStateRepositoryAdapterTests : IDisposable
     private readonly SqliteTestDatabase _db;
     private readonly TestDataBuilder _builder;
     private readonly DiscussionReadStateRepositoryAdapter _adapter;
+    private readonly ServiceProvider _cacheProvider;
 
     public DiscussionReadStateRepositoryAdapterTests()
     {
+        var services = new ServiceCollection();
+        services.AddMemoryCache();
+        services.AddHybridCache();
+        _cacheProvider = services.BuildServiceProvider();
+
         _db = new SqliteTestDatabase();
         _builder = new TestDataBuilder(_db.Context);
-        _adapter = new DiscussionReadStateRepositoryAdapter(_db.Context);
+        _adapter = new DiscussionReadStateRepositoryAdapter(_db.Context, _cacheProvider.GetRequiredService<HybridCache>());
     }
 
-    public void Dispose() => _db.Dispose();
+    public void Dispose()
+    {
+        _db.Dispose();
+        _cacheProvider.Dispose();
+    }
 
     #region GetAsync Tests
 

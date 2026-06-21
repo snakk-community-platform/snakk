@@ -489,7 +489,7 @@ public class PostRepositoryAdapter(
                     s.Slug,
                     s.Name,
                     s.AvatarFileName,
-                    s.HubSlug,
+                    s.HubSlug!,
                     s.CommunitySlug,
                     t.PostCount);
             })

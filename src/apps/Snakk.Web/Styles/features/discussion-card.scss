@@ -1,0 +1,8 @@
+// Feature: discussion-card
+// Compiled to wwwroot/css/features/discussion-card.css
+// Loaded on pages that render discussion lists (frontpage, hub, space, profile, my/*)
+
+@use '../base/tokens';
+@use '../base/variables';
+@use '../pages/discussion-card';
+@use '../pages/card-previews';

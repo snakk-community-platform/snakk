@@ -1,10 +1,11 @@
 @* Feed format picker dropdown. Pass the base URL without extension (e.g. "/c/snakk/h/tech/feed"). *@
 @model string
 
-<div class="dropdown dropdown-end">
-    <button tabindex="0" class="btn btn-outline btn-sm feed-dropdown-btn" title="@T.FeedDropdown.Tooltip" data-feed-base="@Model">
+<div class="sn-dropdown">
+    <button type="button" class="sn-btn sn-btn-outline sn-btn-sm feed-dropdown-btn"
+            popovertarget="sn-feed-panel" title="@T.FeedDropdown.Tooltip" data-feed-base="@Model">
         <span class="icon icon-rss h-4 w-4 text-orange-500" aria-hidden="true"></span>
         <span>@T.FeedDropdown.Label</span>
     </button>
-    <ul tabindex="0" class="dropdown-content menu bg-base-200 rounded-box z-200 w-44 p-2 shadow-lg"></ul>
+    <ul id="sn-feed-panel" popover class="sn-dropdown-panel sn-menu w-44"></ul>
 </div>

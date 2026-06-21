@@ -1,0 +1,5 @@
+// Hub page CSS — lazy-loaded on hub detail pages only.
+// Extracted from site.scss to reduce payload on all other pages.
+// Loaded via BasePageModel.Preload().
+
+@use '../pages/hub';

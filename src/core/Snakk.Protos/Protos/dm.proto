@@ -73,6 +73,7 @@ message DmUserInfo {
   string public_id = 1;
   string display_name = 2;
   optional string avatar_thumbnail_file_name = 3;
+  optional string slug = 4;
 }
 
 message ConversationInfo {

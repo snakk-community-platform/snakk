@@ -32,6 +32,7 @@ public class TrendingModel(
 
     public async Task OnGetAsync(int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         string? communityId = null;
         if (CommunityContext.IsCustomDomain && !string.IsNullOrEmpty(CommunityContext.CommunitySlug))
@@ -51,7 +52,7 @@ public class TrendingModel(
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
         try { TrendingDiscussions = await _apiClient.GetTrendingDiscussionsAsync(offset, 20, communityId, viewerAllowsAdult: viewerAllowsAdult); }
-        catch { }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch trending discussions"); }
     }
 
     private async Task EnsureSidebarDataAsync(string? communityId)

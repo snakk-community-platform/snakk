@@ -7,6 +7,8 @@
 
 @foreach (var discussion in Model.Items)
 {
+    var visitedAt = Model.VisitedTimestamps.TryGetValue(discussion.PublicId, out var vt) ? (DateTime?)vt : null;
     @await Html.PartialAsync("Shared/_DiscussionCard",
-        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community))
+        new DiscussionListItemVM(discussion, Model.ShowCommunity, Model.Community, VisitedAt: visitedAt, RemoveHistoryId: discussion.PublicId,
+            UnreadCount: discussion.HasUnreadPostCount ? discussion.UnreadPostCount : (int?)null))
 }

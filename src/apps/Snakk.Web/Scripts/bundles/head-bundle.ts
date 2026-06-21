@@ -4,6 +4,7 @@
  * Built by esbuild.core.mjs as an IIFE.
  */
 
+import '../services/broadcast';
 import '../core/loading-bar';
 import '../core/actions';
 import '../core/utils';

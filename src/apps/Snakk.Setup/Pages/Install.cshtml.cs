@@ -5,11 +5,11 @@ namespace Snakk.Setup.Pages;
 
 public class InstallModel(SetupService setupService) : SetupPageBase
 {
-    public void OnGet() => ViewData["SetupStep"] = 13;
+    public void OnGet() => ViewData["SetupStep"] = 14;
 
     public IActionResult OnPost()
     {
-        ViewData["SetupStep"] = 13;
+        ViewData["SetupStep"] = 14;
         var state = GetState();
         setupService.StartInstallInBackground(state);
 

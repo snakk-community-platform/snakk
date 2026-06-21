@@ -2,10 +2,11 @@ namespace Snakk.Infrastructure.EventHandlers.Trending;
 
 using Microsoft.EntityFrameworkCore;
 using Snakk.Application.Events;
+using Snakk.Application.Services;
 using Snakk.Domain.Events;
 using Snakk.Infrastructure.Database;
 
-public class ReactionRemovedTrendingHandler(SnakkDbContext context) : IDomainEventHandler<ReactionRemovedEvent>
+public class ReactionRemovedTrendingHandler(SnakkDbContext context, IVolumeWindowService volumeWindowService) : IDomainEventHandler<ReactionRemovedEvent>
 {
     public async Task HandleAsync(ReactionRemovedEvent @event, CancellationToken cancellationToken = default)
     {
@@ -17,6 +18,7 @@ public class ReactionRemovedTrendingHandler(SnakkDbContext context) : IDomainEve
         if (discussionPublicId is null)
             return;
 
-        await TrendScoreCalculator.RecalculateAsync(context, discussionPublicId, cancellationToken);
+        var window = await volumeWindowService.EstimatePostWindowAsync(cancellationToken);
+        await TrendScoreCalculator.RecalculateAsync(context, discussionPublicId, window, cancellationToken);
     }
 }

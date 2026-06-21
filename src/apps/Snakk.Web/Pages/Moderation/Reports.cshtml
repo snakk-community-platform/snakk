@@ -7,10 +7,10 @@
 
 
 @section CenterHeader {
-    <a href="/moderation" class="badge badge-ghost badge-sm">@T.Pages.ModCrumb</a>
+    <a href="/moderation" class="sn-badge sn-badge-ghost sn-badge-sm">@T.Pages.ModCrumb</a>
 }
 
-<div class="max-w-5xl mx-auto px-4 py-8">
+<div class="sn-max-w-5xl sn-mx-auto sn-px-4 sn-py-8">
     <!-- Page Header -->
     <div class="page-header">
         <h1>@T.Pages.ModReportsHeading</h1>
@@ -18,17 +18,17 @@
     </div>
 
     <!-- Filters -->
-    <div class="flex flex-wrap gap-2 mb-6">
-        <a href="@Model.BuildUrl(null)" class="btn btn-sm @(string.IsNullOrEmpty(Model.Status) ? "btn-primary" : "btn-ghost")">
+    <div class="sn-mod-filter-bar">
+        <a href="@Model.BuildUrl(null)" class="sn-btn sn-btn-sm @(string.IsNullOrEmpty(Model.Status) ? "sn-btn-primary" : "sn-btn-ghost")">
             @T.Pages.ModReportsFilterAll
         </a>
-        <a href="@Model.BuildUrl("Pending")" class="btn btn-sm @(Model.Status == "Pending" ? "btn-warning" : "btn-ghost")">
+        <a href="@Model.BuildUrl("Pending")" class="sn-btn sn-btn-sm @(Model.Status == "Pending" ? "sn-btn-warning" : "sn-btn-ghost")">
             @T.Pages.ModReportsFilterPending
         </a>
-        <a href="@Model.BuildUrl("Resolved")" class="btn btn-sm @(Model.Status == "Resolved" ? "btn-success" : "btn-ghost")">
+        <a href="@Model.BuildUrl("Resolved")" class="sn-btn sn-btn-sm @(Model.Status == "Resolved" ? "sn-btn-success" : "sn-btn-ghost")">
             @T.Pages.ModReportsFilterResolved
         </a>
-        <a href="@Model.BuildUrl("Dismissed")" class="btn btn-sm @(Model.Status == "Dismissed" ? "btn-ghost btn-active" : "btn-ghost")">
+        <a href="@Model.BuildUrl("Dismissed")" class="sn-btn sn-btn-sm @(Model.Status == "Dismissed" ? "sn-btn-ghost sn-btn-active" : "sn-btn-ghost")">
             @T.Pages.ModReportsFilterDismissed
         </a>
     </div>
@@ -45,56 +45,56 @@
     }
     else
     {
-        <div class="space-y-4">
+        <div class="sn-space-y-4">
             @foreach (var report in Model.Reports.Items)
             {
-                <a href="/moderation/reports/@report.PublicId" class="clean-card block hover:shadow-md transition-shadow">
-                    <div class="flex items-start gap-4">
+                <a href="/moderation/reports/@report.PublicId" class="clean-card sn-block sn-hover:shadow-md transition-shadow">
+                    <div class="sn-report-card-layout">
                         <img src="@SnakkUrlHelper.UserAvatar(report.ReporterUserPublicId)"
                              alt="@report.ReporterUserDisplayName"
                              width="40" height="40"
-                             class="w-10 h-10 rounded-full flex-shrink-0" />
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="badge @Model.GetStatusBadgeClass(report.Status) badge-sm">@report.Status</span>
+                             class="sn-avatar flex-shrink-0" />
+                        <div class="sn-flex-1 sn-min-w-0">
+                            <div class="sn-report-badge-row">
+                                <span class="sn-badge @Model.GetStatusBadgeClass(report.Status) sn-badge-sm">@report.Status</span>
                                 @if (!string.IsNullOrEmpty(report.ReasonName))
                                 {
-                                    <span class="badge badge-outline badge-sm">@report.ReasonName</span>
+                                    <span class="sn-badge sn-badge-outline sn-badge-sm">@report.ReasonName</span>
                                 }
                                 @if (report.CommentCount > 0)
                                 {
-                                    <span class="badge badge-ghost badge-sm">
-                                        <span class="icon icon-chat-bubbles h-3 w-3 mr-1" aria-hidden="true"></span>
+                                    <span class="sn-badge sn-badge-ghost sn-badge-sm">
+                                        <span class="sn-icon icon-chat-bubbles h-3 w-3 sn-mr-1" aria-hidden="true"></span>
                                         @report.CommentCount
                                     </span>
                                 }
                             </div>
 
-                            <div class="text-sm mb-2">
-                                <span class="font-medium">@report.ReporterUserDisplayName</span>
-                                <span class="text-muted">@T.Pages.ModReportsReported</span>
+                            <div class="sn-text-sm sn-mb-2">
+                                <span class="sn-font-medium">@report.ReporterUserDisplayName</span>
+                                <span class="sn-text-muted">@T.Pages.ModReportsReported</span>
                                 @if (!string.IsNullOrEmpty(report.ReportedUserDisplayName))
                                 {
-                                    <span class="font-medium text-error">@report.ReportedUserDisplayName</span>
+                                    <span class="sn-font-medium sn-text-error">@report.ReportedUserDisplayName</span>
                                 }
                                 else if (!string.IsNullOrEmpty(report.ReportedPostContentSnippet))
                                 {
-                                    <span class="text-muted">@T.Pages.ModReportsAPost</span>
-                                    <span class="italic">"@report.ReportedPostContentSnippet"</span>
+                                    <span class="sn-text-muted">@T.Pages.ModReportsAPost</span>
+                                    <span class="sn-italic">"@report.ReportedPostContentSnippet"</span>
                                 }
                                 else if (!string.IsNullOrEmpty(report.ReportedDiscussionTitle))
                                 {
-                                    <span class="text-muted">@T.Pages.ModReportsADiscussion</span>
-                                    <span class="font-medium">"@report.ReportedDiscussionTitle"</span>
+                                    <span class="sn-text-muted">@T.Pages.ModReportsADiscussion</span>
+                                    <span class="sn-font-medium">"@report.ReportedDiscussionTitle"</span>
                                 }
                             </div>
 
                             @if (!string.IsNullOrEmpty(report.Details))
                             {
-                                <div class="text-sm text-muted mb-2 line-clamp-2">@report.Details</div>
+                                <div class="sn-text-sm sn-text-muted sn-mb-2 line-clamp-2">@report.Details</div>
                             }
 
-                            <div class="flex items-center gap-4 text-xs text-muted">
+                            <div class="sn-report-meta-row">
                                 <span>@T.Pages.ModReportsReportedPrefix@Model.GetRelativeTime(report.CreatedAt)</span>
                                 @if (!string.IsNullOrEmpty(report.SpaceName))
                                 {
@@ -114,7 +114,7 @@
                                 }
                             </div>
                         </div>
-                        <span class="icon icon-chevron-right h-5 w-5 text-muted flex-shrink-0" aria-hidden="true"></span>
+                        <span class="sn-icon icon-chevron-right sn-icon--md sn-text-muted flex-shrink-0" aria-hidden="true"></span>
                     </div>
                 </a>
             }
@@ -123,16 +123,16 @@
         @* Pagination *@
         @if (Model.Offset > 0 || Model.Reports.HasMoreItems)
         {
-            <div class="flex justify-center gap-2 mt-6">
+            <div class="sn-pagination-row--reports">
                 @if (Model.Offset > 0)
                 {
-                    <a href="@Model.BuildUrl(Model.Status, Math.Max(0, Model.Offset - Model.PageSize))" class="btn btn-ghost btn-sm">
+                    <a href="@Model.BuildUrl(Model.Status, Math.Max(0, Model.Offset - Model.PageSize))" class="sn-btn sn-btn-ghost sn-btn-sm">
                         @T.Pages.ModReportsPrevious
                     </a>
                 }
                 @if (Model.Reports.HasMoreItems)
                 {
-                    <a href="@Model.BuildUrl(Model.Status, Model.Offset + Model.PageSize)" class="btn btn-ghost btn-sm">
+                    <a href="@Model.BuildUrl(Model.Status, Model.Offset + Model.PageSize)" class="sn-btn sn-btn-ghost sn-btn-sm">
                         @T.Pages.ModReportsNext
                     </a>
                 }

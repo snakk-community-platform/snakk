@@ -118,6 +118,7 @@ public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRe
             .Select(s => new
             {
                 s.Id,
+                SavedAt = s.CreatedAt,
                 PublicId = s.Discussion!.PublicId,
                 s.Discussion.Title,
                 s.Discussion.Slug,
@@ -165,12 +166,12 @@ public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRe
                     d.LastActivityAt,
                     d.IsPinned,
                     d.IsLocked,
-                    d.SpacePublicId,
+                    d.SpacePublicId!,
                     space?.Slug ?? "",
                     space?.Name ?? "",
-                    d.HubPublicId,
-                    space?.HubSlug,
-                    space?.HubName,
+                    d.HubPublicId!,
+                    space?.HubSlug ?? "",
+                    space?.HubName ?? "",
                     d.CommunityPublicId,
                     space?.CommunitySlug,
                     space?.CommunityName,
@@ -188,7 +189,8 @@ public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRe
                     LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
                     LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
                     LastPostExcerpt: d.LastPostPlainTextExcerpt,
-                    IsAdult: d.IsAdultOnly);
+                    IsAdult: d.IsAdultOnly,
+                    SavedAt: d.SavedAt);
             }).ToList(),
             Offset = offset,
             PageSize = pageSize,
@@ -225,13 +227,14 @@ public class SaveRepository(SnakkDbContext context, HybridCache cache) : ISaveRe
                 s.Post.Discussion.Slug,
                 s.Post.Discussion.Space.Slug,
                 s.Post.Discussion.Space.Name,
-                s.Post.Discussion.Space.HubSlug,
-                s.Post.Discussion.Space.HubName,
+                s.Post.Discussion.Space.HubSlug!,
+                s.Post.Discussion.Space.HubName!,
                 s.Post.Discussion.Space.CommunitySlug,
                 s.Post.CreatedByUserPublicId,
                 s.Post.CreatedByUser.DisplayName ?? "",
                 s.Post.CreatedByUser.AvatarFileName,
-                s.CreatedAt))
+                s.CreatedAt,
+                s.Post.CreatedByUser.Slug))
             .ToPagedResultAsync(offset, pageSize, ct);
     }
 

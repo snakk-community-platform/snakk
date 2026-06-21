@@ -52,7 +52,8 @@ public static class UserMapper
             emailVerificationTokenCreatedAt: entity.EmailVerificationTokenCreatedAt,
             authVersion: entity.AuthVersion,
             authVersionUpdatedAt: entity.AuthVersionUpdatedAt,
-            twoFactorEnabled: entity.TwoFactorEnabled);
+            twoFactorEnabled: entity.TwoFactorEnabled,
+            slug: entity.Slug);
     }
 
     public static UserDatabaseEntity ToPersistence(this User user) =>

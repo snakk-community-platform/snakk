@@ -9,7 +9,7 @@
 
 @if (Model.HasSearchError)
 {
-    <div class="clean-card">
+    <div class="sn-clean-card">
         <div class="empty-state-simple">
             <h3>Search is currently unavailable</h3>
             <p>Please try again in a moment</p>
@@ -20,7 +20,7 @@ else if (Model.SearchType == "discussion")
 {
     @if (Model.Discussions == null || !Model.Discussions.Items.Any())
     {
-        <div class="clean-card">
+        <div class="sn-clean-card">
             <div class="empty-state-simple">
                 @if (hasQuery)
                 {
@@ -53,8 +53,8 @@ else if (Model.SearchType == "discussion")
             {
                 var nextUrl = Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Discussions.Offset + Model.Discussions.PageSize, Model.DateRange);
                 <div hx-get="@nextUrl" hx-trigger="revealed" hx-swap="outerHTML" hx-target="this"
-                     class="flex justify-center py-4">
-                    <span class="loading loading-spinner loading-sm"></span>
+                     class="sn-search-load-sentinel">
+                    <span class="sn-spinner sn-loading-sm"></span>
                 </div>
             }
             else
@@ -79,8 +79,8 @@ else if (Model.SearchType == "discussion")
                 {
                     var nextUrl = Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Discussions.Offset + Model.Discussions.PageSize, Model.DateRange);
                     <div hx-get="@nextUrl" hx-trigger="revealed" hx-swap="outerHTML" hx-target="this"
-                         class="flex justify-center py-4">
-                        <span class="loading loading-spinner loading-sm"></span>
+                         class="sn-search-load-sentinel">
+                        <span class="sn-spinner sn-loading-sm"></span>
                     </div>
                 }
             </div>
@@ -91,7 +91,7 @@ else if (Model.SearchType == "post")
 {
     @if (Model.Posts == null || !Model.Posts.Items.Any())
     {
-        <div class="clean-card">
+        <div class="sn-clean-card">
             <div class="empty-state-simple">
                 @if (hasQuery)
                 {
@@ -118,8 +118,8 @@ else if (Model.SearchType == "post")
             {
                 var nextUrl = Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Posts.Offset + Model.Posts.PageSize, Model.DateRange);
                 <div hx-get="@nextUrl" hx-trigger="revealed" hx-swap="outerHTML" hx-target="this"
-                     class="flex justify-center py-4">
-                    <span class="loading loading-spinner loading-sm"></span>
+                     class="sn-search-load-sentinel">
+                    <span class="sn-spinner sn-loading-sm"></span>
                 </div>
             }
             else
@@ -138,8 +138,8 @@ else if (Model.SearchType == "post")
                 {
                     var nextUrl = Model.BuildSearchUrl(Model.Q, Model.AuthorPublicId, Model.SearchType, Model.Posts.Offset + Model.Posts.PageSize, Model.DateRange);
                     <div hx-get="@nextUrl" hx-trigger="revealed" hx-swap="outerHTML" hx-target="this"
-                         class="flex justify-center py-4">
-                        <span class="loading loading-spinner loading-sm"></span>
+                         class="sn-search-load-sentinel">
+                        <span class="sn-spinner sn-loading-sm"></span>
                     </div>
                 }
             </div>

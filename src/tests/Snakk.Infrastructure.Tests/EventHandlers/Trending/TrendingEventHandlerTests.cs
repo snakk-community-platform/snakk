@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
+using Snakk.Application.Services;
 using Snakk.Domain.Events;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
@@ -11,6 +13,7 @@ namespace Snakk.Infrastructure.Tests.EventHandlers.Trending;
 public class TrendingEventHandlerTests : IDisposable
 {
     private readonly SnakkDbContext _context;
+    private readonly IVolumeWindowService _volumeWindowService = Substitute.For<IVolumeWindowService>();
 
     public TrendingEventHandlerTests()
     {
@@ -18,6 +21,8 @@ public class TrendingEventHandlerTests : IDisposable
             .UseInMemoryDatabase(databaseName: $"TrendingHandlerTests_{Guid.NewGuid()}")
             .Options;
         _context = new SnakkDbContext(options);
+        _volumeWindowService.EstimatePostWindowAsync(Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TimeSpan.FromHours(48)));
     }
 
     public void Dispose()
@@ -107,7 +112,7 @@ public class TrendingEventHandlerTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        var handler = new PostCreatedTrendingHandler(_context);
+        var handler = new PostCreatedTrendingHandler(_context, _volumeWindowService);
         var @event = new PostCreatedEvent(
             PostId.From("post_trend_1"),
             DiscussionId.From("disc_trend"),
@@ -125,7 +130,7 @@ public class TrendingEventHandlerTests : IDisposable
     public async Task PostCreatedTrendingHandler_DiscussionNotFound_DoesNotThrow()
     {
         // Arrange
-        var handler = new PostCreatedTrendingHandler(_context);
+        var handler = new PostCreatedTrendingHandler(_context, _volumeWindowService);
         var @event = new PostCreatedEvent(
             PostId.From("post_trend_x"),
             DiscussionId.From("nonexistent_disc"),
@@ -153,7 +158,7 @@ public class TrendingEventHandlerTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        var handler = new PostCreatedTrendingHandler(_context);
+        var handler = new PostCreatedTrendingHandler(_context, _volumeWindowService);
         var @event = new PostCreatedEvent(
             PostId.From("post_trend_del"),
             DiscussionId.From("disc_trend_deleted"),
@@ -199,7 +204,7 @@ public class TrendingEventHandlerTests : IDisposable
         });
         await _context.SaveChangesAsync();
 
-        var handler = new ReactionAddedTrendingHandler(_context);
+        var handler = new ReactionAddedTrendingHandler(_context, _volumeWindowService);
         var @event = new ReactionAddedEvent(
             ReactionId.From("react_trend"),
             PostId.From("post_trend_ra"),
@@ -218,7 +223,7 @@ public class TrendingEventHandlerTests : IDisposable
     public async Task ReactionAddedTrendingHandler_PostNotFound_DoesNotThrow()
     {
         // Arrange
-        var handler = new ReactionAddedTrendingHandler(_context);
+        var handler = new ReactionAddedTrendingHandler(_context, _volumeWindowService);
         var @event = new ReactionAddedEvent(
             ReactionId.From("react_x"),
             PostId.From("nonexistent_post"),
@@ -251,7 +256,7 @@ public class TrendingEventHandlerTests : IDisposable
         _context.Posts.Add(post);
         await _context.SaveChangesAsync();
 
-        var handler = new ReactionRemovedTrendingHandler(_context);
+        var handler = new ReactionRemovedTrendingHandler(_context, _volumeWindowService);
         var @event = new ReactionRemovedEvent(
             ReactionId.From("react_rr"),
             PostId.From("post_trend_rr"),
@@ -270,7 +275,7 @@ public class TrendingEventHandlerTests : IDisposable
     public async Task ReactionRemovedTrendingHandler_PostNotFound_DoesNotThrow()
     {
         // Arrange
-        var handler = new ReactionRemovedTrendingHandler(_context);
+        var handler = new ReactionRemovedTrendingHandler(_context, _volumeWindowService);
         var @event = new ReactionRemovedEvent(
             ReactionId.From("react_rr_x"),
             PostId.From("nonexistent_post"),

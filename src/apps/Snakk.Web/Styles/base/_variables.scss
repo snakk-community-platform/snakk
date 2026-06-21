@@ -57,74 +57,40 @@
     // Semantic accent palette — success (green, distinct from brand link-primary)
     --accent-success: #10b981;
     --accent-success-text: #047857;
+    --accent-success-bg: rgba(16, 185, 129, 0.12);
+
+    // Button primary
+    --btn-primary-bg: #1A4D30;
+    --btn-primary-hover: #2E7D52;
+    --btn-primary-text: #FFFFFF;
+
+    // Notification / alert accent (terracotta)
+    --color-notification: #E76F51;
+
+    // Focus ring
+    --focus-ring: #4CAF7D;
+
+    // White text for use on dark/colored/gradient backgrounds
+    --text-on-dark: #FFFFFF;
+
+    // Skeleton loader animation stops
+    --skeleton-bg: #E8EFE8;
+    --skeleton-shine: #F0F5F0;
+
+    // Theme-sensitive filters and shadows (dark overrides in theme-dark.scss)
+    --search-pane-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --colored-backdrop-filter: none;
+    --banner-img-filter: none;
+    --device-badge-active-bg: var(--accent-success-bg);
+    --device-badge-active-color: var(--accent-success-text);
+
+    // Code block surface (always dark, both themes)
+    --code-surface: #2d2d2d;
+    --code-copy-success: #34d399;
 
     // Alias daisyUI color tokens to our semantic palette so every tailwind/
     // daisyUI utility (text-base-content/X, bg-base-200, etc.) follows the
     // active theme.
-    --color-base-100: var(--bg-primary);
-    --color-base-200: var(--bg-secondary);
-    --color-base-300: var(--bg-tertiary);
-    --color-base-content: var(--text-primary);
-}
-
-[data-theme="dark"] {
-    --bg-primary: #0F1A14;
-    --bg-secondary: #010b08;
-    --bg-tertiary: #1A2E26;
-    --bg-subtle: #09130e;
-    --border-primary: #2A4038;
-    --border-secondary: #1E3429;
-    --border-subtle: #3D5A4E;
-    --text-primary: #D8EDE2;
-    --text-secondary: #9AB3A5;
-    --text-tertiary: #7A9488;
-    --text-muted: #5A7568;
-    --link-primary: #3B9A6E;
-    --link-hover: #4CAF7D;
-    --nav-bg: #0A1410;
-    --nav-text: rgba(255, 255, 255, 0.7);
-    --nav-text-hover: #FFFFFF;
-    --nav-border: #1F7A5A;
-    --breadcrumb-bg: #12211A;
-    --breadcrumb-text: rgba(255, 255, 255, 0.7);
-    --breadcrumb-border: #1A3028;
-    --sidebar-bg: #12211A;
-
-    // Surface gradients (dark)
-    --surface-gradient-top: #0a1410;
-    --surface-gradient-bottom: #030604;
-    --navbar-gradient-top: #0a1410;
-    --navbar-gradient-bottom: #0F1A14;
-    --sidebar-gradient-mix: #1A2E26;
-    --divider-hairline: #1E3429;
-
-    // Semantic accent palette — info (dark)
-    --accent-info: #60a5fa;
-    --accent-info-hover: #93c5fd;
-    --accent-info-strong: #93c5fd;
-    --accent-info-outline: #60a5fa;
-    --accent-info-bg: rgba(96, 165, 250, 0.12);
-    --accent-info-bg-soft: rgba(96, 165, 250, 0.06);
-    --accent-info-bg-tint: rgba(96, 165, 250, 0.10);
-
-    // Semantic accent palette — warning (dark)
-    --accent-warning: #c08010;
-    --accent-warning-strong: #d97706;
-    --accent-warning-text: #d97706;
-    --accent-warning-bg: rgba(192, 128, 16, 0.18);
-
-    // Semantic accent palette — danger (dark)
-    --accent-danger: #f87171;
-    --accent-danger-strong: #ef4444;
-    --accent-danger-bg: rgba(239, 68, 68, 0.15);
-    --accent-danger-border: rgba(239, 68, 68, 0.45);
-
-    // Semantic accent palette — success (dark)
-    --accent-success: #20b57a;
-    --accent-success-text: #20b57a;
-
-    // Alias daisyUI color tokens to our semantic palette so every tailwind/
-    // daisyUI utility flips correctly in dark mode.
     --color-base-100: var(--bg-primary);
     --color-base-200: var(--bg-secondary);
     --color-base-300: var(--bg-tertiary);

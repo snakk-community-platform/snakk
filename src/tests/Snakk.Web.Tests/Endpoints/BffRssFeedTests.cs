@@ -27,7 +27,7 @@ public class BffRssFeedTests
             .GetRecentDiscussionsAsync(
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<string?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(new PagedRecentDiscussionList());
 
         var client = app.CreateClient();
@@ -49,7 +49,7 @@ public class BffRssFeedTests
             .GetRecentDiscussionsAsync(
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<string?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(new PagedRecentDiscussionList());
 
         var client = app.CreateClient();
@@ -71,7 +71,7 @@ public class BffRssFeedTests
             .GetRecentDiscussionsAsync(
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<string?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(new PagedRecentDiscussionList());
 
         var client = app.CreateClient();
@@ -93,7 +93,7 @@ public class BffRssFeedTests
             .GetRecentDiscussionsAsync(
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<string?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(new PagedRecentDiscussionList());
 
         var client = app.CreateClient();
@@ -116,7 +116,7 @@ public class BffRssFeedTests
             .GetRecentDiscussionsAsync(
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<string?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(new PagedRecentDiscussionList());
 
         var client = app.CreateClient();
@@ -167,7 +167,7 @@ public class BffRssFeedTests
             .GetRecentDiscussionsAsync(
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<string?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(new PagedRecentDiscussionList());
 
         var client = app.CreateClient();
@@ -192,7 +192,7 @@ public class BffRssFeedTests
             .GetRecentDiscussionsAsync(
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<string?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns((PagedRecentDiscussionList?)null);
 
         var client = app.CreateClient();
@@ -216,7 +216,7 @@ public class BffRssFeedTests
             .GetRecentDiscussionsAsync(
                 Arg.Any<int>(), Arg.Any<int>(), Arg.Any<string?>(), Arg.Any<string?>(),
                 Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
-                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+                Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(new PagedRecentDiscussionList());
 
         var client = app.CreateClient();

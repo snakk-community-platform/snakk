@@ -25,7 +25,7 @@ public class AuthRedirectMiddleware(RequestDelegate next)
         }
 
         // Only require auth for modifying requests (POST, PUT, DELETE, PATCH)
-        if (ModifyingMethods.Contains(method) && !context.User.Identity?.IsAuthenticated == true)
+        if (ModifyingMethods.Contains(method) && context.User.Identity?.IsAuthenticated != true)
         {
             // Build return URL
             var returnUrl = context.Request.Path + context.Request.QueryString;

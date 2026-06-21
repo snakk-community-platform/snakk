@@ -3,7 +3,7 @@
 @{
     var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
     bool isActive(string page) => currentPage.EndsWith(page, StringComparison.OrdinalIgnoreCase);
-    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
     var passkeysEnabled = NavConfiguration.GetValue<bool>("Features:PasskeysEnabled", true);
     var twoFactorEnabled = NavConfiguration.GetValue<bool>("Features:TwoFactorEnabled", true);
     var oauthEnabled = NavOAuthOptions.Value.HasAny;
@@ -13,12 +13,12 @@
     <div class="sn-right-body">
     <div class="sn-right-section">
         <div class="sn-right-title">
-            <span class="icon icon-cog" aria-hidden="true"></span>
+            <span class="sn-icon icon-cog" aria-hidden="true"></span>
             @T.Settings.NavGroup
         </div>
         <nav class="sn-scrollspy">
-            <a href="/settings/account" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Account") ? "active" : "")">
-                <span class="icon icon-user" aria-hidden="true"></span>
+            <a href="/my/settings/account" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Account") ? "sn-active" : "")">
+                <span class="sn-icon icon-user" aria-hidden="true"></span>
                 @T.Settings.NavPublicProfile
             </a>
             @if (isActive("Account"))
@@ -29,8 +29,8 @@
                 <a href="#section-social" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.TitleSocial</a>
             }
 
-            <a href="/settings/display" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Display") ? "active" : "")">
-                <span class="icon icon-display-monitor" aria-hidden="true"></span>
+            <a href="/my/settings/display" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Display") ? "sn-active" : "")">
+                <span class="sn-icon icon-display-monitor" aria-hidden="true"></span>
                 @T.Settings.NavDisplay
             </a>
             @if (isActive("Display"))
@@ -38,8 +38,8 @@
                 <a href="#section-timezone" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavTimezone</a>
             }
 
-            <a href="/settings/browser" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Browser") ? "active" : "")">
-                <span class="icon icon-globe" aria-hidden="true"></span>
+            <a href="/my/settings/browser" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Browser") ? "sn-active" : "")">
+                <span class="sn-icon icon-globe" aria-hidden="true"></span>
                 @T.Settings.NavThisBrowser
             </a>
             @if (isActive("Browser"))
@@ -49,8 +49,8 @@
                 <a href="#section-embeds" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavExternalEmbeds</a>
             }
 
-            <a href="/settings/privacy" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Privacy") ? "active" : "")">
-                <span class="icon icon-lock-closed" aria-hidden="true"></span>
+            <a href="/my/settings/privacy" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Privacy") ? "sn-active" : "")">
+                <span class="sn-icon icon-lock-closed" aria-hidden="true"></span>
                 @T.Settings.NavPrivacy
             </a>
             @if (isActive("Privacy"))
@@ -75,8 +75,8 @@
                 <a href="#section-danger-zone" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link style="color:var(--color-error)">@T.Settings.DangerZoneTitle</a>
             }
 
-            <a href="/settings/integrations" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Integrations") ? "active" : "")">
-                <span class="icon icon-link-chain" aria-hidden="true"></span>
+            <a href="/my/settings/integrations" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Integrations") ? "sn-active" : "")">
+                <span class="sn-icon icon-link-chain" aria-hidden="true"></span>
                 @T.Settings.NavIntegrations
             </a>
             @if (isActive("Integrations"))
@@ -85,8 +85,8 @@
                 <a href="#section-discord" class="sn-scrollspy-item sn-scrollspy-sub" data-scrollspy-link>@T.Settings.NavDiscord</a>
             }
 
-            <a href="/settings/notifications" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Notifications") ? "active" : "")">
-                <span class="icon icon-bell" aria-hidden="true"></span>
+            <a href="/my/settings/notifications" class="sn-scrollspy-item sn-scrollspy-page @(isActive("Notifications") ? "sn-active" : "")">
+                <span class="sn-icon icon-bell" aria-hidden="true"></span>
                 @T.Settings.NavNotifications
             </a>
             @if (isActive("Notifications"))

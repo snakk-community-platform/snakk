@@ -337,7 +337,8 @@ public class PostUseCase(
                     false,
                     user.CreatedAt,
                     user.DiscussionCount,
-                    user.ReplyCount);
+                    user.ReplyCount,
+                    user.Slug);
             }
             else
                 authors[authorId.Value] = new AuthorInfo("Deleted User", null, null, null, null, 0, true, DateTime.MinValue, 0, 0);
@@ -430,7 +431,8 @@ public record AuthorInfo(
     bool IsDeleted,
     DateTime JoinedAt,
     int DiscussionCount,
-    int ReplyCount);
+    int ReplyCount,
+    string? Slug = null);
 
 public record ReplyToInfo(
     string AuthorName,

@@ -144,7 +144,7 @@ builder.Services.AddOutputCache(options =>
             !ctx.HttpContext.Request.Cookies.ContainsKey(AdultContentGate.DeclinedCookie))
         .Expire(TimeSpan.FromSeconds(30))
         .SetLocking(false)
-        .SetVaryByHeader("HX-Request")
+        .SetVaryByHeader("HX-Request", "X-Device-Type")
         .SetVaryByQuery("cursor", "offset", "pageSize", "typeFilter", "sort")
         .SetVaryByRouteValue("communitySlug", "hubSlug", "spaceSlug", "discussionSlugId", "publicId"));
 
@@ -489,10 +489,16 @@ app.Use(async (context, next) =>
     var nonce = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
     context.Items["csp-nonce"] = nonce;
 
-    // Content Security Policy — allow self, Cloudflare Turnstile, inline styles (Tailwind), WebSocket for SignalR
+    // Content Security Policy — nonce + strict-dynamic for scripts, inline styles (Tailwind), Cloudflare iframe for frame-src
     headers.Append("Content-Security-Policy",
         "default-src 'self'; " +
-        $"script-src 'self' 'nonce-{nonce}' https://challenges.cloudflare.com; " +
+        $"script-src 'nonce-{nonce}' " +
+        "'sha256-mGe66DAvUTX2LtslKSB7rwNKH5NqWlh3dDisfTOViWQ=' " +  // theme-fouc
+        "'sha256-XXIFwJMq4mgBIYUZniDHmfQdup7EYI5ezx2FQ6tL6h0=' " +  // dm-widget-css
+        "'sha256-JYwMhGrKmdRCJhxCkAEKrLHlCxkVTK7LqF0YMAVN86M=' " +  // localStorage
+        "'sha256-+TWV8kqoqtTguXtE0NNLnj6axNG4kYHKFSKdjqzPOpM=' " +  // social-icons
+        "'sha256-hMgVN7oSRHKUA5Ioq6nqrs8+WPqKF9ftNeOsAIDlz6A=' " +  // spoiler-restore
+        "'strict-dynamic' 'unsafe-inline'; " +
         "style-src 'self' 'unsafe-inline'; " +
         "img-src 'self' data: blob: https:; " +
         "font-src 'self'; " +
@@ -513,6 +519,7 @@ app.Use(async (context, next) =>
 
     // Restrict browser features
     headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=(), usb=()");
+    headers.Append("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
 
     await next();
 });
@@ -530,12 +537,11 @@ app.Use(async (context, next) =>
         var fvp = context.RequestServices.GetRequiredService<Microsoft.AspNetCore.Mvc.ViewFeatures.IFileVersionProvider>();
         var basePath = context.Request.PathBase;
 
-        var tailwindUrl = fvp.AddFileVersionToPath(basePath, "/css/vendor/tailwind.css");
-        var siteUrl = fvp.AddFileVersionToPath(basePath, "/css/dist/site.css");
+        var commonCssUrl = fvp.AddFileVersionToPath(basePath, "/css/features/common.css");
         var htmxUrl = fvp.AddFileVersionToPath(basePath, "/js/vendor/htmx.min.js");
 
         context.Response.Headers.Append("Link",
-            $"<{tailwindUrl}>; rel=preload; as=style, <{siteUrl}>; rel=preload; as=style, <{htmxUrl}>; rel=preload; as=script");
+            $"<{commonCssUrl}>; rel=preload; as=style, <{htmxUrl}>; rel=preload; as=script");
     }
 
     await next();
@@ -555,17 +561,12 @@ app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
-        if (!app.Environment.IsDevelopment())
-        {
-            const int oneYear = 60 * 60 * 24 * 365;
-            // Icons served with ?v=hash query string are content-versioned — mark immutable
-            var isVersionedIcon = ctx.Context.Request.Path.StartsWithSegments("/icons")
-                                  && ctx.Context.Request.QueryString.HasValue;
-            var cacheControl = isVersionedIcon
-                ? $"public,max-age={oneYear},immutable"
-                : $"public,max-age={oneYear}";
-            ctx.Context.Response.Headers.Append("Cache-Control", cacheControl);
-        }
+        const int oneYear = 60 * 60 * 24 * 365;
+        // Any file served with ?v=hash is content-versioned (asp-append-version) — mark immutable
+        var cacheControl = ctx.Context.Request.QueryString.HasValue
+            ? $"public,max-age={oneYear},immutable"
+            : $"public,max-age={oneYear}";
+        ctx.Context.Response.Headers.Append("Cache-Control", cacheControl);
     }
 });
 
@@ -643,11 +644,17 @@ app.Use(async (context, next) =>
     catch (AuthenticationRevokedException)
     {
         // context.User is still populated (UseAuthentication ran on the way in before the exception)
-        var email       = context.User.FindFirst(ClaimTypes.Email)?.Value ?? "";
-        var displayName = context.User.FindFirst(ClaimTypes.Name)?.Value ?? "";
-        var avatarThumb = context.User.FindFirst("AvatarThumbnailFileName")?.Value ?? "";
+        var displayName        = context.User.FindFirst(ClaimTypes.Name)?.Value ?? "";
+        var publicId           = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        var avatarFileName     = context.User.FindFirst("AvatarFileName")?.Value;
+        var avatarThumb        = context.User.FindFirst("AvatarThumbnailFileName")?.Value;
+        var avatarMicroFile    = context.User.FindFirst("AvatarMicroFileName")?.Value;
+        var avatarUrl          = string.IsNullOrEmpty(publicId) ? null
+            : SnakkUrlHelper.UserAvatarThumbnail(publicId, avatarFileName: avatarFileName, avatarThumbnailFileName: avatarThumb);
+        var avatarMicroUrl     = string.IsNullOrEmpty(publicId) ? null
+            : SnakkUrlHelper.UserAvatarMicro(publicId, avatarFileName: avatarFileName, avatarMicroFileName: avatarMicroFile);
 
-        var hint    = System.Text.Json.JsonSerializer.Serialize(new { e = email, n = displayName, a = avatarThumb });
+        var hint    = System.Text.Json.JsonSerializer.Serialize(new { n = displayName, a = avatarUrl, m = avatarMicroUrl });
         var hintB64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(hint));
 
         context.Response.Cookies.Append(".Snakk.ReloginHint", hintB64, new CookieOptions
@@ -659,6 +666,7 @@ app.Use(async (context, next) =>
             // and cleared server-side on successful relogin (ReloginAsync). Keeping it out of
             // JS reach avoids exposing the user's email to any XSS on the page.
             HttpOnly    = true,
+            Secure      = Snakk.Shared.Helpers.AuthCookieSecurity.RequireSecure,
             IsEssential = true
         });
 
@@ -745,6 +753,18 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Normalise device type into a synthetic request header before OutputCache so the cache
+// key is stable regardless of whether CF-Device-Type or UA fallback was used.
+app.Use(async (ctx, next) =>
+{
+    var cf = ctx.Request.Headers["CF-Device-Type"].ToString();
+    var isMobile = cf.Length > 0
+        ? cf == "mobile"
+        : DeviceDetection.IsMobileUserAgent(ctx.Request.Headers.UserAgent.ToString());
+    ctx.Request.Headers["X-Device-Type"] = isMobile ? "mobile" : "desktop";
+    await next();
+});
+
 // Output cache for anonymous visitors (after auth so we can check cookies)
 app.UseOutputCache();
 
@@ -771,7 +791,7 @@ app.Use(async (context, next) =>
             else
             {
                 context.Response.Headers.CacheControl = "public, s-maxage=30, max-age=0, must-revalidate";
-                context.Response.Headers.Vary = "HX-Request";
+                context.Response.Headers.Vary = "HX-Request, CF-Device-Type";
             }
         }
         return Task.CompletedTask;
@@ -793,10 +813,12 @@ app.MapOAuthConnectionBffEndpoints();
 var observability = app.Services.GetRequiredService<IOptions<ObservabilityOptions>>().Value;
 if (observability.IsOn(observability.Rum))
     app.MapRumEndpoints();
+app.MapSetupBffEndpoints();
 
 app.MapRealtimeTokenEndpoints();
 
 // Public endpoints
+app.MapRobotsEndpoints();
 app.MapSitemapEndpoints();
 app.MapOEmbedEndpoints();
 app.MapRssFeedEndpoints();

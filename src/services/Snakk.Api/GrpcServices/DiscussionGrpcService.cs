@@ -1,11 +1,13 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Microsoft.Extensions.Caching.Hybrid;
 using Snakk.Api.Helpers;
 using Snakk.Shared.Helpers;
 using Snakk.Api.Services;
 using Snakk.Application.Repositories;
 using Snakk.Application.Services;
 using Snakk.Application.UseCases;
+using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Protos;
 using Snakk.Protos.Discussion;
@@ -28,8 +30,16 @@ public class DiscussionGrpcService(
     IFileStorage fileStorage,
     IGroupAccessService groupAccessService,
     IServiceScopeFactory scopeFactory,
-    IRealtimeNotifier realtimeNotifier) : DiscussionService.DiscussionServiceBase
+    IRealtimeNotifier realtimeNotifier,
+    IUserRepository userRepository,
+    IDiscussionReadStateRepository readStateRepository,
+    HybridCache cache) : DiscussionService.DiscussionServiceBase
 {
+    // Aggregate/TTL-only: count changes as new discussions are posted, so write-path
+    // invalidation is infeasible. Key includes lastVisitAt.Ticks so the count is naturally
+    // fresh on each new visit without explicit invalidation.
+    private static readonly HybridCacheEntryOptions UnreadCountCacheOptions =
+        new() { Expiration = TimeSpan.FromMinutes(2) };
     public override async Task<DiscussionInfo> GetDiscussion(GetDiscussionRequest request, ServerCallContext context)
     {
         var ct = context.CancellationToken;
@@ -101,7 +111,49 @@ public class DiscussionGrpcService(
             PageSize = items.Count,
             HasMoreItems = false
         };
-        return PagedDiscussionListMapper.Build(pagedResult, fileStorage);
+        var authorIds = items
+            .SelectMany(d => new[] { d.CreatedByUserPublicId, d.LastReplierPublicId })
+            .OfType<string>()
+            .Distinct()
+            .ToList();
+
+        Dictionary<string, int>? unreadCounts = null;
+        var userId = currentUser.IsAuthenticated() ? currentUser.GetCurrentUserId() : null;
+
+        // Start unconditionally — independent of read-state lookups
+        var authorSlugsTask = userRepository.GetSlugsByPublicIdsAsync(authorIds, ct);
+
+        if (userId is not null && items.Count > 0)
+        {
+            var discussionIds = items.Select(d => d.PublicId).ToList();
+            var lastReadAtTask = readStateRepository.GetLastReadAtByDiscussionAsync(userId, discussionIds, ct);
+            var lastVisitAtTask = userRepository.GetLastVisitAtAsync(userId, ct);
+            await Task.WhenAll(lastReadAtTask, lastVisitAtTask, authorSlugsTask);
+
+            var cutoffs = BuildCutoffMap(discussionIds, await lastReadAtTask, await lastVisitAtTask);
+            if (cutoffs.Count > 0)
+                unreadCounts = await readStateRepository.GetUnreadPostCountsAsync(cutoffs, ct);
+        }
+
+        var authorSlugs = await authorSlugsTask;
+        return PagedDiscussionListMapper.Build(pagedResult, fileStorage, authorSlugs, unreadCounts);
+    }
+
+    private static Dictionary<string, DateTime> BuildCutoffMap(
+        List<string> discussionIds,
+        Dictionary<string, DateTime> lastReadAtMap,
+        DateTime? lastVisitAt)
+    {
+        var cutoffs = new Dictionary<string, DateTime>();
+        foreach (var id in discussionIds)
+        {
+            if (lastReadAtMap.TryGetValue(id, out var perDiscussion))
+                cutoffs[id] = perDiscussion;
+            else if (lastVisitAt.HasValue)
+                cutoffs[id] = lastVisitAt.Value;
+            // No fallback available — skip this discussion (no badge)
+        }
+        return cutoffs;
     }
 
     public override async Task<DiscussionCreatedInfo> CreateDiscussion(CreateDiscussionRequest request, ServerCallContext context)
@@ -291,6 +343,12 @@ public class DiscussionGrpcService(
     public override async Task<PagedRecentDiscussionList> GetRecentDiscussions(GetRecentDiscussionsRequest request, ServerCallContext context)
     {
         var ct = context.CancellationToken;
+        var userId = currentUser.GetCurrentUserId();
+
+        DateTime? lastVisitAt = null;
+        if (request.SinceLastVisit && userId is not null)
+            lastVisitAt = await userRepository.GetLastVisitAtAsync(userId, ct);
+
         var result = await searchRepository.GetRecentDiscussionsAsync(
             request.Offset,
             request.PageSize,
@@ -298,164 +356,43 @@ public class DiscussionGrpcService(
             request.HasHubId ? request.HubId : null,
             request.HasSpaceId ? request.SpaceId : null,
             request.HasCursor ? request.Cursor : null,
-            currentUser.GetCurrentUserId(),
+            userId,
             request.HasAuthorId ? request.AuthorId : null,
             request.SpaceIds.Count > 0 ? [.. request.SpaceIds] : null,
             request.ViewerAllowsAdult,
+            sinceLastVisit: request.SinceLastVisit,
+            lastVisitAt: lastVisitAt,
             ct);
 
-        var response = new PagedRecentDiscussionList
-        {
-            Offset = result.Offset,
-            PageSize = result.PageSize,
-            HasMoreItems = result.HasMoreItems
-        };
+        return await BuildPagedRecentDiscussionList(result, ct);
+    }
 
-        if (result.NextCursor is not null)
-            response.NextCursor = result.NextCursor;
+    public override async Task<GetUnreadDiscussionCountResponse> GetUnreadDiscussionCount(GetUnreadDiscussionCountRequest request, ServerCallContext context)
+    {
+        var ct = context.CancellationToken;
+        var userId = currentUser.GetCurrentUserId();
 
-        foreach (var d in result.Items)
-        {
-            var item = new RecentDiscussionInfo
-            {
-                PublicId = d.PublicId,
-                Title = d.Title,
-                Slug = d.Slug,
-                Type = ((DiscussionTypeEnum)d.Type).ToString(),
-                CreatedAt = ToTimestamp(d.CreatedAt),
-                IsPinned = d.IsPinned,
-                IsLocked = d.IsLocked,
-                PostCount = d.PostCount,
-                ReactionCount = d.ReactionCount,
+        if (userId is null)
+            return new GetUnreadDiscussionCountResponse { Count = 0 };
 
-                Space = new EntityRef
-                {
-                    PublicId = d.SpacePublicId,
-                    Slug = d.SpaceSlug,
-                    Name = d.SpaceName
-                },
-                Hub = new EntityRef
-                {
-                    PublicId = d.HubPublicId,
-                    Slug = d.HubSlug,
-                    Name = d.HubName
-                },
-                Community = new EntityRef
-                {
-                    PublicId = d.CommunityPublicId,
-                    Slug = d.CommunitySlug,
-                    Name = d.CommunityName
-                },
-                Author = new AuthorRef
-                {
-                    PublicId = d.CreatedByUserPublicId ?? "",
-                    DisplayName = d.CreatedByUserDisplayName ?? "",
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
-                }
-            };
+        var lastVisitAtTask = userRepository.GetLastVisitAtAsync(userId, ct);
+        var userSlimTask = userRepository.GetCurrentUserSlimAsync(UserId.From(userId), ct);
+        await Task.WhenAll(lastVisitAtTask, userSlimTask);
 
-            if (d.LastActivityAt.HasValue)
-                item.LastActivityAt = ToTimestamp(d.LastActivityAt.Value);
+        var lastVisitAt = await lastVisitAtTask;
+        if (!lastVisitAt.HasValue)
+            return new GetUnreadDiscussionCountResponse { Count = 0 };
 
-            item.Tags.AddRange(d.Tags ?? []);
+        var viewerAllowsAdult = (await userSlimTask)?.AllowAdultContent == true;
 
-            if (d.LastReplierPublicId is not null)
-            {
-                item.LastReplier = new AuthorRef
-                {
-                    PublicId = d.LastReplierPublicId,
-                    DisplayName = d.LastReplierDisplayName ?? "",
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName, d.LastReplierAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName)
-                };
-                item.LastPostExcerpt = d.LastPostExcerpt ?? "";
-            }
+        var count = await cache.GetOrCreateAsync<int>(
+            $"unread-count:{userId}:{lastVisitAt.Value.Ticks}",
+            async cancel => await searchRepository.GetUnreadDiscussionCountAsync(
+                lastVisitAt.Value, userId, viewerAllowsAdult, cancel),
+            UnreadCountCacheOptions,
+            cancellationToken: ct);
 
-            // Map preview data
-            if (d.Preview is not null)
-            {
-                var preview = new DiscussionPreview();
-
-                if (d.Preview.Poll is not null)
-                {
-                    preview.Poll = new PollPreview
-                    {
-                        TotalVotes = d.Preview.Poll.TotalVotes,
-                        IsSecret = d.Preview.Poll.IsSecret
-                    };
-                    if (d.Preview.Poll.ClosesAt.HasValue)
-                        preview.Poll.ClosesAt = ToTimestamp(d.Preview.Poll.ClosesAt.Value);
-                    preview.Poll.Options.AddRange(d.Preview.Poll.Options.Select(o =>
-                        new PollPreviewOption { Text = o.Text, VoteCount = o.VoteCount }));
-                }
-
-                if (d.Preview.Debate is not null)
-                {
-                    preview.Debate = new DebatePreview();
-                    preview.Debate.Positions.AddRange(d.Preview.Debate.Positions.Select(p =>
-                        new DebatePreviewPosition { Label = p.Label, Index = p.Index, PostCount = p.PostCount }));
-                }
-
-                if (d.Preview.Link is not null)
-                {
-                    var lp = d.Preview.Link;
-                    preview.Link = new LinkPreview { Url = lp.Url, IsInternal = lp.IsInternal };
-                    if (lp.Title is not null) preview.Link.Title = lp.Title;
-                    if (lp.Description is not null) preview.Link.Description = lp.Description;
-                    if (lp.Domain is not null) preview.Link.Domain = lp.Domain;
-                    if (lp.ImageUrl is not null) preview.Link.ImageUrl = lp.ImageUrl;
-                    if (lp.ImagePath is not null) preview.Link.ImagePathUrl = fileStorage.GetPublicUrl(lp.ImagePath);
-                    if (lp.ImageThumbnailPath is not null) preview.Link.ImageThumbnailUrl = fileStorage.GetPublicUrl(lp.ImageThumbnailPath);
-                    if (lp.OEmbedHtml is not null) preview.Link.OembedHtml = lp.OEmbedHtml;
-                    if (lp.BlurDataUri is not null) preview.Link.BlurDataUri = lp.BlurDataUri;
-                }
-
-                if (d.Preview.Images is not null)
-                {
-                    preview.Images = new ImagesPreview
-                    {
-                        ImageCount = d.Preview.Images.ImageCount,
-                        IsSpoiler = d.Preview.Images.IsSpoiler,
-                        Layout = d.Preview.Images.Layout
-                    };
-                    preview.Images.Items.AddRange(d.Preview.Images.Items.Select(i =>
-                    {
-                        var pi = new ImagesPreviewItem { Url = i.Url, Width = i.Width, Height = i.Height };
-                        if (i.ThumbnailUrl is not null) pi.ThumbnailUrl = i.ThumbnailUrl;
-                        if (i.MediumThumbnailUrl is not null) pi.MediumThumbnailUrl = i.MediumThumbnailUrl;
-                        if (i.BlurDataUri is not null) pi.BlurDataUri = i.BlurDataUri;
-                        if (i.ThumbnailWidth is not null) pi.ThumbnailWidth = i.ThumbnailWidth.Value;
-                        if (i.ThumbnailHeight is not null) pi.ThumbnailHeight = i.ThumbnailHeight.Value;
-                        if (i.MediumThumbnailWidth is not null) pi.MediumThumbnailWidth = i.MediumThumbnailWidth.Value;
-                        if (i.MediumThumbnailHeight is not null) pi.MediumThumbnailHeight = i.MediumThumbnailHeight.Value;
-                        return pi;
-                    }));
-                }
-
-                if (d.Preview.Iama is not null)
-                {
-                    var ip = d.Preview.Iama;
-                    preview.Iama = new IamaPreview
-                    {
-                        Phase = ip.Phase,
-                        OfficialAnswerCount = ip.OfficialAnswerCount,
-                        BestQuestionCount = ip.BestQuestionCount,
-                        IsVerified = ip.IsVerified
-                    };
-                    if (ip.ScheduledStartUtc.HasValue) preview.Iama.ScheduledStartUtc = ToTimestamp(ip.ScheduledStartUtc.Value);
-                    if (ip.ScheduledEndUtc.HasValue) preview.Iama.ScheduledEndUtc = ToTimestamp(ip.ScheduledEndUtc.Value);
-                }
-
-                item.Preview = preview;
-            }
-
-            response.Items.Add(item);
-        }
-
-        return response;
+        return new GetUnreadDiscussionCountResponse { Count = count };
     }
 
     public override async Task<PagedRecentDiscussionList> GetTrendingDiscussions(GetTrendingDiscussionsRequest request, ServerCallContext context)
@@ -469,7 +406,7 @@ public class DiscussionGrpcService(
             viewerAllowsAdult: request.ViewerAllowsAdult,
             ct: ct);
 
-        return BuildPagedRecentDiscussionList(result);
+        return await BuildPagedRecentDiscussionList(result, ct);
     }
 
     public override async Task<PagedRecentDiscussionList> GetTopDiscussions(GetTopDiscussionsRequest request, ServerCallContext context)
@@ -484,7 +421,7 @@ public class DiscussionGrpcService(
             viewerAllowsAdult: request.ViewerAllowsAdult,
             ct: ct);
 
-        return BuildPagedRecentDiscussionList(result);
+        return await BuildPagedRecentDiscussionList(result, ct);
     }
 
     public override async Task<PagedRecentDiscussionList> GetNewDiscussions(GetNewDiscussionsRequest request, ServerCallContext context)
@@ -499,12 +436,20 @@ public class DiscussionGrpcService(
             viewerAllowsAdult: request.ViewerAllowsAdult,
             ct: ct);
 
-        return BuildPagedRecentDiscussionList(result);
+        return await BuildPagedRecentDiscussionList(result, ct);
     }
 
-    private PagedRecentDiscussionList BuildPagedRecentDiscussionList(
-        Snakk.Shared.Models.PagedResult<Application.Repositories.RecentDiscussionDto> result)
+    private async Task<PagedRecentDiscussionList> BuildPagedRecentDiscussionList(
+        Snakk.Shared.Models.PagedResult<Application.Repositories.RecentDiscussionDto> result,
+        CancellationToken ct)
     {
+        var authorIds = result.Items
+            .SelectMany(d => new[] { d.CreatedByUserPublicId, d.LastReplierPublicId })
+            .OfType<string>()
+            .Distinct()
+            .ToList();
+        var authorSlugs = await userRepository.GetSlugsByPublicIdsAsync(authorIds, ct);
+
         var response = new PagedRecentDiscussionList
         {
             Offset = result.Offset,
@@ -517,6 +462,18 @@ public class DiscussionGrpcService(
 
         foreach (var d in result.Items)
         {
+            var authorPid = d.CreatedByUserPublicId ?? "";
+            var authorRef = new AuthorRef
+            {
+                PublicId = authorPid,
+                DisplayName = d.CreatedByUserDisplayName ?? "",
+                AvatarUrl = AvatarHelper.GetAvatarUrl(authorPid, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(authorPid, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(authorPid, AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
+            };
+            if (authorPid.Length > 0 && authorSlugs.TryGetValue(authorPid, out var authorSlug))
+                authorRef.Slug = authorSlug;
+
             var item = new RecentDiscussionInfo
             {
                 PublicId = d.PublicId,
@@ -547,14 +504,7 @@ public class DiscussionGrpcService(
                     Slug = d.CommunitySlug,
                     Name = d.CommunityName
                 },
-                Author = new AuthorRef
-                {
-                    PublicId = d.CreatedByUserPublicId ?? "",
-                    DisplayName = d.CreatedByUserDisplayName ?? "",
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName, d.CreatedByUserAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.CreatedByUserPublicId ?? "", AvatarEntityType.User, 0, d.CreatedByUserAvatarFileName)
-                }
+                Author = authorRef
             };
 
             if (d.LastActivityAt.HasValue)
@@ -564,7 +514,7 @@ public class DiscussionGrpcService(
 
             if (d.LastReplierPublicId is not null)
             {
-                item.LastReplier = new AuthorRef
+                var replierRef = new AuthorRef
                 {
                     PublicId = d.LastReplierPublicId,
                     DisplayName = d.LastReplierDisplayName ?? "",
@@ -572,6 +522,9 @@ public class DiscussionGrpcService(
                     AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName, d.LastReplierAvatarThumbnailFileName),
                     AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.LastReplierPublicId, AvatarEntityType.User, 0, d.LastReplierAvatarFileName)
                 };
+                if (authorSlugs.TryGetValue(d.LastReplierPublicId, out var replierSlug))
+                    replierRef.Slug = replierSlug;
+                item.LastReplier = replierRef;
                 item.LastPostExcerpt = d.LastPostExcerpt ?? "";
             }
 
@@ -673,6 +626,13 @@ public class DiscussionGrpcService(
             request.ViewerAllowsAdult,
             ct);
 
+        var authorIds = result.Items
+            .Select(d => d.AuthorPublicId)
+            .OfType<string>()
+            .Distinct()
+            .ToList();
+        var authorSlugs = await userRepository.GetSlugsByPublicIdsAsync(authorIds, ct);
+
         var response = new PagedDiscussionBySpaceList
         {
             Offset = result.Offset,
@@ -685,6 +645,19 @@ public class DiscussionGrpcService(
 
         foreach (var d in result.Items)
         {
+            // Coalesce: GDPR-anonymized authors have null ids; proto setters throw on null
+            var authorPid = d.AuthorPublicId ?? "";
+            var authorRef = new AuthorRef
+            {
+                PublicId = authorPid,
+                DisplayName = d.AuthorDisplayName ?? "",
+                AvatarUrl = AvatarHelper.GetAvatarUrl(authorPid, AvatarEntityType.User, 0, d.AuthorAvatarFileName),
+                AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(authorPid, AvatarEntityType.User, 0, d.AuthorAvatarFileName, d.AuthorAvatarThumbnailFileName),
+                AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(authorPid, AvatarEntityType.User, 0, d.AuthorAvatarFileName)
+            };
+            if (authorPid.Length > 0 && authorSlugs.TryGetValue(authorPid, out var authorSlug))
+                authorRef.Slug = authorSlug;
+
             var item = new DiscussionBySpaceInfo
             {
                 PublicId = d.PublicId,
@@ -697,16 +670,7 @@ public class DiscussionGrpcService(
                 IsLocked = d.IsLocked,
                 PostCount = d.PostCount,
                 ReactionCount = d.ReactionCount,
-
-                Author = new AuthorRef
-                {
-                    // Coalesce: GDPR-anonymized authors have null ids; proto setters throw on null
-                    PublicId = d.AuthorPublicId ?? "",
-                    DisplayName = d.AuthorDisplayName ?? "",
-                    AvatarUrl = AvatarHelper.GetAvatarUrl(d.AuthorPublicId ?? "", AvatarEntityType.User, 0, d.AuthorAvatarFileName),
-                    AvatarThumbnailUrl = AvatarHelper.GetAvatarThumbnailUrl(d.AuthorPublicId ?? "", AvatarEntityType.User, 0, d.AuthorAvatarFileName, d.AuthorAvatarThumbnailFileName),
-                    AvatarMicroUrl = AvatarHelper.GetAvatarMicroUrl(d.AuthorPublicId ?? "", AvatarEntityType.User, 0, d.AuthorAvatarFileName)
-                }
+                Author = authorRef
             };
 
             if (d.LastActivityAt.HasValue)

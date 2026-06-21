@@ -1,4 +1,4 @@
-﻿@page
+@page
 @using Snakk.Web.Helpers
 @using Snakk.Web.Pages.ViewModels
 @using Snakk.Web.Services
@@ -19,10 +19,13 @@
 <!-- Center Column -->
 <div class="sn-center">
     <div class="sn-center-inner">
-        <h2 class="sn-section-title">
-            <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
-            @T.Pages.IndexHeading
-        </h2>
+        <div class="sn-section-header">
+            <h2 class="sn-section-title">
+                <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
+                @T.Pages.IndexHeading
+            </h2>
+            <p class="sn-section-description">@T.Pages.IndexDescription</p>
+        </div>
 
         @if (Model.RecentDiscussions?.Items == null || !Model.RecentDiscussions.Items.Any())
         {
@@ -48,7 +51,7 @@
                          hx-swap="outerHTML"
                          hx-target="this"
                          hx-push-url="false"
-                         class="py-2">
+                         class="sn-py-2">
                         <partial name="Shared/_DiscussionSkeleton" />
                     </div>
                 }
@@ -59,11 +62,11 @@
 
 <!-- Right Column -->
 @{
-    ViewData["RightPane.NewDiscussionUrl"] = "/new";
+    ViewData["RightPane.NewDiscussionUrl"] = "/create";
     ViewData["RightPane.AboutTitle"] = T.Pages.IndexAboutTitle;
     ViewData["RightPane.AboutDescription"] = T.Pages.IndexAboutDesc;
 }
-<partial name="Shared/_GlobalRightSidebar" />
+<vc:global-right-sidebar />
 
 @section Scripts {
     <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>

@@ -5,13 +5,16 @@
 .type-widget-solved {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 0.375rem;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-ui);
+    font-weight: 600;
+}
+
+.type-widget-solved {
     background: oklch(0.92 0.06 150);
     color: oklch(0.35 0.15 150);
-    font-size: 0.8125rem;
-    font-weight: 600;
 }
 
 [data-theme="dark"] .type-widget-solved {
@@ -21,6 +24,9 @@
 
 .accepted-answer {
     border-left: 3px solid oklch(0.55 0.15 150);
+}
+
+.accepted-answer {
     background: oklch(0.96 0.02 150);
 }
 
@@ -29,10 +35,13 @@
 }
 
 .accepted-answer-badge {
-    font-size: 0.6875rem;
+    font-size: var(--font-size-xs);
     font-weight: 600;
+    margin-right: var(--space-4);
+}
+
+.accepted-answer-badge {
     color: oklch(0.4 0.15 150);
-    margin-right: 0.5rem;
 }
 
 [data-theme="dark"] .accepted-answer-badge {

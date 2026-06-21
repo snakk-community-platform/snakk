@@ -33,4 +33,5 @@ public record HubMetaDto(
     string? TeamRevision,
     bool IsRestricted,
     string? CommunitySlug,
-    bool Require2FA);
+    bool Require2FA,
+    bool AllowAnonymousReading);

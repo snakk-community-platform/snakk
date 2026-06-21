@@ -17,6 +17,7 @@ public class TopModel(
 
     public PagedRecentDiscussionList? TopDiscussions { get; set; }
     public string Period { get; set; } = "week";
+    public int Offset { get; private set; }
 
     public string SidebarScopeType { get; set; } = "platform";
     public string SidebarScopeId { get; set; } = "global";
@@ -53,6 +54,7 @@ public class TopModel(
 
     public async Task<IActionResult> OnGetAsync(string? period, [FromQuery] int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         if (Request.Query.TryGetValue("period", out var queryPeriod) && !string.IsNullOrEmpty(queryPeriod))
         {
@@ -62,6 +64,7 @@ public class TopModel(
         Period = period is "day" or "week" or "month" or "year" or "all-time"
             ? period
             : "week";
+        Offset = offset;
 
         string? communityId = null;
         if (CommunityContext.IsCustomDomain && !string.IsNullOrEmpty(CommunityContext.CommunitySlug))
@@ -81,7 +84,7 @@ public class TopModel(
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
         try { TopDiscussions = await _apiClient.GetTopDiscussionsAsync(offset, 20, communityId, ToApiPeriod(Period), viewerAllowsAdult: viewerAllowsAdult); }
-        catch { }
+        catch (Exception ex) { logger.LogWarning(ex, "Failed to fetch top discussions"); }
         return Page();
     }
 

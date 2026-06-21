@@ -94,6 +94,7 @@ public class CommunityRepositoryAdapter(
         var entity = community.ToPersistence();
         await databaseRepository.AddAsync(entity, ct);
         await databaseRepository.SaveChangesAsync(ct);
+        await cache.RemoveByTagAsync("communities:public-list", ct);
     }
 
     public async Task UpdateAsync(Community community, CancellationToken ct = default)
@@ -120,6 +121,7 @@ public class CommunityRepositoryAdapter(
 
         await databaseRepository.UpdateAsync(entity, ct);
         await databaseRepository.SaveChangesAsync(ct);
+        await cache.RemoveByTagAsync("communities:public-list", ct);
 
         if (nameChanged || slugChanged)
         {

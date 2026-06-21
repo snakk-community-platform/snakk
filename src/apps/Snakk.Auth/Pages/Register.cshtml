@@ -309,7 +309,7 @@
     <partial name="_ValidationScriptsPartial" />
     @if (!string.IsNullOrEmpty(Model.TurnstileSiteKey))
     {
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" nonce="@(ViewContext.HttpContext.Items["csp-nonce"] as string)" async defer></script>
     }
     @if (Model.RegistrationMode == "InviteOnly")
     {

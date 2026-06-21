@@ -9,6 +9,7 @@ using Snakk.Protos.Hub;
 using Snakk.Protos.Space;
 using Snakk.Protos.Discussion;
 using Snakk.Protos.Post;
+using Snakk.Protos.ReadState;
 using System.Threading.RateLimiting;
 
 namespace Snakk.Web.Pages.Discussions;
@@ -47,6 +48,9 @@ public class DetailModel(
     // Whether any post in the initial batch contains code blocks (for Prism.js loading)
     public bool HasCodeBlocks { get; set; }
 
+    // The last post ID read by the current user in this discussion (for the unread separator)
+    public string? LastReadPostId { get; private set; }
+
     // Adult-content gating: discussion or its space is adult; visitor undecided.
     public AdultContentState AdultGateState { get; set; } = AdultContentState.Allowed;
 
@@ -79,28 +83,6 @@ public class DetailModel(
     [BindProperty]
     public int? DebatePositionId { get; set; }
 
-    private async Task<int?> CalculateFirstUnreadPostNumberAsync(string discussionPublicId)
-    {
-        if (string.IsNullOrEmpty(CurrentUserId))
-            return null;
-
-        try
-        {
-            // Get read state from API
-            var readState = await _apiClient.GetReadStateAsync(CurrentUserId, discussionPublicId);
-            if (string.IsNullOrEmpty(readState?.LastReadPostId))
-                return null;
-
-            // Calculate post number of last read post
-            var postNumber = await _apiClient.GetPostNumberAsync(discussionPublicId, readState.LastReadPostId);
-            return postNumber + 1; // Return first unread (next post after last read)
-        }
-        catch
-        {
-            return null; // On error, fall back to page 1
-        }
-    }
-
     public async Task<IActionResult> OnGetAsync(
         string hubSlug,
         string spaceSlug,
@@ -110,6 +92,8 @@ public class DetailModel(
         string sort = "",
         CancellationToken cancellationToken = default)
     {
+        Preload("discussion");
+        Preload("type-images");
         cancellationToken.ThrowIfCancellationRequested();
         HubSlug = hubSlug;
         SpaceSlug = spaceSlug;
@@ -148,23 +132,35 @@ public class DetailModel(
             CurrentUserId = user?.PublicId;
             CurrentUserDisplayName = user?.DisplayName;
 
-            // Handle gotoUnread redirect
-            if (gotoUnread && IsAuthenticated && !string.IsNullOrEmpty(CurrentUserId))
-            {
-                var firstUnreadPostNumber = await CalculateFirstUnreadPostNumberAsync(PublicId);
-                if (firstUnreadPostNumber.HasValue && firstUnreadPostNumber.Value > 1)
-                {
-                    // Calculate page and redirect with anchor
-                    var page = ((firstUnreadPostNumber.Value - 1) / 20) + 1;
-                    var newOffset = (page - 1) * 20;
-                    var redirectUrl = Url.Page(
-                        "/Discussions/Detail",
-                        new { hubSlug, spaceSlug, slugWithId, offset = newOffset });
+            // Start read-state fetch in parallel with subsequent work
+            var readStateTask = IsAuthenticated && !string.IsNullOrEmpty(CurrentUserId)
+                ? _apiClient.GetReadStateAsync(CurrentUserId, PublicId, cancellationToken)
+                : Task.FromResult<ReadStateInfo?>(null);
 
-                    redirectUrl += $"#post-{firstUnreadPostNumber.Value}";
-                    return Redirect(redirectUrl);
+            // Handle gotoUnread redirect
+            if (gotoUnread)
+            {
+                var readState = await readStateTask;
+                LastReadPostId = readState?.LastReadPostId;
+                if (!string.IsNullOrEmpty(LastReadPostId))
+                {
+                    try
+                    {
+                        var postNumber = await _apiClient.GetPostNumberAsync(PublicId, LastReadPostId, cancellationToken);
+                        var firstUnread = postNumber + 1;
+                        if (firstUnread > 1)
+                        {
+                            var newOffset = ((firstUnread - 1) / 20) * 20;
+                            var redirectUrl = Url.Page(
+                                "/Discussions/Detail",
+                                new { hubSlug, spaceSlug, slugWithId, offset = newOffset });
+                            redirectUrl += $"#post-{firstUnread}";
+                            return Redirect(redirectUrl);
+                        }
+                    }
+                    catch { }
                 }
-                // If no unread or calculation failed, fall through to normal rendering
+                // Fall through to normal rendering (LastReadPostId already set above)
             }
 
             Hub = hubTask.Result;
@@ -220,8 +216,13 @@ public class DetailModel(
                 }
             }
 
-            // Await space stats (started earlier in parallel)
+            // Await space stats and read state (started earlier in parallel)
             SpaceStats = await spaceStatsTask;
+            if (!gotoUnread)
+            {
+                var readState = await readStateTask;
+                LastReadPostId = readState?.LastReadPostId;
+            }
 
             var postFetchPageSize = sort == "qa" && Discussion.Type == "Iama"
                 ? Math.Min(Discussion.PostCount + 1, 500)

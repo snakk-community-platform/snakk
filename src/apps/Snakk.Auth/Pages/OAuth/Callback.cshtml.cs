@@ -81,9 +81,9 @@ public class CallbackModel(
                 var connectUserId = HttpContext.Session.GetString("OAuth_ConnectUserId") ?? "";
                 HttpContext.Session.Remove("OAuth_ConnectUserId");
 
-                var connectReturnUrl = HttpContext.Session.GetString("OAuth_ReturnUrl") ?? "/settings/connected-accounts";
+                var connectReturnUrl = HttpContext.Session.GetString("OAuth_ReturnUrl") ?? "/my/settings/connected-accounts";
                 HttpContext.Session.Remove("OAuth_ReturnUrl");
-                if (!Url.IsLocalUrl(connectReturnUrl)) connectReturnUrl = "/settings/connected-accounts";
+                if (!Url.IsLocalUrl(connectReturnUrl)) connectReturnUrl = "/my/settings/connected-accounts";
 
                 // Re-validate the cookie at callback time and forward it as a Bearer
                 // header. The gRPC service no longer trusts request.UserPublicId; it
@@ -96,7 +96,7 @@ public class CallbackModel(
                 {
                     logger.LogWarning("ConnectOAuthProvider rejected: session userId {SessionId} did not match validated cookie userId",
                         connectUserId);
-                    return Redirect("/settings/connected-accounts?error=AUTH_REQUIRED");
+                    return Redirect("/my/settings/connected-accounts?error=AUTH_REQUIRED");
                 }
 
                 try
@@ -109,12 +109,12 @@ public class CallbackModel(
                     var connectResp = await authClient.ConnectOAuthProviderAsync(connectReq, auth.Value.Headers);
                     if (connectResp.Success)
                         return Redirect($"{connectReturnUrl}?connected={Uri.EscapeDataString(Provider.ToLowerInvariant())}");
-                    return Redirect($"/settings/connected-accounts?error={Uri.EscapeDataString(connectResp.ErrorCode ?? "CONNECT_FAILED")}");
+                    return Redirect($"/my/settings/connected-accounts?error={Uri.EscapeDataString(connectResp.ErrorCode ?? "CONNECT_FAILED")}");
                 }
                 catch (RpcException ex)
                 {
                     logger.LogWarning(ex, "ConnectOAuthProvider gRPC error for user {UserId}", connectUserId);
-                    return Redirect($"/settings/connected-accounts?error=CONNECT_FAILED");
+                    return Redirect($"/my/settings/connected-accounts?error=CONNECT_FAILED");
                 }
             }
 

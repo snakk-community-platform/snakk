@@ -15,7 +15,7 @@ public class UserAchievementRepositoryAdapter(
         var projection = await context.UserAchievements
             .Where(ua => ua.Id == id)
             .Select(ua => new UserAchievementProjection(
-                ua.PublicId, ua.UserPublicId, ua.AchievementPublicId,
+                ua.PublicId, ua.UserPublicId!, ua.AchievementPublicId!,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
@@ -26,7 +26,7 @@ public class UserAchievementRepositoryAdapter(
         var projection = await context.UserAchievements
             .Where(ua => ua.PublicId == publicId.Value)
             .Select(ua => new UserAchievementProjection(
-                ua.PublicId, ua.UserPublicId, ua.AchievementPublicId,
+                ua.PublicId, ua.UserPublicId!, ua.AchievementPublicId!,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .FirstOrDefaultAsync(ct);
         return projection?.ToDomain();
@@ -37,7 +37,7 @@ public class UserAchievementRepositoryAdapter(
         var projections = await context.UserAchievements
             .Where(ua => ua.UserPublicId == userId.Value)
             .Select(ua => new UserAchievementProjection(
-                ua.PublicId, ua.UserPublicId, ua.AchievementPublicId,
+                ua.PublicId, ua.UserPublicId!, ua.AchievementPublicId!,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .ToListAsync(ct);
 
@@ -52,7 +52,7 @@ public class UserAchievementRepositoryAdapter(
                 && ua.IsDisplayed)
             .OrderBy(ua => ua.DisplayOrder)
             .Select(ua => new UserAchievementProjection(
-                ua.PublicId, ua.UserPublicId, ua.AchievementPublicId,
+                ua.PublicId, ua.UserPublicId!, ua.AchievementPublicId!,
                 ua.EarnedAt, ua.IsDisplayed, ua.DisplayOrder, ua.NotificationSent))
             .ToListAsync(ct);
 

@@ -16,6 +16,9 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
     private readonly IDbContextFactory<SnakkDbContext> _dbFactory = dbFactory;
     private readonly HybridCache _cache = cache;
 
+    private static readonly HybridCacheEntryOptions ModRolesCacheOptions =
+        new() { Expiration = TimeSpan.FromHours(24) };
+
     private async Task<T> ReadAsync<T>(Func<SnakkDbContext, Task<T>> query, CancellationToken ct = default)
     {
         await using var db = await _dbFactory.CreateDbContextAsync(ct);
@@ -63,6 +66,30 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
             ur.AssignedAt,
             ur.RevokedAt))
         .ToListAsync(ct);
+
+    public async Task<IEnumerable<UserModRoleDto>> GetCachedModRolesForUserAsync(string userPublicId, CancellationToken ct = default) =>
+        await _cache.GetOrCreateAsync(
+            $"user-mod-roles:{userPublicId}",
+            async cancel => await _context.UserRoles
+                .Where(ur => ur.User.PublicId == userPublicId && ur.RevokedAt == null)
+                .Select(ur => new UserModRoleDto(
+                    ((UserRoleTypeEnum)ur.RoleId).ToString(),
+                    ur.SpaceId != null ? "Space"
+                        : ur.HubId != null ? "Hub"
+                        : ur.CommunityId != null ? "Community"
+                        : "Platform",
+                    ur.SpaceId != null ? ur.Space!.PublicId
+                        : ur.HubId != null ? ur.Hub!.PublicId
+                        : ur.CommunityId != null ? ur.Community!.PublicId
+                        : null,
+                    ur.SpaceId != null ? ur.Space!.Name
+                        : ur.HubId != null ? ur.Hub!.Name
+                        : ur.CommunityId != null ? ur.Community!.Name
+                        : null))
+                .ToListAsync(cancel),
+            ModRolesCacheOptions,
+            tags: [$"manage_perms_user_{userPublicId}"],
+            cancellationToken: ct) ?? [];
 
     public async Task<IEnumerable<UserRoleDto>> GetActiveRolesForCommunityAsync(string communityPublicId, CancellationToken ct = default) => await _context.UserRoles
         .Where(ur =>
@@ -1642,6 +1669,8 @@ public class ModerationRepository(SnakkDbContext context, IDbContextFactory<Snak
         // The deleted discussion may be the cached "latest" for its space — that entry is
         // write-invalidated with a very long TTL, so a missed removal would persist for months.
         await _cache.RemoveAsync($"space-latest-discussion:{discussion.SpaceId}", ct);
+        await _cache.RemoveAsync($"preview:link:{discussionPublicId}", ct);
+        await _cache.RemoveAsync($"preview:images:{discussionPublicId}", ct);
 
         await LogModerationActionAsync(
             moderatorPublicId,

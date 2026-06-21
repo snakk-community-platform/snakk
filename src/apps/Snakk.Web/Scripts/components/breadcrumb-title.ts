@@ -19,13 +19,13 @@
             scrollHandler = null;
         }
 
-        const bar = document.querySelector('.breadcrumb-bar') as HTMLElement | null;
+        const bar = document.querySelector('.sn-breadcrumb-bar') as HTMLElement | null;
         if (!bar) return;
 
         // Remove stale title element from previous page
-        const existing = bar.querySelector('.breadcrumb-page-title');
+        const existing = bar.querySelector('.sn-breadcrumb-page-title');
         if (existing) {
-            bar.classList.remove('show-title');
+            bar.classList.remove('sn-show-title');
             existing.remove();
         }
 
@@ -40,11 +40,11 @@
 
         // Create the title element (inner span needed for CSS grid 0fr/1fr transition)
         const titleLine = document.createElement('div');
-        titleLine.className = 'breadcrumb-page-title';
+        titleLine.className = 'sn-breadcrumb-page-title';
         const titleSpan = document.createElement('span');
 
         const titleText = document.createElement('span');
-        titleText.className = 'breadcrumb-title-text';
+        titleText.className = 'sn-breadcrumb-title-text';
         titleText.textContent = titleEl.textContent?.trim() ?? '';
         titleSpan.appendChild(titleText);
 
@@ -52,11 +52,11 @@
         const firstPostReactions = main?.querySelector('[id^="reactions-"]') as HTMLElement | null;
         if (firstPostReactions) {
             const actionsWrapper = document.createElement('div');
-            actionsWrapper.className = 'breadcrumb-actions';
+            actionsWrapper.className = 'sn-breadcrumb-actions';
 
             // --- Reactions (mirrored from first post) ---
             const breadcrumbReactions = document.createElement('div');
-            breadcrumbReactions.className = 'breadcrumb-reactions';
+            breadcrumbReactions.className = 'sn-breadcrumb-reactions';
 
             for (const attr of Array.from(firstPostReactions.attributes)) {
                 if (attr.name === 'id' || attr.name === 'class') continue;
@@ -76,7 +76,7 @@
             const followBtn = document.getElementById('follow-btn') as HTMLElement | null;
             if (followBtn) {
                 const bcFollow = document.createElement('button');
-                bcFollow.className = 'breadcrumb-action-btn';
+                bcFollow.className = 'sn-breadcrumb-action-btn';
                 bcFollow.type = 'button';
                 bcFollow.title = 'Follow discussion';
 
@@ -86,11 +86,11 @@
                 }
 
                 function syncFollow(): void {
-                    const isFollowing = followBtn!.classList.contains('btn-primary');
+                    const isFollowing = followBtn!.classList.contains('sn-btn-primary');
                     bcFollow.innerHTML = isFollowing
-                        ? '<span class="icon icon-check h-4 w-4" aria-hidden="true"></span>'
-                        : '<span class="icon icon-bell h-4 w-4" aria-hidden="true"></span>';
-                    bcFollow.classList.toggle('active', isFollowing);
+                        ? '<span class="sn-icon icon-check sn-h-4 sn-w-4" aria-hidden="true"></span>'
+                        : '<span class="sn-icon icon-bell sn-h-4 sn-w-4" aria-hidden="true"></span>';
+                    bcFollow.classList.toggle('sn-active', isFollowing);
                     bcFollow.title = isFollowing ? 'Unfollow discussion' : 'Follow discussion';
                 }
                 syncFollow();
@@ -104,11 +104,11 @@
             const shareBtn = document.getElementById('share-dropdown-btn') as HTMLElement | null;
             if (shareBtn) {
                 const bcShare = document.createElement('button');
-                bcShare.className = 'breadcrumb-action-btn';
+                bcShare.className = 'sn-breadcrumb-action-btn';
                 bcShare.type = 'button';
                 bcShare.title = 'Share';
-                bcShare.innerHTML = '<span class="icon icon-share h-4 w-4" aria-hidden="true"></span>';
-                bcShare.addEventListener('click', () => shareBtn.focus());
+                bcShare.innerHTML = '<span class="sn-icon icon-share sn-h-4 sn-w-4" aria-hidden="true"></span>';
+                bcShare.addEventListener('click', () => shareBtn.click());
                 actionsWrapper.appendChild(bcShare);
             }
 
@@ -127,11 +127,11 @@
             const titleMidpoint = titleRect.top + titleRect.height / 2;
 
             if (titleMidpoint <= barRect.bottom) {
-                bar!.classList.add('show-title');
-                sidebarInner?.classList.add('breadcrumb-expanded');
+                bar!.classList.add('sn-show-title');
+                sidebarInner?.classList.add('sn-breadcrumb-expanded');
             } else {
-                bar!.classList.remove('show-title');
-                sidebarInner?.classList.remove('breadcrumb-expanded');
+                bar!.classList.remove('sn-show-title');
+                sidebarInner?.classList.remove('sn-breadcrumb-expanded');
             }
             ticking = false;
         }

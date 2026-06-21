@@ -33,6 +33,8 @@ using ReadStateMarkRequest = Snakk.Protos.ReadState.MarkAsReadRequest;
 using ReadStateBatchRequest = Snakk.Protos.ReadState.BatchMarkAsReadRequest;
 using ReadStateBatchItem = Snakk.Protos.ReadState.BatchReadStateItem;
 using ReadStateInfo = Snakk.Protos.ReadState.ReadStateInfo;
+using ReadStateMarkVisitRequest = Snakk.Protos.ReadState.MarkVisitAsReadRequest;
+using DiscussionUnreadCountRequest = Snakk.Protos.Discussion.GetUnreadDiscussionCountRequest;
 using DmClient = Snakk.Protos.Dm.DmService.DmServiceClient;
 using DmGetConversationsRequest = Snakk.Protos.Dm.GetConversationsRequest;
 using DmGetConversationRequest = Snakk.Protos.Dm.GetConversationRequest;
@@ -344,11 +346,11 @@ public class SnakkApiClient(
 
     public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(
         int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? spaceId = null, string? cursor = null, string? authorId = null, IReadOnlyList<string>? spaceIds = null,
-        bool viewerAllowsAdult = false, CancellationToken ct = default)
+        bool viewerAllowsAdult = false, bool sinceLastVisit = false, CancellationToken ct = default)
     {
         try
         {
-            var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult };
+            var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult, SinceLastVisit = sinceLastVisit };
             if (communityId is not null) request.CommunityId = communityId;
             if (hubId is not null) request.HubId = hubId;
             if (spaceId is not null) request.SpaceId = spaceId;
@@ -359,6 +361,22 @@ public class SnakkApiClient(
             return await discussionClient.GetRecentDiscussionsAsync(request, cancellationToken: ct);
         }
         catch (RpcException ex) { LogGrpcError(ex); return null; }
+    }
+
+    public virtual async Task MarkVisitAsReadAsync(CancellationToken ct = default)
+    {
+        try { await readStateClient.MarkVisitAsReadAsync(new ReadStateMarkVisitRequest(), cancellationToken: ct); }
+        catch (RpcException ex) { LogGrpcError(ex); }
+    }
+
+    public virtual async Task<int> GetUnreadDiscussionCountAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await discussionClient.GetUnreadDiscussionCountAsync(new DiscussionUnreadCountRequest(), cancellationToken: ct);
+            return response?.Count ?? 0;
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return 0; }
     }
 
     public virtual async Task<PagedRecentDiscussionList?> GetTrendingDiscussionsAsync(
@@ -524,7 +542,7 @@ public class SnakkApiClient(
     {
         try
         {
-            var request = new GetTopContributorsTodayRequest { Limit = 5 };
+            var request = new GetTopContributorsTodayRequest { Limit = 20 };
             if (hubId is not null) request.HubId = hubId;
             if (spaceId is not null) request.SpaceId = spaceId;
             if (communityId is not null) request.CommunityId = communityId;
@@ -550,7 +568,7 @@ public class SnakkApiClient(
     {
         try
         {
-            var request = new GetTrendingContributorsRequest { Limit = 5 };
+            var request = new GetTrendingContributorsRequest { Limit = 20 };
             if (hubId is not null) request.HubId = hubId;
             if (spaceId is not null) request.SpaceId = spaceId;
             if (communityId is not null) request.CommunityId = communityId;
@@ -575,7 +593,7 @@ public class SnakkApiClient(
     {
         try
         {
-            var request = new GetTopContributorsByPeriodRequest { TimePeriod = period, Limit = 5 };
+            var request = new GetTopContributorsByPeriodRequest { TimePeriod = period, Limit = 20 };
             if (hubId is not null) request.HubId = hubId;
             if (spaceId is not null) request.SpaceId = spaceId;
             if (communityId is not null) request.CommunityId = communityId;
@@ -600,7 +618,7 @@ public class SnakkApiClient(
     {
         try
         {
-            var request = new GetLatestContributorsRequest { Limit = 5 };
+            var request = new GetLatestContributorsRequest { Limit = 20 };
             if (hubId is not null) request.HubId = hubId;
             if (spaceId is not null) request.SpaceId = spaceId;
             if (communityId is not null) request.CommunityId = communityId;
@@ -1019,6 +1037,16 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return []; }
     }
 
+    public virtual async Task<List<(string PublicId, DateTime FollowedAt)>> GetFollowedDiscussionsDetailedAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var result = await followClient.GetFollowedDiscussionsDetailedAsync(new GetFollowedDiscussionsRequest(), cancellationToken: ct);
+            return result?.Items?.Select(x => (x.PublicId, x.FollowedAt.ToDateTime())).ToList() ?? [];
+        }
+        catch (RpcException ex) { LogGrpcError(ex); return []; }
+    }
+
     public virtual async Task<List<string>> GetFollowedUsersAsync(CancellationToken ct = default)
     {
         try
@@ -1135,11 +1163,11 @@ public class SnakkApiClient(
         catch (RpcException ex) { LogGrpcError(ex); return null; }
     }
 
-    public virtual async Task<SparklineBatchResponse?> GetActivitySparklinesBatchAsync(IEnumerable<string> publicIds, int days = 7, CancellationToken ct = default)
+    public virtual async Task<SparklineBatchResponse?> GetActivitySparklinesBatchAsync(IEnumerable<string> publicIds, int days = 7, string entityType = "space", CancellationToken ct = default)
     {
         try
         {
-            var request = new SparklineBatchRequest { Days = days };
+            var request = new SparklineBatchRequest { Days = days, EntityType = entityType };
             request.PublicIds.AddRange(publicIds);
             return await statisticsClient.GetActivitySparklinesBatchAsync(request, cancellationToken: ct);
         }
@@ -1573,6 +1601,10 @@ public class SnakkApiClient(
     public virtual Task<GrpcResult<UserProfileInfo>> GetUserProfileResultAsync(string publicId, CancellationToken ct = default) =>
         CallAsync(() => userClient.GetUserProfileAsync(
             new GetUserProfileRequest { PublicId = publicId }, cancellationToken: ct).ResponseAsync);
+
+    public virtual Task<GrpcResult<UserProfileInfo>> GetUserBySlugResultAsync(string slug, CancellationToken ct = default) =>
+        CallAsync(() => userClient.GetUserBySlugAsync(
+            new GetUserBySlugRequest { Slug = slug }, cancellationToken: ct).ResponseAsync);
 
     public virtual Task<GrpcResult<SpaceFollowToggleResponse>> ToggleSpaceFollowResultAsync(string spaceId, string? level, CancellationToken ct = default)
     {

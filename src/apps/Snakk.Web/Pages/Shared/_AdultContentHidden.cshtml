@@ -1,24 +1,24 @@
 @* Shown when adult content is hidden because the user previously declined *@
-<div class="max-w-lg mx-auto mt-16 px-4">
-    <div class="clean-card">
-        <div class="p-8 text-center space-y-4">
-            <span class="icon icon-eye-slash h-12 w-12 mx-auto text-base-content/40" aria-hidden="true"></span>
+<div class="sn-adult-hidden-container">
+    <div class="sn-clean-card">
+        <div class="sn-adult-hidden-body">
+            <span class="sn-icon icon-eye-slash h-12 w-12 sn-mx-auto sn-text-faint" aria-hidden="true"></span>
 
-            <h2 class="text-lg font-bold">@T.Adult.HiddenTitle</h2>
+            <h2 class="sn-text-lg sn-font-bold">@T.Adult.HiddenTitle</h2>
 
-            <p class="text-sm text-base-content/60">
+            <p class="sn-text-sm sn-text-muted">
                 @T.Adult.HiddenBody
             </p>
 
             @if (User.Identity?.IsAuthenticated == true)
             {
-                <a href="/settings/notifications#section-adult-content" class="btn btn-primary btn-sm">
+                <a href="/my/settings/notifications#section-adult-content" class="sn-btn sn-btn-primary sn-btn-sm">
                     @T.Adult.HiddenSettingsLink
                 </a>
             }
             else
             {
-                <a href="/" class="btn btn-ghost btn-sm">@T.Common.GoBack</a>
+                <a href="/" class="sn-btn sn-btn-ghost sn-btn-sm">@T.Common.GoBack</a>
             }
         </div>
     </div>

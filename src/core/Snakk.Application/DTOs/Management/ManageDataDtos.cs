@@ -92,4 +92,5 @@ public class ModeratorInfoDto
     public required string UserPublicId { get; init; }
     public required string DisplayName { get; init; }
     public required string Role { get; init; }
+    public required string Slug { get; init; }
 }

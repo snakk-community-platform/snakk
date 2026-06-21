@@ -2,46 +2,59 @@
 // Mention Autocomplete
 // ============================================
 
-.mention-dropdown {
+.sn-mention-dropdown {
     position: absolute;
     z-index: 50;
     max-height: 200px;
     overflow-y: auto;
-    background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
-    border-radius: 8px;
+    border-radius: var(--radius-lg);
+}
+
+.sn-mention-dropdown {
+    background: var(--bg-secondary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.mention-item {
+.sn-mention-item {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6);
     cursor: pointer;
-    transition: background-color 0.1s ease;
+}
+
+.sn-mention-item {
+    transition: background-color var(--duration-fast) ease;
 
     &:hover,
-    &.selected {
+    &.sn-selected {
         background-color: var(--bg-subtle);
     }
 }
 
-.mention-item-avatar {
+.sn-mention-item-avatar {
     width: 24px;
     height: 24px;
     border-radius: 50%;
     object-fit: cover;
 }
 
-.mention-item-name {
-    font-size: 0.875rem;
+.sn-mention-item-name {
+    font-size: var(--font-size-base);
     font-weight: 500;
+}
+
+.sn-mention-item-name {
     color: var(--text-primary);
 }
 
 // Highlighted mention in content
-.mention-highlight {
-    color: var(--accent-info);
+.sn-mention-highlight {
     font-weight: 500;
 }
+
+.sn-mention-highlight {
+    color: var(--accent-info);
+}
+

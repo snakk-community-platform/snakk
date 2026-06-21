@@ -14,35 +14,44 @@ html.lightbox-lock {
     position: fixed;
     inset: 0;
     z-index: 9999;
-    background: rgba(0, 0, 0, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
     pointer-events: none;
-    transition: opacity 0.2s ease;
 
     // Full-viewport ambient blur backdrop
     &::before {
         content: '';
         position: absolute;
         inset: 0;
+        pointer-events: none;
+    }
+
+    &.lightbox-open {
+        pointer-events: auto;
+    }
+}
+
+.lightbox-overlay {
+    background: rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    transition: opacity var(--duration-slow) ease;
+
+    // Full-viewport ambient blur backdrop
+    &::before {
         background-image: var(--lightbox-blur, none);
         background-size: cover;
         background-position: center;
         filter: blur(60px) brightness(0.55);
         transform: scale(1.15);
-        z-index: 0;
-        pointer-events: none;
         opacity: 0;
-        transition: opacity 0.15s ease;
+        transition: opacity var(--duration-base) ease;
     }
 
     &.lightbox-has-blur::before { opacity: 1; }
 
     &.lightbox-open {
         opacity: 1;
-        pointer-events: auto;
     }
 }
 
@@ -75,11 +84,14 @@ html.lightbox-lock {
     max-height: 100%;
     width: auto;
     height: auto;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     z-index: 1;
-    opacity: 0;
     pointer-events: none;
-    transition: opacity 0.15s ease;
+}
+
+.lightbox-lqip {
+    opacity: 0;
+    transition: opacity var(--duration-base) ease;
 
     .lightbox-has-blur & { opacity: 1; }
 }
@@ -90,11 +102,16 @@ html.lightbox-lock {
     max-height: 100%;
     width: auto;
     height: auto;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
     z-index: 2;
-    opacity: 0;
-    transition: opacity 0.15s ease;
     cursor: zoom-in;
+
+    &.lightbox-loaded { }
+}
+
+.lightbox-img {
+    opacity: 0;
+    transition: opacity var(--duration-base) ease;
 
     &.lightbox-loaded { opacity: 1; }
 }
@@ -143,12 +160,15 @@ html.lightbox-lock {
     align-items: center;
     justify-content: center;
     border: none;
-    border-radius: 0.375rem;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-2xl);
+    cursor: pointer;
+}
+
+.lightbox-close {
     background: rgba(255, 255, 255, 0.1);
     color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-    transition: background 0.15s;
+    transition: background var(--duration-base);
 
     &:hover { background: rgba(255, 255, 255, 0.2); }
 }
@@ -163,13 +183,16 @@ html.lightbox-lock {
     align-items: center;
     justify-content: center;
     border: none;
-    border-radius: 0.375rem;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    font-size: 1.5rem;
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-2xl);
     line-height: 1;
     cursor: pointer;
-    transition: background 0.15s;
+}
+
+.lightbox-arrow {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    transition: background var(--duration-base);
 
     &:hover { background: rgba(255, 255, 255, 0.2); }
 }
@@ -182,11 +205,15 @@ html.lightbox-lock {
     bottom: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.875rem;
+    font-size: var(--font-size-base);
     user-select: none;
+}
+
+.lightbox-counter {
+    color: rgba(255, 255, 255, 0.6);
 }
 
 @media (max-width: 767.98px) {
     .lightbox-content { inset: 0; touch-action: none; }
+
 }

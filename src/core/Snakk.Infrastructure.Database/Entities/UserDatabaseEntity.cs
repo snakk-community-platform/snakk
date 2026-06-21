@@ -28,6 +28,10 @@ public class UserDatabaseEntity
     public DateTime? DeletedAt { get; set; }
     public DateTime? LastSeenAt { get; set; }
 
+    // Visit tracking — used for "new since last visit" unread counts
+    public DateTime? LastVisitAt { get; set; }          // frozen end of previous visit; used as unread cutoff
+    public DateTime? CurrentVisitActiveAt { get; set; } // heartbeat for current visit; advances every ~30 min
+
     // Avatar: uploaded filename (null = use generated avatar)
     public string? AvatarFileName { get; set; }
     public string? AvatarThumbnailFileName { get; set; }
@@ -51,9 +55,17 @@ public class UserDatabaseEntity
     public int FollowerCount { get; set; }
     public int UnreadNotificationCount { get; set; }
 
+    // Slug (URL-safe unique identifier, e.g. /u/pal-rune)
+    public string? Slug { get; set; }
+    public bool IsSlugCustomized { get; set; }
+    public int SlugChangeCount { get; set; }
+    public DateTime? SlugLastChangedAt { get; set; }
+
     // Display name change tracking
     public DateTime? DisplayNameChangedAt { get; set; }
     public bool IsDisplayNameLocked { get; set; } = false;
+    public int DisplayNameChangeCount { get; set; }
+    public DateTime? DisplayNameLastChangedAt { get; set; }
 
     // Profile setup flag (true for new OAuth users until they choose a display name)
     public bool NeedsProfileSetup { get; set; } = false;
@@ -79,6 +91,7 @@ public class UserDatabaseEntity
     public DateTime? DiscordLinkTokenExpiry { get; set; } // UTC
 
     // Navigation properties
+    public virtual ICollection<UserSlugHistoryDatabaseEntity> SlugHistory { get; set; } = [];
     public virtual ICollection<TwoFactorTrustedDeviceDatabaseEntity> TwoFactorTrustedDevices { get; set; } = [];
     public virtual ICollection<TwoFactorBackupCodeDatabaseEntity> TwoFactorBackupCodes { get; set; } = [];
     public virtual ICollection<RefreshTokenDatabaseEntity> RefreshTokens { get; set; } = [];

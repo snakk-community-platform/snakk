@@ -12,6 +12,7 @@ public interface IModerationRepository
     
     Task<UserRoleDto?> GetRoleByPublicIdAsync(string publicId, CancellationToken ct = default);
     Task<IEnumerable<UserRoleDto>> GetActiveRolesForUserAsync(string userPublicId, CancellationToken ct = default);
+    Task<IEnumerable<UserModRoleDto>> GetCachedModRolesForUserAsync(string userPublicId, CancellationToken ct = default);
     Task<IEnumerable<UserRoleDto>> GetActiveRolesForCommunityAsync(string communityPublicId, CancellationToken ct = default);
     Task<IEnumerable<UserRoleDto>> GetActiveRolesForHubAsync(string hubPublicId, CancellationToken ct = default);
     Task<IEnumerable<UserRoleDto>> GetActiveRolesForSpaceAsync(string spacePublicId, CancellationToken ct = default);
@@ -172,6 +173,12 @@ public record UserRoleDto(
     string AssignedByUserDisplayName,
     DateTime AssignedAt,
     DateTime? RevokedAt);
+
+public record UserModRoleDto(
+    string Role,         // "GlobalAdmin" | "CommunityAdmin" | "CommunityMod" | "HubMod" | "SpaceMod"
+    string EntityType,   // "Platform" | "Community" | "Hub" | "Space"
+    string? EntityId,
+    string? EntityName);
 
 public record UserBanDto(
     string PublicId,

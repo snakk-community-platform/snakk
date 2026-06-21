@@ -4,7 +4,6 @@ using Snakk.Web.Helpers;
 using Snakk.Web.Pages.ViewModels;
 using Snakk.Web.Services;
 using Snakk.Protos.Community;
-using Snakk.Protos.Discussion;
 using Snakk.Protos.Hub;
 using Snakk.Protos.Space;
 
@@ -29,7 +28,6 @@ public class DetailModel(
     public string SidebarScopeId { get; set; } = string.Empty;
 
     // Trending settings
-    public bool ShowTrendingDiscussions => Configuration.GetValue("Trending:CommunityPage:ShowDiscussions", true);
     public bool ShowTrendingSpaces => Configuration.GetValue("Trending:CommunityPage:ShowSpaces", true);
     public bool ShowTrendingContributors => Configuration.GetValue("Trending:CommunityPage:ShowContributors", true);
 
@@ -41,7 +39,6 @@ public class DetailModel(
 
     // Inline sidebar data (populated from cache, null = HTMX fallback)
     public SidebarPlatformStatsVM? InlineCommunityStats { get; set; }
-    public SidebarTrendingDiscussionsVM? InlineTrendingDiscussions { get; set; }
     public SidebarTrendingSpacesVM? InlineTrendingSpaces { get; set; }
     public SidebarTrendingContributorsVM? InlineTrendingContributors { get; set; }
     public SidebarCommunityRulesVM? InlineCommunityRules { get; set; }
@@ -49,6 +46,8 @@ public class DetailModel(
 
     public async Task<IActionResult> OnGetAsync(string slug, int offset = 0, CancellationToken cancellationToken = default)
     {
+        Preload("community");
+        Preload("discussion-card");
         cancellationToken.ThrowIfCancellationRequested();
         var communityResult = await _apiClient.GetCommunityBySlugResultAsync(slug);
 
@@ -79,10 +78,9 @@ public class DetailModel(
                 () => _apiClient.GetCommunityRulesAsync(CommunityDetail.PublicId),
                 d => new SidebarCommunityRulesVM(d, "cache"));
 
-        var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
-
         // Check cache for sidebar data — inline if warm, prefetch if cold
-        ResolveSidebarData(viewerAllowsAdult);
+        ResolveSidebarData();
+        await EnsureSidebarDataAsync();
 
         var hubsTask = _apiClient.GetHubsByCommunityAsync(CommunityDetail.PublicId, 0, 50);
         var announcementsTask = _apiClient.GetActiveBannersForCommunityAsync(CommunityDetail.PublicId);
@@ -126,16 +124,9 @@ public class DetailModel(
         return Page();
     }
 
-    private void ResolveSidebarData(bool viewerAllowsAdult)
+    private void ResolveSidebarData()
     {
         var communityId = CommunityDetail!.PublicId;
-        var adultSuffix = viewerAllowsAdult ? "adult" : "safe";
-
-        if (ShowTrendingDiscussions)
-            InlineTrendingDiscussions = prefetchCache.ResolveOrPrefetch(
-                $"trending-discussions:{SidebarScopeType}:{SidebarScopeId}:{adultSuffix}",
-                () => _apiClient.GetTopActiveDiscussionsTodayAsync(communityId: communityId, viewerAllowsAdult: viewerAllowsAdult),
-                d => new SidebarTrendingDiscussionsVM(d, CommunityContext, "cache"));
 
         if (ShowTrendingSpaces)
             InlineTrendingSpaces = prefetchCache.ResolveOrPrefetch(
@@ -156,5 +147,41 @@ public class DetailModel(
                 d,
                 $"{Helpers.SnakkUrlHelper.Community(CommunityDetail!.Slug, CommunityContext)}/moderators",
                 "cache"));
+    }
+
+    private async Task EnsureSidebarDataAsync()
+    {
+        var tasks = new List<Task>();
+        if (InlineTrendingSpaces is null && ShowTrendingSpaces)
+            tasks.Add(FetchTrendingSpacesAsync());
+        if (InlineTrendingContributors is null && ShowTrendingContributors)
+            tasks.Add(FetchTrendingContributorsAsync());
+        await Task.WhenAll(tasks);
+    }
+
+    private async Task FetchTrendingSpacesAsync()
+    {
+        try
+        {
+            var result = await prefetchCache.GetOrFetchAsync(
+                $"trending-spaces:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopActiveSpacesTodayAsync(communityId: CommunityDetail!.PublicId));
+            if (result.Value is not null)
+                InlineTrendingSpaces = new(result.Value, CommunityContext, result.Source);
+        }
+        catch { }
+    }
+
+    private async Task FetchTrendingContributorsAsync()
+    {
+        try
+        {
+            var result = await prefetchCache.GetOrFetchAsync(
+                $"trending-contributors:{SidebarScopeType}:{SidebarScopeId}",
+                () => _apiClient.GetTopContributorsTodayAsync(communityId: CommunityDetail!.PublicId));
+            if (result.Value is not null)
+                InlineTrendingContributors = new(result.Value, CommunityContext, result.Source);
+        }
+        catch { }
     }
 }

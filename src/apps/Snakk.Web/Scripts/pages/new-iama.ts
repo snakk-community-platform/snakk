@@ -17,7 +17,7 @@
 
         if (toggle && fields && startInput) {
             const toggleHandler = () => {
-                fields.classList.toggle('hidden', !toggle.checked);
+                fields.classList.toggle('sn-hidden', !toggle.checked);
                 startInput.required = toggle.checked;
             };
             toggle.addEventListener('change', toggleHandler);

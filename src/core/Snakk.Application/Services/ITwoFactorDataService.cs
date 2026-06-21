@@ -59,6 +59,7 @@ public sealed class TwoFactorUserData
     public required string? AvatarFileName { get; init; }
     public required long AuthVersion { get; init; }
     public required bool TwoFactorEnabled { get; init; }
+    public string? Slug { get; init; }
     public required string? TwoFactorSecret { get; init; }
     public required DateTime? LockoutEnd { get; init; }
     public required List<TwoFactorBackupCodeData> BackupCodes { get; init; }

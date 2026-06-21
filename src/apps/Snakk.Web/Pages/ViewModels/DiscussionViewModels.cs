@@ -12,7 +12,19 @@ public record DiscussionListItemVM(
     bool ShowUser = true,
     bool ShowPath = true,
     string? UnfollowId = null,
-    bool IsFirst = false);
+    bool IsFirst = false,
+    string? ReactionEmoji = null,
+    string? UnsaveId = null,
+    int? Rank = null,
+    DateTime? SavedAt = null,
+    bool ShowStats = false,
+    DateTime? VisitedAt = null,
+    string? RemoveHistoryId = null,
+    DateTime? ReactedAt = null,
+    DateTime? FollowedAt = null,
+    bool HideInlineStats = false,
+    int? UnreadCount = null,
+    bool GotoUnread = false);
 
 public record SpaceDiscussionListItemVM(
     DiscussionBySpaceInfo Discussion,

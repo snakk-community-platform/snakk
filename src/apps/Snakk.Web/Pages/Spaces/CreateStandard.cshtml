@@ -1,0 +1,36 @@
+@page "/create/standard"
+@using Snakk.Web.Helpers
+@using Snakk.Web.Services
+@inject ICommunityContext CommunityCtx
+@model Snakk.Web.Pages.Spaces.NewStandardModel
+@{
+    Layout = "~/Pages/Shared/_NewDiscussionLayout.cshtml";
+    ViewData["Title"] = string.Format(T.Pages.SpacesNewStdTitlePattern, Model.Space?.Name);
+    ViewData["NewDiscussion.Crumb"]       = T.Pages.SpacesNewStdCrumb;
+    ViewData["NewDiscussion.Heading"]     = T.Pages.SpacesNewStdHeading;
+    ViewData["NewDiscussion.TitlePh"]     = T.Pages.SpacesNewStdTitlePh;
+    ViewData["NewDiscussion.SubmitLabel"] = T.Pages.SpacesNewStdSubmit;
+}
+
+<div class="sn-create-space-info-section">
+    <h3 class="sn-section-label--createstandard">@T.Pages.SpacesNewStdHowHeading</h3>
+    <div class="sn-create-space-info-body">
+        <p>@T.Pages.SpacesNewStdIntro</p>
+        <div>
+            <div class="sn-info-list-label">@T.Pages.SpacesNewStdWhatNext</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
+                <li>@T.Pages.SpacesNewStdWhatNext1</li>
+                <li>@T.Pages.SpacesNewStdWhatNext2</li>
+                <li>@T.Pages.SpacesNewStdWhatNext3</li>
+            </ul>
+        </div>
+        <div>
+            <div class="sn-info-list-label">@T.Pages.SpacesNewTips</div>
+            <ul class="sn-space-y-1 list-disc sn-pl-4">
+                <li>@T.Pages.SpacesNewStdTip1</li>
+                <li>@T.Pages.SpacesNewStdTip2</li>
+                <li>@T.Pages.SpacesNewStdTip3</li>
+            </ul>
+        </div>
+    </div>
+</div>

@@ -64,269 +64,273 @@ else
 
 
 
-@section LeftColumn {
-@{
-    ViewData["LeftNav.NewDiscussionUrl"] = "/new?spaceId=" + Model.Space?.PublicId;
-}
-<partial name="Shared/_LeftSidebar" />
-}
+    @section LeftColumn {
+        @{
+            ViewData["LeftNav.NewDiscussionUrl"] = "/create?spaceId=" + Model.Space?.PublicId;
+        }
+        <partial name="Shared/_LeftSidebar" />
+    }
 
-<!-- Center Column -->
-<div class="sn-center">
-    @* Hero card lives outside .sn-center-inner so it sits flush against the
+    <!-- Center Column -->
+    <div class="sn-center">
+        @* Hero card lives outside .sn-center-inner so it sits flush against the
        sides of the center column (no padding around it). *@
-    <div class="sn-breadcrumb-bar sn-breadcrumb-bar--colored" style="background-image: @SpaceGradient(Model.Space.PublicId, 45)">
-        @if (Model.ShowCommunityInBreadcrumb)
-        {
-            <a href="/c/@Model.Community.CommunitySlug" class="badge badge-ghost badge-sm"
-               data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
-               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-            <span class="sn-page-labels-sep">›</span>
-        }
-        else if (!Model.Community.IsMultiCommunityEnabled)
-        {
-            <a href="/c" class="badge badge-ghost badge-sm"
-               data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
-               data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
-            <span class="sn-page-labels-sep">›</span>
-        }
-        <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="badge badge-ghost badge-sm"
-           data-popup-type="hub" data-popup-id="@Model.Hub?.PublicId" data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
-    </div>
-    <div class="sn-space-card">
-        <div class="sn-space-card-banner" style="background-image: @SpaceGradient(Model.Space.PublicId)">
-            <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId, avatarFileName: Model.Space.HasAvatarFileName ? Model.Space.AvatarFileName : null)"
-                 alt="" width="56" height="56"
-                 class="sn-space-avatar" decoding="async" />
-            <h1 class="sn-space-name">@Model.Space.Name</h1>
-        </div>
-    </div>
-
-    <div class="sn-center-inner">
-        <partial name="_Banners" model="Model.Banners?.Banners" />
-
-        <!-- Discussions -->
-        <h2 class="sn-section-title">
-            <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
-            @T.Pages.SpaceDetailDiscussions
-        </h2>
-
-        @if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
-        {
-            <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.SpaceDetailNoDiscussions)" />
-        }
-        else
-        {
-            <div id="discussions-container" class="h-feed">
-                @foreach (var discussion in Model.Discussions.Items)
-                {
-                    @await Html.PartialAsync("Shared/_DiscussionCard",
-                        new DiscussionListItemVM(discussion, Model.ShowCommunityInBreadcrumb, Model.Community, ShowPath: false))
-                }
-
-                @if (Model.Discussions.HasMoreItems && Model.Discussions.HasNextCursor)
-                {
-                    var nextCursor = Model.Discussions.NextCursor;
-
-                    <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20&spaceId=@Model.Space.PublicId&hidePath=true"
-                         hx-trigger="revealed once"
-                         hx-swap="outerHTML"
-                         hx-target="this"
-                         hx-push-url="false"
-                         class="py-2">
-                        <partial name="Shared/_DiscussionSkeleton" />
-                    </div>
-                }
-                else
-                {
-                    <partial name="Shared/_EndOfScroll" />
-                }
-            </div>
-        }
-    </div>
-</div>
-
-<!-- Right Column -->
-<aside class="sn-right">
-@{
-    ViewData["RightPane.NewDiscussionUrl"] = "/new?spaceId=" + Model.Space.PublicId;
-    ViewData["RightPane.Actions"] = new[] { "feed", "share", "subscribe", "manage" };
-    ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.HubSlug}/{Model.Slug}/feed";
-    ViewData["RightPane.ShareTitle"] = Model.Space?.Name ?? T.Pages.SpaceDetailFallbackTitle;
-    ViewData["RightPane.ShareIsPublic"] = Model.Space is not { IsRestricted: true };
-    ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageSpace(Model.Community, Model.Hub?.Slug ?? "", Model.Space!.Slug);
-    ViewData["RightPane.SubscribeAction"] = "toggle-follow-space";
-}
-<div class="sn-right-sticky">
-    <partial name="Shared/_RightActionPane" />
-    <div class="sn-right-body">
-    @if (Model.SpaceStats != null)
-    {
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-chart-bar" aria-hidden="true"></span>
-            @T.Sections.SpaceStats
-        </div>
-        <div class="sn-sidebar-stats">
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-title">@T.Pages.SpaceDetailStatsDiscussions</div>
-                    <div class="stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
-                </div>
-            </div>
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-title">@T.Pages.SpaceDetailStatsReplies</div>
-                    <div class="stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
-                </div>
-            </div>
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-title">@T.Pages.SpaceDetailStatsFollowers</div>
-                    <div class="stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
-                </div>
-            </div>
-            <div class="stats shadow">
-                <div class="stat">
-                    <div class="stat-title">@T.Pages.SpaceDetailStatsActivity</div>
-                    <div class="sn-sparkline-container sn-right-sparkline"
-                         data-sparkline-type="space"
-                         data-sparkline-id="@Model.Space!.PublicId"
-                         data-sparkline-days="7"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    }
-    <!-- About -->
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-info-circle" aria-hidden="true"></span>
-            @T.Pages.SpaceDetailAboutPrefix@Model.Space.Name
-        </div>
-        @if (!string.IsNullOrEmpty(Model.Space.Description))
-        {
-            <p class="text-sm mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
-        }
-    </div>
-
-    @if (Model.Space.HasDiscordInviteUrl && !string.IsNullOrEmpty(Model.Space.DiscordInviteUrl))
-    {
-        <partial name="Shared/Sidebar/_DiscordCta" model="@Model.Space.DiscordInviteUrl" />
-    }
-
-    <!-- Rules -->
-    @if (Model.Space.HasRules)
-    {
-        <div class="sn-right-section">
-            <div class="sn-right-title">
-                <span class="icon icon-document-text" aria-hidden="true"></span>
-                @T.Pages.SpaceDetailRules
-            </div>
-            <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
-                             model="Model.InlineSpaceRules"
-                             htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
-                <div class="flex flex-col gap-2" style="min-height:3.5rem">
-                    <div class="skeleton h-3 w-3/4"></div>
-                    <div class="skeleton h-3 w-2/3"></div>
-                    <div class="skeleton h-3 w-1/2"></div>
-                </div>
-            </inline-or-htmx>
-        </div>
-    }
-
-    <!-- Moderators -->
-    <div class="sn-right-section">
-        <div class="sn-right-title">
-            <span class="icon icon-shield-check" aria-hidden="true"></span>
-            @T.Pages.SpaceDetailModerators
-            @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
+        <div class="sn-breadcrumb-bar sn-breadcrumb-bar--colored" style="background-image: @SpaceGradient(Model.Space.PublicId, 45)">
+            @if (Model.ShowCommunityInBreadcrumb)
             {
-                <span class="text-xs font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
+                <a href="/c/@Model.Community.CommunitySlug" class="sn-badge sn-badge-ghost sn-badge-sm"
+                   data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
+                   data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+                <span class="sn-page-labels-sep">›</span>
+            }
+            else if (!Model.Community.IsMultiCommunityEnabled)
+            {
+                <a href="/c" class="sn-badge sn-badge-ghost sn-badge-sm"
+                   data-popup-type="community" data-popup-id="@Model.CommunityDetail?.PublicId"
+                   data-popup-name="@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)">@(Model.Community.CommunityName ?? Model.Community.CommunitySlug)</a>
+                <span class="sn-page-labels-sep">›</span>
+            }
+            <a href="@SnakkUrlHelper.Hub(Model.Community, Model.HubSlug)" class="sn-badge sn-badge-ghost sn-badge-sm"
+               data-popup-type="hub" data-popup-id="@Model.Hub?.PublicId" data-popup-name="@Model.Hub?.Name">@(Model.Hub?.Name ?? Model.HubSlug)</a>
+        </div>
+        <div class="sn-space-card">
+            <div class="sn-space-card-banner" style="background-image: @SpaceGradient(Model.Space.PublicId)">
+                <img src="@SnakkUrlHelper.SpaceAvatar(Model.Space.PublicId, avatarFileName: Model.Space.HasAvatarFileName ? Model.Space.AvatarFileName : null)"
+                     alt="" width="56" height="56"
+                     class="sn-space-avatar" decoding="async" />
+                <h1 class="sn-space-name">@Model.Space.Name</h1>
+            </div>
+        </div>
+
+        <div class="sn-center-inner">
+            <partial name="_Banners" model="Model.Banners?.Banners" />
+
+            <!-- Discussions -->
+            <h2 class="sn-section-title">
+                <span class="icon icon-chat-bubbles" aria-hidden="true"></span>
+                @T.Pages.SpaceDetailDiscussions
+            </h2>
+
+            @if (Model.Discussions?.Items == null || !Model.Discussions.Items.Any())
+            {
+                <partial name="Shared/_EmptyState" model="new EmptyStateVM(T.Pages.SpaceDetailNoDiscussions)" />
+            }
+            else
+            {
+                <div id="discussions-container" class="h-feed">
+                    @foreach (var discussion in Model.Discussions.Items)
+                    {
+                        @await Html.PartialAsync("Shared/_DiscussionCard",
+                            new DiscussionListItemVM(discussion, Model.ShowCommunityInBreadcrumb, Model.Community, ShowPath: false))
+                    }
+
+                    @if (Model.Discussions.HasMoreItems && Model.Discussions.HasNextCursor)
+                    {
+                        var nextCursor = Model.Discussions.NextCursor;
+
+                        <div hx-get="/partials/discussions?cursor=@nextCursor&pageSize=20&spaceId=@Model.Space.PublicId&hidePath=true"
+                             hx-trigger="revealed once"
+                             hx-swap="outerHTML"
+                             hx-target="this"
+                             hx-push-url="false"
+                             class="sn-py-2">
+                            <partial name="Shared/_DiscussionSkeleton" />
+                        </div>
+                    }
+                    else
+                    {
+                        <partial name="Shared/_EndOfScroll" />
+                    }
+                </div>
             }
         </div>
-        <inline-or-htmx partial="Shared/Sidebar/_Moderators"
-                         model="Model.InlineModerators"
-                         htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Slug))/moderators&rev=@Model.Space.TeamRevision">
-            <div class="flex flex-col gap-2" style="min-height:4rem">
-                <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-24"></div></div>
-                <div class="flex items-center gap-2"><div class="skeleton h-6 w-6 rounded-full shrink-0"></div><div class="skeleton h-3 w-20"></div></div>
-            </div>
-        </inline-or-htmx>
     </div>
 
-    <!-- Trending -->
-    @{
-        var hasDiscussions = Model.ShowTrendingDiscussions && Model.InlineTrendingDiscussions?.Discussions?.Items?.Count > 0;
-        var hasContributors = Model.ShowTrendingContributors && Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0;
-    }
-    @if (hasDiscussions || hasContributors)
+    <!-- Right Column -->
+    @if (!DeviceDetection.IsMobile(HttpContext))
     {
-        <div class="sn-right-section">
-            <div class="sn-right-title">
-                <span class="icon icon-trending-up" aria-hidden="true"></span>
-                @T.Pages.SpaceDetailTrending
-            </div>
+    <aside class="sn-right">
+        @{
+            ViewData["RightPane.NewDiscussionUrl"] = "/create?spaceId=" + Model.Space.PublicId;
+            ViewData["RightPane.Actions"] = new[] { "feed", "share", "subscribe", "manage" };
+            ViewData["RightPane.FeedUrl"] = $"/c/{Model.Community.CommunitySlug}/h/{Model.HubSlug}/{Model.Slug}/feed";
+            ViewData["RightPane.ShareTitle"] = Model.Space?.Name ?? T.Pages.SpaceDetailFallbackTitle;
+            ViewData["RightPane.ShareIsPublic"] = Model.Space is not { IsRestricted: true };
+            ViewData["RightPane.ManageUrl"] = SnakkUrlHelper.ManageSpace(Model.Community, Model.Hub?.Slug ?? "", Model.Space!.Slug);
+            ViewData["RightPane.SubscribeAction"] = "toggle-follow-space";
+        }
+        <div class="sn-right-sticky">
+            <partial name="Shared/_RightActionPane" />
+            <div class="sn-right-body">
+                @if (Model.SpaceStats != null)
+                {
+                    <div class="sn-right-section">
+                        <div class="sn-right-title">
+                            <span class="icon icon-chart-bar" aria-hidden="true"></span>
+                            @T.Sections.SpaceStats
+                        </div>
+                        <div class="sn-sidebar-stats">
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.SpaceDetailStatsDiscussions</div>
+                                    <div class="sn-stat-value">@FormatCount(Model.SpaceStats.DiscussionCount)</div>
+                                </div>
+                            </div>
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.SpaceDetailStatsReplies</div>
+                                    <div class="sn-stat-value">@FormatCount(Model.SpaceStats.ReplyCount)</div>
+                                </div>
+                            </div>
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.SpaceDetailStatsFollowers</div>
+                                    <div class="sn-stat-value">@FormatCount(Model.SpaceStats.FollowerCount)</div>
+                                </div>
+                            </div>
+                            <div class="sn-stats sn-shadow-layered-light">
+                                <div class="sn-stat">
+                                    <div class="sn-stat-title">@T.Pages.SpaceDetailStatsActivity</div>
+                                    <div class="sn-sparkline-container sn-right-sparkline"
+                                         data-sparkline-type="space"
+                                         data-sparkline-id="@Model.Space!.PublicId"
+                                         data-sparkline-days="7"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <!-- About -->
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="icon icon-info-circle" aria-hidden="true"></span>
+                        @T.Pages.SpaceDetailAboutPrefix@Model.Space.Name
+                    </div>
+                    @if (!string.IsNullOrEmpty(Model.Space.Description))
+                    {
+                        <p class="sn-text-sm sn-mb-3" style="color: var(--text-secondary)">@Model.Space.Description</p>
+                    }
+                </div>
 
-            @if (hasDiscussions)
-            {
-                <div class="sn-right-subsection">
-                    <div class="sn-right-subtitle">@T.Pages.SpaceDetailTrendingDiscussions</div>
-                    <div class="sn-trending-list">
-                        @foreach (var d in Model.InlineTrendingDiscussions!.Discussions!.Items)
+                @if (Model.Space.HasDiscordInviteUrl && !string.IsNullOrEmpty(Model.Space.DiscordInviteUrl))
+                {
+                    <partial name="Shared/Sidebar/_DiscordCta" model="@Model.Space.DiscordInviteUrl" />
+                }
+
+                <!-- Rules -->
+                @if (Model.Space.HasRules)
+                {
+                    <div class="sn-right-section">
+                        <div class="sn-right-title">
+                            <span class="icon icon-document-text" aria-hidden="true"></span>
+                            @T.Pages.SpaceDetailRules
+                        </div>
+                        <inline-or-htmx partial="Shared/Sidebar/_SpaceRules"
+                                        model="Model.InlineSpaceRules"
+                                        htmx-url="/partials/space-rules?spaceId=@Model.Space.PublicId&rev=@Model.Space.RulesRevision">
+                            <div class="sn-skeleton-stack" style="min-height:3.5rem">
+                                <div class="sn-skeleton h-3 w-3/4"></div>
+                                <div class="sn-skeleton h-3 w-2/3"></div>
+                                <div class="sn-skeleton h-3 w-1/2"></div>
+                            </div>
+                        </inline-or-htmx>
+                    </div>
+                }
+
+                <!-- Moderators -->
+                <div class="sn-right-section">
+                    <div class="sn-right-title">
+                        <span class="icon icon-shield-check" aria-hidden="true"></span>
+                        @T.Pages.SpaceDetailModerators
+                        @if (Model.InlineModerators?.Moderators?.TotalCount is int modCount && modCount > 0)
                         {
-                            var trendUrl = SnakkUrlHelper.Discussion(
-                                d.CommunitySlug, Model.Community,
-                                d.Hub.Slug,
-                                d.Space.Slug,
-                                SnakkUrlHelper.DiscussionSlugId(d.Slug, d.PublicId));
-
-                            <a href="@trendUrl" class="sn-trending-discussion">
-                                <div class="sn-trending-discussion-header">
-                                    <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" loading="lazy" decoding="async" />
-                                    <span>@d.Author.DisplayName</span>
-                                </div>
-                                <div class="sn-trending-discussion-title-row">
-                                    <span class="sn-trending-discussion-title">@d.Title</span>
-                                    <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
-                                        <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
-                                        @d.PostCountToday
-                                    </span>
-                                </div>
-                            </a>
+                            <span class="sn-text-xs sn-font-normal" style="color: var(--text-tertiary)">(@modCount)</span>
                         }
                     </div>
+                    <inline-or-htmx partial="Shared/Sidebar/_Moderators"
+                                    model="Model.InlineModerators"
+                                    htmx-url="/partials/moderators?scopeType=Space&scopeId=@Model.Space.PublicId&moderatorsUrl=@(SnakkUrlHelper.Space(Model.Community, Model.HubSlug, Model.Slug))/moderators&rev=@Model.Space.TeamRevision">
+                        <div class="sn-grid sn-grid-cols-8 sn-gap-1">
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                            <div class="sn-skeleton sn-rounded-full aspect-square sn-w-full"></div>
+                        </div>
+                    </inline-or-htmx>
                 </div>
-            }
 
-            @if (hasContributors)
-            {
-                <div class="sn-right-subsection">
-                    <div class="sn-right-subtitle">@T.Pages.SpaceDetailTrendingContributors</div>
-                    <div class="sn-trending-list">
-                        @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
+                <!-- Trending -->
+                @{
+                    var hasDiscussions = Model.ShowTrendingDiscussions && Model.InlineTrendingDiscussions?.Discussions?.Items?.Count > 0;
+                    var hasContributors = Model.ShowTrendingContributors && Model.InlineTrendingContributors?.Contributors?.Items?.Count > 0;
+                }
+                @if (hasDiscussions || hasContributors)
+                {
+                    <div class="sn-right-section">
+                        <div class="sn-right-title">
+                            <span class="icon icon-trending-up" aria-hidden="true"></span>
+                            @T.Pages.SpaceDetailTrending
+                        </div>
+
+                        @if (hasDiscussions)
                         {
-                            <a href="@SnakkUrlHelper.UserProfile(c.PublicId)" class="sn-trending-contributor">
-                                <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square" width="28" height="28" loading="lazy" decoding="async" />
-                                <span class="sn-trending-contributor-name">@c.DisplayName</span>
-                                <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
-                                    <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
-                                    @c.PostCountToday
-                                </span>
-                            </a>
+                            <div class="sn-right-subsection">
+                                <div class="sn-right-subtitle">@T.Pages.SpaceDetailTrendingDiscussions</div>
+                                <div class="sn-trending-list">
+                                    @foreach (var d in Model.InlineTrendingDiscussions!.Discussions!.Items)
+                                    {
+                                        var trendUrl = SnakkUrlHelper.Discussion(
+                                            d.CommunitySlug, Model.Community,
+                                            d.Hub.Slug,
+                                            d.Space.Slug,
+                                            SnakkUrlHelper.DiscussionSlugId(d.Slug, d.PublicId));
+
+                                        <a href="@trendUrl" class="sn-trending-discussion">
+                                            <div class="sn-trending-discussion-header">
+                                                <img src="@d.Author.AvatarMicroUrl" alt="" width="16" height="16" class="sn-shadow-layered" loading="lazy" decoding="async" />
+                                                <span>@d.Author.DisplayName</span>
+                                            </div>
+                                            <div class="sn-trending-discussion-title-row">
+                                                <span class="sn-trending-discussion-title">@d.Title</span>
+                                                <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
+                                                    <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
+                                                    @d.PostCountToday
+                                                </span>
+                                            </div>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        @if (hasContributors)
+                        {
+                            <div class="sn-right-subsection">
+                                <div class="sn-right-subtitle">@T.Pages.SpaceDetailTrendingContributors</div>
+                                <div class="sn-trending-list">
+                                    @foreach (var c in Model.InlineTrendingContributors!.Contributors!.Items)
+                                    {
+                                        <a href="@SnakkUrlHelper.UserProfile(c.Slug)" class="sn-trending-contributor">
+                                            <img src="@c.AvatarMicroUrl" alt="" class="sn-avatar-square sn-shadow-layered" width="28" height="28" loading="lazy" decoding="async" />
+                                            <span class="sn-trending-contributor-name">@c.DisplayName</span>
+                                            <span class="sn-card-tag sn-card-tag-light sn-tag-sm">
+                                                <span class="icon icon-chat-bubble-filled w-2.5 h-2.5" aria-hidden="true"></span>
+                                                @c.PostCountToday
+                                            </span>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
                         }
                     </div>
-                </div>
-            }
+                }
+            </div>
         </div>
+    </aside>
     }
-    </div>
-</div>
-</aside>
 
-@section Scripts {
-    <script type="application/json" id="space-page-config">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { communityPrefix = SnakkUrlHelper.CommunityPrefix(Model.Community), space = new { publicId = Model.Space!.PublicId, hubSlug = Model.HubSlug, slug = Model.Slug } }))</script>
-    <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>
-    <script src="@SnakkUrlHelper.Js("pages/space-detail")" asp-append-version="true" defer></script>
-}
+    @section Scripts {
+        <script type="application/json" id="space-page-config">@Html.Raw(System.Text.Json.JsonSerializer.Serialize(new { communityPrefix = SnakkUrlHelper.CommunityPrefix(Model.Community), space = new { publicId = Model.Space!.PublicId, hubSlug = Model.HubSlug, slug = Model.Slug } }))</script>
+        <script src="@SnakkUrlHelper.Js("components/discussion-preview")" asp-append-version="true" defer></script>
+        <script src="@SnakkUrlHelper.Js("pages/space-detail")" asp-append-version="true" defer></script>
+    }
 }

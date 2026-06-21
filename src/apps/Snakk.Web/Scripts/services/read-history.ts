@@ -62,7 +62,12 @@ interface SnakkReadHistoryAPI {
         }
     }
 
+    function isHistoryDisabled(): boolean {
+        return document.cookie.split(';').some(c => c.trim() === '.Snakk.Pref.DisableHistory=1');
+    }
+
     function addToReadHistory(discussion: Partial<ReadHistoryEntry>): void {
+        if (isHistoryDisabled()) return;
         if (!discussion || !discussion.discussionPublicId) {
             console.error('Invalid discussion data for read history');
             return;

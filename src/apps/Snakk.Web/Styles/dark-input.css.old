@@ -1,0 +1,13 @@
+/* Dark theme only — generates [data-theme="dark"] CSS custom properties */
+@import "tailwindcss" source(none);
+
+@theme {
+    --color-*: initial;
+    --drop-shadow-*: initial;
+    --blur-*: initial;
+}
+
+@plugin "daisyui" {
+    themes: dark;
+    exclude: carousel, diff, dock, textrotate, swap, rating, chat, calendar, steps, toast, status, validator;
+}
