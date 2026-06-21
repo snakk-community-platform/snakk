@@ -27,6 +27,7 @@ public class TestWebServer : WebApplicationFactory<Program>
             // Add test-specific configuration with known JWT secret
             var testConfig = new Dictionary<string, string?>
             {
+                ["Valkey:ConnectionString"] = "",   // force in-memory IDistributedCache — no Valkey in tests
                 ["Jwt:SecretKey"] = AuthHelper.TestJwtSecret,
                 ["Jwt:Issuer"] = AuthHelper.TestJwtIssuer,
                 ["Jwt:Audience"] = AuthHelper.TestJwtAudience,
@@ -80,6 +81,10 @@ public class TestWebServer : WebApplicationFactory<Program>
                 services.Remove(descriptor);
 
             services.AddHealthChecks();
+
+            // Replace the HTTP-based notifier with a no-op so tests don't make
+            // outbound calls to the Realtime service (localhost:15300).
+            services.AddScoped<Snakk.Application.Services.IRealtimeNotifier, NullRealtimeNotifier>();
 
             // Use ephemeral (in-memory) data protection — no Postgres key storage needed in tests
             services.AddSingleton<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(

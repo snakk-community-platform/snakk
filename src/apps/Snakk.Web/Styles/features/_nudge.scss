@@ -17,6 +17,11 @@
     align-items: center;
     justify-content: center;
     margin-bottom: var(--space-2);
+
+    .icon {
+        width: 1.5rem;
+        height: 1.5rem;
+    }
 }
 
 .sn-nudge-icon {
