@@ -1,0 +1,67 @@
+@model PostReactionsVM
+
+@if (Model.IsOp)
+{
+    @* OP badge: outer div handles click; inner div (#reactions-{id}) is targeted by JS *@
+    if (Model.HasReactions || Model.IsAuthenticated)
+    {
+        <div class="sn-reaction-badge sn-shrink-0 sn-shadow-layered @(Model.CanReact ? "sn-cursor-pointer" : "")"
+             @if (Model.CanReact)
+             {
+                 <text>data-action="toggle-reaction-picker" data-post-id="@Model.PostPublicId"</text>
+             }
+             aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
+            @if (Model.CanReact)
+            {
+                if (!Model.HasReactions)
+                {
+                    <span class="icon icon-plus-circle sn-h-4 sn-w-4" aria-hidden="true"></span>
+                    <span class="icon icon-badge-check sn-h-4 sn-w-4" aria-hidden="true"></span>
+                }
+                else if (Model.MyReactions.Any())
+                {
+                    <span class="icon icon-refresh sn-h-4 sn-w-4" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span class="icon icon-plus-circle sn-h-4 sn-w-4" aria-hidden="true"></span>
+                }
+            }
+            <div id="reactions-@Model.PostPublicId"
+                 class="sn-reaction-display"
+                 data-reaction-counts="@Model.CountsJson"
+                 data-my-reactions="@Model.MyReactionsJson">
+                @foreach (var kvp in Model.Counts.Where(c => c.Value > 0))
+                {
+                    var isActive = Model.MyReactions.Contains(kvp.Key);
+                    <span data-type="@kvp.Key" class="@(isActive ? "sn-active" : "")"><span class="sn-reaction-icon">@Model.EmojiFor(kvp.Key)</span> @kvp.Value</span>
+                }
+            </div>
+        </div>
+    }
+}
+else
+{
+    @* Reply / standalone post: single div carries both the id and the data-action *@
+    <div class="sn-post-reaction-row @(Model.CanReact ? "sn-cursor-pointer" : "")"
+         id="reactions-@Model.PostPublicId"
+         data-reaction-counts="@Model.CountsJson"
+         data-my-reactions="@Model.MyReactionsJson"
+         @if (Model.CanReact)
+         {
+             <text>data-action="toggle-reaction-picker" data-post-id="@Model.PostPublicId"</text>
+         }
+         aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
+        @foreach (var kvp in Model.Counts.Where(c => c.Value > 0))
+        {
+            var isActive = Model.MyReactions.Contains(kvp.Key);
+            <span data-type="@kvp.Key" class="@(isActive ? "sn-active" : "")"><span class="sn-reaction-icon">@Model.EmojiFor(kvp.Key)</span> @kvp.Value</span>
+        }
+        @if (!Model.HasReactions && Model.CanReact)
+        {
+            <span class="sn-reaction-placeholder" data-reaction-placeholder>
+                <span class="icon icon-badge-check sn-h-4 sn-w-4" aria-hidden="true"></span>
+            </span>
+        }
+    </div>
+}

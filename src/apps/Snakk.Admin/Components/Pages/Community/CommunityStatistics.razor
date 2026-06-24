@@ -1,0 +1,210 @@
+@page "/c/{Slug}/statistics"
+@layout Layout.ScopedLayout
+@inject ManageService.ManageServiceClient ManageClient
+@inject ISnackbar Snackbar
+@using Snakk.Protos.Manage
+
+<PageTitle>Statistics — Snakk Admin</PageTitle>
+
+@if (Scope is null)
+{
+    <MudProgressLinear Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Statistics</MudText>
+
+    <MudButtonGroup Size="Size.Small" Class="mb-4" OverrideStyles="false">
+        @foreach (var p in _periods)
+        {
+            <MudButton Variant="@(_days == p.Days ? Variant.Filled : Variant.Outlined)"
+                       Color="Color.Primary" OnClick="@(() => LoadData(p.Days))">@p.Label</MudButton>
+        }
+    </MudButtonGroup>
+
+    @if (_loading)
+    {
+        <MudProgressLinear Indeterminate="true" />
+    }
+    else
+    {
+        <MudTabs Elevation="0" Rounded="false" TabPanelsClass="pt-4">
+
+            <MudTabPanel Text="Overview">
+                <MudGrid Class="mb-4">
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-4 text-center">
+                            <MudText Typo="Typo.h4">@_totalDiscussions</MudText>
+                            <MudText Class="mud-text-secondary">Discussions</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-4 text-center">
+                            <MudText Typo="Typo.h4">@_totalPosts</MudText>
+                            <MudText Class="mud-text-secondary">Posts</MudText>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudPaper Class="pa-4 text-center">
+                            <MudText Typo="Typo.h4">@(_days > 0 ? ((_totalPosts + _totalDiscussions) / _days).ToString("N0") : "—")</MudText>
+                            <MudText Class="mud-text-secondary">Avg content/day</MudText>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Daily Activity</MudText>
+                    <MudChart T="double" ChartType="ChartType.Line" ChartSeries="@_activitySeries"
+                              ChartLabels="@_activityLabels" Width="100%" Height="300px"
+                              />
+                </MudPaper>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Content">
+                <MudGrid>
+                    <MudItem xs="12" md="5">
+                        <MudPaper Class="pa-4">
+                            <MudText Typo="Typo.h6" GutterBottom="true">Discussion Types</MudText>
+                            @if (_contentTypeSeries.Count > 0)
+                            {
+                                <MudChart T="double" ChartType="ChartType.Donut" ChartSeries="@_contentTypeSeries"
+                                          ChartLabels="@_contentTypeLabels" Width="280px" Height="280px" />
+                            }
+                            else
+                            {
+                                <MudText Class="mud-text-secondary">No data</MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="7">
+                        <MudPaper Class="pa-4">
+                            <MudText Typo="Typo.h6" GutterBottom="true">Top Discussions</MudText>
+                            <MudTable Items="@_topDiscussions" Dense="true" Hover="true" Elevation="0">
+                                <HeaderContent>
+                                    <MudTh>Title</MudTh>
+                                    <MudTh>Posts</MudTh>
+                                    <MudTh>Reactions</MudTh>
+                                </HeaderContent>
+                                <RowTemplate>
+                                    <MudTd>@context.Title</MudTd>
+                                    <MudTd>@context.PostCount</MudTd>
+                                    <MudTd>@context.ReactionCount</MudTd>
+                                </RowTemplate>
+                            </MudTable>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Contributors">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Top Contributors</MudText>
+                    <MudTable Items="@_contributors" Dense="true" Hover="true" Elevation="0">
+                        <HeaderContent>
+                            <MudTh>#</MudTh>
+                            <MudTh>User</MudTh>
+                            <MudTh>Discussions</MudTh>
+                            <MudTh>Posts</MudTh>
+                            <MudTh>Total</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@(_contributors.IndexOf(context) + 1)</MudTd>
+                            <MudTd>@context.DisplayName</MudTd>
+                            <MudTd>@context.DiscussionCount</MudTd>
+                            <MudTd>@context.PostCount</MudTd>
+                            <MudTd>@(context.PostCount + context.DiscussionCount)</MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Moderation">
+                <MudPaper Class="pa-4">
+                    <MudText Typo="Typo.h6" GutterBottom="true">Reports (weekly)</MudText>
+                    <MudChart T="double" ChartType="ChartType.Bar" ChartSeries="@_moderationSeries"
+                              ChartLabels="@_moderationLabels" Width="100%" Height="300px" />
+                </MudPaper>
+            </MudTabPanel>
+
+        </MudTabs>
+    }
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = "";
+    [CascadingParameter] public ManageScopeDto? Scope { get; set; }
+
+    private record PeriodOption(string Label, int Days);
+    private static readonly PeriodOption[] _periods =
+    [
+        new("7d", 7), new("30d", 30), new("90d", 90), new("1y", 365)
+    ];
+
+    private bool _loading;
+    private int _days = 30;
+
+    private List<ChartSeries<double>> _activitySeries = [];
+    private string[] _activityLabels = [];
+    private List<ChartSeries<double>> _contentTypeSeries = [];
+    private string[] _contentTypeLabels = [];
+    private List<TopDiscussionPoint> _topDiscussions = [];
+    private List<ScopeContributorPoint> _contributors = [];
+    private List<ChartSeries<double>> _moderationSeries = [];
+    private string[] _moderationLabels = [];
+    private int _totalPosts;
+    private int _totalDiscussions;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Scope is null) return;
+        await LoadData(_days);
+    }
+
+    private async Task LoadData(int days)
+    {
+        _days = days;
+        _loading = true;
+        StateHasChanged();
+        try
+        {
+            var charts = await ManageClient.GetDashboardChartsAsync(new GetDashboardChartsRequest
+            {
+                ScopeType = Scope!.ScopeType, ScopePublicId = Scope.ScopePublicId, Days = days
+            });
+            var charts2 = await ManageClient.GetDashboardCharts2Async(new GetDashboardCharts2Request
+            {
+                ScopeType = Scope!.ScopeType, ScopePublicId = Scope.ScopePublicId, Days = days
+            });
+            var contribs = await ManageClient.GetScopeTopContributorsAsync(new GetScopeTopContributorsRequest
+            {
+                ScopeType = Scope!.ScopeType, ScopePublicId = Scope.ScopePublicId, Days = days, Limit = 15
+            });
+
+            _activityLabels = charts.ActivitySeries
+                .Select(a => new DateTime(a.DateTicks).ToString("MMM d")).ToArray();
+            _activitySeries =
+            [
+                new ChartSeries<double> { Name = "Discussions", Data = charts.ActivitySeries.Select(a => (double)a.Discussions).ToArray() },
+                new ChartSeries<double> { Name = "Posts", Data = charts.ActivitySeries.Select(a => (double)a.Posts).ToArray() }
+            ];
+            _totalDiscussions = charts.ActivitySeries.Sum(a => a.Discussions);
+            _totalPosts = charts.ActivitySeries.Sum(a => a.Posts);
+
+            _contentTypeLabels = charts2.ContentTypeBreakdown.Select(c => c.DiscussionType).ToArray();
+            _contentTypeSeries = [.. charts2.ContentTypeBreakdown.Select(c =>
+                new ChartSeries<double> { Name = c.DiscussionType, Data = new ChartData<double>((double)c.Count) })];
+            _topDiscussions = [.. charts2.TopDiscussions];
+
+            _contributors = [.. contribs.Contributors];
+
+            _moderationLabels = charts.ModerationSeries
+                .Select(m => new DateTime(m.WeekStartTicks).ToString("MMM d")).ToArray();
+            _moderationSeries =
+            [
+                new ChartSeries<double> { Name = "Opened", Data = charts.ModerationSeries.Select(m => (double)m.ReportsOpened).ToArray() },
+                new ChartSeries<double> { Name = "Resolved", Data = charts.ModerationSeries.Select(m => (double)m.ReportsResolved).ToArray() }
+            ];
+        }
+        catch (Exception ex) { Snackbar.Add($"Failed to load statistics: {ex.Message}", Severity.Error); }
+        finally { _loading = false; }
+    }
+}
