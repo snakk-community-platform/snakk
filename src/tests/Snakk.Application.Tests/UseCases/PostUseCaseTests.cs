@@ -75,7 +75,10 @@ public class PostUseCaseTests
         await Assert.That(result.Value.CreatedByUserId).IsEqualTo(userId);
 
         await _postRepository.Received(1).AddAsync(Arg.Any<Post>());
-        await _discussionRepository.Received(1).UpdateAsync(discussion);
+        await _discussionRepository.Received(1).RecordReplyAsync(
+            discussion.PublicId, Arg.Any<DateTime>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
         await _counterService.Received(1).IncrementPostCountAsync(discussionId);
         await _eventDispatcher.Received(1).DispatchAsync(Arg.Any<IEnumerable<IDomainEvent>>());
         await _realtimeNotifier.Received(1).NotifyPostCreatedAsync(Arg.Any<Post>(), user, discussion);
@@ -410,7 +413,7 @@ public class PostUseCaseTests
         var userId = UserId.New();
         var discussion = Discussion.Create(SpaceId.New(), UserId.New(), "Test Discussion", "test-discussion");
         var user = User.CreateWithEmail("TestUser", "test@example.com", "hash", "token");
-        var originalActivity = discussion.LastActivityAt;
+        var originalActivity = discussion.LastActivityAt ?? DateTime.MinValue;
 
         Thread.Sleep(10);
 
@@ -419,7 +422,14 @@ public class PostUseCaseTests
 
         await _useCase.CreatePostAsync(discussionId, userId, "content");
 
-        await Assert.That(discussion.LastActivityAt!.Value).IsGreaterThan(originalActivity ?? DateTime.MinValue);
+        // Activity is bumped via the single targeted RecordReplyAsync write (no
+        // longer mutated on the in-memory entity), so assert the timestamp passed
+        // to the repository is newer than the discussion's original activity.
+        await _discussionRepository.Received(1).RecordReplyAsync(
+            discussion.PublicId,
+            Arg.Is<DateTime>(t => t > originalActivity),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(),
+            Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Test]
