@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using NSubstitute;
 using Snakk.DataProtection;
 using Snakk.Infrastructure.Database;
 
@@ -90,11 +91,11 @@ public class TestWebServer : WebApplicationFactory<Program>
             // DiscussionReadStateRepositoryAdapter injects IConnectionMultiplexer directly;
             // without this the production fallback attempts to connect to 127.0.0.1:6379.
             services.RemoveAll<StackExchange.Redis.IConnectionMultiplexer>();
-            var redisMock = NSubstitute.Substitute.For<StackExchange.Redis.IConnectionMultiplexer>();
-            var dbMock = NSubstitute.Substitute.For<StackExchange.Redis.IDatabase>();
-            var batchMock = NSubstitute.Substitute.For<StackExchange.Redis.IBatch>();
-            dbMock.CreateBatch(NSubstitute.Arg.Any<object>()).Returns(batchMock);
-            redisMock.GetDatabase(NSubstitute.Arg.Any<int>(), NSubstitute.Arg.Any<object>()).Returns(dbMock);
+            var redisMock = Substitute.For<StackExchange.Redis.IConnectionMultiplexer>();
+            var dbMock = Substitute.For<StackExchange.Redis.IDatabase>();
+            var batchMock = Substitute.For<StackExchange.Redis.IBatch>();
+            dbMock.CreateBatch(Arg.Any<object>()).Returns(batchMock);
+            redisMock.GetDatabase(Arg.Any<int>(), Arg.Any<object>()).Returns(dbMock);
             services.AddSingleton(redisMock);
 
             // Use ephemeral (in-memory) data protection — no Postgres key storage needed in tests

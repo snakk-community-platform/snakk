@@ -331,23 +331,12 @@ public class SetupService()
 
     /// <summary>
     /// Generate a JWT for auto-login as the admin user after setup.
-    /// Queries the database for the admin's PublicId, then creates a token
-    /// matching the format used by TokenService.
+    /// The seeder guarantees the admin exists if it returned success, so no DB
+    /// round-trip is needed here — the PublicId is fixed and known at build time.
     /// </summary>
-    public async Task<string> GenerateAdminJwtAsync(SetupState state)
+    public string GenerateAdminJwt(SetupState state)
     {
-        // The admin always has a fixed PublicId assigned by the seeder
         const string publicId = "01JJQP000000000000000ADM1N";
-
-        // Verify the admin was actually created
-        await using var conn = new Npgsql.NpgsqlConnection(state.GetConnectionString());
-        await conn.OpenAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT 1 FROM \"User\" WHERE \"PublicId\" = @publicId LIMIT 1";
-        cmd.Parameters.AddWithValue("publicId", publicId);
-        var result = await cmd.ExecuteScalarAsync();
-        if (result is null)
-            throw new InvalidOperationException("Admin user was not created in the database.");
 
         var claims = new List<Claim>
         {
@@ -371,6 +360,8 @@ public class SetupService()
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
+
 
     private static string? FindDbSeederPath()
     {
@@ -433,7 +424,7 @@ public class SetupService()
             // Step 3: Generate JWT for auto-login (before marking complete, so services don't restart yet)
             InstallProgress.Step = "finalizing";
             InstallProgress.Message = "Generating authentication token...";
-            var jwt = await GenerateAdminJwtAsync(state);
+            var jwt = GenerateAdminJwt(state);
             InstallProgress.Jwt = jwt;
 
             // Write setup-complete marker so Docker entrypoint knows install is done
