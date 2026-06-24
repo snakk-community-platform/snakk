@@ -4,7 +4,7 @@
     "build:css": "npx @tailwindcss/cli -i Styles/input.css -o wwwroot/css/setup.css --minify"
   },
   "devDependencies": {
-    "@tailwindcss/cli": "^4.3.0",
+    "@tailwindcss/cli": "^4.3.1",
     "daisyui": "^5.5.23"
   }
 }

@@ -33,14 +33,14 @@
   "devDependencies": {
     "@microsoft/signalr": "^10.0.0",
     "@types/dompurify": "^3.2.0",
-    "@types/node": "^25.9.2",
+    "@types/node": "^25.9.3",
     "bootstrap-icons": "^1.13.1",
     "concurrently": "^10.0.3",
     "dompurify": "^3.4.9",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "htmx-ext-head-support": "^2.0.5",
     "htmx.org": "^2.0.10",
-    "sass": "^1.100.0",
+    "sass": "^1.101.0",
     "simple-icons": "^16.23.0",
     "typescript": "^6.0.3"
   },
