@@ -33,7 +33,7 @@
   "devDependencies": {
     "@microsoft/signalr": "^10.0.0",
     "@types/dompurify": "^3.2.0",
-    "@types/node": "^25.9.3",
+    "@types/node": "^26.0.0",
     "bootstrap-icons": "^1.13.1",
     "concurrently": "^10.0.3",
     "dompurify": "^3.4.9",
