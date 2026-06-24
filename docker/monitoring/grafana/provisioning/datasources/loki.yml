@@ -1,0 +1,32 @@
+apiVersion: 1
+
+datasources:
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    isDefault: false
+    jsonData:
+      # Log → trace correlation. Our .NET services emit trace context as Loki
+      # *structured metadata* (not in the log line body), so the matchers below
+      # must use matcherType: label, which Grafana 10.2+ supports against
+      # structured-metadata fields.
+      #
+      # OTel SDK names the metadata fields `trace_id` (lowercase, OTel
+      # convention) and `TraceId` (Microsoft.Extensions.Logging convention) —
+      # we wire links for both so all log lines from any service get a
+      # one-click 'View trace' action.
+      derivedFields:
+        - name: trace_id
+          matcherType: label
+          matcherRegex: trace_id
+          url: '$${__value.raw}'
+          urlDisplayLabel: 'View trace'
+          datasourceUid: tempo
+        - name: TraceId
+          matcherType: label
+          matcherRegex: TraceId
+          url: '$${__value.raw}'
+          urlDisplayLabel: 'View trace'
+          datasourceUid: tempo

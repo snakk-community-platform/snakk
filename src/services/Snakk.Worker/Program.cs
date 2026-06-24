@@ -23,6 +23,7 @@ if (!builder.Environment.IsDevelopment() && builder.Environment.EnvironmentName 
 }
 
 //builder.AddSnakkDefaults();
+builder.AddSnakkObservability();
 
 // Database (PostgreSQL) with DbContext pooling for better performance
 var connectionString = new Npgsql.NpgsqlConnectionStringBuilder(

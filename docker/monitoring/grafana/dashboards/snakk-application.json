@@ -1,18 +1,50 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": [
+      {
+        "name": "k6 runs",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "enable": true,
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "expr": "max(k6_vus) > bool 0",
+        "step": "30s",
+        "titleFormat": "k6 load test",
+        "textFormat": "k6 scenario active (k6_vus > 0)",
+        "hide": false
+      }
+    ]
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "label": "Service",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": { "query": "label_values(http_server_request_duration_seconds_count, service_name)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "refresh": 2,
+        "sort": 1
+      }
+    ]
+  },
   "panels": [
     {
       "title": "In-Progress HTTP Requests",
+      "description": "Total in-flight HTTP requests across the selected services right now. Spikes above the yellow threshold while latency rises = saturating handlers.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "sum(http_requests_in_progress{job=~\"snakk-.*\"})",
+          "expr": "sum(http_server_active_requests{service_name=~\"$service\"})",
           "legendFormat": ""
         }
       ],
@@ -38,12 +70,13 @@
       }
     },
     {
-      "title": "Token Refreshes / min",
+      "title": "Authentications / min",
+      "description": "Rate of authenticate calls across all schemes (Cookies, Bearer JWT). High and stable is normal — every authenticated request triggers one.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
       "targets": [
         {
-          "expr": "sum(rate(snakk_token_refresh_total[5m])) * 60",
+          "expr": "sum(rate(aspnetcore_authentication_authenticate_duration_seconds_count{service_name=~\"$service\"}[5m])) * 60",
           "legendFormat": ""
         }
       ],
@@ -62,12 +95,13 @@
       }
     },
     {
-      "title": "Token Refresh Failures / min",
+      "title": "Authentication Failures / min",
+      "description": "Rate of authenticate calls that returned failure (bad credentials, expired token, etc.). Includes both Cookies and Bearer schemes. Sustained nonzero is a credential/token issue or an attack.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
       "targets": [
         {
-          "expr": "sum(rate(snakk_token_refresh_total{result=~\"error|unauthenticated\"}[5m])) * 60",
+          "expr": "sum(rate(aspnetcore_authentication_authenticate_duration_seconds_count{service_name=~\"$service\",aspnetcore_authentication_result=\"failure\"}[5m])) * 60",
           "legendFormat": ""
         }
       ],
@@ -94,12 +128,13 @@
       }
     },
     {
-      "title": "Pending Token Refreshes / min",
+      "title": "Rate-Limited Requests / min",
+      "description": "Requests blocked by an ASP.NET Core rate-limit policy (per-IP, per-endpoint, etc.). Brief spikes during burst traffic are expected; sustained nonzero in steady state suggests too-tight policies or a hot client.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "targets": [
         {
-          "expr": "rate(snakk_token_refresh_total{result=\"pending\"}[5m]) * 60",
+          "expr": "sum(rate(aspnetcore_rate_limiting_requests_total{service_name=~\"$service\",aspnetcore_rate_limiting_result!=\"acquired\"}[5m])) * 60",
           "legendFormat": ""
         }
       ],
@@ -127,12 +162,13 @@
     },
     {
       "title": "In-Progress HTTP Requests Over Time",
+      "description": "Per-service concurrency. Sustained climb on one service while others stay flat = handler stuck or downstream slow.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
       "targets": [
         {
-          "expr": "http_requests_in_progress{job=~\"snakk-.*\"}",
-          "legendFormat": "{{service}}"
+          "expr": "sum by (service_name) (http_server_active_requests{service_name=~\"$service\"})",
+          "legendFormat": "{{service_name}}"
         }
       ],
       "fieldConfig": {
@@ -143,13 +179,14 @@
       }
     },
     {
-      "title": "Token Refresh Outcomes",
+      "title": "Authentication Outcomes",
+      "description": "Authenticate result rate broken down by scheme and outcome. 'none' = no auth header presented (anonymous request hitting an [Authorize] endpoint); 'success' = valid; 'failure' = present-but-invalid token. Watch for failure climbing without success doing the same.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
       "targets": [
         {
-          "expr": "rate(snakk_token_refresh_total[1m]) * 60",
-          "legendFormat": "{{result}}"
+          "expr": "sum by (aspnetcore_authentication_scheme, aspnetcore_authentication_result) (rate(aspnetcore_authentication_authenticate_duration_seconds_count{service_name=~\"$service\"}[1m])) * 60",
+          "legendFormat": "{{aspnetcore_authentication_scheme}} {{aspnetcore_authentication_result}}"
         }
       ],
       "fieldConfig": {
@@ -158,41 +195,29 @@
           "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 0, "stacking": { "mode": "normal" } }
         },
         "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "success" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "unauthenticated" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "error" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
-          },
-          {
-            "matcher": { "id": "byName", "options": "pending" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }]
-          }
+          { "matcher": { "id": "byRegexp", "options": ".*success" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": ".*failure" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": ".*none" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] }
         ]
       }
     },
     {
       "title": "P50 / P95 / P99 Request Latency",
+      "description": "Three-percentile latency view per service. P50 reflects typical user experience; P99 captures the tail (often the symptom of GC pauses, lock contention, or cold connections). Click a series → Snakk Traces for representative spans.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job=~\"snakk-.*\"}[5m])) by (le, service))",
-          "legendFormat": "P99 {{service}}"
+          "expr": "histogram_quantile(0.99, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\"}[5m])))",
+          "legendFormat": "P99 {{service_name}}"
         },
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~\"snakk-.*\"}[5m])) by (le, service))",
-          "legendFormat": "P95 {{service}}"
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\"}[5m])))",
+          "legendFormat": "P95 {{service_name}}"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket{job=~\"snakk-.*\"}[5m])) by (le, service))",
-          "legendFormat": "P50 {{service}}"
+          "expr": "histogram_quantile(0.50, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\"}[5m])))",
+          "legendFormat": "P50 {{service_name}}"
         }
       ],
       "fieldConfig": {
@@ -204,16 +229,17 @@
     },
     {
       "title": "Error Rate by Service",
+      "description": "4xx (yellow) and 5xx (red) error rate per service, stacked. 5xx in steady state = bug or downstream outage; 4xx spikes are usually client misbehaviour or auth issues.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
       "targets": [
         {
-          "expr": "sum(rate(http_request_duration_seconds_count{job=~\"snakk-.*\",code=~\"5..\"}[1m])) by (service)",
-          "legendFormat": "5xx {{service}}"
+          "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\",http_response_status_code=~\"5..\"}[1m]))",
+          "legendFormat": "5xx {{service_name}}"
         },
         {
-          "expr": "sum(rate(http_request_duration_seconds_count{job=~\"snakk-.*\",code=~\"4..\"}[1m])) by (service)",
-          "legendFormat": "4xx {{service}}"
+          "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\",http_response_status_code=~\"4..\"}[1m]))",
+          "legendFormat": "4xx {{service_name}}"
         }
       ],
       "fieldConfig": {
@@ -237,11 +263,10 @@
   "refresh": "10s",
   "schemaVersion": 39,
   "tags": ["snakk", "application"],
-  "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "",
   "title": "Snakk Application",
   "uid": "snakk-application",
-  "version": 1
+  "version": 2
 }

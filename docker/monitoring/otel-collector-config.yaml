@@ -1,0 +1,214 @@
+# OpenTelemetry Collector config — single Collector pipeline for Snakk dev stack.
+# Receives OTLP from .NET services (Snakk.ServiceDefaults.AddSnakkObservability),
+# scrubs PII headers, batches, and fans out:
+#   traces  -> Tempo  (OTLP/gRPC)
+#   metrics -> Prometheus (remote_write — needs --web.enable-remote-write-receiver)
+#   logs    -> Loki  (OTLP/HTTP)
+#
+# Per OBSERVABILITY-DESIGN-2026-05-24.md §3 + §5.3 + §5.4.
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+  # Per-container CPU / RAM / network / disk metrics via Docker socket
+  # (Phase 2.5; locked decision #9 picks dockerstats over cAdvisor — OTel-native,
+  # one fewer container). Labels metrics with `container.name`, `image.name`.
+  docker_stats:
+    endpoint: unix:///var/run/docker.sock
+    # Docker Desktop's daemon requires API >= 1.44; the receiver defaults to
+    # an older client version and gets rejected.
+    api_version: "1.44"
+    collection_interval: 30s
+    timeout: 10s
+    metrics:
+      container.cpu.usage.percpu:
+        enabled: true
+      container.network.io.usage.tx_packets:
+        enabled: true
+      container.network.io.usage.rx_packets:
+        enabled: true
+      container.blockio.io_service_bytes_recursive:
+        enabled: true
+
+  # Postgres slow-query / lock-wait log shipping (Phase 2.5).
+  # Postgres' logging_collector writes rotated files to /var/log/postgresql
+  # (shared volume with the postgres container). We tail them, attach
+  # service-name + log-type labels, and emit as OTLP logs → Loki.
+  # Format example (with log_line_prefix '%m [%p] %q%u@%d/%a '):
+  #   2026-05-24 21:03:12.034 UTC [123] LOG:  duration: 234.567 ms  statement: SELECT ...
+  #   2026-05-24 21:03:12.034 UTC [123] LOG:  process 124 still waiting for ShareLock ...
+  filelog/postgres:
+    include: [/var/log/postgresql/postgresql-*.log]
+    start_at: end
+    include_file_name: false
+    include_file_path: false
+    multiline:
+      # New log entries start with an ISO timestamp. Anything else is a
+      # continuation of the previous entry (statement text spans lines).
+      line_start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}'
+    operators:
+      - type: regex_parser
+        parse_from: body
+        regex: '(?s)^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+ \S+) \[(?P<pid>\d+)\] (?P<sev>LOG|WARNING|ERROR|FATAL|PANIC|DEBUG|INFO|NOTICE|DETAIL|HINT|CONTEXT|STATEMENT|QUERY):\s*(?P<message>.*)$'
+        timestamp:
+          parse_from: attributes.ts
+          layout: '%Y-%m-%d %H:%M:%S.%L %Z'
+        severity:
+          parse_from: attributes.sev
+          mapping:
+            info: [INFO, LOG, NOTICE, DETAIL, HINT, CONTEXT, STATEMENT, QUERY]
+            warn: WARNING
+            error: ERROR
+            fatal: [FATAL, PANIC]
+      # Replace the raw body with just the parsed message text.
+      - type: move
+        from: attributes.message
+        to: body
+      # Resource labels — `service_name=postgres` joins this stream onto the
+      # same variable used by the rest of the stack (see Phase 2 B1 fix).
+      - type: add
+        field: resource["service.name"]
+        value: postgres
+
+  # Valkey slow-log shipping (Phase 2.5). The valkey-slowlog sidecar writes
+  # one JSON line per entry. We parse the JSON into attributes and route to
+  # Loki with service_name=valkey.
+  filelog/valkey:
+    include: [/var/log/valkey-slowlog/slow.log]
+    start_at: end
+    include_file_name: false
+    include_file_path: false
+    operators:
+      - type: json_parser
+        parse_from: body
+        timestamp:
+          parse_from: attributes.ts_unix
+          layout_type: epoch
+          layout: s
+      - type: add
+        field: resource["service.name"]
+        value: valkey
+
+  # Caddy access log shipping (Phase 2.5). Caddy emits JSON access lines to a
+  # file; we tail, parse, and forward to Loki with service_name=caddy.
+  filelog/caddy:
+    include: [/var/log/caddy/access.log]
+    start_at: end
+    include_file_name: false
+    include_file_path: false
+    operators:
+      - type: json_parser
+        parse_from: body
+        timestamp:
+          parse_from: attributes.ts
+          layout_type: epoch
+          layout: s.ns
+        severity:
+          parse_from: attributes.level
+          mapping:
+            info: [info, INFO]
+            warn: [warn, WARN]
+            error: [error, ERROR]
+      - type: add
+        field: resource["service.name"]
+        value: caddy
+
+processors:
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+
+  # PII/secret scrubbing per design §5.4. Strip headers and params that should
+  # never reach the observability store, regardless of which service emitted them.
+  attributes/scrub:
+    actions:
+      - key: http.request.header.authorization
+        action: delete
+      - key: http.request.header.cookie
+        action: delete
+      - key: http.request.header.x-api-key
+        action: delete
+      - key: http.response.header.set-cookie
+        action: delete
+      - key: url.query
+        action: delete   # query strings can carry tokens/otp/passwords
+
+  # Memory limiter — prevents the Collector from blowing the container if a
+  # spike overwhelms exporters. Drops new data before OOMing.
+  memory_limiter:
+    check_interval: 5s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+
+  # Copy the OTel resource attribute `service.name` onto each metric datapoint
+  # as a label called `service_name`. The prometheusremotewrite exporter
+  # already maps `service.name` → the Prometheus `job` label, but Loki and
+  # Pyroscope use `service_name` directly — adding it on the metrics side
+  # gives a single label name that works as a template variable across all
+  # three signals in Grafana.
+  transform/service_name:
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["service_name"], resource.attributes["service.name"])
+
+  # The docker_stats receiver attaches container info as RESOURCE attributes
+  # but prometheusremotewrite only auto-promotes `service.name`/`service.instance.id`
+  # to labels. Copy container.name + container.image.name onto each datapoint
+  # so per-container metrics can be filtered on the Snakk Infra dashboard.
+  transform/docker_stats:
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["container_name"], resource.attributes["container.name"]) where resource.attributes["container.name"] != nil
+          - set(attributes["container_image"], resource.attributes["container.image.name"]) where resource.attributes["container.image.name"] != nil
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
+
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    tls:
+      insecure: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, attributes/scrub, batch]
+      exporters: [otlp/tempo]
+    metrics:
+      receivers: [otlp, docker_stats]
+      processors: [memory_limiter, transform/service_name, transform/docker_stats, batch]
+      exporters: [prometheusremotewrite]
+    logs:
+      receivers: [otlp, filelog/postgres, filelog/valkey, filelog/caddy]
+      processors: [memory_limiter, attributes/scrub, batch]
+      exporters: [otlphttp/loki]
+  telemetry:
+    metrics:
+      level: detailed
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888

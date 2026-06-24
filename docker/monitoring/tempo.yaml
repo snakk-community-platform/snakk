@@ -1,0 +1,33 @@
+# Tempo single-binary config for Snakk dev stack.
+# 7-day retention (locked decision #6); local filesystem block storage; OTLP
+# receiver on the standard port. The Collector forwards traces here; queries
+# come from Grafana via the Tempo datasource.
+
+stream_over_http_enabled: true
+
+server:
+  http_listen_port: 3200
+  grpc_listen_port: 9095
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: 0.0.0.0:4317
+
+ingester:
+  trace_idle_period: 10s
+  max_block_duration: 5m
+
+compactor:
+  compaction:
+    block_retention: 168h   # 7 days
+
+storage:
+  trace:
+    backend: local
+    wal:
+      path: /var/tempo/wal
+    local:
+      path: /var/tempo/blocks

@@ -1,0 +1,275 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    { "title": "Snakk PostgreSQL", "type": "link", "url": "/grafana/d/snakk-postgres", "targetBlank": false },
+    { "title": "Snakk Logs (slow queries)", "type": "link", "url": "/grafana/d/snakk-logs", "targetBlank": false }
+  ],
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 100,
+      "title": "Cluster-level",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "id": 1,
+      "title": "Cache hit ratio (shared buffers)",
+      "description": "Share of all read requests served from shared_buffers. Healthy installations stay above 99%. Falling below means shared_buffers is too small OR a workload pattern just changed (cold scan, vacuum, dump).",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "targets": [
+        {
+          "expr": "100 * sum(pg_stat_database_blks_hit{datname=\"snakk\"}) / clamp_min(sum(pg_stat_database_blks_hit{datname=\"snakk\"} + pg_stat_database_blks_read{datname=\"snakk\"}), 1)",
+          "legendFormat": ""
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "decimals": 2,
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 95 },
+            { "color": "green", "value": 99 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Active connections",
+      "description": "Backends currently connected to the snakk database. .NET pool default is 100 per service; total here should stay well below the postgres max_connections (current setting also visible in the Postgres dashboard).",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "targets": [
+        { "expr": "pg_stat_database_numbackends{datname=\"snakk\"}", "legendFormat": "" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "blue" } } }
+    },
+    {
+      "id": 3,
+      "title": "Deadlocks (cumulative)",
+      "description": "Total deadlocks detected since the database started. Should be zero. A nonzero (and especially growing) value here = an explicit FOR UPDATE / transaction-ordering bug somewhere.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "targets": [
+        { "expr": "pg_stat_database_deadlocks{datname=\"snakk\"}", "legendFormat": "" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 10 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Active lock waits",
+      "description": "Queries currently blocked on a lock. Should be zero in steady state. The 'Active lock waits — detail' panel below has the offending queries.",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "targets": [
+        { "expr": "count(pg_lock_waits_wait_seconds) OR vector(0)", "legendFormat": "" }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 1 },
+            { "color": "red", "value": 5 }
+          ]}
+        }
+      }
+    },
+    {
+      "id": 101,
+      "title": "Top queries — pg_stat_statements",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+    {
+      "id": 5,
+      "title": "Top 20 queries by total exec time (cumulative seconds)",
+      "description": "Queries that have spent the most total time executing across the life of pg_stat_statements (cumulative; resets when the statement is evicted). The labels include query_text truncated to 80 chars — that's the actual SQL. Click queryid → use it as the join key to lookup full text via `SELECT query FROM pg_stat_statements WHERE queryid = …`.",
+      "type": "table",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "topk(20, pg_stat_statements_total_exec_seconds)",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true, "server": true, "service": true, "usename": true, "datname": true } } },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "decimals": 2 },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "query_text" }, "properties": [{ "id": "custom.width", "value": 600 }] },
+          { "matcher": { "id": "byName", "options": "queryid" }, "properties": [{ "id": "custom.width", "value": 180 }] }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "title": "Top 20 queries by mean exec time (current avg seconds)",
+      "description": "Slowest queries on average. A high mean with high cache_hit_ratio = the query is doing real work the planner can't avoid (large sort, hash join, regex). Low cache_hit_ratio = could improve with a better index or warmer buffers.",
+      "type": "table",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 18 },
+      "targets": [
+        {
+          "expr": "topk(20, pg_stat_statements_mean_exec_seconds)",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true, "server": true, "service": true, "usename": true, "datname": true } } },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "decimals": 3 },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "query_text" }, "properties": [{ "id": "custom.width", "value": 600 }] },
+          { "matcher": { "id": "byName", "options": "queryid" }, "properties": [{ "id": "custom.width", "value": 180 }] }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "Top 20 queries by call frequency",
+      "description": "Most-called queries. High calls × low mean_exec is still cheap; high calls × high mean_exec is your N+1 candidate. Pair with Snakk Logs for the application code path.",
+      "type": "table",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 30 },
+      "targets": [
+        {
+          "expr": "topk(20, pg_stat_statements_calls_total)",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true, "server": true, "service": true, "usename": true, "datname": true } } },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "query_text" }, "properties": [{ "id": "custom.width", "value": 600 }] },
+          { "matcher": { "id": "byName", "options": "queryid" }, "properties": [{ "id": "custom.width", "value": 180 }] }
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "title": "Queries with worst cache hit ratio (top 20 by total time, sorted by ratio)",
+      "description": "Among the hottest queries, which ones miss the cache the most. Below 0.99 on a frequently-called query is usually a missing index or a sequential scan over a large table — pivot to EXPLAIN ANALYZE via the queryid.",
+      "type": "table",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 42 },
+      "targets": [
+        {
+          "expr": "bottomk(20, pg_stat_statements_cache_hit_ratio and on(queryid) topk(50, pg_stat_statements_total_exec_seconds))",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true, "server": true, "service": true, "usename": true, "datname": true } } },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": false }] } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "decimals": 4, "min": 0, "max": 1 },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "query_text" }, "properties": [{ "id": "custom.width", "value": 600 }] },
+          { "matcher": { "id": "byName", "options": "queryid" }, "properties": [{ "id": "custom.width", "value": 180 }] }
+        ]
+      }
+    },
+    {
+      "id": 102,
+      "title": "Lock waits (live)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 },
+      "collapsed": false
+    },
+    {
+      "id": 9,
+      "title": "Active lock waits — detail",
+      "description": "Queries that are blocked right now, their lock mode, and how long they've been waiting. Empty table = no contention. Long wait_seconds on a row + a familiar query_text = the source of intermittent stalls.",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 55 },
+      "targets": [
+        {
+          "expr": "pg_lock_waits_wait_seconds",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true, "__name__": true, "instance": true, "job": true, "server": true, "service": true, "datname": true } } },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "s", "decimals": 2 },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "query_text" }, "properties": [{ "id": "custom.width", "value": 600 }] },
+          { "matcher": { "id": "byName", "options": "Value" }, "properties": [
+            { "id": "color", "value": { "mode": "thresholds" } },
+            { "id": "thresholds", "value": { "mode": "absolute", "steps": [
+              { "color": "yellow", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]}},
+            { "id": "custom.cellOptions", "value": { "type": "color-background", "mode": "gradient" } }
+          ]}
+        ]
+      }
+    },
+    {
+      "id": 10,
+      "title": "Lock waits over time (count)",
+      "description": "Number of queries waiting on locks, sampled at scrape interval. Sustained nonzero = contention. Pair with the lock-wait log panel on Snakk Logs.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 63 },
+      "targets": [
+        { "expr": "count(pg_lock_waits_wait_seconds) OR vector(0)", "legendFormat": "blocked queries" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "fixed", "fixedColor": "orange" },
+          "custom": { "drawStyle": "bars", "fillOpacity": 50, "lineWidth": 2 }
+        }
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["snakk", "postgres", "database"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Snakk Database Insights",
+  "uid": "snakk-database",
+  "version": 1
+}

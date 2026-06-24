@@ -109,6 +109,16 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends supervisor curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Pyroscope .NET native profiler (locked decision #4). The `Pyroscope` NuGet
+# package is only a managed SDK shim — the actual CLR profiler that produces
+# flame graphs is shipped separately as a tarball of native .so files.
+# Activated by the CORECLR_* env vars in supervisord (per-service).
+ARG PYROSCOPE_DOTNET_VERSION=0.15.0
+RUN mkdir -p /opt/pyroscope && \
+    curl -fsSL "https://github.com/grafana/pyroscope-dotnet/releases/download/v${PYROSCOPE_DOTNET_VERSION}-pyroscope/pyroscope.${PYROSCOPE_DOTNET_VERSION}-glibc-x86_64.tar.gz" \
+    | tar -xz -C /opt/pyroscope && \
+    chmod -R a+rx /opt/pyroscope
+
 WORKDIR /app
 
 # Copy all published services

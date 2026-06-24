@@ -1,0 +1,39 @@
+apiVersion: 1
+
+datasources:
+  - name: Tempo
+    type: tempo
+    uid: tempo
+    access: proxy
+    url: http://tempo:3200
+    isDefault: false
+    jsonData:
+      # Trace → log correlation: clicking a span shows matching logs in Loki.
+      tracesToLogsV2:
+        datasourceUid: loki
+        spanStartTimeShift: -5m
+        spanEndTimeShift: 5m
+        filterByTraceID: true
+        filterBySpanID: false
+      # Service-map node graph: derived from traces, pivots to Prometheus metrics.
+      serviceMap:
+        datasourceUid: prometheus
+      nodeGraph:
+        enabled: true
+      search:
+        hide: false
+      # Trace → metric correlation: clicking a span surfaces the matching RED
+      # panel for its service. Uses the `service_name` label produced by the
+      # collector's transform/service_name processor (see otel-collector-config).
+      tracesToMetrics:
+        datasourceUid: prometheus
+        spanStartTimeShift: -2m
+        spanEndTimeShift: 2m
+        tags:
+          - key: service.name
+            value: service_name
+        queries:
+          - name: 'Request rate (RED)'
+            query: 'sum by (service_name) (rate(http_server_request_duration_seconds_count{service_name="$${__tags.service_name}"}[$$__rate_interval]))'
+          - name: 'P95 latency (RED)'
+            query: 'histogram_quantile(0.95, sum by (service_name, le) (rate(http_server_request_duration_seconds_bucket{service_name="$${__tags.service_name}"}[$$__rate_interval])))'

@@ -1,19 +1,51 @@
 {
-  "annotations": { "list": [] },
+  "annotations": {
+    "list": [
+      {
+        "name": "k6 runs",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "enable": true,
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "expr": "max(k6_vus) > bool 0",
+        "step": "30s",
+        "titleFormat": "k6 load test",
+        "textFormat": "k6 scenario active (k6_vus > 0)",
+        "hide": false
+      }
+    ]
+  },
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
   "links": [],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "label": "Service",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": { "query": "label_values(http_server_request_duration_seconds_count, service_name)", "refId": "PrometheusVariableQueryEditor-VariableQuery" },
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".+",
+        "current": { "selected": false, "text": "All", "value": "$__all" },
+        "refresh": 2,
+        "sort": 1
+      }
+    ]
+  },
   "panels": [
     {
       "title": "Request Rate (req/s)",
+      "description": "Request rate per service, computed from the OTel http.server.request.duration histogram counter. Pivots: select a service in the dropdown to scope. For per-route breakdown see Slowest Endpoints below.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "sum(rate(http_request_duration_seconds_count[1m])) by (service)",
-          "legendFormat": "{{service}}"
+          "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[1m]))",
+          "legendFormat": "{{service_name}}"
         }
       ],
       "fieldConfig": {
@@ -24,17 +56,18 @@
       }
     },
     {
-      "title": "Request Latency P95 (ms)",
+      "title": "Request Latency P50 / P95 (s)",
+      "description": "Server-side request latency percentiles per service. P95 above 1s sustained is a regression worth tracing — click into Snakk Traces for a span sample, then pivot to Loki via the structured-metadata trace_id.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))",
-          "legendFormat": "P95 {{service}}"
+          "expr": "histogram_quantile(0.95, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\"}[5m])))",
+          "legendFormat": "P95 {{service_name}}"
         },
         {
-          "expr": "histogram_quantile(0.50, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))",
-          "legendFormat": "P50 {{service}}"
+          "expr": "histogram_quantile(0.50, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\"}[5m])))",
+          "legendFormat": "P50 {{service_name}}"
         }
       ],
       "fieldConfig": {
@@ -46,12 +79,13 @@
     },
     {
       "title": "HTTP Status Codes",
+      "description": "Stacked bars of request rate by HTTP status code across all services in scope. 5xx is hard failure, 4xx is client error; healthy services should be almost entirely 2xx/3xx. Spikes in 5xx during steady load are the canonical regression signal.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
         {
-          "expr": "sum(rate(http_request_duration_seconds_count[1m])) by (code)",
-          "legendFormat": "{{code}}"
+          "expr": "sum by (http_response_status_code) (rate(http_server_request_duration_seconds_count{service_name=~\"$service\"}[1m]))",
+          "legendFormat": "{{http_response_status_code}}"
         }
       ],
       "fieldConfig": {
@@ -61,6 +95,7 @@
         },
         "overrides": [
           { "matcher": { "id": "byRegexp", "options": "^2" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byRegexp", "options": "^3" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] },
           { "matcher": { "id": "byRegexp", "options": "^4" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
           { "matcher": { "id": "byRegexp", "options": "^5" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
         ]
@@ -68,11 +103,12 @@
     },
     {
       "title": "Slowest Endpoints (P95)",
+      "description": "Top-10 routes by P95 latency across all services in scope. http_route is the ASP.NET Core route template, so dynamic segments collapse into one entry. Lookup is instant; refresh the dashboard for an updated ranking.",
       "type": "table",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
         {
-          "expr": "topk(10, histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, controller, action)))",
+          "expr": "topk(10, histogram_quantile(0.95, sum by (le, service_name, http_route) (rate(http_server_request_duration_seconds_bucket{service_name=~\"$service\",http_route!=\"\"}[5m]))))",
           "format": "table",
           "instant": true
         }
@@ -83,12 +119,13 @@
     },
     {
       "title": "Process Memory (MB)",
+      "description": "Per-service resident process memory from the OTel process instrumentation. Steady upward drift on a service while traffic is flat is a leak — pivot to Snakk Profiles → in-use memory flamegraph.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
       "targets": [
         {
-          "expr": "process_working_set_bytes{job=~\"snakk-.*\"} / 1024 / 1024",
-          "legendFormat": "{{service}}"
+          "expr": "process_memory_usage_bytes{service_name=~\"$service\"} / 1024 / 1024",
+          "legendFormat": "{{service_name}}"
         }
       ],
       "fieldConfig": {
@@ -99,7 +136,8 @@
       }
     },
     {
-      "title": "GC Memory (MB)",
+      "title": "GC Heap (MB)",
+      "description": "Total managed-heap bytes per service. Saw-tooth pattern is normal (allocation then Gen2 collection). Flat-rising envelope is a managed leak; pair with Snakk Profiles → allocation rate. (Source: prometheus-net dotnet_total_memory_bytes — Phase 6 will migrate to OTel runtime metrics once OpenTelemetry.Instrumentation.Runtime emits them under standard names.)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
       "targets": [
@@ -117,12 +155,13 @@
     },
     {
       "title": "CPU Usage",
+      "description": "Per-service CPU as fraction of one core. Sustained values near 1.0 indicate a single-threaded hot path; pair with Snakk Profiles → CPU flamegraph for the offending stack.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
       "targets": [
         {
-          "expr": "rate(process_cpu_seconds_total{job=~\"snakk-.*\"}[1m])",
-          "legendFormat": "{{service}}"
+          "expr": "rate(process_cpu_seconds_total{service_name=~\"$service\"}[1m])",
+          "legendFormat": "{{service_name}}"
         }
       ],
       "fieldConfig": {
@@ -135,12 +174,13 @@
     },
     {
       "title": "In-Progress HTTP Requests",
+      "description": "Concurrent in-flight HTTP requests per service from the OTel http.server.active_requests gauge. Climbing curve while request rate is flat = handlers blocking; pivot to Snakk Profiles → lock contention flamegraph.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
       "targets": [
         {
-          "expr": "http_requests_in_progress{job=~\"snakk-.*\"}",
-          "legendFormat": "{{service}}"
+          "expr": "sum by (service_name) (http_server_active_requests{service_name=~\"$service\"})",
+          "legendFormat": "{{service_name}}"
         }
       ],
       "fieldConfig": {
@@ -152,6 +192,7 @@
     },
     {
       "title": "GC Collections Rate",
+      "description": "Garbage collections per second by generation. Frequent Gen2 collections (top series) signal pressure from large object allocations; pair with the GC Heap panel and Snakk Profiles → allocation rate. (Source: prometheus-net dotnet_collection_count_total — Phase 6 will migrate to OTel runtime metrics once available under standard names.)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
       "targets": [
@@ -171,11 +212,10 @@
   "refresh": "10s",
   "schemaVersion": 39,
   "tags": ["snakk"],
-  "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "",
   "title": "Snakk Overview",
   "uid": "snakk-overview",
-  "version": 1
+  "version": 2
 }

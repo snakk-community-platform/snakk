@@ -18,6 +18,7 @@ var sharedConfigDir = builder.Configuration["FileStorage:BasePath"] ?? "/app/sto
 builder.Configuration.AddJsonFile(Path.Combine(sharedConfigDir, "conf", "snakk-config.json"), optional: true, reloadOnChange: true);
 
 //builder.AddSnakkDefaults();
+builder.AddSnakkObservability();
 
 // Add SignalR with tuned limits; register MessagePack alongside the default JSON protocol.
 // Clients that negotiate MessagePack get binary framing; JSON-only clients continue working unchanged.
@@ -129,6 +130,7 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+app.MapDefaultEndpoints();
 
 //app.UseSerilogRequestLogging();
 

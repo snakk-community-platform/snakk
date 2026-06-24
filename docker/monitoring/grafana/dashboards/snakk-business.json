@@ -1,0 +1,252 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    { "title": "Snakk RED", "type": "link", "url": "/grafana/d/snakk-red", "targetBlank": false },
+    { "title": "Snakk Logs", "type": "link", "url": "/grafana/d/snakk-logs", "targetBlank": false }
+  ],
+  "templating": { "list": [] },
+  "panels": [
+    {
+      "id": 100,
+      "title": "Provisioned for Phase 3 — meters not yet emitted",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
+      "id": 0,
+      "title": "About this dashboard",
+      "description": "Phase 3 of the observability rollout adds the .NET Meters and ActivitySources below. This dashboard provisions the visualizations now; panels show \"No data\" until those meters ship. The exact metric names match the planned snakk.* meter names emitted by Snakk.ServiceDefaults once Phase 3 lands.",
+      "type": "text",
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 1 },
+      "options": {
+        "mode": "markdown",
+        "content": "### Phase 3 stub dashboard\n\nThis dashboard wires up visualisations for the Phase 3 business meters defined in `docs/OBSERVABILITY-DESIGN-2026-05-24.md` §6.\n\nMeters planned (none emitting yet):\n\n- **`snakk.posts.created`** — counter, labels: `community`, `type` (discussion vs comment).\n- **`snakk.auth.login_attempts`** — counter, label: `result` (success / wrong_password / locked_out / mfa_required).\n- **`snakk.cache.hits`** / **`snakk.cache.misses`** — counters, label: `cache_name`.\n- **`snakk.webhooks.delivery.duration`** — histogram, labels: `webhook_id`, `attempt_number`, `status`.\n- **`Snakk.LinkMetadata.Fetch`** ActivitySource — counters: `snakk.linkmeta.fetch.success`, `snakk.linkmeta.fetch.ssrf_blocked`, `snakk.linkmeta.fetch.parse_failed`, `snakk.linkmeta.fetch.timeout`.\n\nPanels light up automatically once the Snakk.ServiceDefaults emits these meters."
+      }
+    },
+    {
+      "id": 101,
+      "title": "Engagement",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 6 },
+      "collapsed": false
+    },
+    {
+      "id": 1,
+      "title": "Posts created / min",
+      "description": "Rate of posts and comments created. The top-line engagement signal. Sustained drop relative to historical baseline = something broke in the write path; pivot to Snakk RED 5xx panel for Snakk.Web.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 7 },
+      "targets": [
+        { "expr": "sum by (type) (rate(snakk_posts_created_total[5m])) * 60", "legendFormat": "{{type}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 0, "stacking": { "mode": "normal" } },
+          "noValue": "No data yet (Phase 3)"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Posts created — top 10 communities (last hour)",
+      "description": "Where engagement is happening right now. Empty = no posts in the window.",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 7 },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (community) (increase(snakk_posts_created_total[1h])))",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        { "id": "organize", "options": { "excludeByName": { "Time": true } } },
+        { "id": "sortBy", "options": { "fields": {}, "sort": [{ "field": "Value", "desc": true }] } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "noValue": "No data yet (Phase 3)" } }
+    },
+    {
+      "id": 102,
+      "title": "Authentication",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+      "collapsed": false
+    },
+    {
+      "id": 3,
+      "title": "Login attempts / min by outcome",
+      "description": "Login success vs failure modes. Sustained spike in 'wrong_password' or 'locked_out' = credential stuffing attempt; cross-reference Snakk Logs security panel for source IPs.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        { "expr": "sum by (result) (rate(snakk_auth_login_attempts_total[5m])) * 60", "legendFormat": "{{result}}" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 0, "stacking": { "mode": "normal" } },
+          "noValue": "No data yet (Phase 3)"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "success" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "wrong_password" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "locked_out" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "mfa_required" }, "properties": [{ "id": "color", "value": { "fixedColor": "blue", "mode": "fixed" } }] }
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "title": "Login success rate (rolling 5m)",
+      "description": "Successful logins as a share of all attempts. Healthy in steady state >95%. Dropping into the yellow band sustained = a real auth incident.",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "100 * sum(rate(snakk_auth_login_attempts_total{result=\"success\"}[5m])) / clamp_min(sum(rate(snakk_auth_login_attempts_total[5m])), 0.001)",
+          "legendFormat": ""
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "decimals": 1,
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 80 },
+            { "color": "green", "value": 95 }
+          ]},
+          "noValue": "No data yet (Phase 3)"
+        }
+      }
+    },
+    {
+      "id": 103,
+      "title": "Cache effectiveness",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 },
+      "collapsed": false
+    },
+    {
+      "id": 5,
+      "title": "Cache hit ratio by cache",
+      "description": "Application-level cache hit ratio (separate from Postgres shared_buffers). Falling ratio on a previously-warm cache means an eviction or invalidation storm; pivot to Valkey dashboard for evictions/memory.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 25 },
+      "targets": [
+        {
+          "expr": "100 * sum by (cache_name) (rate(snakk_cache_hits_total[5m])) / clamp_min(sum by (cache_name) (rate(snakk_cache_hits_total[5m]) + rate(snakk_cache_misses_total[5m])), 0.001)",
+          "legendFormat": "{{cache_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0, "max": 100,
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 },
+          "noValue": "No data yet (Phase 3)"
+        }
+      }
+    },
+    {
+      "id": 104,
+      "title": "Webhook delivery",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 },
+      "collapsed": false
+    },
+    {
+      "id": 6,
+      "title": "Webhook delivery rate by status",
+      "description": "Delivery outcomes for outbound webhooks. Sustained nonzero on 'failed' / 'dead_lettered' = a downstream receiver problem.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 34 },
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(snakk_webhooks_delivery_duration_seconds_count[5m]))",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 },
+          "noValue": "No data yet (Phase 3)"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Webhook delivery latency P50/P95",
+      "description": "How long deliveries take. Slow downstream = retries pile up = the deliver queue grows; pair with Snakk Traces for the slow Snakk.Webhook.Deliver spans.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 34 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(snakk_webhooks_delivery_duration_seconds_bucket[5m])))",
+          "legendFormat": "P95"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum by (le) (rate(snakk_webhooks_delivery_duration_seconds_bucket[5m])))",
+          "legendFormat": "P50"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": { "drawStyle": "line", "fillOpacity": 5, "lineWidth": 2 },
+          "noValue": "No data yet (Phase 3)"
+        }
+      }
+    },
+    {
+      "id": 105,
+      "title": "Link-metadata fetch (LinkMetadata SSRF surface)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 42 },
+      "collapsed": false
+    },
+    {
+      "id": 8,
+      "title": "Link-metadata fetch outcomes / min",
+      "description": "Outcomes of outbound link-preview fetches. ssrf_blocked = the URL was rejected by the host/IP allowlist (security-critical signal — should normally be at attack-detector levels); timeouts and parse_failed are operational signals.",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 43 },
+      "targets": [
+        { "expr": "sum(rate(snakk_linkmeta_fetch_success_total[5m])) * 60", "legendFormat": "success" },
+        { "expr": "sum(rate(snakk_linkmeta_fetch_ssrf_blocked_total[5m])) * 60", "legendFormat": "ssrf_blocked" },
+        { "expr": "sum(rate(snakk_linkmeta_fetch_parse_failed_total[5m])) * 60", "legendFormat": "parse_failed" },
+        { "expr": "sum(rate(snakk_linkmeta_fetch_timeout_total[5m])) * 60", "legendFormat": "timeout" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 0, "stacking": { "mode": "normal" } },
+          "noValue": "No data yet (Phase 3)"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "success" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "ssrf_blocked" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "parse_failed" }, "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "timeout" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] }
+        ]
+      }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["snakk", "business", "phase-3-stub"],
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Snakk Business KPIs",
+  "uid": "snakk-business",
+  "version": 1
+}

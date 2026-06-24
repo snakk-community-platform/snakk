@@ -15,6 +15,7 @@ using System.IO.Compression;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Options;
 using Grpc.Core.Interceptors;
 using Prometheus;
 using Prometheus.DotNetRuntime;
@@ -59,6 +60,7 @@ builder.Configuration.AddJsonFile(
 }
 
 //builder.AddSnakkDefaults();
+builder.AddSnakkObservability();
 
 // HTTP/1.1 + HTTP/2 — supports both REST and gRPC clients
 builder.WebHost.ConfigureKestrel(options =>
@@ -417,6 +419,7 @@ builder.Services.AddHsts(options =>
 });
 
 var app = builder.Build();
+app.MapDefaultEndpoints();
 
 if (!app.Configuration.GetValue<bool>("SkipDatabaseInit"))
 {
@@ -803,7 +806,13 @@ app.MapRazorPages();
 app.MapBffApiEndpoints();
 app.MapPasskeyBffEndpoints();
 app.MapOAuthConnectionBffEndpoints();
-app.MapRumEndpoints();
+
+// RUM (Web Vitals beacon) — gated by the observability flag. When off, the
+// endpoint isn't mapped AND the layout omits the beacon <script> (see
+// _Layout.cshtml), so the client never even fires a request to get a 404.
+var observability = app.Services.GetRequiredService<IOptions<ObservabilityOptions>>().Value;
+if (observability.IsOn(observability.Rum))
+    app.MapRumEndpoints();
 app.MapSetupBffEndpoints();
 
 app.MapRealtimeTokenEndpoints();

@@ -4,10 +4,15 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [],
+  "links": [
+    { "title": "Snakk Application", "type": "link", "url": "/grafana/d/snakk-application", "targetBlank": false },
+    { "title": "Snakk Traces", "type": "link", "url": "/grafana/d/snakk-traces", "targetBlank": false }
+  ],
+  "templating": { "list": [] },
   "panels": [
     {
       "title": "Channel State",
+      "description": "Current gRPC channel state from Snakk.Web's client. Ready (green) = traffic flows. Connecting / TransientFailure (yellow/red) = the BFF is intermittently degraded; pivot to Snakk.Api in Snakk Logs for the cause.",
       "type": "stat",
       "gridPos": { "h": 8, "w": 4, "x": 0, "y": 0 },
       "targets": [
@@ -48,6 +53,7 @@
     },
     {
       "title": "Call Rate by Method (calls/s)",
+      "description": "Calls per second per gRPC method, summed across all callers. The methods listed map 1:1 to the Snakk.Api proto service methods. A method going to zero while peers are healthy = the calling BFF endpoint stopped invoking it.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 20, "x": 4, "y": 0 },
       "targets": [
@@ -64,7 +70,8 @@
       }
     },
     {
-      "title": "Call Latency by Method",
+      "title": "Call Latency by Method (P50 + P95)",
+      "description": "Per-method gRPC client-side latency. Includes time in HttpClient, network, and Snakk.Api handler. A spike on a single method usually means a slow DB query for that endpoint; cross-reference Snakk Database Insights → Top by mean exec time.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
       "targets": [
@@ -86,6 +93,7 @@
     },
     {
       "title": "Errors by Method & Status (calls/s)",
+      "description": "Non-OK gRPC responses, broken down by method and status code. DeadlineExceeded = the BFF gave up waiting (look at the latency panel). Unauthenticated = bad/missing JWT (cross-reference Snakk Application → Auth Failures panel). Internal = exception on the server side; pivot to Snakk Logs filtered to Snakk.Api errors.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "targets": [
@@ -107,6 +115,10 @@
           {
             "matcher": { "id": "byRegexp", "options": "Unauthenticated" },
             "properties": [{ "id": "color", "value": { "fixedColor": "yellow", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byRegexp", "options": "Unknown" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }]
           }
         ]
       }
@@ -115,11 +127,10 @@
   "refresh": "10s",
   "schemaVersion": 39,
   "tags": ["snakk", "grpc"],
-  "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "",
   "title": "Snakk gRPC",
   "uid": "snakk-grpc",
-  "version": 1
+  "version": 2
 }

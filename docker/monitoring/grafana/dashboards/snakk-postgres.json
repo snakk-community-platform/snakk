@@ -4,131 +4,97 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
-  "links": [],
+  "links": [
+    { "title": "Snakk Database Insights (pg_stat_statements)", "type": "link", "url": "/grafana/d/snakk-database", "targetBlank": false },
+    { "title": "Snakk Logs (slow queries)", "type": "link", "url": "/grafana/d/snakk-logs", "targetBlank": false }
+  ],
+  "templating": { "list": [] },
   "panels": [
     {
       "title": "Active Connections",
+      "description": "Backends currently connected to the snakk database. Each .NET service has its own Npgsql connection pool; total here is the sum.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "targets": [
         { "expr": "pg_stat_database_numbackends{datname=\"snakk\"}", "legendFormat": "" }
       ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
-        "colorMode": "background",
-        "graphMode": "area",
-        "orientation": "auto"
-      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 20 },
-              { "color": "red", "value": 50 }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 20 },
+            { "color": "red", "value": 50 }
+          ]}
         }
       }
     },
     {
-      "title": "Cache Hit Ratio",
+      "title": "Cache Hit Ratio (5m)",
+      "description": "Share of block accesses served from shared_buffers over the last 5 minutes. Below 99% sustained = cold cache (recent restart or large scan); below 90% = shared_buffers is too small for the workload. Snakk Database Insights has per-query breakdowns.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
       "targets": [
         {
-          "expr": "100 * rate(pg_stat_database_blks_hit_total{datname=\"snakk\"}[5m]) / clamp_min(rate(pg_stat_database_blks_hit_total{datname=\"snakk\"}[5m]) + rate(pg_stat_database_blks_read_total{datname=\"snakk\"}[5m]), 1)",
+          "expr": "100 * rate(pg_stat_database_blks_hit{datname=\"snakk\"}[5m]) / clamp_min(rate(pg_stat_database_blks_hit{datname=\"snakk\"}[5m]) + rate(pg_stat_database_blks_read{datname=\"snakk\"}[5m]), 1)",
           "legendFormat": ""
         }
       ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
-        "colorMode": "background",
-        "graphMode": "area",
-        "orientation": "auto"
-      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
+          "unit": "percent", "min": 0, "max": 100,
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 95 },
-              { "color": "green", "value": 99 }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 95 },
+            { "color": "green", "value": 99 }
+          ]}
         }
       }
     },
     {
       "title": "Database Size",
+      "description": "On-disk size of the snakk database including indexes. Should grow roughly linearly with content; sudden jumps = bulk import or schema migration.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
       "targets": [
         { "expr": "pg_database_size_bytes{datname=\"snakk\"}", "legendFormat": "" }
       ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
-        "colorMode": "value",
-        "graphMode": "area",
-        "orientation": "auto"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "bytes",
-          "color": { "mode": "fixed", "fixedColor": "blue" }
-        }
-      }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area", "orientation": "auto" },
+      "fieldConfig": { "defaults": { "unit": "bytes", "color": { "mode": "fixed", "fixedColor": "blue" } } }
     },
     {
       "title": "Deadlocks / min",
+      "description": "Rate of detected deadlocks. Should be exactly zero in a healthy app. Any non-zero value = a transaction-ordering or FOR UPDATE bug; the Snakk Logs Postgres stream has the deadlock detail messages.",
       "type": "stat",
       "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
       "targets": [
-        { "expr": "rate(pg_stat_database_deadlocks_total{datname=\"snakk\"}[5m]) * 60", "legendFormat": "" }
+        { "expr": "rate(pg_stat_database_deadlocks{datname=\"snakk\"}[5m]) * 60", "legendFormat": "" }
       ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"] },
-        "colorMode": "background",
-        "graphMode": "area",
-        "orientation": "auto"
-      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area", "orientation": "auto" },
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
-          "decimals": 2,
+          "unit": "short", "decimals": 2,
           "color": { "mode": "thresholds" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 0.01 },
-              { "color": "red", "value": 1 }
-            ]
-          }
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 0.01 },
+            { "color": "red", "value": 1 }
+          ]}
         }
       }
     },
     {
       "title": "Transactions / sec",
+      "description": "Commit vs rollback rate. Sustained rollback rate is the rollback ratio — anything above ~1% suggests app code is catching DB exceptions and retrying, or there's a deadlock storm.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
       "targets": [
-        {
-          "expr": "rate(pg_stat_database_xact_commit_total{datname=\"snakk\"}[1m])",
-          "legendFormat": "Commits"
-        },
-        {
-          "expr": "rate(pg_stat_database_xact_rollback_total{datname=\"snakk\"}[1m])",
-          "legendFormat": "Rollbacks"
-        }
+        { "expr": "rate(pg_stat_database_xact_commit{datname=\"snakk\"}[1m])", "legendFormat": "Commits" },
+        { "expr": "rate(pg_stat_database_xact_rollback{datname=\"snakk\"}[1m])", "legendFormat": "Rollbacks" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -144,18 +110,13 @@
       }
     },
     {
-      "title": "Connections",
+      "title": "Connections vs max",
+      "description": "Active connections against the configured max_connections ceiling. If active climbs and approaches max under load, the app pool is exhausted — symptom is request latency spikes with no DB load increase.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
       "targets": [
-        {
-          "expr": "pg_stat_database_numbackends{datname=\"snakk\"}",
-          "legendFormat": "Active"
-        },
-        {
-          "expr": "pg_settings_max_connections",
-          "legendFormat": "Max"
-        }
+        { "expr": "pg_stat_database_numbackends{datname=\"snakk\"}", "legendFormat": "Active" },
+        { "expr": "pg_settings_max_connections", "legendFormat": "Max" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -175,42 +136,36 @@
       }
     },
     {
-      "title": "Cache Hit Ratio",
+      "title": "Cache Hit Ratio over time",
+      "description": "Same metric as the stat tile, plotted. Dips below 99% during bulk operations are normal; a sustained ledge below 95% is when shared_buffers needs attention.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
       "targets": [
         {
-          "expr": "100 * rate(pg_stat_database_blks_hit_total{datname=\"snakk\"}[5m]) / clamp_min(rate(pg_stat_database_blks_hit_total{datname=\"snakk\"}[5m]) + rate(pg_stat_database_blks_read_total{datname=\"snakk\"}[5m]), 1)",
+          "expr": "100 * rate(pg_stat_database_blks_hit{datname=\"snakk\"}[5m]) / clamp_min(rate(pg_stat_database_blks_hit{datname=\"snakk\"}[5m]) + rate(pg_stat_database_blks_read{datname=\"snakk\"}[5m]), 1)",
           "legendFormat": "Hit %"
         }
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "percent",
-          "min": 0,
-          "max": 100,
+          "unit": "percent", "min": 0, "max": 100,
           "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2 },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "yellow", "value": 95 },
-              { "color": "green", "value": 99 }
-            ]
-          },
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 95 },
+            { "color": "green", "value": 99 }
+          ]},
           "color": { "mode": "thresholds" }
         }
       }
     },
     {
       "title": "Locks by Mode",
+      "description": "Current lock counts by mode (RowExclusiveLock, AccessShareLock, etc.). Spiking ExclusiveLock during traffic = long-running write transactions blocking readers; pair with Snakk Database Insights → Active lock waits.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
       "targets": [
-        {
-          "expr": "pg_locks_count{datname=\"snakk\"}",
-          "legendFormat": "{{mode}}"
-        }
+        { "expr": "pg_locks_count{datname=\"snakk\"}", "legendFormat": "{{mode}}" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -220,18 +175,13 @@
       }
     },
     {
-      "title": "Temp Files",
+      "title": "Temp Files (sort / hash spills)",
+      "description": "Postgres falls back to on-disk temp files when sort/hash operations exceed work_mem. Sustained nonzero rate = work_mem is too small for some query, OR a query is doing an unindexed sort. Cross-reference Snakk Database Insights → Top by total exec time.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
       "targets": [
-        {
-          "expr": "rate(pg_stat_database_temp_files_total{datname=\"snakk\"}[5m])",
-          "legendFormat": "Files / sec"
-        },
-        {
-          "expr": "rate(pg_stat_database_temp_bytes_total{datname=\"snakk\"}[5m])",
-          "legendFormat": "Bytes / sec"
-        }
+        { "expr": "rate(pg_stat_database_temp_files{datname=\"snakk\"}[5m])", "legendFormat": "Files / sec" },
+        { "expr": "rate(pg_stat_database_temp_bytes{datname=\"snakk\"}[5m])", "legendFormat": "Bytes / sec" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -248,6 +198,7 @@
     },
     {
       "title": "Checkpoints",
+      "description": "Checkpoint rate from the PG17 pg_stat_checkpointer view, surfaced via the custom pg_stat_checkpointer query in postgres-queries.yaml (postgres-exporter v0.19's built-in collector does not scrape this view). Timed = scheduled checkpoints; Requested = on-demand (WAL pressure or an explicit CHECKPOINT); Buffers written = dirty buffers flushed per checkpoint cycle.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
       "targets": [
@@ -267,30 +218,19 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Requested" },
-            "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }]
-          }
-        ]
+          "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 2 },
+          "noValue": "No checkpoint activity in range"
+        }
       }
-    }
-    ,
+    },
     {
       "title": "Rows Read / sec",
+      "description": "Fetched (returned through an index lookup) vs Returned (rows the planner had to scan to satisfy a query). If Returned >> Fetched on a hot workload, a query is doing a seqscan that could use an index.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
       "targets": [
-        {
-          "expr": "rate(pg_stat_database_tup_fetched_total{datname=\"snakk\"}[1m])",
-          "legendFormat": "Fetched (index hits)"
-        },
-        {
-          "expr": "rate(pg_stat_database_tup_returned_total{datname=\"snakk\"}[1m])",
-          "legendFormat": "Returned (rows scanned)"
-        }
+        { "expr": "rate(pg_stat_database_tup_fetched{datname=\"snakk\"}[1m])", "legendFormat": "Fetched (index hits)" },
+        { "expr": "rate(pg_stat_database_tup_returned{datname=\"snakk\"}[1m])", "legendFormat": "Returned (rows scanned)" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -307,21 +247,13 @@
     },
     {
       "title": "Rows Written / sec",
+      "description": "Per-second writes broken down by INSERT / UPDATE / DELETE. A spike on UPDATE without traffic increase often correlates with a background job (digest fanout, counter increment); pair with Snakk Worker logs.",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
       "targets": [
-        {
-          "expr": "rate(pg_stat_database_tup_inserted_total{datname=\"snakk\"}[1m])",
-          "legendFormat": "Inserts"
-        },
-        {
-          "expr": "rate(pg_stat_database_tup_updated_total{datname=\"snakk\"}[1m])",
-          "legendFormat": "Updates"
-        },
-        {
-          "expr": "rate(pg_stat_database_tup_deleted_total{datname=\"snakk\"}[1m])",
-          "legendFormat": "Deletes"
-        }
+        { "expr": "rate(pg_stat_database_tup_inserted{datname=\"snakk\"}[1m])", "legendFormat": "Inserts" },
+        { "expr": "rate(pg_stat_database_tup_updated{datname=\"snakk\"}[1m])", "legendFormat": "Updates" },
+        { "expr": "rate(pg_stat_database_tup_deleted{datname=\"snakk\"}[1m])", "legendFormat": "Deletes" }
       ],
       "fieldConfig": {
         "defaults": {
@@ -344,11 +276,10 @@
   "refresh": "30s",
   "schemaVersion": 39,
   "tags": ["snakk", "postgres"],
-  "templating": { "list": [] },
   "time": { "from": "now-1h", "to": "now" },
   "timepicker": {},
   "timezone": "",
   "title": "Snakk PostgreSQL",
   "uid": "snakk-postgres",
-  "version": 1
+  "version": 2
 }

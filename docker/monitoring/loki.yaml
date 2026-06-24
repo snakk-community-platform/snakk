@@ -1,0 +1,43 @@
+# Loki 3.x single-binary config for Snakk dev stack.
+# 7-day retention (locked decision #6); local filesystem storage; OTLP enabled
+# for native ingestion from the OTel Collector.
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2024-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  retention_period: 168h               # 7 days
+  allow_structured_metadata: true      # required for OTLP-format logs
+
+compactor:
+  working_directory: /loki/compactor
+  delete_request_store: filesystem
+  retention_enabled: true
+
+# Send delete requests immediately for retention compliance
+table_manager:
+  retention_deletes_enabled: true
+  retention_period: 168h
