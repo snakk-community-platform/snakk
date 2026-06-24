@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
+using NSubstitute;
+using StackExchange.Redis;
 using Snakk.Infrastructure.Tests.Helpers;
 using Snakk.Infrastructure.Adapters;
 using Snakk.Infrastructure.Database.Entities;
@@ -16,6 +18,7 @@ public class DiscussionReadStateRepositoryAdapterTests : IDisposable
     private readonly TestDataBuilder _builder;
     private readonly DiscussionReadStateRepositoryAdapter _adapter;
     private readonly ServiceProvider _cacheProvider;
+    private readonly IConnectionMultiplexer _redisMock;
 
     public DiscussionReadStateRepositoryAdapterTests()
     {
@@ -24,9 +27,16 @@ public class DiscussionReadStateRepositoryAdapterTests : IDisposable
         services.AddHybridCache();
         _cacheProvider = services.BuildServiceProvider();
 
+        _redisMock = Substitute.For<IConnectionMultiplexer>();
+        var dbMock    = Substitute.For<IDatabase>();
+        var batchMock = Substitute.For<IBatch>();
+        _redisMock.GetDatabase().Returns(dbMock);
+        dbMock.CreateBatch().Returns(batchMock);
+
         _db = new SqliteTestDatabase();
         _builder = new TestDataBuilder(_db.Context);
-        _adapter = new DiscussionReadStateRepositoryAdapter(_db.Context, _cacheProvider.GetRequiredService<HybridCache>());
+        _adapter = new DiscussionReadStateRepositoryAdapter(
+            _db.Context, _cacheProvider.GetRequiredService<HybridCache>(), _redisMock);
     }
 
     public void Dispose()
@@ -78,8 +88,10 @@ public class DiscussionReadStateRepositoryAdapterTests : IDisposable
     #region SaveAsync Tests
 
     [Test]
-    public async Task SaveAsync_NewReadState_InsertsIntoDB()
+    public async Task SaveAsync_NewReadState_AvailableViaGetAsync()
     {
+        // SaveAsync writes to Valkey + HybridCache (write-behind). GetAsync should
+        // return the value immediately from HybridCache without a DB round-trip.
         var readState = DiscussionReadState.Create(
             UserId.From("u_new123"),
             DiscussionId.From("disc_new456"),
@@ -87,48 +99,37 @@ public class DiscussionReadStateRepositoryAdapterTests : IDisposable
 
         await _adapter.SaveAsync(readState);
 
-        // Verify using a separate context to ensure it was actually persisted
-        using var verifyContext = _db.CreateSeparateContext();
-        var entity = await verifyContext.DiscussionReadStates
-            .FirstOrDefaultAsync(rs => rs.UserId == "u_new123" && rs.DiscussionId == "disc_new456");
+        var result = await _adapter.GetAsync(
+            UserId.From("u_new123"),
+            DiscussionId.From("disc_new456"));
 
-        await Assert.That(entity).IsNotNull();
-        await Assert.That(entity!.LastReadPostId).IsEqualTo("post_new789");
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.LastReadPostId!.Value).IsEqualTo("post_new789");
     }
 
     [Test]
-    public async Task SaveAsync_ExistingReadState_UpdatesExistingRecord()
+    public async Task SaveAsync_SecondWrite_OverwritesFirst()
     {
-        // Insert initial state
-        _db.Context.DiscussionReadStates.Add(new DiscussionReadStateDatabaseEntity
-        {
-            UserId = "u_update123",
-            DiscussionId = "disc_update456",
-            LastReadPostId = "post_old",
-            LastReadAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-        });
-        await _db.Context.SaveChangesAsync();
+        // Verifies last-write-wins semantics: second SaveAsync supersedes the first
+        // in HybridCache, matching the Valkey write-behind contract.
+        var initial = DiscussionReadState.Create(
+            UserId.From("u_update123"),
+            DiscussionId.From("disc_update456"),
+            PostId.From("post_old"));
+        await _adapter.SaveAsync(initial);
 
-        // Update via adapter
-        var updatedReadState = DiscussionReadState.Create(
+        var updated = DiscussionReadState.Create(
             UserId.From("u_update123"),
             DiscussionId.From("disc_update456"),
             PostId.From("post_new"));
+        await _adapter.SaveAsync(updated);
 
-        await _adapter.SaveAsync(updatedReadState);
+        var result = await _adapter.GetAsync(
+            UserId.From("u_update123"),
+            DiscussionId.From("disc_update456"));
 
-        // Verify the update using a separate context
-        using var verifyContext = _db.CreateSeparateContext();
-        var entity = await verifyContext.DiscussionReadStates
-            .FirstOrDefaultAsync(rs => rs.UserId == "u_update123" && rs.DiscussionId == "disc_update456");
-
-        await Assert.That(entity).IsNotNull();
-        await Assert.That(entity!.LastReadPostId).IsEqualTo("post_new");
-
-        // Ensure there is only one record (upsert, not duplicate insert)
-        var count = await verifyContext.DiscussionReadStates
-            .CountAsync(rs => rs.UserId == "u_update123" && rs.DiscussionId == "disc_update456");
-        await Assert.That(count).IsEqualTo(1);
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.LastReadPostId!.Value).IsEqualTo("post_new");
     }
 
     #endregion

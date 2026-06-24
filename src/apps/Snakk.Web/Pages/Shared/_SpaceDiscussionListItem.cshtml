@@ -19,7 +19,11 @@
     <div class="sn-topic-item">
         <div class="sn-topic-content">
             <div class="sn-topic-title">
-                <a href="@baseUrl" class="sn-topic-title-link">@discussion.Title</a>
+                <a href="@baseUrl" class="sn-topic-title-link @(discussion.IsDeleted ? "sn-opacity-50" : "")">@discussion.Title</a>
+                @if (discussion.IsDeleted)
+                {
+                    <span class="sn-badge sn-badge-sm sn-badge-error sn-ml-1">@T.Pages.ModDeletedBadge</span>
+                }
             </div>
             <div class="sn-topic-meta">
                 <span>@FormatRelativeTime((discussion.LastActivityAt ?? discussion.CreatedAt)?.ToDateTime())</span>

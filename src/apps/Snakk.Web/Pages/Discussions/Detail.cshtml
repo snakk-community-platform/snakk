@@ -189,6 +189,13 @@
     }
     else if (Model.Discussion != null)
     {
+        @if (Model.IsDiscussionDeleted)
+        {
+            <div class="sn-alert sn-alert-warning sn-mx-4 sn-mt-4" role="alert">
+                <span class="sn-icon icon-trash" style="width:18px;height:18px" aria-hidden="true"></span>
+                <span>@T.Pages.ModDeletedDiscussionBanner</span>
+            </div>
+        }
 
         <header class="sn-discussion-header" style="background-image: @SpaceGradient(Model.Space?.PublicId)">
 
@@ -198,12 +205,6 @@
                  data-space-id="@Model.Space?.PublicId"
                  hidden></div>
 
-            <!-- Jump to Unread Button -->
-            <div id="jump-to-unread" class="sn-hidden sn-fixed sn-bottom-6 sn-right-6 sn-z-30">
-                <button data-action="jump-to-unread" class="sn-btn sn-btn-primary sn-btn-sm">
-                    @T.Pages.DiscJumpToUnread
-                </button>
-            </div>
                 @{
                     var firstPostItem = Model.Posts?.Items?.FirstOrDefault(p => p.IsFirstPost);
                 }
@@ -338,59 +339,13 @@
                         </div>
                         @if (firstPostItem != null)
                         {
-                            var opReactionCounts = firstPostItem.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
-                            var opHasReactions = opReactionCounts.Any(kvp => kvp.Value > 0);
-                            var opMyReactions = (firstPostItem.Reactions?.UserReactions?.Reactions ?? Enumerable.Empty<string>()).ToList();
-                            var opUserHasReacted = opMyReactions.Any();
-                            var opReactionEmojis = new Dictionary<string, string>
-                            {
-                                ["Agree"] = "👍",
-                                ["Love"] = "❤️",
-                                ["Funny"] = "😂",
-                                ["Thinking"] = "🤔",
-                                ["Watching"] = "👀",
-                                ["Fire"] = "🔥",
-                                ["Thanks"] = "🙏",
-                                ["MindBlown"] = "🤯",
-                                ["ShipIt"] = "🚀"
-                            };
-                            @if (opHasReactions || Model.IsAuthenticated)
-                            {
-                                <div class="sn-reaction-badge sn-shrink-0 sn-shadow-layered @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "sn-cursor-pointer" : "")"
-                                    @if (Model.IsAuthenticated && !Model.Discussion!.IsLocked)
-                                    {
-                                        <text>data-action="toggle-reaction-picker" data-post-id="@firstPostItem.PublicId"</text>
-                                    }
-                                     aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
-                                    @if (Model.IsAuthenticated && !Model.Discussion!.IsLocked)
-                                    {
-                                        @if (!opHasReactions)
-                                        {
-                                            <span class="icon icon-plus-circle sn-h-4 sn-w-4" aria-hidden="true"></span>
-                                            <span class="icon icon-badge-check sn-h-4 sn-w-4" aria-hidden="true"></span>
-                                        }
-                                        else if (opUserHasReacted)
-                                        {
-                                            <span class="icon icon-refresh sn-h-4 sn-w-4" aria-hidden="true"></span>
-                                        }
-                                        else
-                                        {
-                                            <span class="icon icon-plus-circle sn-h-4 sn-w-4" aria-hidden="true"></span>
-                                        }
-                                    }
-                                    <div id="reactions-@firstPostItem.PublicId"
-                                         class="sn-reaction-display"
-                                         data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(opReactionCounts.ToDictionary(k => k.Key, k => k.Value))"
-                                         data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(opMyReactions)">
-                                        @foreach (var kvp in opReactionCounts.Where(c => c.Value > 0))
-                                        {
-                                            var emoji = opReactionEmojis.GetValueOrDefault(kvp.Key, "?");
-                                            var isActive = opMyReactions.Contains(kvp.Key);
-                                            <span data-type="@kvp.Key" class="@(isActive ? "sn-active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
-                                        }
-                                    </div>
-                                </div>
-                            }
+                            <partial name="_PostReactions" model="@(new PostReactionsVM(
+                                PostPublicId: firstPostItem.PublicId,
+                                Counts: (firstPostItem.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>()).ToDictionary(k => k.Key, k => k.Value),
+                                MyReactions: (firstPostItem.Reactions?.UserReactions?.Reactions ?? Enumerable.Empty<string>()).ToList(),
+                                IsOp: true,
+                                IsAuthenticated: Model.IsAuthenticated,
+                                IsLocked: Model.Discussion!.IsLocked))" />
                         }
                     </div>
 
@@ -963,6 +918,8 @@
                         <span class="sn-spinner sn-loading-sm sn-text-muted"></span>
                     </div>
                 </div>
+                <!-- DOM-windowing spacer: grows when top chunks are pruned from DOM -->
+                <div id="top-spacer" class="posts-spacer" style="height:0" data-end-offset="0" aria-hidden="true"></div>
                 @if (Model.Posts != null && Model.Posts.Items.Any())
                 {
                     var postList = Model.Posts.Items.ToList();
@@ -1038,6 +995,7 @@
                         orderedPosts = postList;
                     }
 
+                    <div data-chunk-offset="0">
                     @for (int i = 0; i < orderedPosts.Count; i++)
                     {
                         var post = orderedPosts[i];
@@ -1052,21 +1010,6 @@
                         var isOwnPost = Model.CurrentUserId == post.Author.PublicId;
                         var hideReplyQuote = isOwnPost && (isLastPost || isSameAuthorAsPrevious);
 
-                        var reactionCounts = post.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
-                        var hasReactions = reactionCounts.Any(kvp => kvp.Value > 0);
-                        var reactionEmojis = new Dictionary<string, string>
-                        {
-                            ["Agree"] = "👍",
-                            ["Love"] = "❤️",
-                            ["Funny"] = "😂",
-                            ["Thinking"] = "🤔",
-                            ["Watching"] = "👀",
-                            ["Fire"] = "🔥",
-                            ["Thanks"] = "🙏",
-                            ["MindBlown"] = "🤯",
-                            ["ShipIt"] = "🚀"
-                        };
-                        var myReactions = post.Reactions?.UserReactions?.Reactions?.ToList() ?? new List<string>();
 
                         @if (isNecro && previousCreatedAt.HasValue)
                         {
@@ -1179,6 +1122,50 @@
                                                 <span class="sn-badge sn-badge-warning sn-badge-xs sn-post-badge-milestone" title="@T.Pages.DiscBadgeMilestone">&#9733;</span>
                                             }
                                         </div>
+                                        @if (Model.IsAuthenticated && !post.Author.IsDeleted && !isOwnPost)
+                                        {
+                                            <button type="button"
+                                                    class="sn-post-author-opts sn-subtle-btn"
+                                                    popovertarget="sn-author-opts-@post.PublicId"
+                                                    aria-label="@T.Pages.DiscAriaAuthorOptions">
+                                                <span class="icon icon-dots-horizontal sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                            </button>
+                                            <ul id="sn-author-opts-@post.PublicId" popover class="sn-dropdown-panel sn-menu sn-w-48">
+                                                <li>
+                                                    <button type="button"
+                                                            data-action="follow-user"
+                                                            data-author-id="@post.Author.PublicId"
+                                                            data-author-name="@post.Author.DisplayName"
+                                                            class="sn-text-sm">
+                                                        <span class="icon icon-user-follow sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                                        @T.Pages.DiscFollowUser
+                                                    </button>
+                                                </li>
+                                                <li>
+                                                    <button type="button"
+                                                            data-action="hide-posts-from-user"
+                                                            data-author-id="@post.Author.PublicId"
+                                                            data-author-name="@post.Author.DisplayName"
+                                                            class="sn-text-sm">
+                                                        <span class="icon icon-eye-slash sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                                        @T.Pages.DiscHideFromUser
+                                                    </button>
+                                                </li>
+                                                @if (Model.IsCurrentUserModerator)
+                                                {
+                                                    <li>
+                                                        <button type="button"
+                                                                data-action="mod-ban-user"
+                                                                data-author-id="@post.Author.PublicId"
+                                                                data-author-name="@post.Author.DisplayName"
+                                                                class="sn-text-sm sn-text-error">
+                                                            <span class="icon icon-ban sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                                            @T.Pages.DiscBanUser
+                                                        </button>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
                                     }
                                 </aside>
                             }
@@ -1252,110 +1239,78 @@
                                                     <span class="post-edited"> @T.Pages.DiscEdited</span>
                                                 }
                                             </span>
+                                            <span aria-hidden="true">·</span>
+                                            <span class="sn-post-number">#@post.PostNumber</span>
                                         </div>
                                         <div class="sn-post-toolbar-right">
-                                            @if (!isOP && !Model.Discussion!.IsLocked && Model.IsAuthenticated && !hideReplyQuote)
-                                            {
-                                                <div class="sn-post-hover-actions">
-                                                    <button data-action="reply-to-post"
-                                                            data-post-id="@post.PublicId"
-                                                            data-author-name="@post.Author.DisplayName"
-                                                            class="sn-subtle-btn"
-                                                            aria-label="@string.Format(T.Pages.DiscAriaReplyTo, post.Author.DisplayName)">
-                                                        <span class="icon icon-reply sn-h-4 sn-w-4" aria-hidden="true"></span>
-                                                        @T.Pages.DiscReply
-                                                    </button>
-                                                    <button data-action="quote-post"
-                                                            data-post-id="@post.PublicId"
-                                                            data-content="@post.Content"
-                                                            data-author-name="@post.Author.DisplayName"
-                                                            class="sn-subtle-btn"
-                                                            aria-label="@string.Format(T.Pages.DiscAriaQuotePost, post.Author.DisplayName)">
-                                                        <span class="icon icon-chat-square sn-h-4 sn-w-4" aria-hidden="true"></span>
-                                                        @T.Pages.DiscQuote
-                                                    </button>
-                                                </div>
-                                            }
-                                            <div class="sn-post-reaction-row sn-cursor-pointer @(Model.IsAuthenticated && !Model.Discussion!.IsLocked ? "sn-cursor-pointer" : "")"
-                                                 id="reactions-@post.PublicId"
-                                                 data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(reactionCounts.ToDictionary(k => k.Key, k => k.Value))"
-                                                 data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(myReactions)"
-                                                @if (Model.IsAuthenticated && !Model.Discussion!.IsLocked)
-                                                {
-                                                    <text>data-action="toggle-reaction-picker" data-post-id="@post.PublicId"</text>
-                                                }
-                                                 aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
-                                                @foreach (var kvp in reactionCounts.Where(c => c.Value > 0))
-                                                {
-                                                    var emoji = reactionEmojis.GetValueOrDefault(kvp.Key, "?");
-                                                    var isActive = myReactions.Contains(kvp.Key);
-                                                    <span data-type="@kvp.Key" class="@(isActive ? "sn-active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
-                                                }
-                                                @if (!hasReactions && !Model.Discussion!.IsLocked && Model.IsAuthenticated)
-                                                {
-                                                    <span class="sn-reaction-placeholder" data-reaction-placeholder>
-                                                        <span class="icon icon-badge-check sn-h-4 sn-w-4" aria-hidden="true"></span>
-                                                    </span>
-                                                }
-                                            </div>
                                             @if (!isOP && Model.IsAuthenticated)
                                             {
-                                                <div class="sn-dropdown">
-                                                    <button type="button" class="sn-subtle-btn" aria-label="@T.Pages.DiscAriaPostOptions"
-                                                            popovertarget="sn-post-opts-@(post.PublicId)">
-                                                        <span class="icon icon-dots-horizontal sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                                <div class="sn-post-inline-actions" hidden>
+                                                    @if (isOwnPost || Model.IsCurrentUserModerator)
+                                                    {
+                                                        <button hx-get="/bff/posts/@post.PublicId/history"
+                                                                hx-target="#history-modal-content"
+                                                                hx-swap="innerHTML"
+                                                                data-modal-open="history_modal"
+                                                                class="sn-btn sn-btn-outline sn-btn-sm sn-post-action-btn"
+                                                                title="@T.Pages.DiscHistory"
+                                                                aria-label="@T.Pages.DiscHistory">
+                                                            <span class="icon icon-clock sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                                            @T.Pages.DiscHistory
+                                                        </button>
+                                                    }
+                                                    <button type="button"
+                                                            data-action="toggle-save-post"
+                                                            data-post-id="@post.PublicId"
+                                                            data-saved="false"
+                                                            aria-pressed="false"
+                                                            class="sn-btn sn-btn-outline sn-btn-sm sn-post-action-btn sn-post-save-btn"
+                                                            title="@T.Pages.DiscSaveTitle"
+                                                            aria-label="@T.Pages.DiscSavePost">
+                                                        <span class="icon icon-bookmark-alt sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                                        @T.Pages.DiscSavePost
                                                     </button>
-                                                    <ul id="sn-post-opts-@(post.PublicId)" popover class="sn-dropdown-panel sn-menu sn-w-48">
-                                                        <li>
-                                                            <button hx-get="/bff/posts/@post.PublicId/history"
-                                                                    hx-target="#history-modal-content"
-                                                                    hx-swap="innerHTML"
-                                                                    data-modal-open="history_modal"
-                                                                    class="sn-text-sm">
-                                                                @T.Pages.DiscHistory
-                                                            </button>
-                                                        </li>
-                                                        <li>
-                                                            <button type="button"
-                                                                    data-action="toggle-save-post"
-                                                                    data-post-id="@post.PublicId"
-                                                                    data-saved="false"
-                                                                    aria-pressed="false"
-                                                                    title="@T.Pages.DiscSaveTitle"
-                                                                    class="sn-text-sm sn-post-save-btn">
-                                                                <span class="icon icon-bookmark-alt sn-h-4 sn-w-4" aria-hidden="true"></span>
-                                                                @T.Pages.DiscSavePost
-                                                            </button>
-                                                        </li>
-                                                        @if (Model.IsAuthenticated && Model.CurrentUserId == post.Author.PublicId)
-                                                        {
-                                                            <li><button data-action="edit-post" data-post-id="@post.PublicId" data-user-id="@Model.CurrentUserId" class="sn-text-sm">@T.Pages.DiscEdit</button></li>
-                                                            <li>
-                                                                <button hx-delete="/bff/posts/@post.PublicId"
-                                                                        hx-target="#post-@post.PublicId"
-                                                                        hx-swap="outerHTML"
-                                                                        hx-confirm="@T.Pages.DiscDeleteConfirm"
-                                                                        class="sn-text-sm sn-text-error">
-                                                                    @T.Pages.DiscDelete
-                                                                </button>
-                                                            </li>
-                                                        }
-                                                        @if (Model.IsAuthenticated && Model.CurrentUserId != post.Author.PublicId)
-                                                        {
-                                                            <li>
-                                                                <button data-action="hide-posts-from-user" data-author-id="@post.Author.PublicId" data-author-name="@post.Author.DisplayName" class="sn-text-sm">
-                                                                    @T.Pages.DiscHideFromUser
-                                                                </button>
-                                                            </li>
-                                                            <li>
-                                                                <button data-action="open-report-modal" data-report-type="post" data-report-id="@post.PublicId" data-report-label="@T.Pages.DiscReportThisPost" class="sn-text-sm sn-text-error">
-                                                                    @T.Pages.DiscReportPost
-                                                                </button>
-                                                            </li>
-                                                        }
-                                                    </ul>
+                                                    @if (!isOwnPost)
+                                                    {
+                                                        <button type="button"
+                                                                data-action="open-report-modal"
+                                                                data-report-type="post"
+                                                                data-report-id="@post.PublicId"
+                                                                data-report-label="@T.Pages.DiscReportThisPost"
+                                                                class="sn-btn sn-btn-outline sn-btn-sm sn-post-action-btn"
+                                                                title="@T.Pages.DiscReportPost"
+                                                                aria-label="@T.Pages.DiscReportPost">
+                                                            <span class="icon icon-exclamation-triangle sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                                            @T.Pages.DiscReportPost
+                                                        </button>
+                                                    }
+                                                    @if (Model.IsCurrentUserModerator)
+                                                    {
+                                                        <button type="button"
+                                                                data-action="mod-delete-post"
+                                                                data-post-id="@post.PublicId"
+                                                                class="sn-btn sn-btn-outline sn-btn-sm sn-post-action-btn sn-text-error"
+                                                                title="@T.Pages.DiscRemovePost"
+                                                                aria-label="@T.Pages.DiscRemovePost">
+                                                            <span class="icon icon-trash sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                                            @T.Pages.DiscRemovePost
+                                                        </button>
+                                                    }
                                                 </div>
+                                                <button type="button"
+                                                        class="sn-subtle-btn sn-post-opts-toggle"
+                                                        data-action="toggle-post-inline-actions"
+                                                        aria-label="@T.Pages.DiscAriaPostOptions">
+                                                    <span class="icon icon-dots-horizontal sn-h-4 sn-w-4" aria-hidden="true"></span>
+                                                </button>
                                             }
+                                            <partial name="_PostReactions" model="@(new PostReactionsVM(
+                                                PostPublicId: post.PublicId,
+                                                Counts: (post.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>()).ToDictionary(k => k.Key, k => k.Value),
+                                                MyReactions: post.Reactions?.UserReactions?.Reactions?.ToList() ?? new List<string>(),
+                                                IsOp: false,
+                                                IsAuthenticated: Model.IsAuthenticated,
+                                                IsLocked: Model.Discussion!.IsLocked))" />
                                         </div>
                                     </div>
                                 }
@@ -1383,7 +1338,10 @@
                         previousAuthorId = post.Author.PublicId;
                         previousCreatedAt = post.CreatedAt.ToDateTime();
                     }
+                    </div>
 
+                    <!-- DOM-windowing spacer: grows when bottom chunks are pruned from DOM -->
+                    <div id="bottom-spacer" class="posts-spacer" style="height:0" data-start-offset="0" aria-hidden="true"></div>
                     <!-- Endless scroll sentinel -->
                     <div id="scroll-sentinel" class="h-4"></div>
                     <div id="loading-indicator" class="sn-hidden">
@@ -1412,8 +1370,17 @@
                             </div>
                         </div>
                     </div>
-                    <div id="end-message" class="sn-thread-end-message sn-hidden">
-                        @T.Pages.DiscEndReached
+                    <div id="end-message" class="@(Model.IsAuthenticated ? "sn-thread-end-message" : "") sn-hidden">
+                        @if (!Model.IsAuthenticated)
+                        {
+                            ViewData["Nudge.Title"] = T.Pages.DiscNudgeJoinTitle;
+                            ViewData["Nudge.Body"] = T.Pages.DiscNudgeJoinBody;
+                            <partial name="Shared/_RegistrationNudge" />
+                        }
+                        else
+                        {
+                            @T.Pages.DiscEndReached
+                        }
                     </div>
                     <div id="load-error-message" class="sn-hidden sn-text-center sn-py-8">
                         <div class="sn-load-error-card">
@@ -1453,76 +1420,79 @@
                     </div>
                 </div>
             }
-            else if (!Model.IsAuthenticated)
+            else if (Model.IsAuthenticated)
             {
-                ViewData["Nudge.Title"] = T.Pages.DiscNudgeJoinTitle;
-                ViewData["Nudge.Body"] = T.Pages.DiscNudgeJoinBody;
-                <partial name="Shared/_RegistrationNudge" />
-            }
-            else
-            {
-                <!-- Typing indicator — below posts, above reply form -->
+                <!-- Typing indicator — below posts, visible while reading -->
                 <div id="typing-indicator" class="sn-typing-indicator sn-hidden"></div>
-
-                <div id="reply-form-container" class="sn-mt-8">
-                    <!-- Reply context indicator -->
-                    <div id="reply-context" class="sn-reply-context-bar sn-hidden">
-                        <span class="sn-text-sm sn-text-muted">
-                            @T.Pages.DiscReplyingToPrefix<span id="reply-context-author" class="sn-font-semibold"></span>
-                        </span>
-                        <button type="button" data-action="clear-reply-context" class="sn-subtle-btn">
-                            @T.Pages.DiscCancel
-                        </button>
-                    </div>
-
-                    <div class="sn-composer-area">
-                        <form method="post" id="reply-form" hx-boost="false">
-                            <input type="hidden" name="ReplyToPostId" id="reply-to-post-id" value="" />
-
-                            <!-- Hidden textarea: synced by Toast UI Editor, used for form submission -->
-                            <textarea name="PostContent"
-                                      id="post-content-input"
-                                      style="display:none"></textarea>
-
-                            <!-- Toast UI Editor mounts here -->
-                            <div id="editor-container">
-                                <div class="sn-editor-skeleton">
-                                    <div class="sn-editor-skeleton-toolbar">
-                                        <div class="sn-skeleton-pill"></div>
-                                        <div class="sn-skeleton-pill"></div>
-                                        <div class="sn-skeleton-pill"></div>
-                                        <div class="sn-skeleton-pill sn-w-6"></div>
-                                        <div class="sn-skeleton-pill"></div>
-                                        <div class="sn-skeleton-pill"></div>
-                                    </div>
-                                    <div class="sn-editor-skeleton-body">
-                                        <div class="sn-skeleton-line sn-w-3/4"></div>
-                                        <div class="sn-skeleton-line sn-w-1/2"></div>
-                                        <div class="sn-skeleton-line sn-w-5/6"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div id="upload-progress-row" class="sn-upload-progress-row sn-hidden">
-                                <div id="upload-image-chips" class="sn-upload-image-chips"></div>
-                                <span id="upload-status-text" class="sn-upload-status-text"></span>
-                            </div>
-                            <div class="sn-composer-submit-row">
-                                <button type="submit" id="reply-submit-btn" class="sn-btn sn-btn-primary sn-btn-sm sn-hidden">
-                                    <span id="reply-submit-label">@T.Pages.DiscPostReply</span>
-                                    <span id="reply-submit-spinner" class="sn-spinner sn-loading-xs sn-hidden"></span>
-                                </button>
-                                <span id="draft-restored-msg" class="sn-text-xs sn-text-faint sn-hidden">@T.Pages.DiscDraftRestored</span>
-                            </div>
-                        </form>
-                    </div>
-                </div>
             }
 
         </div> <!-- End sn-center-inner -->
+
+        @* Compose drawer + floating button — outside sn-center-inner, fixed to viewport *@
+        @if (Model.IsAuthenticated && !Model.Discussion!.IsLocked)
+        {
+            <div id="compose-drawer" class="sn-compose-drawer" role="dialog" aria-label="@T.Pages.DiscPostReply">
+                <div class="sn-compose-drawer-panel">
+                    <div class="sn-compose-drawer-header">
+                        <div id="reply-context" class="sn-reply-context-bar sn-hidden">
+                            <span class="sn-text-sm sn-text-muted">
+                                @T.Pages.DiscReplyingToPrefix<span id="reply-context-author" class="sn-font-semibold"></span>
+                            </span>
+                            <button type="button" data-action="clear-reply-context" class="sn-subtle-btn">
+                                @T.Pages.DiscCancel
+                            </button>
+                        </div>
+                        <button type="button" data-action="close-compose" class="sn-subtle-btn sn-ml-auto" aria-label="@T.Pages.DiscClose">
+                            <span class="icon icon-chevron-down sn-h-4 sn-w-4" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                    <div class="sn-compose-drawer-body">
+                        <div class="sn-composer-area">
+                            <form method="post" id="reply-form" hx-boost="false">
+                                <input type="hidden" name="ReplyToPostId" id="reply-to-post-id" value="" />
+                                <textarea name="PostContent" id="post-content-input" style="display:none"></textarea>
+                                <div id="editor-container">
+                                    <div class="sn-editor-skeleton">
+                                        <div class="sn-editor-skeleton-toolbar">
+                                            <div class="sn-skeleton-pill"></div>
+                                            <div class="sn-skeleton-pill"></div>
+                                            <div class="sn-skeleton-pill"></div>
+                                            <div class="sn-skeleton-pill sn-w-6"></div>
+                                            <div class="sn-skeleton-pill"></div>
+                                            <div class="sn-skeleton-pill"></div>
+                                        </div>
+                                        <div class="sn-editor-skeleton-body">
+                                            <div class="sn-skeleton-line sn-w-3/4"></div>
+                                            <div class="sn-skeleton-line sn-w-1/2"></div>
+                                            <div class="sn-skeleton-line sn-w-5/6"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="upload-progress-row" class="sn-upload-progress-row sn-hidden">
+                                    <div id="upload-image-chips" class="sn-upload-image-chips"></div>
+                                    <span id="upload-status-text" class="sn-upload-status-text"></span>
+                                </div>
+                                <div class="sn-composer-submit-row">
+                                    <button type="submit" id="reply-submit-btn" class="sn-btn sn-btn-primary sn-btn-sm sn-hidden">
+                                        <span id="reply-submit-label">@T.Pages.DiscPostReply</span>
+                                        <span id="reply-submit-spinner" class="sn-spinner sn-loading-xs sn-hidden"></span>
+                                    </button>
+                                    <span id="draft-restored-msg" class="sn-text-xs sn-text-faint sn-hidden">@T.Pages.DiscDraftRestored</span>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="compose-btn-wrap" class="sn-compose-btn-wrap">
+                <button type="button" class="sn-btn sn-btn-primary sn-btn-circle sn-btn-lg sn-compose-btn" data-action="open-compose" aria-label="@T.Pages.DiscPostReply" title="@T.Pages.DiscPostReply">
+                    <span class="icon icon-pencil sn-icon--md" aria-hidden="true"></span>
+                </button>
+            </div>
+        }
         @if (Model.Discussion.PostCount > 1 && Model.Posts?.HasMoreItems == true)
         {
-            <!-- Thread Navigation Bar (sticky bottom, inside sn-center but outside sn-center-inner) -->
             <div id="thread-nav" class="sn-thread-nav sn-hidden">
                 <div class="sn-thread-nav-controls">
                     <button class="sn-thread-nav-btn" data-nav="first" title="@T.Pages.DiscTitleFirst" aria-label="@T.Pages.DiscAriaJumpFirst">
@@ -1564,7 +1534,11 @@
 <aside class="sn-right">
     @{
         ViewData["RightPane.NewDiscussionUrl"] = Model.Space != null ? "/create?spaceId=" + Model.Space.PublicId : "/create";
-        ViewData["RightPane.Actions"] = new[] { "share", "subscribe", "save" };
+        ViewData["RightPane.Actions"] = Model.IsCurrentUserModerator
+            ? new[] { "share", "subscribe", "save", "mod-discussion" }
+            : new[] { "share", "subscribe", "save" };
+        ViewData["RightPane.ModDiscussionId"] = Model.Discussion!.PublicId;
+        ViewData["RightPane.ModIsLocked"] = Model.Discussion.IsLocked;
         ViewData["RightPane.ShareUrl"] = Model.CanonicalUrl;
         ViewData["RightPane.ShareTitle"] = Model.Discussion!.Title;
         ViewData["RightPane.ShareIsPublic"] = Model.Space is not { IsRestricted: true };
@@ -1754,6 +1728,56 @@
     </form>
 </dialog>
 
+@if (Model.IsCurrentUserModerator)
+{
+<!-- Mod: Ban User Modal -->
+<dialog id="mod_ban_modal" class="sn-modal">
+    <div class="sn-modal-box sn-max-w-md">
+        <div class="sn-modal-header">
+            <h3 class="sn-font-semibold sn-text-lg">Ban User</h3>
+            <form method="dialog">
+                <button class="sn-subtle-btn">Close</button>
+            </form>
+        </div>
+        <p class="sn-modal-description">
+            Banning <strong id="mod-ban-author-name"></strong>
+        </p>
+        <div class="sn-field sn-mb-3">
+            <label class="sn-label"><span class="sn-label-text">Scope</span></label>
+            <select id="mod-ban-scope" class="sn-select sn-w-full">
+                <option value="space">This space</option>
+                <option value="hub">This hub</option>
+                <option value="community">This community</option>
+                <option value="platform">Platform (global)</option>
+            </select>
+        </div>
+        <div class="sn-field sn-mb-3">
+            <label class="sn-label"><span class="sn-label-text">Duration</span></label>
+            <select id="mod-ban-type" class="sn-select sn-w-full">
+                <option value="Temporary">Temporary</option>
+                <option value="Permanent">Permanent</option>
+            </select>
+        </div>
+        <div id="mod-ban-duration-row" class="sn-field sn-mb-3">
+            <label class="sn-label"><span class="sn-label-text">Duration (hours)</span></label>
+            <input type="number" id="mod-ban-duration-hours" class="sn-input sn-w-full" value="24" min="1" max="8760" />
+        </div>
+        <div class="sn-field sn-mb-4">
+            <label class="sn-label"><span class="sn-label-text">Reason</span></label>
+            <textarea id="mod-ban-reason" class="sn-textarea sn-w-full" rows="2" placeholder="Optional reason…"></textarea>
+        </div>
+        <div id="mod-ban-error" class="sn-alert sn-alert-error sn-text-sm sn-mb-4 sn-hidden"></div>
+        <div class="sn-modal-action">
+            <button type="button" data-modal-close="mod_ban_modal" class="sn-btn sn-btn-ghost">Cancel</button>
+            <button type="button" id="mod-ban-submit" class="sn-btn sn-btn-error">Ban</button>
+        </div>
+    </div>
+    <form method="dialog" class="sn-modal-backdrop-overlay">
+        <button>close</button>
+    </form>
+</dialog>
+}
+
 <!-- Reaction Picker -->
 <div id="reaction-picker" class="sn-reaction-picker sn-hidden" data-post-id="">
     <div class="sn-grid sn-grid-cols-3 sn-gap-1">
@@ -1824,6 +1848,8 @@
         discussionType = Model.Discussion?.Type ?? "",
         spaceSlug = Model.SpaceSlug ?? "",
         hubSlug = Model.HubSlug ?? "",
+        hubId = Model.Hub?.PublicId ?? "",
+        communityId = Model.CommunityDetail?.PublicId ?? "",
         readHistory = Model.Discussion != null ? new
         {
             discussionPublicId = Model.Discussion.PublicId,
@@ -1835,6 +1861,7 @@
             hubPublicId = Model.Hub?.PublicId ?? "",
             hubSlug = Model.HubSlug ?? "",
             hubName = Model.Hub?.Name ?? Model.HubSlug ?? "",
+            communityPublicId = Model.CommunityDetail?.PublicId ?? "",
             communitySlug = Model.Community.CommunitySlug ?? "",
             communityName = Model.Community.CommunityName ?? Model.Community.CommunitySlug ?? "",
             isMultiCommunity = Model.Community.IsMultiCommunityEnabled,
@@ -1845,6 +1872,6 @@
             : (object?)null,
         sort = Model.Sort,
         lastReadPostId = Model.LastReadPostId,
-        unreadLabel = T.Pages.DiscJumpToUnread
+        isModerator = Model.IsCurrentUserModerator
     }, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }))
 </script>

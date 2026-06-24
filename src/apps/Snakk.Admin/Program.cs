@@ -85,6 +85,7 @@ builder.Services.AddHttpClient("SnakkApi", client =>
 });
 
 // ManageScopeService (scoped — uses gRPC client)
+builder.Services.AddScoped<AdminThemeService>();
 builder.Services.AddScoped<ManageScopeService>();
 builder.Services.AddScoped<ManageScopeState>();
 builder.Services.AddScoped<AdminTimezoneService>();

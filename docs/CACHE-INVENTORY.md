@@ -151,6 +151,104 @@ Sparkline data comes from `ActivityDailySnapshot`, which is written exclusively 
 
 ---
 
+## IDistributedCache Entries (Valkey direct)
+
+Keys written directly via `IDistributedCache` (not HybridCache). Backed by Valkey in production.
+
+### View Tracking Deduplication
+
+| Store | Key pattern | Data | TTL | Invalidation |
+|---|---|---|---|---|
+| **BffApiEndpoints** | `views:dedup:user:{userPublicId}:{discussionPublicId}` | `byte[]` sentinel — marks that this user already had their view counted for this discussion | 24 h | TTL-only (dedup window by design) |
+| **BffApiEndpoints** | `views:dedup:ip:{ipHash}:{discussionPublicId}` | `byte[]` sentinel — marks that this IP (SHA-256 prefix) already had their view counted for this discussion | 24 h | TTL-only (dedup window by design) |
+
+---
+
+## Raw Valkey Keys (IConnectionMultiplexer — atomic counters)
+
+Keys written directly via `IConnectionMultiplexer` using `INCR`/`DECR` (string counters) or `SADD` (set). NOT prefixed by `InstanceName` (`snakk:` prefix is included manually). All flushed to the database by `ActivitySnapshotWorker` on each hourly tick.
+
+### Buffered Post Counts
+
+| Key pattern | Data | Written by | Flushed by |
+|---|---|---|---|
+| `snakk:counter:post:discussion:{discussionPublicId}` | `long` — net delta of post creates/deletes since last flush | `CounterService.IncrementPostCountAsync` / `DecrementPostCountAsync` (INCR/DECR) | `CounterRepository.FlushPostCountsAsync` — GETDEL all keys, then runs 4 SQL UPDATE statements (Discussion + EngagementScore recompute, Space, Hub, Community via JOIN) |
+
+**Flush SQL summary:**
+- `Discussion`: `PostCount += delta`, `EngagementScore = (PostCount + delta) + ReactionCount`  
+- `Space/Hub/Community`: `PostCount += SUM(delta)` grouped by hierarchy via `JOIN "Discussion"`
+
+---
+
+### Buffered Follower Counts
+
+| Key pattern | Data | Written by | Flushed by |
+|---|---|---|---|
+| `snakk:counter:follower:space:{spacePublicId}` | `long` — net delta of follows/unfollows since last flush | `CounterService.IncrementSpaceFollowerCountAsync` / `DecrementSpaceFollowerCountAsync` | `CounterRepository.FlushFollowerCountsAsync` — GETDEL, then `UPDATE "Space" SET "FollowerCount" += delta WHERE "PublicId" = pid` (UNNEST) |
+| `snakk:counter:follower:discussion:{discussionPublicId}` | `long` — net delta | `CounterService.IncrementDiscussionFollowerCountAsync` / `DecrementDiscussionFollowerCountAsync` | `CounterRepository.FlushFollowerCountsAsync` — `UPDATE "Discussion" SET "FollowerCount" += delta` |
+| `snakk:counter:follower:user:{userPublicId}` | `long` — net delta | `CounterService.IncrementUserFollowerCountAsync` / `DecrementUserFollowerCountAsync` | `CounterRepository.FlushFollowerCountsAsync` — `UPDATE "User" SET "FollowerCount" += delta` |
+
+---
+
+### Buffered User Activity Counts
+
+| Key pattern | Data | Written by | Flushed by |
+|---|---|---|---|
+| `snakk:counter:user-discussions:{userPublicId}` | `long` — net delta of discussions created/deleted since last flush | `CounterService.IncrementUserDiscussionCountAsync` / `DecrementUserDiscussionCountAsync` | `CounterRepository.FlushUserCountsAsync` — GETDEL, then `UPDATE "User" SET "DiscussionCount" += delta` (UNNEST) |
+| `snakk:counter:user-replies:{userPublicId}` | `long` — net delta of replies created/deleted since last flush | `CounterService.IncrementUserReplyCountAsync` / `DecrementUserReplyCountAsync` | `CounterRepository.FlushUserCountsAsync` — `UPDATE "User" SET "ReplyCount" += delta` |
+
+---
+
+### Buffered Discussion Counts
+
+| Key pattern | Data | Written by | Flushed by |
+|---|---|---|---|
+| `snakk:counter:discussions:space:{spacePublicId}` | `long` — net delta of discussions created/deleted since last flush | `CounterService.IncrementDiscussionCountAsync` / `DecrementDiscussionCountAsync` (INCR/DECR) | `CounterRepository.FlushDiscussionCountsAsync` — GETDEL, then 3 SQL UPDATEs: `Space.DiscussionCount` (direct UNNEST), `Hub.DiscussionCount` (JOIN Space), `Community.DiscussionCount` (JOIN Space→Hub) |
+
+---
+
+### Buffered Reaction Counts
+
+| Key pattern | Data | Written by | Flushed by |
+|---|---|---|---|
+| `snakk:counter:reaction:post:{postPublicId}` | `long` — net delta of reactions added/removed since last flush | `CounterService.IncrementReactionCountAsync` / `DecrementReactionCountAsync` (INCR/DECR) | `CounterRepository.FlushReactionCountsAsync` — GETDEL, then 5 SQL UPDATEs: `Post.ReactionCount` (direct UNNEST), `Discussion.ReactionCount + EngagementScore` (JOIN Post), `Space.ReactionCount` (JOIN Post→Discussion), `Hub.ReactionCount`, `Community.ReactionCount` |
+
+**Note:** `EngagementScore` recompute in the reaction flush uses `PostCount + (ReactionCount + delta)`. Post-count flush always runs before reaction-count flush in `ActivitySnapshotWorker`, so `PostCount` is already up-to-date when `EngagementScore` is recalculated.
+
+---
+
+### Trending Dirty Set
+
+| Key | Type | Data | Written by | Flushed by |
+|---|---|---|---|---|
+| `snakk:counter:trend:dirty` | Redis SET | Set of discussion public IDs that need TrendScore recalculation | `PostCreatedTrendingHandler` (SADD on every new post), `ReactionAddedTrendingHandler` / `ReactionRemovedTrendingHandler` (SADD after resolving post→discussion) | `CounterRepository.FlushTrendScoresAsync` — SPOP up to 1000 members, then calls `TrendScoreCalculator.RecalculateAsync` per discussion (2 SELECTs + 1 UPDATE per discussion) |
+
+**Note:** Redis SET semantics guarantee each discussion ID appears at most once regardless of how many events fired. The fixed 48-hour window is used at flush time (not the adaptive `VolumeWindowService` window) — acceptable for batch recalculation.
+
+**Note:** Keys persist until flush. If the flush worker is down for an extended period, deltas accumulate. There is no TTL — the worker is the only consumer.
+
+---
+
+### Pre-computed Stats Rollup
+
+Written by `StatsRollupWorker` every 2 minutes via `ValkeyStatsRollupRepository`. Read by `StatisticsGrpcService` via `IStatsRollupRepository`. On cold start (key absent) the worker populates immediately instead of waiting 30 seconds.
+
+| Key | Type | Data | TTL | Written by |
+|---|---|---|---|---|
+| `snakk:stats:platform-stats` | String (JSON array) | `[StatsRollupRow]` — single row with `PlatformStats` | 5 min | `StatsRollupWorker` via `ValkeyStatsRollupRepository.ReplaceAllAsync` |
+| `snakk:stats:trending-spaces` | String (JSON array) | `[StatsRollupRow]` — top 20 trending spaces globally | 5 min | Same |
+| `snakk:stats:trending-contributors` | String (JSON array) | `[StatsRollupRow]` — top 20 trending contributors globally | 5 min | Same |
+| `snakk:stats:top-spaces-today` | String (JSON array) | `[StatsRollupRow]` — top 20 most active spaces today | 5 min | Same |
+| `snakk:stats:top-contributors-today` | String (JSON array) | `[StatsRollupRow]` — top 20 contributors today | 5 min | Same |
+| `snakk:stats:latest-active-spaces` | String (JSON array) | `[StatsRollupRow]` — 20 most recently active spaces | 5 min | Same |
+| `snakk:stats:latest-contributors` | String (JSON array) | `[StatsRollupRow]` — 20 most recently active contributors | 5 min | Same |
+| `snakk:stats:top-spaces-period:{period}` | String (JSON array) | `[StatsRollupRow]` — top 20 spaces for period (`day`/`week`/`month`/`year`/`all_time`) | 5 min | Same |
+| `snakk:stats:top-contributors-period:{period}` | String (JSON array) | `[StatsRollupRow]` — top 20 contributors for period | 5 min | Same |
+
+TTL (5 min) is a safety net only — the worker refreshes every 2 minutes. If Valkey is cold, `GetRowsAsync` returns an empty list until the first worker run completes.
+
+---
+
 ## IMemoryCache Entries (process-local only)
 
 | Store | Key pattern | Data | TTL | Invalidation |
@@ -225,6 +323,16 @@ Entries where a mutation can result in stale data beyond the TTL window. Known a
 | `admin_content_overview*` | AdminContentService | Aggregate, TTL-only |
 | `admin_user_` | AdminUserService | Per-user, TTL-only |
 | `followed-spaces:` | FollowedSpacesCacheService | Per-user (Snakk.Web) |
+| `snakk:stats:` | StatsRollupWorker / ValkeyStatsRollupRepository | Raw Valkey; pre-computed global stats, refreshed every 2 min, TTL 5 min |
+| `snakk:counter:post:discussion:` | CounterService / CounterRepository | Raw Valkey (IConnectionMultiplexer); net delta flushed hourly by ActivitySnapshotWorker |
+| `snakk:counter:follower:space:` | CounterService / CounterRepository | Raw Valkey; Space.FollowerCount delta, flushed hourly |
+| `snakk:counter:follower:discussion:` | CounterService / CounterRepository | Raw Valkey; Discussion.FollowerCount delta, flushed hourly |
+| `snakk:counter:follower:user:` | CounterService / CounterRepository | Raw Valkey; User.FollowerCount delta, flushed hourly |
+| `snakk:counter:user-discussions:` | CounterService / CounterRepository | Raw Valkey; User.DiscussionCount delta, flushed hourly |
+| `snakk:counter:user-replies:` | CounterService / CounterRepository | Raw Valkey; User.ReplyCount delta, flushed hourly |
+| `snakk:counter:discussions:space:` | CounterService / CounterRepository | Raw Valkey; Space/Hub/Community.DiscussionCount delta, flushed hourly |
+| `snakk:counter:reaction:post:` | CounterService / CounterRepository | Raw Valkey; Post + Discussion + Space/Hub/Community.ReactionCount delta, flushed hourly |
+| `snakk:counter:trend:dirty` | Trending handlers / CounterRepository | Raw Valkey SET; discussion IDs needing TrendScore recalculation, popped hourly |
 | `passkey:` | PasskeyService | Per-challenge (IMemoryCache) |
 | `display-name-history:` | AuthGrpcService | Per-user (IMemoryCache) |
 | `discord-status:` | AuthGrpcService | Per-user (IMemoryCache) |

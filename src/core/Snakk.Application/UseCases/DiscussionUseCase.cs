@@ -102,6 +102,16 @@ public class DiscussionUseCase(
         return Result<Discussion>.Success(discussion);
     }
 
+    public async Task<Result<Discussion>> GetDiscussionIncludingDeletedAsync(DiscussionId discussionId)
+    {
+        var discussion = await discussionRepository.GetByPublicIdIncludingDeletedAsync(discussionId);
+
+        if (discussion is null)
+            return Result<Discussion>.Failure($"Discussion '{discussionId}' not found");
+
+        return Result<Discussion>.Success(discussion);
+    }
+
     public async Task<IReadOnlyList<Domain.Repositories.DiscussionSummary>> GetDiscussionsByIdsAsync(
         IEnumerable<DiscussionId> ids) =>
         await discussionRepository.GetSummariesByPublicIdsAsync(ids);

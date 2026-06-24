@@ -114,19 +114,7 @@
      * Update the follow button UI based on current state
      */
     function updateFollowUI(): void {
-        const rpBtn = document.querySelector<HTMLElement>('.rp-subscribe-btn');
-        if (rpBtn) {
-            const rpText = rpBtn.querySelector('span');
-            if (isFollowing) {
-                rpBtn.classList.add('sn-btn-primary');
-                rpBtn.classList.remove('sn-btn-ghost');
-                if (rpText) rpText.textContent = 'Followed';
-            } else {
-                rpBtn.classList.remove('sn-btn-primary');
-                rpBtn.classList.add('sn-btn-ghost');
-                if (rpText) rpText.textContent = 'Follow';
-            }
-        }
+        (window as any).SnakkUtils.updateSubscribeButton('.rp-subscribe-btn', isFollowing);
 
         const toggleBtn = document.getElementById('follow-toggle-btn');
         const followText = document.getElementById('follow-text');

@@ -22,7 +22,14 @@
 .sn-section-label--creatediscussion { display: block; margin-bottom: var(--space-3); }
 .sn-space-search-dropdown { position: absolute; z-index: 50; width: 100%; margin-top: var(--space-2); max-height: 16rem; overflow-y: auto; }
 .sn-create-discussion-type-prompt { margin-bottom: var(--space-6); }
-.sn-discussion-byline { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-sm); }
+.sn-discussion-byline {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    font-size: var(--font-size-sm);
+
+    a:hover { color: inherit; text-decoration: underline; }
+}
 .sn-discussion-header-actions { display: flex; align-items: center; gap: var(--space-2); margin-left: auto; }
 .sn-discussion-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-8); }
 .sn-discussion-title-container { display: flex; align-items: flex-start; gap: var(--space-4); }

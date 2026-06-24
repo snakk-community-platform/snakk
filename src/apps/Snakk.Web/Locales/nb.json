@@ -1251,6 +1251,10 @@
     "discReportPost": "Rapporter innlegg",
     "discReportDiscussion": "Rapporter diskusjon",
     "discReportThisPost": "dette innlegget",
+    "discRemovePost": "Fjern innlegg",
+    "discFollowUser": "Følg bruker",
+    "discBanUser": "Bann bruker",
+    "discAriaAuthorOptions": "Forfatter-alternativer",
     "discAriaReactionAdd": "Legg til reaksjon",
     "discAriaReactions": "Reaksjoner",
     "discLockedBanner": "Denne diskusjonen er låst. Ingen nye svar kan legges til.",
@@ -1355,7 +1359,9 @@
     "messagesDeleteDesc": "Velg hvordan du vil slette denne samtalen.",
     "messagesDeleteMsgsDesc": "Velg hvordan du vil slette de valgte meldingene.",
     "messagesDeleteForMe": "Slett for meg",
-    "messagesDeleteForAll": "Slett for alle"
+    "messagesDeleteForAll": "Slett for alle",
+    "modDeletedDiscussionBanner": "Denne diskusjonen er slettet og er kun synlig for moderatorer.",
+    "modDeletedBadge": "Slettet"
   },
   "editor": {
     "insertChart": "Sett inn diagram",

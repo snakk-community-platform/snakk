@@ -28,6 +28,25 @@
         <span class="sn-dm-badge sn-hidden"></span>
     </a>
     }
+    @if (isModerator)
+    {
+    <!-- Mod Shield -->
+    <div class="sn-dropdown sn-mr-1">
+        <button type="button" id="mod-shield-btn" class="sn-btn sn-btn-ghost sn-btn-sm sn-btn-circle sn-relative"
+                popovertarget="sn-mod-panel" aria-label="Moderation">
+            <span class="sn-icon icon-shield-check sn-icon--md" aria-hidden="true"></span>
+        </button>
+        <div id="sn-mod-panel" popover class="sn-dropdown-panel sn-w-72">
+            <div class="sn-notif-panel-header">
+                <span class="sn-font-semibold">Moderation</span>
+                <a href="/moderation" class="sn-text-xs sn-text-primary" hx-boost="false">View all</a>
+            </div>
+            <div id="mod-panel-body" class="sn-p-3">
+                <p class="sn-text-sm sn-text-muted">Loading…</p>
+            </div>
+        </div>
+    </div>
+    }
     <!-- Notification Bell -->
     <div class="sn-dropdown sn-mr-2">
         <button type="button" class="sn-btn sn-btn-ghost sn-btn-sm sn-btn-circle sn-relative"

@@ -167,79 +167,150 @@ interface ActivityDataPoint {
                 return;
             }
 
-            // Calculate max value for scaling
-            const maxValue = Math.max(...data.map((d: ActivityDataPoint) => d.total), 1);
-
-            // Group by week for better visualization if > 30 days
             const shouldGroupByWeek = days > 30;
             let chartData = data;
 
             if (shouldGroupByWeek) {
-                const grouped = [];
+                const grouped: ActivityDataPoint[] = [];
                 for (let i = 0; i < data.length; i += 7) {
                     const week = data.slice(i, i + 7);
                     if (week.length === 0 || !week[0]) continue;
-                    const weekTotal: ActivityDataPoint = {
+                    grouped.push({
                         date: week[0].date,
-                        discussions: week.reduce((sum: number, d: ActivityDataPoint) => sum + d.discussions, 0),
-                        posts: week.reduce((sum: number, d: ActivityDataPoint) => sum + d.posts, 0),
-                        total: week.reduce((sum: number, d: ActivityDataPoint) => sum + d.total, 0),
-                        isWeek: true
-                    };
-                    grouped.push(weekTotal);
+                        discussions: week.reduce((s: number, d: ActivityDataPoint) => s + d.discussions, 0),
+                        posts:       week.reduce((s: number, d: ActivityDataPoint) => s + d.posts, 0),
+                        total:       week.reduce((s: number, d: ActivityDataPoint) => s + d.total, 0),
+                        isWeek: true,
+                    });
                 }
                 chartData = grouped;
             }
 
-            const barsHtml = chartData.map((day: ActivityDataPoint) => {
-                const heightPercent = maxValue > 0 ? (day.total / maxValue) * 100 : 0;
-                const discussionsPercent = day.total > 0 ? (day.discussions / day.total) * 100 : 0;
-                const postsPercent = day.total > 0 ? (day.posts / day.total) * 100 : 0;
+            const maxValue         = Math.max(...chartData.map((d: ActivityDataPoint) => d.total), 1);
+            const totalDiscussions = data.reduce((s: number, d: ActivityDataPoint) => s + d.discussions, 0);
+            const totalPosts       = data.reduce((s: number, d: ActivityDataPoint) => s + d.posts, 0);
+            const totalActivity    = totalDiscussions + totalPosts;
 
-                const tz = (window as any).snakkTimezone || 'UTC';
-                const dateOpts: Intl.DateTimeFormatOptions = { timeZone: tz, month: 'short', day: 'numeric' };
-                const fmtDate = (d: string) => { try { return new Date(d).toLocaleDateString('en-US', dateOpts); } catch { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } };
-                const dateLabel = shouldGroupByWeek
-                    ? `Week of ${fmtDate(day.date)}`
-                    : fmtDate(day.date);
+            // Read container width before any DOM mutations — avoids a forced
+            // layout flush after innerHTML change that can expose a blank canvas frame.
+            const containerWidth = container.clientWidth || container.offsetWidth;
 
-                return `
-                    <div class="sn-activity-chart-bar-wrapper">
-                        <div class="sn-activity-chart-bar-container" style="height: ${maxHeight}px;">
-                            <div class="sn-activity-chart-bar"
-                                 style="height: ${day.total === 0 ? '4px' : heightPercent + '%'}; ${day.total === 0 ? 'min-height: 4px;' : ''}"
-                                 title="${day.total} contribution${day.total !== 1 ? 's' : ''}\\n${day.discussions} discussion${day.discussions !== 1 ? 's' : ''}\\n${day.posts} post${day.posts !== 1 ? 's' : ''}\\n${dateLabel}">
-                                ${day.discussions > 0 ? `<div class="sn-activity-chart-bar-segment-primary" style="height: ${discussionsPercent}%;"></div>` : ''}
-                                ${day.posts > 0 ? `<div class="sn-activity-chart-bar-segment-secondary" style="height: ${postsPercent}%;"></div>` : ''}
-                                ${day.total === 0 ? '<div class="sn-activity-chart-bar-zero"></div>' : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
+            // Sample bar colors from CSS so the canvas respects context overrides (e.g. .sn-profile-card dark bg)
+            function sampleBg(cls: string): string {
+                const el = document.createElement('div');
+                el.className = cls;
+                el.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none';
+                container.appendChild(el);
+                const color = getComputedStyle(el).backgroundColor;
+                container.removeChild(el);
+                return color;
+            }
+            const colorPrimary   = sampleBg('sn-activity-chart-bar-segment-primary');
+            const colorSecondary = sampleBg('sn-activity-chart-bar-segment-secondary');
+            const colorZero      = sampleBg('sn-activity-chart-bar-zero');
 
-            const totalDiscussions = data.reduce((sum: number, d: ActivityDataPoint) => sum + d.discussions, 0);
-            const totalPosts = data.reduce((sum: number, d: ActivityDataPoint) => sum + d.posts, 0);
-            const totalActivity = totalDiscussions + totalPosts;
+            // Build and draw the canvas off-DOM so the skeleton is replaced atomically
+            // with already-painted content — prevents the compositor flash caused by
+            // the skeleton's will-change:opacity layer tearing down before new pixels arrive.
+            const canvas = document.createElement('canvas');
+            canvas.className = 'sn-activity-canvas';
+            canvas.style.height = `${maxHeight}px`;
+            canvas.setAttribute('aria-label', 'Activity history chart');
+            canvas.setAttribute('role', 'img');
 
-            container.innerHTML = `
-                <div class="sn-space-y-4">
-                    <div class="sn-activity-chart-wrapper" style="height: ${maxHeight + 40}px;">
-                        ${barsHtml}
-                    </div>
-                    <div class="sn-activity-chart-legend">
-                        <div class="sn-activity-chart-legend-item">
-                            <div class="sn-activity-chart-legend-color sn-activity-chart-legend-color-primary"></div>
-                            <span>${totalDiscussions} discussions</span>
-                        </div>
-                        <div class="sn-activity-chart-legend-item">
-                            <div class="sn-activity-chart-legend-color sn-activity-chart-legend-color-secondary"></div>
-                            <span>${totalPosts} posts</span>
-                        </div>
-                        <span class="text-base-content/50">(${totalActivity} total)</span>
-                    </div>
+            const dpr = window.devicePixelRatio || 1;
+            const w   = containerWidth;
+            const h   = maxHeight;
+            canvas.width  = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) return;
+            ctx.scale(dpr, dpr);
+
+            const n    = chartData.length;
+            const GAP  = 2;
+            const barW = Math.max(1, (w - GAP * (n - 1)) / n);
+            const R    = 2;
+
+            const barRects: Array<{ x: number; y: number; w: number; h: number; d: ActivityDataPoint }> = [];
+
+            chartData.forEach((d: ActivityDataPoint, i: number) => {
+                const x = i * (barW + GAP);
+
+                if (d.total === 0) {
+                    ctx.fillStyle = colorZero;
+                    ctx.beginPath();
+                    ctx.roundRect(x, h - 4, barW, 4, [R, R, 0, 0]);
+                    ctx.fill();
+                    barRects.push({ x, y: h - 4, w: barW, h: 4, d });
+                    return;
+                }
+
+                const totalH = Math.max(4, (d.total / maxValue) * h);
+                const barY   = h - totalH;
+                const discsH = d.discussions > 0 ? (d.discussions / d.total) * totalH : 0;
+                const postsH = totalH - discsH;
+
+                if (discsH > 0) {
+                    ctx.fillStyle = colorPrimary;
+                    ctx.beginPath();
+                    ctx.roundRect(x, barY, barW, discsH, [R, R, 0, 0]);
+                    ctx.fill();
+                }
+                if (postsH > 0) {
+                    ctx.fillStyle = colorSecondary;
+                    ctx.beginPath();
+                    ctx.roundRect(x, barY + discsH, barW, postsH, discsH > 0 ? [0, 0, 0, 0] : [R, R, 0, 0]);
+                    ctx.fill();
+                }
+
+                barRects.push({ x, y: barY, w: barW, h: totalH, d });
+            });
+
+            const legend = document.createElement('div');
+            legend.className = 'sn-activity-chart-legend';
+            legend.innerHTML = `
+                <div class="sn-activity-chart-legend-item">
+                    <div class="sn-activity-chart-legend-color sn-activity-chart-legend-color-primary"></div>
+                    <span>${totalDiscussions} discussion${totalDiscussions !== 1 ? 's' : ''}</span>
                 </div>
+                <div class="sn-activity-chart-legend-item">
+                    <div class="sn-activity-chart-legend-color sn-activity-chart-legend-color-secondary"></div>
+                    <span>${totalPosts} post${totalPosts !== 1 ? 's' : ''}</span>
+                </div>
+                <span class="sn-activity-chart-legend-total">(${totalActivity} total)</span>
             `;
+
+            const tooltip = document.createElement('div');
+            tooltip.className = 'sn-activity-chart-tooltip';
+
+            // Atomically replace skeleton with the fully-drawn canvas
+            container.style.position = 'relative';
+            container.replaceChildren(canvas, legend, tooltip);
+
+            const tz       = (window as any).snakkTimezone || 'UTC';
+            const dateOpts: Intl.DateTimeFormatOptions = { timeZone: tz, month: 'short', day: 'numeric' };
+            const fmtDate  = (s: string) => {
+                try { return new Date(s).toLocaleDateString('en-US', dateOpts); }
+                catch { return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+            };
+
+            canvas.addEventListener('mousemove', (e: MouseEvent) => {
+                const rect = canvas.getBoundingClientRect();
+                const mx   = e.clientX - rect.left;
+                const hit  = barRects.find(r => mx >= r.x && mx <= r.x + r.w);
+                if (!hit) { tooltip.style.display = 'none'; return; }
+
+                const label = shouldGroupByWeek ? `Week of ${fmtDate(hit.d.date)}` : fmtDate(hit.d.date);
+                tooltip.innerHTML = `<div>${hit.d.total} contribution${hit.d.total !== 1 ? 's' : ''}</div><div>${hit.d.discussions} discussion${hit.d.discussions !== 1 ? 's' : ''}</div><div>${hit.d.posts} post${hit.d.posts !== 1 ? 's' : ''}</div><div>${label}</div>`;
+                tooltip.style.display   = 'block';
+                tooltip.style.left      = `${hit.x + hit.w / 2}px`;
+                tooltip.style.top       = `${hit.y - 4}px`;
+                tooltip.style.transform = 'translate(-50%, -100%)';
+            });
+
+            canvas.addEventListener('mouseleave', () => { tooltip.style.display = 'none'; });
         }
 
         // Name History (own profile only)

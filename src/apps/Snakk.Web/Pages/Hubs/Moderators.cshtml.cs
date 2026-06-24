@@ -21,7 +21,7 @@ public class ModeratorsModel(
         var hubResult = await apiClient.GetHubBySlugResultAsync(slug, CommunityContext.CommunitySlug!);
 
         if (!hubResult.IsSuccess)
-            return hubResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(hubResult);
 
         Hub = hubResult.Value!;
         Moderators = await apiClient.GetModeratorsAsync("Hub", Hub.PublicId);

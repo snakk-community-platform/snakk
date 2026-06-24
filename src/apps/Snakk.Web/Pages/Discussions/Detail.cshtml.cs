@@ -44,6 +44,8 @@ public class DetailModel(
     public bool IsAuthenticated { get; set; }
     public string? CurrentUserId { get; set; }
     public string? CurrentUserDisplayName { get; set; }
+    public bool IsCurrentUserModerator { get; set; }
+    public bool IsDiscussionDeleted { get; set; }
 
     // Whether any post in the initial batch contains code blocks (for Prism.js loading)
     public bool HasCodeBlocks { get; set; }
@@ -131,6 +133,8 @@ public class DetailModel(
             IsAuthenticated = user is not null;
             CurrentUserId = user?.PublicId;
             CurrentUserDisplayName = user?.DisplayName;
+            var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            IsCurrentUserModerator = IsAuthenticated && !string.IsNullOrEmpty(role);
 
             // Start read-state fetch in parallel with subsequent work
             var readStateTask = IsAuthenticated && !string.IsNullOrEmpty(CurrentUserId)
@@ -193,12 +197,41 @@ public class DetailModel(
             }
 
             // Load discussion and posts (discussion must load first, posts depend on it)
-            var discussionResult = await _apiClient.GetDiscussionResultAsync(PublicId);
+            var discussionResult = await _apiClient.GetDiscussionResultAsync(PublicId, ct: cancellationToken);
             if (!discussionResult.IsSuccess)
-                return discussionResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            {
+                if (discussionResult.Status != GrpcStatus.NotFound)
+                    return StatusCode(503);
+
+                // 404: check whether this is a soft-deleted discussion a mod should still see
+                if (IsAuthenticated && Space is not null)
+                {
+                    var isMod = await _apiClient.CanModerateAsync(spaceId: Space.PublicId, ct: cancellationToken);
+                    if (isMod)
+                    {
+                        IsCurrentUserModerator = true;
+                        var deletedResult = await _apiClient.GetDiscussionResultAsync(PublicId, includeDeleted: true, ct: cancellationToken);
+                        if (deletedResult.IsSuccess)
+                        {
+                            IsDiscussionDeleted = true;
+                            discussionResult = deletedResult;
+                        }
+                    }
+                }
+
+                if (!discussionResult.IsSuccess)
+                    return NotFound();
+            }
 
             Discussion = discussionResult.Value!;
             CanonicalUrl = $"{Configuration["WebBaseUrl"]?.TrimEnd('/') ?? $"{Request.Scheme}://{Request.Host}"}{Request.Path}";
+
+            switch (Discussion.Type)
+            {
+                case "Guide":   Preload("type-guide");    break;
+                case "Journal": Preload("type-journal");  break;
+                case "Question": Preload("type-question"); break;
+            }
 
             var countryCode = HttpContext.Request.Headers["CF-IPCountry"].FirstOrDefault() ?? "XX";
             _viewCountBuffer.Record(PublicId, countryCode);
@@ -259,6 +292,10 @@ public class DetailModel(
         }
         catch
         {
+            // If we already loaded the deleted discussion header, render what we have
+            // rather than serving a 404 that would hide it from the mod.
+            if (IsDiscussionDeleted && Discussion is not null)
+                return Page();
             return NotFound();
         }
 
@@ -373,14 +410,15 @@ public class DetailModel(
             if (discussionForType?.Type == "Iama" && !string.IsNullOrEmpty(ReplyToPostId) && !string.IsNullOrEmpty(newPostPublicId))
                 await _apiClient.MarkIamaOfficialAnswerAsync(PublicId, ReplyToPostId, newPostPublicId);
 
-            // Navigate to the last page so the new post is visible
+            // Redirect to the new post via fragment — client-side fragment navigation
+            // loads the correct page and scrolls to it, keeping the full discussion visible.
             var discussion = await _apiClient.GetDiscussionAsync(PublicId);
-            var totalPosts = discussion?.PostCount ?? 0;
-            var lastPageOffset = Math.Max(0, ((totalPosts - 1) / 20) * 20);
+            var newPostNumber = discussion?.PostCount ?? 0;
+            var fragment = newPostNumber > 0 ? $"post-{newPostNumber}" : null;
 
             return RedirectToPage("/Discussions/Detail", null,
-                new { hubSlug, spaceSlug, slugWithId, offset = lastPageOffset },
-                "reply-form-container");
+                new { hubSlug, spaceSlug, slugWithId },
+                fragment);
         }
         catch
         {

@@ -2,16 +2,23 @@ namespace Snakk.Infrastructure.Adapters;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
+using StackExchange.Redis;
 using Snakk.Domain.Entities;
 using Snakk.Domain.Repositories;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 
-public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext, HybridCache cache) : IDiscussionReadStateRepository
+public class DiscussionReadStateRepositoryAdapter(
+    SnakkDbContext dbContext,
+    HybridCache cache,
+    IConnectionMultiplexer redis) : IDiscussionReadStateRepository
 {
     private static readonly HybridCacheEntryOptions _readStateCacheOptions =
         new() { Expiration = TimeSpan.FromHours(24) };
+
+    internal const string DirtySetKey = "snakk:readstate:dirty";
+    internal const string KeyPrefix    = "snakk:readstate:";
 
     public async Task<DiscussionReadState?> GetAsync(UserId userId, DiscussionId discussionId, CancellationToken ct = default)
     {
@@ -24,6 +31,16 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext, Hybr
 
     private async Task<DiscussionReadState?> FetchReadStateAsync(UserId userId, DiscussionId discussionId, CancellationToken ct)
     {
+        // HybridCache missed — check Valkey write-behind store before hitting DB.
+        // Covers the window between a SaveAsync write and the hourly DB flush.
+        var raw = (string?)await redis.GetDatabase()
+            .StringGetAsync(KeyPrefix + userId.Value + ":" + discussionId.Value);
+        if (raw is not null)
+        {
+            var pending = ParseValue(userId, discussionId, raw);
+            if (pending is not null) return pending;
+        }
+
         var entity = await dbContext.DiscussionReadStates
             .FirstOrDefaultAsync(rs =>
                 rs.UserId == userId.Value
@@ -41,35 +58,22 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext, Hybr
 
     public async Task SaveAsync(DiscussionReadState readState, CancellationToken ct = default)
     {
-        // AsTracking() so the LastReadPostId / LastReadAt mutations on the existing
-        // row actually persist. Without this, EF's default NoTracking behavior on
-        // SnakkDbContext silently dropped every update past the first row insert,
-        // leaving the unread indicator stuck at the first-ever read position (CR-26).
-        var existing = await dbContext.DiscussionReadStates
-            .AsTracking()
-            .FirstOrDefaultAsync(rs =>
-                rs.UserId == readState.UserId.Value
-                && rs.DiscussionId == readState.DiscussionId.Value, ct);
+        var db = redis.GetDatabase();
+        var key    = KeyPrefix + readState.UserId.Value + ":" + readState.DiscussionId.Value;
+        var member = readState.UserId.Value + ":" + readState.DiscussionId.Value;
 
-        if (existing is not null)
-        {
-            existing.LastReadPostId = readState.LastReadPostId?.Value;
-            existing.LastReadAt = readState.LastReadAt;
-        }
-        else
-        {
-            var entity = new DiscussionReadStateDatabaseEntity
-            {
-                UserId = readState.UserId.Value,
-                DiscussionId = readState.DiscussionId.Value,
-                LastReadPostId = readState.LastReadPostId?.Value,
-                LastReadAt = readState.LastReadAt
-            };
-            dbContext.DiscussionReadStates.Add(entity);
-        }
+        var batch = db.CreateBatch();
+        var setTask  = batch.StringSetAsync(key, SerializeValue(readState));
+        var saddTask = batch.SetAddAsync(DirtySetKey, member);
+        batch.Execute();
+        await Task.WhenAll(setTask, saddTask);
 
-        await dbContext.SaveChangesAsync(ct);
-        await cache.RemoveAsync($"read-state:{readState.UserId.Value}:{readState.DiscussionId.Value}", ct);
+        // Populate HybridCache so GetAsync never touches DB on the hot path.
+        await cache.SetAsync<DiscussionReadState?>(
+            $"read-state:{readState.UserId.Value}:{readState.DiscussionId.Value}",
+            readState,
+            _readStateCacheOptions,
+            cancellationToken: ct);
     }
 
     public async Task BatchSaveAsync(IEnumerable<DiscussionReadState> readStates, CancellationToken ct = default)
@@ -77,38 +81,43 @@ public class DiscussionReadStateRepositoryAdapter(SnakkDbContext dbContext, Hybr
         var states = readStates.ToList();
         if (states.Count == 0) return;
 
-        var userId = states[0].UserId.Value;
-        var discussionIds = states.Select(rs => rs.DiscussionId.Value).ToList();
+        var db = redis.GetDatabase();
+        var batch = db.CreateBatch();
+        var tasks = new List<Task>(states.Count * 2);
 
-        var existingEntities = await dbContext.DiscussionReadStates
-            .AsTracking()
-            .Where(rs => rs.UserId == userId && discussionIds.Contains(rs.DiscussionId))
-            .ToListAsync(ct);
-
-        var existingMap = existingEntities.ToDictionary(rs => rs.DiscussionId);
-
-        foreach (var readState in states)
+        foreach (var s in states)
         {
-            if (existingMap.TryGetValue(readState.DiscussionId.Value, out var existing))
-            {
-                existing.LastReadPostId = readState.LastReadPostId?.Value;
-                existing.LastReadAt = readState.LastReadAt;
-            }
-            else
-            {
-                dbContext.DiscussionReadStates.Add(new DiscussionReadStateDatabaseEntity
-                {
-                    UserId = readState.UserId.Value,
-                    DiscussionId = readState.DiscussionId.Value,
-                    LastReadPostId = readState.LastReadPostId?.Value,
-                    LastReadAt = readState.LastReadAt
-                });
-            }
+            var key    = KeyPrefix + s.UserId.Value + ":" + s.DiscussionId.Value;
+            var member = s.UserId.Value + ":" + s.DiscussionId.Value;
+            tasks.Add(batch.StringSetAsync(key, SerializeValue(s)));
+            tasks.Add(batch.SetAddAsync(DirtySetKey, member));
         }
 
-        await dbContext.SaveChangesAsync(ct);
+        batch.Execute();
+        await Task.WhenAll(tasks);
+
         await Task.WhenAll(states.Select(s =>
-            cache.RemoveAsync($"read-state:{s.UserId.Value}:{s.DiscussionId.Value}", ct).AsTask()));
+            cache.SetAsync<DiscussionReadState?>(
+                $"read-state:{s.UserId.Value}:{s.DiscussionId.Value}",
+                s,
+                _readStateCacheOptions,
+                cancellationToken: ct).AsTask()));
+    }
+
+    private static string SerializeValue(DiscussionReadState s) =>
+        (s.LastReadPostId?.Value ?? "") + "|" + s.LastReadAt.Ticks;
+
+    private static DiscussionReadState? ParseValue(UserId userId, DiscussionId discussionId, string raw)
+    {
+        var sep = raw.IndexOf('|');
+        if (sep < 0 || !long.TryParse(raw.AsSpan(sep + 1), out var ticks)) return null;
+
+        var postIdStr = raw[..sep];
+        return DiscussionReadState.Rehydrate(
+            userId,
+            discussionId,
+            postIdStr.Length > 0 ? PostId.From(postIdStr) : null,
+            new DateTime(ticks, DateTimeKind.Utc));
     }
 
     public async Task<List<ReadStateWithPostNumber>> GetReadStatesForDiscussionsAsync(

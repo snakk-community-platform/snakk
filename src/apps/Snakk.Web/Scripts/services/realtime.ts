@@ -956,6 +956,11 @@ interface Subscriptions {
                 connection.invoke('StopDmTyping', conversationId, otherUserPublicId).catch(() => {});
             }
         },
+        recordView(discussionId: string): void {
+            if (worker) {
+                worker.port.postMessage({ type: 'view', discussionId });
+            }
+        },
         reconnect(): void {
             cachedToken = null;
             if (worker) {

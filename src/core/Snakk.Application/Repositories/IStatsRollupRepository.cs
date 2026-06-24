@@ -12,9 +12,9 @@ public interface IStatsRollupRepository
     Task<List<StatsRollupRow>> GetRowsAsync(string statKind, CancellationToken ct = default);
 
     /// <summary>
-    /// Replaces all rows for a stat kind atomically (delete existing + insert new in one transaction).
+    /// Replaces the entire table atomically (truncate + insert all kinds in one transaction).
     /// </summary>
-    Task ReplaceKindAsync(string statKind, IReadOnlyList<StatsRollupRow> rows, CancellationToken ct = default);
+    Task ReplaceAllAsync(IReadOnlyList<StatsRollupRow> rows, CancellationToken ct = default);
 }
 
 /// <summary>

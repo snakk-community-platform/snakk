@@ -125,6 +125,28 @@
                     <span>@T.Actions.Manage</span>
                 </a>
             }
+            @if (actions.Contains("mod-discussion") && canManage)
+            {
+                var modDiscussionId = ViewData["RightPane.ModDiscussionId"] as string ?? "";
+                var modIsLocked = ViewData["RightPane.ModIsLocked"] is bool ml && ml;
+                <div class="sn-w-full sn-border-t sn-border-subtle sn-pt-2 sn-mt-1 sn-flex sn-gap-2 sn-flex-wrap">
+                    <button type="button"
+                            data-action="mod-lock-discussion"
+                            data-discussion-id="@modDiscussionId"
+                            data-is-locked="@modIsLocked.ToString().ToLower()"
+                            class="sn-btn sn-btn-outline sn-btn-sm">
+                        <span class="sn-icon icon-lock-closed sn-icon--xs" aria-hidden="true"></span>
+                        <span>@(modIsLocked ? "Unlock" : "Lock")</span>
+                    </button>
+                    <button type="button"
+                            data-action="mod-delete-discussion"
+                            data-discussion-id="@modDiscussionId"
+                            class="sn-btn sn-btn-outline sn-btn-sm sn-text-error">
+                        <span class="sn-icon icon-trash sn-icon--xs" aria-hidden="true"></span>
+                        <span>Remove</span>
+                    </button>
+                </div>
+            }
             @if (actions.Contains("clear-history"))
             {
                 <button type="button" id="history-clear-btn" class="sn-btn sn-btn-outline sn-btn-sm">

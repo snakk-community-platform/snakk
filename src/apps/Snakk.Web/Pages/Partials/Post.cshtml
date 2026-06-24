@@ -8,15 +8,6 @@
     var isModerator = post.Author.Role == "mod" || post.Author.Role == "admin";
     var isOwnPost = Model.CurrentUserId == post.Author.PublicId;
     var hasReplyTo = post.ReplyTo != null;
-    var reactionCounts = post.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>();
-    var hasReactions = reactionCounts.Any(kvp => kvp.Value > 0);
-    var reactionEmojis = new Dictionary<string, string>
-    {
-        ["Agree"] = "👍", ["Love"] = "❤️", ["Funny"] = "😂",
-        ["Thinking"] = "🤔", ["Watching"] = "👀", ["Fire"] = "🔥",
-        ["Thanks"] = "🙏", ["MindBlown"] = "🤯", ["ShipIt"] = "🚀"
-    };
-    var myReactions = post.Reactions?.UserReactions?.Reactions?.ToList() ?? new List<string>();
 }
 <article id="post-@post.PostNumber"
          class="post-item sn-post-article sn-post-layout @(isOP ? "sn-first-post" : "") @(isModerator ? "sn-moderator-post" : "") sn-new-author"
@@ -104,6 +95,8 @@
                         <span class="post-edited"> @T.Pages.DiscEdited</span>
                     }
                 </span>
+                <span aria-hidden="true">·</span>
+                <span class="sn-post-number">#@post.PostNumber</span>
             </div>
             <div class="sn-post-toolbar-right">
                 @if (!Model.IsDiscussionLocked && Model.IsAuthenticated && !isOwnPost)
@@ -128,28 +121,13 @@
                     </button>
                     </div>
                 }
-                <div class="sn-post-reactions-row"
-                     id="reactions-@post.PublicId"
-                     data-reaction-counts="@System.Text.Json.JsonSerializer.Serialize(reactionCounts.ToDictionary(k => k.Key, k => k.Value))"
-                     data-my-reactions="@System.Text.Json.JsonSerializer.Serialize(myReactions)"
-                     @if (Model.IsAuthenticated && !Model.IsDiscussionLocked)
-                     {
-                         <text>data-action="toggle-reaction-picker" data-post-id="@post.PublicId"</text>
-                     }
-                     aria-label="@(Model.IsAuthenticated ? T.Pages.DiscAriaReactionAdd : T.Pages.DiscAriaReactions)">
-                    @foreach (var kvp in reactionCounts.Where(c => c.Value > 0))
-                    {
-                        var emoji = reactionEmojis.GetValueOrDefault(kvp.Key, "?");
-                        var isActive = myReactions.Contains(kvp.Key);
-                        <span data-type="@kvp.Key" class="@(isActive ? "sn-active" : "")"><span class="sn-reaction-icon">@emoji</span> @kvp.Value</span>
-                    }
-                    @if (!hasReactions && !Model.IsDiscussionLocked && Model.IsAuthenticated)
-                    {
-                        <span class="sn-reaction-placeholder" data-reaction-placeholder>
-                            <span class="sn-icon icon-badge-check" aria-hidden="true"></span>
-                        </span>
-                    }
-                </div>
+                <partial name="_PostReactions" model="@(new PostReactionsVM(
+                    PostPublicId: post.PublicId,
+                    Counts: (post.Reactions?.Counts?.Counts ?? new Google.Protobuf.Collections.MapField<string, int>()).ToDictionary(k => k.Key, k => k.Value),
+                    MyReactions: post.Reactions?.UserReactions?.Reactions?.ToList() ?? new List<string>(),
+                    IsOp: false,
+                    IsAuthenticated: Model.IsAuthenticated,
+                    IsLocked: Model.IsDiscussionLocked))" />
                 <div class="sn-dropdown">
                     <button type="button" class="sn-subtle-btn" aria-label="@T.Pages.DiscAriaPostOptions"
                             popovertarget="sn-post-opts-@(post.PublicId)">

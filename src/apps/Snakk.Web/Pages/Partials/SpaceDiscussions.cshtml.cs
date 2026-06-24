@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Protos.Discussion;
 using Snakk.Web.Services;
@@ -9,37 +8,38 @@ namespace Snakk.Web.Pages.Partials;
 public class SpaceDiscussionsModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
-    ICommunityContext communityContext) : PageModel
+    ICommunityContext communityContext) : PaginatedPartialModel
 {
     public IEnumerable<DiscussionBySpaceInfo> Items { get; set; } = [];
-    public bool HasMoreItems { get; set; }
-    public int NextOffset { get; set; }
-    public int MaxOffset { get; set; }
     public string? NextCursor { get; set; }
     public ICommunityContext Community => communityContext;
     public string SpaceId { get; set; } = string.Empty;
     public string HubSlug { get; set; } = string.Empty;
     public string SpaceSlug { get; set; } = string.Empty;
     public int? TypeFilter { get; set; }
+    public bool IsModerator { get; set; }
 
     public async Task OnGetAsync(string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null, string? cursor = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        Response.Headers.CacheControl = "public, max-age=5";
+
+        var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+
+        // Mods see soft-deleted discussions; also bypass browser cache for their requests
+        if (isAuthenticated)
+        {
+            IsModerator = await apiClient.CanModerateAsync(spaceId: spaceId, ct: cancellationToken);
+            Response.Headers.CacheControl = IsModerator ? "private, no-store" : "public, max-age=5";
+        }
+        else
+        {
+            Response.Headers.CacheControl = "public, max-age=5";
+        }
 
         SpaceId = spaceId;
         TypeFilter = typeFilter;
-        pageSize = Math.Clamp(pageSize, 1, 50);
-
-        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 10);
-        MaxOffset = maxPages * pageSize;
-
-        if (offset >= MaxOffset)
-        {
-            Items = [];
-            HasMoreItems = false;
-            return;
-        }
+        (pageSize, var exceeded) = ApplyPaginationGuard(offset, pageSize, 1, 50, configuration);
+        if (exceeded) return;
 
         // Look up space to get hub/space slugs for URL generation
         var space = await apiClient.GetSpaceAsync(spaceId);
@@ -49,7 +49,7 @@ public class SpaceDiscussionsModel(
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, apiClient);
         try
         {
-            var result = await apiClient.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, typeFilter, cursor, viewerAllowsAdult: viewerAllowsAdult);
+            var result = await apiClient.GetDiscussionsBySpaceAsync(spaceId, offset, pageSize, typeFilter, cursor, viewerAllowsAdult: viewerAllowsAdult, includeDeleted: IsModerator);
             Items = result?.Items ?? [];
             HasMoreItems = result?.HasMoreItems ?? false;
             NextOffset = offset + pageSize;

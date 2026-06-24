@@ -64,6 +64,7 @@ service DiscussionService {
 
 message GetDiscussionRequest {
   string public_id = 1;
+  bool include_deleted = 2;
 }
 
 message GetDiscussionsByIdsRequest {
@@ -130,6 +131,8 @@ message GetRecentDiscussionsRequest {
   bool viewer_allows_adult = 9;
   // When true, only return discussions with activity after the current user's LastVisitAt
   bool since_last_visit = 10;
+  // When true, include soft-deleted discussions (gRPC service verifies mod rights)
+  bool include_deleted = 11;
 }
 
 message GetUnreadDiscussionCountRequest {
@@ -169,6 +172,7 @@ message GetDiscussionsBySpaceRequest {
   optional int32 type_filter = 4;
   optional string cursor = 5;
   bool viewer_allows_adult = 6;
+  bool include_deleted = 7;
 }
 
 message GetDiscussionPreviewRequest {
@@ -201,6 +205,7 @@ message DiscussionInfo {
   string type = 9;
   int32 post_count = 10;
   bool is_adult = 11;
+  bool is_deleted = 12;
 }
 
 message DiscussionCreatedInfo {
@@ -233,6 +238,7 @@ message RecentDiscussionInfo {
   bool is_adult = 19;
   optional google.protobuf.Timestamp saved_at = 20;
   optional int32 unread_post_count = 21;
+  bool is_deleted = 22;
 }
 
 message DiscussionPreview {
@@ -332,6 +338,7 @@ message DiscussionBySpaceInfo {
   snakk.AuthorRef author = 11;
   repeated string tags = 12;
   string type = 13;
+  bool is_deleted = 14;
 }
 
 message PagedDiscussionBySpaceList {

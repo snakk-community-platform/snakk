@@ -2,6 +2,7 @@
 @inject NavigationManager Navigation
 @inject ManageScopeService ScopeService
 @inject ManageScopeState ScopeState
+@inject AdminThemeService ThemeService
 @implements IDisposable
 
 @if (_loading)
@@ -34,7 +35,7 @@ else
 {
     <CascadingValue Value="_scope">
         <MudLayout>
-            <MudAppBar Elevation="1" Dense="true">
+            <MudAppBar Elevation="0" Dense="true" Class="admin-appbar">
                 <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
                                OnClick="@(() => _drawerOpen = !_drawerOpen)" />
 
@@ -58,10 +59,12 @@ else
                 <MudSpacer />
                 <AuthorizeView>
                     <Authorized>
-                        <MudText Class="mr-3 mud-text-secondary" Typo="Typo.body2">@context.User.Identity?.Name</MudText>
+                        <MudText Class="mr-2 mud-text-secondary" Typo="Typo.body2">@context.User.Identity?.Name</MudText>
                     </Authorized>
                 </AuthorizeView>
-                <MudButton Href="" Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" Class="mr-1">
+                <MudIconButton Icon="@(_darkModeIcon)" Color="Color.Inherit" Title="Toggle theme"
+                               OnClick="ThemeService.Toggle" Size="Size.Small" />
+                <MudButton Href="" Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" Class="ml-1">
                     <MudIcon Icon="@Icons.Material.Filled.Home" Size="Size.Small" Class="mr-1" />Admin
                 </MudButton>
                 <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small"
@@ -70,11 +73,25 @@ else
                 </MudButton>
             </MudAppBar>
 
-            <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always" Width="240px">
-                <MudNavMenu>
+            <MudDrawer @bind-Open="_drawerOpen" Elevation="0" ClipMode="DrawerClipMode.Always" Width="240px" Class="admin-drawer">
+                <div class="admin-sidebar-brand">
+                    <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Small" Color="Color.Primary" />
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="fw-bold lh-1">@(_scope?.CommunityName ?? "Snakk")</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="font-size:0.65rem;">@(_scope?.ScopeType ?? "Admin")</MudText>
+                    </div>
+                </div>
+                <MudNavMenu Class="px-2">
                     <MudNavLink Href="@_base" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
                         Dashboard
                     </MudNavLink>
+
+                    @if (HasPerm(ManagePermissionEnum.ViewDashboard))
+                    {
+                        <MudNavLink Href="@Nav("statistics")" Icon="@Icons.Material.Filled.BarChart">
+                            Statistics
+                        </MudNavLink>
+                    }
 
                     @if (_scope.ScopeType == "Community")
                     {
@@ -195,7 +212,7 @@ else
                 </MudNavMenu>
             </MudDrawer>
 
-            <MudMainContent Class="pa-6 mt-8">
+            <MudMainContent Class="pa-6 mt-14">
                 @Body
             </MudMainContent>
         </MudLayout>
@@ -206,6 +223,10 @@ else
     private ManageScopeDto? _scope;
     private bool _loading = true;
     private bool _drawerOpen = true;
+
+    private string _darkModeIcon => ThemeService.IsDarkMode
+        ? Icons.Material.Filled.LightMode
+        : Icons.Material.Filled.DarkMode;
     private string _lastScopeKey = "";
     private string _base = "";
     private List<BreadcrumbItem> _breadcrumbs = [];
@@ -301,7 +322,8 @@ else
     [
         "settings", "access", "team", "rules", "banners", "report-reasons",
         "groups", "hubs", "spaces", "discord", "announcements", "webhooks",
-        "moderation", "reports", "bans", "content", "log", "domains", "h"
+        "moderation", "reports", "bans", "content", "log", "domains", "h",
+        "statistics"
     ];
 
     private record ScopeSlugs(string Community, string? Hub, string? Space);

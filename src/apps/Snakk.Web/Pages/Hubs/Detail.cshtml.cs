@@ -56,17 +56,25 @@ public class DetailModel(
 
         var hubResult = await _apiClient.GetHubBySlugResultAsync(slug, CommunityContext.CommunitySlug!);
         if (!hubResult.IsSuccess)
-            return hubResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(hubResult);
 
         Hub = hubResult.Value!;
         SidebarScopeId = Hub.PublicId;
 
         var viewerAllowsAdult = await AdultContentGate.ViewerAllowsAdultAsync(HttpContext, _apiClient);
 
+        var isMod = false;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            isMod = await _apiClient.CanModerateAsync(hubId: Hub.PublicId, ct: cancellationToken);
+            if (isMod)
+                Response.Headers.CacheControl = "private, no-store";
+        }
+
         // Check cache for sidebar data — inline if warm, prefetch if cold
         ResolveSidebarData(viewerAllowsAdult);
         var spacesTask = _apiClient.GetSpacesByHubAsync(Hub.PublicId, 0, 50);
-        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 20, hubId: Hub.PublicId, viewerAllowsAdult: viewerAllowsAdult);
+        var discussionsTask = _apiClient.GetRecentDiscussionsAsync(offset, 20, hubId: Hub.PublicId, viewerAllowsAdult: viewerAllowsAdult, includeDeleted: isMod);
         var communityTask = !string.IsNullOrEmpty(CommunityContext.CommunitySlug)
             ? _apiClient.GetCommunityBySlugAsync(CommunityContext.CommunitySlug)
             : Task.FromResult<CommunityInfo?>(null);

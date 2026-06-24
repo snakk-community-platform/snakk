@@ -1,13 +1,13 @@
 // Stats grid (2x2) + activity chart side-by-side
 .sn-stats-activity-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: var(--space-8);
-    align-items: stretch;
+    height: 220px;
     margin-bottom: var(--space-8);
 }
 
 .sn-stats-wrapper {
-    flex: 0 0 calc(50% - 0.5rem);
     min-width: 0;
     display: flex;
     padding: var(--space-8);
@@ -44,7 +44,6 @@
 }
 
 .sn-activity-chart-wrapper {
-    flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -85,5 +84,19 @@
 .sn-activity-chart-body {
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+@media (max-width: 767px) {
+    .sn-stats-activity-row {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+
+    .sn-activity-chart-wrapper {
+        height: 200px;
+    }
 }
 

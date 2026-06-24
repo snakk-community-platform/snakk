@@ -8,12 +8,15 @@ public interface IDiscussionRepository
 {
     Task<Discussion?> GetByIdAsync(int id, CancellationToken ct = default);
     Task<Discussion?> GetByPublicIdAsync(DiscussionId publicId, CancellationToken ct = default);
+    Task<Discussion?> GetByPublicIdIncludingDeletedAsync(DiscussionId publicId, CancellationToken ct = default);
     Task<Discussion?> GetBySlugAsync(string slug, CancellationToken ct = default);
     Task<PagedResult<Discussion>> GetBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize, CancellationToken ct = default);
     Task<PagedResult<Discussion>> GetPagedBySpaceIdAsync(SpaceId spaceId, int offset, int pageSize, CancellationToken ct = default);
     Task<IEnumerable<Discussion>> GetRecentAsync(int count = 10, CancellationToken ct = default);
     Task AddAsync(Discussion discussion, CancellationToken ct = default);
     Task UpdateAsync(Discussion discussion, CancellationToken ct = default);
+    Task UpdateWithLastPostAsync(Discussion discussion, string? authorPublicId, string? displayName,
+        string? avatarFile, string? thumbFile, string? excerpt, CancellationToken ct = default);
 
     /// <summary>
     /// Gets top active discussions by post count since a given date

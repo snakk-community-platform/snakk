@@ -23,7 +23,7 @@ public class RulesModel(
         var communityResult = await apiClient.GetCommunityBySlugResultAsync(slug);
 
         if (!communityResult.IsSuccess)
-            return communityResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(communityResult);
 
         CommunityDetail = communityResult.Value!;
         Rules = await apiClient.GetCommunityRulesAsync(CommunityDetail.PublicId);

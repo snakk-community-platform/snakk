@@ -134,4 +134,9 @@ interface SnakkReadHistoryAPI {
         removeFromHistory: removeFromReadHistory,
         buildUrl: buildDiscussionUrl
     };
+
+    // Drain entries queued by discussion-detail.ts before this script executed
+    const pending: Partial<ReadHistoryEntry>[] = (window as any)._snakkReadHistoryQueue || [];
+    (window as any)._snakkReadHistoryQueue = null;
+    pending.forEach(addToReadHistory);
 })();

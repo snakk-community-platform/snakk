@@ -1422,6 +1422,72 @@ public class ManageGrpcService(
         return response;
     }
 
+    // ==================== Statistics ====================
+
+    public override async Task<GetScopeTopContributorsResponse> GetScopeTopContributors(
+        GetScopeTopContributorsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(
+            userId, request.ScopeType, request.ScopePublicId, ManagePermissionEnum.ViewDashboard);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var days = request.Days > 0 ? request.Days : 30;
+        var limit = request.Limit > 0 ? request.Limit : 10;
+
+        var contributors = await dashboardChartRepository.GetTopContributorsForScopeAsync(
+            request.ScopeType, request.ScopePublicId, days, limit);
+
+        var response = new GetScopeTopContributorsResponse();
+        response.Contributors.AddRange(contributors.Select(c => new ScopeContributorPoint
+        {
+            UserPublicId = c.UserPublicId,
+            DisplayName = c.DisplayName,
+            AvatarThumbnailFileName = c.AvatarThumbnailFileName ?? "",
+            PostCount = c.PostCount,
+            DiscussionCount = c.DiscussionCount
+        }));
+        return response;
+    }
+
+    public override async Task<GetPlatformUserStatsResponse> GetPlatformUserStats(
+        GetPlatformUserStatsRequest request, ServerCallContext context)
+    {
+        var userId = GetUserId(context);
+        if (string.IsNullOrEmpty(userId))
+            throw new RpcException(new Status(StatusCode.Unauthenticated, "Not authenticated"));
+
+        var hasPermission = await permissionService.HasPermissionAsync(
+            userId, "Site", "", ManagePermissionEnum.ViewDashboard);
+        if (!hasPermission)
+            throw new RpcException(new Status(StatusCode.PermissionDenied, "Access denied"));
+
+        var days = request.Days > 0 ? request.Days : 30;
+
+        var registrationsTask = dashboardChartRepository.GetDailyRegistrationsAsync(days);
+        var countsTask = dashboardChartRepository.GetUserActivityCountsAsync();
+
+        await Task.WhenAll(registrationsTask, countsTask);
+
+        var response = new GetPlatformUserStatsResponse
+        {
+            Dau = countsTask.Result.Dau,
+            Wau = countsTask.Result.Wau,
+            Mau = countsTask.Result.Mau,
+            TotalUsers = countsTask.Result.Total
+        };
+        response.RegistrationSeries.AddRange(registrationsTask.Result.Select(r => new DailyRegistrationPoint
+        {
+            DateTicks = r.Date.Ticks,
+            Count = r.Count
+        }));
+        return response;
+    }
+
     // ==================== Banners ====================
 
     public override async Task<GetBannersResponse> GetBanners(

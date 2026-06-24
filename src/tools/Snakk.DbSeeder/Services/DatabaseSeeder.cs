@@ -9,6 +9,7 @@ using Snakk.Infrastructure.Database;
 using Snakk.Infrastructure.Database.Entities;
 using Snakk.Shared.Enums;
 using Snakk.Shared.Helpers;
+using System.Buffers;
 using System.Diagnostics;
 using System.Text;
 
@@ -39,7 +40,7 @@ public class DatabaseSeeder(
 
     // Fixed seed for reproducibility
     private const int Seed = 42;
-    private readonly Faker _faker = new Faker("en") { Random = new Randomizer(Seed) };
+    private readonly Faker _faker = new("en") { Random = new Randomizer(Seed) };
 
     // Timeline: all seeded content within the last ~2 months
     private static readonly DateTime Now = DateTime.UtcNow;
@@ -94,11 +95,11 @@ public class DatabaseSeeder(
     ];
 
     // Per-seed-run mappings from discussion ID → curated data index
-    private readonly Dictionary<int, int> _discussionLinkIndex = new();
-    private readonly Dictionary<int, int> _discussionDebateTopicIndex = new();
+    private readonly Dictionary<int, int> _discussionLinkIndex = [];
+    private readonly Dictionary<int, int> _discussionDebateTopicIndex = [];
 
     // Cache: hubId → community entity (avoids per-space FindAsync)
-    private readonly Dictionary<int, CommunityDatabaseEntity> _hubCommunities = new();
+    private readonly Dictionary<int, CommunityDatabaseEntity> _hubCommunities = [];
 
     // Tracks slugs assigned during this seeder run to avoid collisions
     private readonly HashSet<string> _usedUserSlugs = [];
@@ -1002,7 +1003,7 @@ public class DatabaseSeeder(
             // Random subset: always include Standard (0), plus 2-5 others
             var others = AllDiscussionTypes.Where(t => t != 0).OrderBy(_ => _faker.Random.Int()).Take(_faker.Random.Int(2, 5)).ToList();
             others.Insert(0, 0);
-            allowedTypes = others.ToArray();
+            allowedTypes = [.. others];
         }
 
         foreach (var type in allowedTypes)
@@ -1338,7 +1339,7 @@ public class DatabaseSeeder(
                     _context.DiscussionPolls.Add(poll);
                     pollHeaders[discussion.Id] = poll;
                     var voterPool = replyPosts.Select(p => p.CreatedByUserId).Distinct().ToList();
-                    if (voterPool.Count == 0) voterPool = users.Select(u => u.Id).Take(10).ToList();
+                    if (voterPool.Count == 0) voterPool = [.. users.Select(u => u.Id).Take(10)];
                     pollVoterData[discussion.Id] = (voterPool, Math.Max(1, (int)(voterPool.Count * _faker.Random.Double(0.3, 0.8))));
                     break;
                 }
@@ -1374,10 +1375,9 @@ public class DatabaseSeeder(
                     var journal = new DiscussionTypeJournalDatabaseEntity { DiscussionId = discussion.Id };
                     _context.DiscussionJournals.Add(journal);
                     journalHeaders[discussion.Id] = journal;
-                    journalOpReplies[discussion.Id] = replyPosts
+                    journalOpReplies[discussion.Id] = [.. replyPosts
                         .Where(p => p.CreatedByUserId == discussion.CreatedByUserId)
-                        .Select(p => (p, _faker.Random.Bool(0.5f)))
-                        .ToList();
+                        .Select(p => (p, _faker.Random.Bool(0.5f)))];
                     break;
                 }
 
@@ -1780,7 +1780,7 @@ public class DatabaseSeeder(
 
         var hub = await _context.Hubs.FindAsync(space.HubId);
         var latestAllowed = Now.AddHours(-1);
-        var milestoneThresholds = new HashSet<int> { 100, 500, 1000, 2500, 5000, 10000 };
+        var milestoneThresholds = new HashSet<int> { 100, 500, 1000, 2500, 5000, 10000, 25000, 50000 };
         var usersWhoPostedInSpace = new HashSet<int>();
 
         var threads = new[]
@@ -1788,6 +1788,7 @@ public class DatabaseSeeder(
             ("The Mega Thread: Everything Web Development 2025", 247),
             ("Ask Me Anything: Senior Dev Career Q&A", 183),
             ("Framework Wars: React vs Vue vs Svelte vs HTMX", 312),
+            ("Stress Test: 50,000 Posts in One Discussion", 50000),
         };
 
         foreach (var (title, postCount) in threads)
@@ -1916,6 +1917,14 @@ public class DatabaseSeeder(
                     lastReplyAuthor = replyAuthor;
                     lastReplyExcerpt = replyPlainText.Length > 150 ? replyPlainText[..150] : replyPlainText;
                 }
+
+                if (posts.Count >= 5000)
+                {
+                    _context.Posts.AddRange(posts);
+                    await _context.SaveChangesAsync();
+                    posts.Clear();
+                    Console.WriteLine($"    {postNumber}/{postCount} posts saved...");
+                }
             }
 
             discussion.LastActivityAt = lastActivityAt;
@@ -1995,7 +2004,7 @@ public class DatabaseSeeder(
             var posts = new List<PostDatabaseEntity>();
             var usersWhoPostedInDiscussion = new HashSet<int>();
             var postNumber = 0;
-            var lastPostDate = createdAt;
+            DateTime lastPostDate;
             UserDatabaseEntity? lastReplyAuthor = null;
             string lastReplyExcerpt = "";
 
@@ -2421,7 +2430,7 @@ public class DatabaseSeeder(
         Console.WriteLine($"Computed trend scores for {allDiscussions.Count} discussions.");
     }
 
-    private string GenerateSlug(string title)
+    private static string GenerateSlug(string title)
     {
         var slug = title.ToLowerInvariant()
             .Replace(" ", "-")
@@ -3627,8 +3636,11 @@ public class DatabaseSeeder(
 
     // Fast-path renderers: skip the full Markdig pipeline for plain lorem-ipsum content.
     // Falls back to the real parser for any content containing markdown-significant characters.
+    private static readonly SearchValues<char> MarkdownSignificantChars =
+        SearchValues.Create("#`*_[|!>~<&-");
+
     private static bool IsPlainContent(string s) =>
-        s.AsSpan().IndexOfAny("#`*_[|!>~<&-") < 0;
+        s.AsSpan().IndexOfAny(MarkdownSignificantChars) < 0;
 
     private string RenderHtml(string content)
     {

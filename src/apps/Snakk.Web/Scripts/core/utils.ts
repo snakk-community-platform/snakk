@@ -45,6 +45,8 @@ interface SnakkUtilsAPI {
     encodeUlid(ulid: string): string;
     extractBlurUrl(element: HTMLElement | null): string | null;
     addCarouselSwipe(track: HTMLElement, goTo: (idx: number) => void, getCurrent: () => number): void;
+    showToast(message: string, type?: 'error' | 'success' | 'info', duration?: number): void;
+    updateSubscribeButton(selector: string, isFollowing: boolean): void;
 }
 
 // ============================================================================
@@ -446,6 +448,36 @@ interface SnakkUtilsAPI {
         });
     }
 
+    function showToast(message: string, type: 'error' | 'success' | 'info' = 'error', duration: number = 4000): void {
+        const toast = document.createElement('div');
+        const bgColor = type === 'error' ? 'sn-bg-error' : type === 'success' ? 'sn-bg-success' : 'sn-bg-info';
+        toast.className = `sn-fixed sn-bottom-6 sn-right-6 ${bgColor} sn-text-white sn-px-4 sn-py-3 sn-rounded-lg sn-shadow-lg sn-z-50 sn-flex sn-items-center sn-gap-2 sn-max-w-sm`;
+        toast.style.transition = 'all 0.3s ease';
+        toast.style.transform = 'translateX(400px)';
+        const icon = type === 'error'
+            ? '<span class="sn-icon icon-exclamation-circle sn-h-5 sn-w-5 sn-shrink-0" aria-hidden="true"></span>'
+            : type === 'success'
+            ? '<span class="sn-icon icon-check sn-h-5 sn-w-5 sn-shrink-0" aria-hidden="true"></span>'
+            : '<span class="sn-icon icon-info-circle sn-h-5 sn-w-5 sn-shrink-0" aria-hidden="true"></span>';
+        toast.innerHTML = `${icon}<p class="sn-text-sm">${escapeHtml(message)}</p>`;
+        document.body.appendChild(toast);
+        setTimeout(() => { toast.style.transform = 'translateX(0)'; }, 10);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(400px)';
+            setTimeout(() => toast.remove(), 300);
+        }, duration);
+    }
+
+    function updateSubscribeButton(selector: string, isFollowing: boolean): void {
+        const btn = document.querySelector<HTMLElement>(selector);
+        if (!btn) return;
+        const text = btn.querySelector('span');
+        btn.classList.toggle('sn-btn-primary', isFollowing);
+        btn.classList.toggle('sn-btn-ghost', !isFollowing);
+        if (text) text.textContent = isFollowing ? 'Followed' : 'Follow';
+    }
+
     // Export all utilities
     const SnakkUtils: SnakkUtilsAPI = {
         formatRelativeTime,
@@ -471,7 +503,9 @@ interface SnakkUtilsAPI {
         dispatchEvent,
         encodeUlid,
         extractBlurUrl,
-        addCarouselSwipe
+        addCarouselSwipe,
+        showToast,
+        updateSubscribeButton
     };
 
     (window as any).SnakkUtils = SnakkUtils;

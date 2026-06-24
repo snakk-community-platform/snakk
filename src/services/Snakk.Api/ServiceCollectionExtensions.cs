@@ -53,9 +53,17 @@ public static class ServiceCollectionExtensions
         // Distributed cache: Valkey on production, in-memory fallback for development
         var valkeyConn = configuration["Valkey:ConnectionString"];
         if (!string.IsNullOrEmpty(valkeyConn))
+        {
             services.AddStackExchangeRedisCache(opts => { opts.Configuration = valkeyConn; opts.InstanceName = "snakk:"; });
+            services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+                _ => StackExchange.Redis.ConnectionMultiplexer.Connect(valkeyConn));
+        }
         else
+        {
             services.AddDistributedMemoryCache();
+            services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+                _ => StackExchange.Redis.ConnectionMultiplexer.Connect("127.0.0.1:6379,abortConnect=false"));
+        }
 
         // HybridCache uses IDistributedCache above as L2 backing store.
         // Protobuf messages need a binary serializer — the default System.Text.Json

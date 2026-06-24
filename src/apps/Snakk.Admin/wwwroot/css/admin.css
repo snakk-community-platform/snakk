@@ -8,6 +8,37 @@ html, body {
     padding: 0;
 }
 
+/* AppBar — flat with a subtle bottom border instead of shadow */
+.admin-appbar.mud-appbar {
+    border-bottom: 1px solid var(--mud-palette-divider);
+    box-shadow: none !important;
+}
+
+/* Drawer — flat with a right border */
+.admin-drawer .mud-drawer-content {
+    border-right: 1px solid var(--mud-palette-divider);
+}
+
+/* Sidebar brand block above nav */
+.admin-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.875rem 1rem 0.75rem;
+}
+
+/* Tighten nav link padding for a denser sidebar */
+.admin-drawer .mud-nav-link {
+    border-radius: 6px;
+    margin-bottom: 1px;
+    padding: 6px 10px;
+    font-size: 0.875rem;
+}
+
+.admin-drawer .mud-nav-link:hover {
+    background: var(--mud-palette-action-hover);
+}
+
 #blazor-error-ui {
     background: lightyellow;
     bottom: 0;

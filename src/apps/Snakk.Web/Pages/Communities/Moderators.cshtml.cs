@@ -23,7 +23,7 @@ public class ModeratorsModel(
         var communityResult = await apiClient.GetCommunityBySlugResultAsync(slug);
 
         if (!communityResult.IsSuccess)
-            return communityResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(communityResult);
 
         CommunityDetail = communityResult.Value!;
         Moderators = await apiClient.GetModeratorsAsync("Community", CommunityDetail.PublicId);

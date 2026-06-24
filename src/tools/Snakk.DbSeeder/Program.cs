@@ -39,7 +39,7 @@ var connectionString = builder.Configuration.GetConnectionString("DbConnection")
 
 // Mask password for display
 var displayConnectionString = connectionString.Contains("Password=")
-    ? System.Text.RegularExpressions.Regex.Replace(connectionString, @"Password=[^;]+", "Password=***")
+    ? ProgramRegex.PasswordMask().Replace(connectionString, "Password=***")
     : connectionString;
 Console.WriteLine($"Connection String: {displayConnectionString}\n");
 
@@ -139,4 +139,12 @@ using (var scope = host.Services.CreateScope())
         Console.ResetColor();
         Environment.Exit(1);
     }
+}
+
+internal static class ProgramRegex
+{
+    private static readonly System.Text.RegularExpressions.Regex _passwordMask
+        = new(@"Password=[^;]+", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    internal static System.Text.RegularExpressions.Regex PasswordMask() => _passwordMask;
 }

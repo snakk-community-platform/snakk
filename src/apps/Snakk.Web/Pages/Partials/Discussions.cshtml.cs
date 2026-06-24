@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.OutputCaching;
 using Snakk.Protos.Discussion;
 using Snakk.Web.Services;
@@ -11,13 +10,9 @@ public class DiscussionsModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
     ICommunityContext communityContext,
-    IFollowedSpacesCacheService followedSpacesCache) : PageModel
+    IFollowedSpacesCacheService followedSpacesCache) : PaginatedPartialModel
 {
     public IEnumerable<RecentDiscussionInfo> Items { get; set; } = [];
-    public bool HasMoreItems { get; set; }
-    public int Offset { get; set; }
-    public int NextOffset { get; set; }
-    public int MaxOffset { get; set; }
     public string? NextCursor { get; set; }
     public bool ShowCommunity { get; set; }
     public bool ShowHub { get; set; } = true;
@@ -58,18 +53,8 @@ public class DiscussionsModel(
         HideHub = hideHub;
         HidePath = hidePath;
         ShowPath = !hidePath;
-        pageSize = Math.Clamp(pageSize, 1, 50);
-        Offset = offset;
-
-        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 10);
-        MaxOffset = maxPages * pageSize;
-
-        if (offset >= MaxOffset)
-        {
-            Items = [];
-            HasMoreItems = false;
-            return;
-        }
+        (pageSize, var exceeded) = ApplyPaginationGuard(offset, pageSize, 1, 50, configuration);
+        if (exceeded) return;
 
         ShowCommunity = !hideCommunity
             && communityContext.IsMultiCommunityEnabled
@@ -125,7 +110,17 @@ public class DiscussionsModel(
             }
             else
             {
-                var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId, spaceId: spaceId, cursor: cursor, viewerAllowsAdult: viewerAllowsAdult);
+                var isMod = false;
+                if (User.Identity?.IsAuthenticated == true)
+                {
+                    if (!string.IsNullOrEmpty(hubId))
+                        isMod = await apiClient.CanModerateAsync(hubId: hubId, ct: cancellationToken);
+                    else if (!string.IsNullOrEmpty(communityId))
+                        isMod = await apiClient.CanModerateAsync(communityId: communityId, ct: cancellationToken);
+                    if (isMod)
+                        Response.Headers.CacheControl = "private, no-store";
+                }
+                var result = await apiClient.GetRecentDiscussionsAsync(offset, pageSize, communityId, hubId, spaceId: spaceId, cursor: cursor, viewerAllowsAdult: viewerAllowsAdult, includeDeleted: isMod);
                 Items = result?.Items ?? [];
                 HasMoreItems = result?.HasMoreItems ?? false;
                 NextOffset = offset + pageSize;

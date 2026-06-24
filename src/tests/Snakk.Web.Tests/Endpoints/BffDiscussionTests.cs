@@ -53,7 +53,7 @@ public class BffDiscussionTests
         });
 
         app.MockApiClient
-            .GetRecentDiscussionsAsync(0, 20, null, Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .GetRecentDiscussionsAsync(0, 20, null, Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(pagedResult);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -85,7 +85,7 @@ public class BffDiscussionTests
         };
 
         app.MockApiClient
-            .GetRecentDiscussionsAsync(20, 10, "comm-001", Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .GetRecentDiscussionsAsync(20, 10, "comm-001", Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(pagedResult);
 
         var client = TestJwtHelper.CreateAuthenticatedClient(app);
@@ -97,7 +97,7 @@ public class BffDiscussionTests
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
 
         // Verify the API client was called with the correct parameters
-        await app.MockApiClient.Received(1).GetRecentDiscussionsAsync(20, 10, "comm-001", Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
+        await app.MockApiClient.Received(1).GetRecentDiscussionsAsync(20, 10, "comm-001", Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyList<string>?>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<bool>(), Arg.Any<CancellationToken>());
     }
 
     // ==================== Space Discussions ====================

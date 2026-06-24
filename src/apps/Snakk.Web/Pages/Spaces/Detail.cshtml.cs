@@ -76,7 +76,7 @@ public class DetailModel(
         CommunityDetail = communityTask.IsCompletedSuccessfully ? communityTask.Result : null;
 
         if (!spaceTask.Result.IsSuccess)
-            return spaceTask.Result.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(spaceTask.Result);
 
         Space = spaceTask.Result.Value!;
 

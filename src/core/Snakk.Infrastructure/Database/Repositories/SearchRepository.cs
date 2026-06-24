@@ -313,10 +313,16 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         string? userId = null,
         string? cursor = null,
         bool viewerAllowsAdult = false,
+        bool includeDeleted = false,
         CancellationToken ct = default)
     {
-        var baseQuery = _context.Discussions
-            .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted);
+        // When mods request deleted content, bypass the global soft-delete filter.
+        // The Space navigation still has its own filter, so only non-deleted spaces match.
+        var baseQuery = includeDeleted
+            ? _context.Discussions.IgnoreQueryFilters()
+                .Where(d => d.Space.PublicId == spacePublicId)
+            : _context.Discussions
+                .Where(d => d.Space.PublicId == spacePublicId && !d.IsDeleted);
 
         baseQuery = await WithAccessFilterAsync(baseQuery, userId, ct);
         baseQuery = await WithAdultFilterAsync(baseQuery, viewerAllowsAdult, ct);
@@ -373,7 +379,9 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                     d.CreatedByUserPublicId,
                     d.AuthorDisplayName ?? "",
                     d.AuthorAvatarFileName,
-                    d.Tags)
+                    d.Tags,
+                    null,
+                    d.IsDeleted)
             })
             .ToListAsync(ct);
 
@@ -830,9 +838,12 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
         bool viewerAllowsAdult = false,
         bool sinceLastVisit = false,
         DateTime? lastVisitAt = null,
+        bool includeDeleted = false,
         CancellationToken ct = default)
     {
-        var query = _context.Discussions.AsQueryable();
+        var query = includeDeleted
+            ? _context.Discussions.IgnoreQueryFilters()
+            : _context.Discussions.AsQueryable();
 
         query = await WithAccessFilterAsync(query, userId, ct);
         query = await WithAdultFilterAsync(query, viewerAllowsAdult, ct);
@@ -901,6 +912,7 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 d.ReactionCount,
                 d.Tags,
                 d.IsAdultOnly,
+                d.IsDeleted,
                 SpaceId = d.SpaceId,
                 SpacePublicId = d.SpacePublicId,
                 HubPublicId = d.HubPublicId,
@@ -955,7 +967,8 @@ public class SearchRepository(SnakkDbContext context, IDbContextFactory<SnakkDbC
                 LastReplierAvatarFileName: d.LastPostAuthorAvatarFileName,
                 LastReplierAvatarThumbnailFileName: d.LastPostAuthorAvatarThumbnailFileName,
                 LastPostExcerpt: d.LastPostPlainTextExcerpt,
-                IsAdult: d.IsAdultOnly)
+                IsAdult: d.IsAdultOnly,
+                IsDeleted: d.IsDeleted)
             };
         }).ToList();
 

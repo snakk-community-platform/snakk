@@ -44,6 +44,7 @@ public interface ISearchRepository
         string? userId = null,
         string? cursor = null,
         bool viewerAllowsAdult = false,
+        bool includeDeleted = false,
         CancellationToken ct = default);
 
     /// <summary>
@@ -98,6 +99,7 @@ public interface ISearchRepository
         bool viewerAllowsAdult = false,
         bool sinceLastVisit = false,
         DateTime? lastVisitAt = null,
+        bool includeDeleted = false,
         CancellationToken ct = default);
 
     /// <summary>
@@ -208,7 +210,8 @@ public record DiscussionListItemDto(
     string AuthorDisplayName,
     string? AuthorAvatarFileName,
     string? Tags,
-    string? AuthorAvatarThumbnailFileName = null);
+    string? AuthorAvatarThumbnailFileName = null,
+    bool IsDeleted = false);
 
 public record DiscussionSearchResultDto(
     string PublicId,
@@ -288,7 +291,8 @@ public record RecentDiscussionDto(
     string? LastPostExcerpt = null,
     bool IsAdult = false,
     DiscussionPreviewDto? Preview = null,
-    DateTime? SavedAt = null);
+    DateTime? SavedAt = null,
+    bool IsDeleted = false);
 
 // ── Discussion preview sub-DTOs ──
 public record DiscussionPreviewDto(

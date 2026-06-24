@@ -85,7 +85,13 @@ public class MarkupParser : IMarkupParser
         if (string.IsNullOrEmpty(markup))
             return string.Empty;
 
-        return Markdown.ToPlainText(markup, PlainTextPipeline).Trim();
+        // Markdig's plain-text renderer emits fenced code block content verbatim (including
+        // image-group blocks whose lines are raw media paths) and image URLs for inline images.
+        // Strip both before handing off to Markdig.
+        var stripped = Regex.Replace(markup, @"```[\s\S]*?```", "", RegexOptions.Singleline);
+        stripped = Regex.Replace(stripped, @"!\[([^\]]*)\]\([^)]*\)", "");
+
+        return Markdown.ToPlainText(stripped, PlainTextPipeline).Trim();
     }
 
     /// <summary>

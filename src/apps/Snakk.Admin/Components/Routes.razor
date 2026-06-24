@@ -1,9 +1,12 @@
 @using Snakk.Admin.Components
 @using Snakk.Admin.Services
+@using MudBlazor
 @inject CircuitTokenProvider TokenProvider
 @inject IHttpContextAccessor HttpContextAccessor
+@inject AdminThemeService ThemeService
+@implements IDisposable
 
-<MudThemeProvider />
+<MudThemeProvider Theme="_theme" IsDarkMode="@ThemeService.IsDarkMode" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
@@ -44,8 +47,61 @@
 </CascadingAuthenticationState>
 
 @code {
+    private static readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#0078d4",
+            PrimaryContrastText = "#ffffff",
+            Secondary = "#6b7280",
+            AppbarBackground = "#ffffff",
+            AppbarText = "#1c1c1e",
+            DrawerBackground = "#f6f8fa",
+            DrawerText = "#1c1c1e",
+            DrawerIcon = "#6b7280",
+            Surface = "#ffffff",
+            Background = "#f0f2f5",
+            TextPrimary = "#1c1c1e",
+            TextSecondary = "#6b7280",
+            LinesDefault = "#e5e7eb",
+            Divider = "#e5e7eb",
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#58a6ff",
+            PrimaryContrastText = "#0d1117",
+            Secondary = "#8b949e",
+            AppbarBackground = "#161b22",
+            AppbarText = "#e6edf3",
+            DrawerBackground = "#0d1117",
+            DrawerText = "#c9d1d9",
+            DrawerIcon = "#8b949e",
+            Surface = "#161b22",
+            Background = "#0d1117",
+            TextPrimary = "#e6edf3",
+            TextSecondary = "#8b949e",
+            LinesDefault = "#30363d",
+            Divider = "#21262d",
+            ActionDefault = "#8b949e",
+            TableHover = "rgba(255,255,255,0.04)",
+            TableLines = "#21262d",
+            OverlayDark = "rgba(0,0,0,0.7)",
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography { FontFamily = ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"] },
+            H4 = new H4Typography { FontWeight = "600", FontSize = "1.5rem" },
+            H5 = new H5Typography { FontWeight = "600" },
+            H6 = new H6Typography { FontWeight = "600" },
+            Subtitle1 = new Subtitle1Typography { FontWeight = "600" },
+        },
+        LayoutProperties = new LayoutProperties { DefaultBorderRadius = "6px" },
+    };
+
     protected override void OnInitialized()
     {
+        ThemeService.OnChanged += StateHasChanged;
+
         var httpContext = HttpContextAccessor.HttpContext;
         if (httpContext is null) return;
 
@@ -57,4 +113,6 @@
         if (!string.IsNullOrEmpty(refreshToken))
             TokenProvider.RefreshToken = refreshToken;
     }
+
+    public void Dispose() => ThemeService.OnChanged -= StateHasChanged;
 }

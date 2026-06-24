@@ -71,13 +71,6 @@
     max-height: 20rem;
 }
 
-.sn-discussion-list-compact .sn-debate-bar {
-    height: 0.5rem;
-}
-
-.sn-discussion-list-compact .sn-debate-segment span {
-    display: none;
-}
 
 // User preference: disable all animations and transitions
 .sn-no-animations *,
@@ -271,6 +264,9 @@
 
 // Object fit
 .sn-object-cover { object-fit: cover; }
+
+// Aspect ratio
+.aspect-square { aspect-ratio: 1 / 1; }
 
 // ============================================
 // Grid utilities

@@ -1,12 +1,22 @@
 namespace Snakk.Infrastructure.Services;
 
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 using Snakk.Application.Services;
 using Snakk.Domain.ValueObjects;
 using Snakk.Infrastructure.Database;
 
-public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICounterService
+public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory, IConnectionMultiplexer redis) : ICounterService
 {
+    private const string PostCountKeyPrefix = "snakk:counter:post:discussion:";
+    private const string FollowerSpaceKeyPrefix = "snakk:counter:follower:space:";
+    private const string FollowerDiscussionKeyPrefix = "snakk:counter:follower:discussion:";
+    private const string FollowerUserKeyPrefix = "snakk:counter:follower:user:";
+    private const string UserDiscussionsKeyPrefix = "snakk:counter:user-discussions:";
+    private const string UserRepliesKeyPrefix = "snakk:counter:user-replies:";
+    private const string DiscussionSpaceKeyPrefix = "snakk:counter:discussions:space:";
+    private const string ReactionPostKeyPrefix = "snakk:counter:reaction:post:";
+
     // Each update gets its own context so parallel calls are thread-safe.
     private async Task RunUpdateAsync(Func<SnakkDbContext, Task> update)
     {
@@ -14,215 +24,65 @@ public class CounterService(IDbContextFactory<SnakkDbContext> dbFactory) : ICoun
         await update(db);
     }
 
-    public async Task IncrementDiscussionCountAsync(SpaceId spaceId, CancellationToken ct = default)
-    {
-        int spaceDbId, hubId, communityId;
-        {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
-            var space = await db.Spaces
-                .Where(s => s.PublicId == spaceId.Value)
-                .Select(s => new { s.Id, s.HubId, s.Hub.CommunityId })
-                .FirstOrDefaultAsync(ct);
-            if (space is null) return;
-            spaceDbId = space.Id; hubId = space.HubId; communityId = space.CommunityId;
-        }
+    public Task IncrementDiscussionCountAsync(SpaceId spaceId, CancellationToken ct = default) =>
+        redis.GetDatabase().StringIncrementAsync(DiscussionSpaceKeyPrefix + spaceId.Value);
 
-        await Task.WhenAll(
-            RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceDbId)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount + 1))),
-            RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)
-                .ExecuteUpdateAsync(h => h.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount + 1))),
-            RunUpdateAsync(db => db.Communities.Where(c => c.Id == communityId)
-                .ExecuteUpdateAsync(c => c.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount + 1)))
-        );
+    public Task DecrementDiscussionCountAsync(SpaceId spaceId, CancellationToken ct = default) =>
+        redis.GetDatabase().StringDecrementAsync(DiscussionSpaceKeyPrefix + spaceId.Value);
+
+    public Task IncrementPostCountAsync(DiscussionId discussionId, CancellationToken ct = default)
+    {
+        var db = redis.GetDatabase();
+        return db.StringIncrementAsync(PostCountKeyPrefix + discussionId.Value);
     }
 
-    public async Task DecrementDiscussionCountAsync(SpaceId spaceId, CancellationToken ct = default)
+    public Task DecrementPostCountAsync(DiscussionId discussionId, CancellationToken ct = default)
     {
-        int spaceDbId, hubId, communityId;
-        {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
-            var space = await db.Spaces
-                .Where(s => s.PublicId == spaceId.Value)
-                .Select(s => new { s.Id, s.HubId, s.Hub.CommunityId })
-                .FirstOrDefaultAsync(ct);
-            if (space is null) return;
-            spaceDbId = space.Id; hubId = space.HubId; communityId = space.CommunityId;
-        }
-
-        await Task.WhenAll(
-            RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceDbId)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount - 1))),
-            RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)
-                .ExecuteUpdateAsync(h => h.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount - 1))),
-            RunUpdateAsync(db => db.Communities.Where(c => c.Id == communityId)
-                .ExecuteUpdateAsync(c => c.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount - 1)))
-        );
+        var db = redis.GetDatabase();
+        return db.StringDecrementAsync(PostCountKeyPrefix + discussionId.Value);
     }
 
-    public async Task IncrementPostCountAsync(DiscussionId discussionId, CancellationToken ct = default)
-    {
-        int discussionDbId, spaceId, hubId, communityId;
-        {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
-            var discussion = await db.Discussions
-                .Where(d => d.PublicId == discussionId.Value)
-                .Select(d => new { d.Id, d.SpaceId, d.HubId, d.CommunityId })
-                .FirstOrDefaultAsync(ct);
-            if (discussion is null) return;
-            discussionDbId = discussion.Id; spaceId = discussion.SpaceId;
-            hubId = discussion.HubId; communityId = discussion.CommunityId;
-        }
+    public Task IncrementReactionCountAsync(PostId postId, DiscussionId discussionId, CancellationToken ct = default) =>
+        redis.GetDatabase().StringIncrementAsync(ReactionPostKeyPrefix + postId.Value);
 
-        await Task.WhenAll(
-            RunUpdateAsync(db => db.Discussions.Where(d => d.Id == discussionDbId)
-                .ExecuteUpdateAsync(d => d
-                    .SetProperty(x => x.PostCount, x => x.PostCount + 1)
-                    .SetProperty(x => x.EngagementScore, x => x.EngagementScore + 1))),
-            RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceId)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.PostCount, x => x.PostCount + 1))),
-            RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)
-                .ExecuteUpdateAsync(h => h.SetProperty(x => x.PostCount, x => x.PostCount + 1))),
-            RunUpdateAsync(db => db.Communities.Where(c => c.Id == communityId)
-                .ExecuteUpdateAsync(c => c.SetProperty(x => x.PostCount, x => x.PostCount + 1)))
-        );
-    }
+    public Task DecrementReactionCountAsync(PostId postId, DiscussionId discussionId, CancellationToken ct = default) =>
+        redis.GetDatabase().StringDecrementAsync(ReactionPostKeyPrefix + postId.Value);
 
-    public async Task DecrementPostCountAsync(DiscussionId discussionId, CancellationToken ct = default)
-    {
-        int discussionDbId, spaceId, hubId, communityId;
-        {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
-            var discussion = await db.Discussions
-                .Where(d => d.PublicId == discussionId.Value)
-                .Select(d => new { d.Id, d.SpaceId, d.HubId, d.CommunityId })
-                .FirstOrDefaultAsync(ct);
-            if (discussion is null) return;
-            discussionDbId = discussion.Id; spaceId = discussion.SpaceId;
-            hubId = discussion.HubId; communityId = discussion.CommunityId;
-        }
-
-        await Task.WhenAll(
-            RunUpdateAsync(db => db.Discussions.Where(d => d.Id == discussionDbId)
-                .ExecuteUpdateAsync(d => d
-                    .SetProperty(x => x.PostCount, x => x.PostCount - 1)
-                    .SetProperty(x => x.EngagementScore, x => x.EngagementScore - 1))),
-            RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceId)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.PostCount, x => x.PostCount - 1))),
-            RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)
-                .ExecuteUpdateAsync(h => h.SetProperty(x => x.PostCount, x => x.PostCount - 1))),
-            RunUpdateAsync(db => db.Communities.Where(c => c.Id == communityId)
-                .ExecuteUpdateAsync(c => c.SetProperty(x => x.PostCount, x => x.PostCount - 1)))
-        );
-    }
-
-    public async Task IncrementReactionCountAsync(PostId postId, DiscussionId discussionId, CancellationToken ct = default)
-    {
-        int discussionDbId, spaceId, hubId, communityId;
-        {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
-            var discussion = await db.Discussions
-                .Where(d => d.PublicId == discussionId.Value)
-                .Select(d => new { d.Id, d.SpaceId, d.HubId, d.CommunityId })
-                .FirstOrDefaultAsync(ct);
-            if (discussion is null) return;
-            discussionDbId = discussion.Id; spaceId = discussion.SpaceId;
-            hubId = discussion.HubId; communityId = discussion.CommunityId;
-        }
-
-        var postPublicId = postId.Value;
-        await Task.WhenAll(
-            RunUpdateAsync(db => db.Posts.Where(p => p.PublicId == postPublicId)
-                .ExecuteUpdateAsync(p => p.SetProperty(x => x.ReactionCount, x => x.ReactionCount + 1))),
-            RunUpdateAsync(db => db.Discussions.Where(d => d.Id == discussionDbId)
-                .ExecuteUpdateAsync(d => d
-                    .SetProperty(x => x.ReactionCount, x => x.ReactionCount + 1)
-                    .SetProperty(x => x.EngagementScore, x => x.EngagementScore + 1))),
-            RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceId)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.ReactionCount, x => x.ReactionCount + 1))),
-            RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)
-                .ExecuteUpdateAsync(h => h.SetProperty(x => x.ReactionCount, x => x.ReactionCount + 1))),
-            RunUpdateAsync(db => db.Communities.Where(c => c.Id == communityId)
-                .ExecuteUpdateAsync(c => c.SetProperty(x => x.ReactionCount, x => x.ReactionCount + 1)))
-        );
-    }
-
-    public async Task DecrementReactionCountAsync(PostId postId, DiscussionId discussionId, CancellationToken ct = default)
-    {
-        int discussionDbId, spaceId, hubId, communityId;
-        {
-            await using var db = await dbFactory.CreateDbContextAsync(ct);
-            var discussion = await db.Discussions
-                .Where(d => d.PublicId == discussionId.Value)
-                .Select(d => new { d.Id, d.SpaceId, d.HubId, d.CommunityId })
-                .FirstOrDefaultAsync(ct);
-            if (discussion is null) return;
-            discussionDbId = discussion.Id; spaceId = discussion.SpaceId;
-            hubId = discussion.HubId; communityId = discussion.CommunityId;
-        }
-
-        var postPublicId = postId.Value;
-        await Task.WhenAll(
-            RunUpdateAsync(db => db.Posts.Where(p => p.PublicId == postPublicId)
-                .ExecuteUpdateAsync(p => p.SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1))),
-            RunUpdateAsync(db => db.Discussions.Where(d => d.Id == discussionDbId)
-                .ExecuteUpdateAsync(d => d
-                    .SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1)
-                    .SetProperty(x => x.EngagementScore, x => x.EngagementScore - 1))),
-            RunUpdateAsync(db => db.Spaces.Where(s => s.Id == spaceId)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1))),
-            RunUpdateAsync(db => db.Hubs.Where(h => h.Id == hubId)
-                .ExecuteUpdateAsync(h => h.SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1))),
-            RunUpdateAsync(db => db.Communities.Where(c => c.Id == communityId)
-                .ExecuteUpdateAsync(c => c.SetProperty(x => x.ReactionCount, x => x.ReactionCount - 1)))
-        );
-    }
-
-    // --- User-level counters (single update — no parallelism needed) ---
+    // --- User-level counters (buffered in Valkey, flushed hourly) ---
 
     public Task IncrementUserDiscussionCountAsync(UserId userId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Users.Where(u => u.PublicId == userId.Value)
-            .ExecuteUpdateAsync(u => u.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount + 1)));
+        redis.GetDatabase().StringIncrementAsync(UserDiscussionsKeyPrefix + userId.Value);
 
     public Task DecrementUserDiscussionCountAsync(UserId userId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Users.Where(u => u.PublicId == userId.Value)
-            .ExecuteUpdateAsync(u => u.SetProperty(x => x.DiscussionCount, x => x.DiscussionCount - 1)));
+        redis.GetDatabase().StringDecrementAsync(UserDiscussionsKeyPrefix + userId.Value);
 
     public Task IncrementUserReplyCountAsync(UserId userId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Users.Where(u => u.PublicId == userId.Value)
-            .ExecuteUpdateAsync(u => u.SetProperty(x => x.ReplyCount, x => x.ReplyCount + 1)));
+        redis.GetDatabase().StringIncrementAsync(UserRepliesKeyPrefix + userId.Value);
 
     public Task DecrementUserReplyCountAsync(UserId userId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Users.Where(u => u.PublicId == userId.Value)
-            .ExecuteUpdateAsync(u => u.SetProperty(x => x.ReplyCount, x => x.ReplyCount - 1)));
+        redis.GetDatabase().StringDecrementAsync(UserRepliesKeyPrefix + userId.Value);
 
     public Task IncrementUserFollowerCountAsync(UserId userId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Users.Where(u => u.PublicId == userId.Value)
-            .ExecuteUpdateAsync(u => u.SetProperty(x => x.FollowerCount, x => x.FollowerCount + 1)));
+        redis.GetDatabase().StringIncrementAsync(FollowerUserKeyPrefix + userId.Value);
 
     public Task DecrementUserFollowerCountAsync(UserId userId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Users.Where(u => u.PublicId == userId.Value)
-            .ExecuteUpdateAsync(u => u.SetProperty(x => x.FollowerCount, x => x.FollowerCount - 1)));
+        redis.GetDatabase().StringDecrementAsync(FollowerUserKeyPrefix + userId.Value);
 
-    // --- Space-level counters ---
+    // --- Space follower count (buffered in Valkey, flushed hourly) ---
 
     public Task IncrementSpaceFollowerCountAsync(SpaceId spaceId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Spaces.Where(s => s.PublicId == spaceId.Value)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.FollowerCount, x => x.FollowerCount + 1)));
+        redis.GetDatabase().StringIncrementAsync(FollowerSpaceKeyPrefix + spaceId.Value);
 
     public Task DecrementSpaceFollowerCountAsync(SpaceId spaceId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Spaces.Where(s => s.PublicId == spaceId.Value)
-            .ExecuteUpdateAsync(s => s.SetProperty(x => x.FollowerCount, x => x.FollowerCount - 1)));
+        redis.GetDatabase().StringDecrementAsync(FollowerSpaceKeyPrefix + spaceId.Value);
 
-    // --- Discussion-level counters ---
+    // --- Discussion follower count (buffered in Valkey, flushed hourly) ---
 
     public Task IncrementDiscussionFollowerCountAsync(DiscussionId discussionId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Discussions.Where(d => d.PublicId == discussionId.Value)
-            .ExecuteUpdateAsync(d => d.SetProperty(x => x.FollowerCount, x => x.FollowerCount + 1)));
+        redis.GetDatabase().StringIncrementAsync(FollowerDiscussionKeyPrefix + discussionId.Value);
 
     public Task DecrementDiscussionFollowerCountAsync(DiscussionId discussionId, CancellationToken ct = default) =>
-        RunUpdateAsync(db => db.Discussions.Where(d => d.PublicId == discussionId.Value)
-            .ExecuteUpdateAsync(d => d.SetProperty(x => x.FollowerCount, x => x.FollowerCount - 1)));
+        redis.GetDatabase().StringDecrementAsync(FollowerDiscussionKeyPrefix + discussionId.Value);
 
     // --- Notification counters ---
 

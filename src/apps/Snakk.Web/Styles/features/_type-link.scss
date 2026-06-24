@@ -2,7 +2,7 @@
 // Type: Link
 // ============================================
 
-.link-preview-card {
+.sn-link-preview-card {
     display: flex;
     flex-direction: column;
     border: 1px solid var(--border-primary);
@@ -10,7 +10,7 @@
     overflow: hidden;
 }
 
-.link-preview-card {
+.sn-link-preview-card {
     background: var(--bg-tertiary);
 }
 
@@ -55,7 +55,7 @@
 }
 
 .link-preview-compact {
-    .link-preview-card {
+    .sn-link-preview-card {
         flex-direction: row;
     }
 
@@ -99,7 +99,7 @@
     min-width: 0;
 }
 
-.link-preview-title {
+.sn-link-preview-title {
     font-weight: 600;
     font-size: var(--font-size-base);
     text-decoration: none;
@@ -109,7 +109,7 @@
     overflow: hidden;
 }
 
-.link-preview-title {
+.sn-link-preview-title {
     color: var(--text-primary);
 
     &:hover {
@@ -117,7 +117,7 @@
     }
 }
 
-.link-preview-description {
+.sn-link-preview-description {
     font-size: var(--font-size-ui);
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -126,11 +126,11 @@
     margin: 0;
 }
 
-.link-preview-description {
+.sn-link-preview-description {
     color: var(--text-secondary);
 }
 
-.link-preview-domain {
+.sn-link-preview-domain {
     font-size: var(--font-size-sm);
     display: flex;
     align-items: center;
@@ -138,7 +138,7 @@
     margin-top: auto;
 }
 
-.link-preview-domain {
+.sn-link-preview-domain {
     color: var(--text-tertiary);
 }
 

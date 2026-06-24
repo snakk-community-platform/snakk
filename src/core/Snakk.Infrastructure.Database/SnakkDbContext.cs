@@ -87,9 +87,6 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
     // Discussion view counts (hourly, by country)
     public DbSet<DiscussionViewSnapshotDatabaseEntity> DiscussionViewSnapshots { get; set; } = null!;
 
-    // Stats rollup (pre-computed global stats for frontpage sidebars)
-    public DbSet<StatsRollupDatabaseEntity> StatsRollups { get; set; } = null!;
-
     // Direct Messages
     public DbSet<DmConversationDatabaseEntity> DmConversations { get; set; } = null!;
     public DbSet<DmMessageDatabaseEntity> DmMessages { get; set; } = null!;
@@ -2046,18 +2043,5 @@ public class SnakkDbContext(DbContextOptions<SnakkDbContext> options) : DbContex
         modelBuilder.Entity<DmConversationDatabaseEntity>().HasQueryFilter(e => !e.IsDeleted);
         modelBuilder.Entity<DmMessageDatabaseEntity>().HasQueryFilter(e => !e.IsDeleted);
 
-        // === StatsRollup Configuration ===
-
-        // StatsRollup: primary query is (StatKind, Rank) for ordered reads
-        modelBuilder.Entity<StatsRollupDatabaseEntity>()
-            .HasIndex(r => new { r.StatKind, r.Rank })
-            .HasDatabaseName("IX_StatsRollup_StatKind_Rank");
-
-        modelBuilder.Entity<StatsRollupDatabaseEntity>(entity =>
-        {
-            entity.Property(r => r.StatKind).HasMaxLength(100).IsRequired();
-            entity.Property(r => r.PayloadJson).IsRequired();
-            entity.Property(r => r.ComputedAt).HasColumnType("timestamptz");
-        });
     }
 }

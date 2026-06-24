@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Snakk.Web.Helpers;
@@ -53,28 +54,26 @@ public abstract class BasePageModel : PageModel
 
     // Common helper methods that can be used across all pages
 
+    /// <summary>Returns an empty HTML response if the strict access-token cookie is absent.</summary>
+    protected IActionResult? RequireAuthCookie()
+        => HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName)
+            ? null
+            : Content("", "text/html");
+
+    /// <summary>Maps a failed GrpcResult to a 404 or 503 IActionResult.</summary>
+    protected IActionResult GrpcError<T>(GrpcResult<T> result)
+        => result.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+
     public string GetRelativeTime(DateTime? dateTime)
     {
         if (!dateTime.HasValue) return "";
-        var diff = DateTime.UtcNow - dateTime.Value;
-        if (diff.TotalMinutes < 1) return "just now";
-        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
-        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
-        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d ago";
-        if (diff.TotalDays < 365) return dateTime.Value.ToString("MMM d");
-        return dateTime.Value.ToString("MMM d, yyyy");
+        return FormatRelativeTime(dateTime.Value);
     }
 
     public string GetRelativeTime(DateTimeOffset? dateTime)
     {
         if (!dateTime.HasValue) return "";
-        var diff = DateTimeOffset.UtcNow - dateTime.Value;
-        if (diff.TotalMinutes < 1) return "just now";
-        if (diff.TotalMinutes < 60) return $"{(int)diff.TotalMinutes}m ago";
-        if (diff.TotalHours < 24) return $"{(int)diff.TotalHours}h ago";
-        if (diff.TotalDays < 7) return $"{(int)diff.TotalDays}d ago";
-        if (diff.TotalDays < 365) return dateTime.Value.ToString("MMM d");
-        return dateTime.Value.ToString("MMM d, yyyy");
+        return FormatRelativeTime(dateTime.Value);
     }
 
     // Site settings cache — injected via [FromServices] (no change to derived class constructors)

@@ -60,6 +60,10 @@ service ManageService {
   rpc SetEntityRestricted (SetEntityRestrictedRequest) returns (SetEntityRestrictedResponse);
   rpc UpsertGroupGrant (UpsertGroupGrantRequest) returns (UpsertGroupGrantResponse);
   rpc DeleteGroupGrant (DeleteGroupGrantRequest) returns (DeleteGroupGrantResponse);
+
+  // Statistics
+  rpc GetScopeTopContributors (GetScopeTopContributorsRequest) returns (GetScopeTopContributorsResponse);
+  rpc GetPlatformUserStats (GetPlatformUserStatsRequest) returns (GetPlatformUserStatsResponse);
 }
 
 // --- Requests ---
@@ -841,4 +845,44 @@ message UpdateSpaceDiscordSettingsRequest {
 message UpdateSpaceDiscordSettingsResponse {
   bool success = 1;
   optional string error_message = 2;
+}
+
+// --- Scope Top Contributors ---
+
+message GetScopeTopContributorsRequest {
+  string scope_type = 1;
+  string scope_public_id = 2;
+  int32 days = 3;
+  int32 limit = 4;
+}
+
+message ScopeContributorPoint {
+  string user_public_id = 1;
+  string display_name = 2;
+  optional string avatar_thumbnail_file_name = 3;
+  int32 post_count = 4;
+  int32 discussion_count = 5;
+}
+
+message GetScopeTopContributorsResponse {
+  repeated ScopeContributorPoint contributors = 1;
+}
+
+// --- Platform User Stats (GlobalAdmin only) ---
+
+message GetPlatformUserStatsRequest {
+  int32 days = 1;
+}
+
+message DailyRegistrationPoint {
+  int64 date_ticks = 1;
+  int32 count = 2;
+}
+
+message GetPlatformUserStatsResponse {
+  repeated DailyRegistrationPoint registration_series = 1;
+  int32 dau = 2;
+  int32 wau = 3;
+  int32 mau = 4;
+  int32 total_users = 5;
 }

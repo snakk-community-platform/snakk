@@ -232,7 +232,7 @@ interface NotificationsResponse {
     function initDropdownPositioning(root: Document | Element = document): void {
         root.querySelectorAll<HTMLElement>('[popover].sn-dropdown-panel:not([data-dp-init])').forEach(panel => {
             panel.dataset.dpInit = '1';
-            panel.addEventListener('toggle', (e: Event) => {
+            panel.addEventListener('beforetoggle', (e: Event) => {
                 if ((e as ToggleEvent).newState === 'open') {
                     positionPanel(panel);
                 }
@@ -322,6 +322,62 @@ interface NotificationsResponse {
         if (msg.value === 54) document.documentElement.style.removeProperty('--content-width');
         else document.documentElement.style.setProperty('--content-width', msg.value + 'rem');
     });
+
+    // ============================================================================
+    // Mod Panel
+    // ============================================================================
+
+    interface ModEntity {
+        role: string;
+        communityPublicId?: string;
+        communityName?: string;
+        hubPublicId?: string;
+        hubName?: string;
+        spacePublicId?: string;
+        spaceName?: string;
+    }
+
+    let modPanelLoaded = false;
+
+    function escModText(s: string): string {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    async function loadModPanel(): Promise<void> {
+        if (modPanelLoaded) return;
+        const body = document.getElementById('mod-panel-body');
+        if (!body) return;
+        try {
+            const res = await fetch('/bff/me/moderated-entities');
+            if (!res.ok) throw new Error('Failed to load');
+            const data: { entities: ModEntity[] } = await res.json();
+            modPanelLoaded = true;
+            if (!data.entities || data.entities.length === 0) {
+                body.innerHTML = '<p class="sn-text-sm sn-text-muted">No moderated spaces found.</p>';
+                return;
+            }
+            const items = data.entities.map(e => {
+                const name = escModText(e.spaceName || e.hubName || e.communityName || 'Unknown');
+                const scope = e.spaceName ? 'Space' : e.hubName ? 'Hub' : e.communityName ? 'Community' : 'Platform';
+                const roleLabel = escModText(e.role.replace(/([A-Z])/g, ' $1').trim());
+                return `<div class="sn-mod-panel-item">
+                    <span class="sn-text-sm sn-font-medium">${name}</span>
+                    <span class="sn-text-xs sn-text-muted">${scope} · ${roleLabel}</span>
+                </div>`;
+            }).join('');
+            body.innerHTML = `<div class="sn-mod-panel-list">${items}</div>
+                <div class="sn-mt-3 sn-border-t sn-border-subtle sn-pt-2">
+                    <a href="/moderation" class="sn-btn sn-btn-sm sn-btn-outline sn-w-full sn-justify-center" hx-boost="false">Open moderation panel</a>
+                </div>`;
+        } catch {
+            body.innerHTML = '<p class="sn-text-sm sn-text-error">Failed to load.</p>';
+        }
+    }
+
+    const modShieldBtn = document.getElementById('mod-shield-btn');
+    if (modShieldBtn) {
+        modShieldBtn.addEventListener('click', loadModPanel);
+    }
 
     // Export minimal API
     (window as any).SnakkAuthNav = {

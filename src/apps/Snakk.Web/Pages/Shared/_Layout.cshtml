@@ -204,6 +204,7 @@
     @if (User.Identity?.IsAuthenticated == true)
     {
         <meta name="current-user-id" content="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" />
+        <meta name="current-user-role" content="@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value" />
     }
     <script id="js-app-bundle"   hx-preserve src="@SnakkUrlHelper.Js("bundles/app-bundle")" asp-append-version="true" defer></script>
     @if (isAuth) {

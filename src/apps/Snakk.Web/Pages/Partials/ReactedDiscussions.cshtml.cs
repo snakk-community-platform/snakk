@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.RazorPages;
 using Snakk.Protos.Discussion;
-using Snakk.Web.Helpers;
 using Snakk.Web.Services;
 
 namespace Snakk.Web.Pages.Partials;
@@ -9,33 +7,18 @@ namespace Snakk.Web.Pages.Partials;
 public class ReactedDiscussionsModel(
     SnakkApiClient apiClient,
     IConfiguration configuration,
-    ICommunityContext communityContext) : PageModel
+    ICommunityContext communityContext) : PaginatedPartialModel
 {
     public ICommunityContext Community => communityContext;
     public List<ReactedDiscussionVM> Items { get; set; } = [];
-    public bool HasMoreItems { get; set; }
-    public int Offset { get; set; }
-    public int NextOffset { get; set; }
-    public int MaxOffset { get; set; }
 
     public async Task<IActionResult> OnGetAsync(int offset = 0, int pageSize = 10, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!HttpContext.Request.Cookies.ContainsKey(AuthCookieHelper.AccessCookieName))
-            return Content("", "text/html");
+        if (RequireAuthCookie() is { } r) return r;
 
-        pageSize = Math.Clamp(pageSize, 1, 20);
-        Offset = offset;
-
-        var maxPages = configuration.GetValue("EndlessScroll:MaxPages", 10);
-        MaxOffset = maxPages * pageSize;
-
-        if (offset >= MaxOffset)
-        {
-            Items = [];
-            HasMoreItems = false;
-            return Page();
-        }
+        (pageSize, var exceeded) = ApplyPaginationGuard(offset, pageSize, 1, 20, configuration);
+        if (exceeded) return Page();
 
         try
         {

@@ -33,6 +33,7 @@ public class DiscussionGrpcService(
     IRealtimeNotifier realtimeNotifier,
     IUserRepository userRepository,
     IDiscussionReadStateRepository readStateRepository,
+    ModerationUseCase moderationUseCase,
     HybridCache cache) : DiscussionService.DiscussionServiceBase
 {
     // Aggregate/TTL-only: count changes as new discussions are posted, so write-path
@@ -45,13 +46,36 @@ public class DiscussionGrpcService(
         var ct = context.CancellationToken;
         var result = await discussionUseCase.GetDiscussionAsync(DiscussionId.From(request.PublicId));
 
+        bool isDeleted = false;
+
         if (!result.IsSuccess || result.Value is null)
+        {
+            // If caller requests deleted content, check if this is a soft-deleted discussion
+            // that the caller has mod rights to see.
+            if (!request.IncludeDeleted)
+                throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
+
+            var userId = currentUser.GetCurrentUserId();
+            if (userId is null)
+                throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
+
+            var deletedResult = await discussionUseCase.GetDiscussionIncludingDeletedAsync(DiscussionId.From(request.PublicId));
+            if (!deletedResult.IsSuccess || deletedResult.Value is null)
+                throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
+
+            var canMod = await moderationUseCase.CanModerateAsync(userId, null, null, deletedResult.Value.SpaceId.Value);
+            if (!canMod)
+                throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
+
+            result = deletedResult;
+            isDeleted = true;
+        }
+
+        var d = result.Value!;
+
+        if (!isDeleted && !await IsDiscussionAccessibleAsync(d.PublicId.Value, currentUser.GetCurrentUserId(), ct))
             throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
 
-        var d = result.Value;
-
-        if (!await IsDiscussionAccessibleAsync(d.PublicId.Value, currentUser.GetCurrentUserId(), ct))
-            throw new RpcException(new Status(StatusCode.NotFound, "Discussion not found"));
         var info = new DiscussionInfo
         {
             PublicId = d.PublicId.Value,
@@ -63,7 +87,8 @@ public class DiscussionGrpcService(
             IsLocked = d.IsLocked,
             Type = d.Type.ToString(),
             PostCount = d.PostCount,
-            IsAdult = d.IsAdult
+            IsAdult = d.IsAdult,
+            IsDeleted = isDeleted
         };
 
         if (d.LastActivityAt.HasValue)
@@ -120,22 +145,17 @@ public class DiscussionGrpcService(
         Dictionary<string, int>? unreadCounts = null;
         var userId = currentUser.IsAuthenticated() ? currentUser.GetCurrentUserId() : null;
 
-        // Start unconditionally — independent of read-state lookups
-        var authorSlugsTask = userRepository.GetSlugsByPublicIdsAsync(authorIds, ct);
-
         if (userId is not null && items.Count > 0)
         {
             var discussionIds = items.Select(d => d.PublicId).ToList();
-            var lastReadAtTask = readStateRepository.GetLastReadAtByDiscussionAsync(userId, discussionIds, ct);
-            var lastVisitAtTask = userRepository.GetLastVisitAtAsync(userId, ct);
-            await Task.WhenAll(lastReadAtTask, lastVisitAtTask, authorSlugsTask);
-
-            var cutoffs = BuildCutoffMap(discussionIds, await lastReadAtTask, await lastVisitAtTask);
+            var lastReadAt = await readStateRepository.GetLastReadAtByDiscussionAsync(userId, discussionIds, ct);
+            var lastVisitAt = await userRepository.GetLastVisitAtAsync(userId, ct);
+            var cutoffs = BuildCutoffMap(discussionIds, lastReadAt, lastVisitAt);
             if (cutoffs.Count > 0)
                 unreadCounts = await readStateRepository.GetUnreadPostCountsAsync(cutoffs, ct);
         }
 
-        var authorSlugs = await authorSlugsTask;
+        var authorSlugs = await userRepository.GetSlugsByPublicIdsAsync(authorIds, ct);
         return PagedDiscussionListMapper.Build(pagedResult, fileStorage, authorSlugs, unreadCounts);
     }
 
@@ -349,6 +369,15 @@ public class DiscussionGrpcService(
         if (request.SinceLastVisit && userId is not null)
             lastVisitAt = await userRepository.GetLastVisitAtAsync(userId, ct);
 
+        bool includeDeleted = false;
+        if (request.IncludeDeleted && userId is not null)
+        {
+            if (request.HasHubId)
+                includeDeleted = await moderationUseCase.CanModerateAsync(userId, null, request.HubId, null);
+            else if (request.HasCommunityId)
+                includeDeleted = await moderationUseCase.CanModerateAsync(userId, request.CommunityId, null, null);
+        }
+
         var result = await searchRepository.GetRecentDiscussionsAsync(
             request.Offset,
             request.PageSize,
@@ -362,6 +391,7 @@ public class DiscussionGrpcService(
             request.ViewerAllowsAdult,
             sinceLastVisit: request.SinceLastVisit,
             lastVisitAt: lastVisitAt,
+            includeDeleted: includeDeleted,
             ct);
 
         return await BuildPagedRecentDiscussionList(result, ct);
@@ -511,6 +541,7 @@ public class DiscussionGrpcService(
                 item.LastActivityAt = ToTimestamp(d.LastActivityAt.Value);
 
             item.Tags.AddRange(d.Tags ?? []);
+            item.IsDeleted = d.IsDeleted;
 
             if (d.LastReplierPublicId is not null)
             {
@@ -615,15 +646,21 @@ public class DiscussionGrpcService(
     {
         var ct = context.CancellationToken;
         int? typeFilter = request.HasTypeFilter ? request.TypeFilter : null;
+        var userId = currentUser.GetCurrentUserId();
+
+        bool includeDeleted = false;
+        if (request.IncludeDeleted && userId is not null)
+            includeDeleted = await moderationUseCase.CanModerateAsync(userId, null, null, request.SpaceId);
 
         var result = await searchRepository.GetDiscussionsBySpaceAsync(
             request.SpaceId,
             request.Offset,
             request.PageSize,
             typeFilter,
-            currentUser.GetCurrentUserId(),
+            userId,
             request.HasCursor ? request.Cursor : null,
             request.ViewerAllowsAdult,
+            includeDeleted,
             ct);
 
         var authorIds = result.Items
@@ -670,7 +707,8 @@ public class DiscussionGrpcService(
                 IsLocked = d.IsLocked,
                 PostCount = d.PostCount,
                 ReactionCount = d.ReactionCount,
-                Author = authorRef
+                Author = authorRef,
+                IsDeleted = d.IsDeleted
             };
 
             if (d.LastActivityAt.HasValue)

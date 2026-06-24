@@ -72,6 +72,7 @@ public class SpaceDatabaseEntity
     public int PostCount { get; set; }
     public int ReactionCount { get; set; }
     public int FollowerCount { get; set; }
+    public long ViewCount { get; set; }
 
     // Many-to-one relationships
     public int HubId { get; set; }

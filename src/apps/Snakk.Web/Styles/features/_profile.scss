@@ -45,7 +45,7 @@
 // Profile Page — Activity Chart
 // ============================================
 
-.sn-activity-chart-wrapper {
+.sn-activity-chart-bars {
     display: flex;
     gap: var(--space-2);
     align-items: flex-end;
@@ -131,5 +131,33 @@
 
 .sn-activity-chart-legend-color-secondary {
     background-color: var(--nav-bg);
+}
+
+.sn-activity-chart-legend-total {
+    color: var(--text-tertiary);
+}
+
+.sn-activity-canvas {
+    display: block;
+    width: 100%;
+}
+
+.sn-activity-chart-tooltip {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    z-index: 10;
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+.sn-activity-chart-tooltip {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    color: var(--text-primary);
 }
 

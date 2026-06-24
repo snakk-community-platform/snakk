@@ -34,6 +34,16 @@ public class ActivitySnapshotWorker(
 
                 var viewRepo = scope.ServiceProvider.GetRequiredService<IDiscussionViewRepository>();
                 await viewRepo.PruneAsync(90, stoppingToken);
+                await viewRepo.RollupViewCountsAsync(stoppingToken);
+
+                var counterRepo = scope.ServiceProvider.GetRequiredService<ICounterRepository>();
+                await counterRepo.FlushPostCountsAsync(stoppingToken);
+                await counterRepo.FlushDiscussionCountsAsync(stoppingToken);
+                await counterRepo.FlushReactionCountsAsync(stoppingToken);
+                await counterRepo.FlushFollowerCountsAsync(stoppingToken);
+                await counterRepo.FlushUserCountsAsync(stoppingToken);
+                await counterRepo.FlushTrendScoresAsync(stoppingToken);
+                await counterRepo.FlushReadStatesAsync(stoppingToken);
 
                 logger.LogInformation("Activity snapshots refreshed");
             }

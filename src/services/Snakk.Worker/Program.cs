@@ -52,9 +52,17 @@ builder.Services.AddPooledDbContextFactory<SnakkDbContext>(options =>
 // Distributed cache: Valkey on production, in-memory fallback for development
 var valkeyConn = builder.Configuration["Valkey:ConnectionString"];
 if (!string.IsNullOrEmpty(valkeyConn))
+{
     builder.Services.AddStackExchangeRedisCache(opts => { opts.Configuration = valkeyConn; opts.InstanceName = "snakk:"; });
+    builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+        _ => StackExchange.Redis.ConnectionMultiplexer.Connect(valkeyConn));
+}
 else
+{
     builder.Services.AddDistributedMemoryCache();
+    builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+        _ => StackExchange.Redis.ConnectionMultiplexer.Connect("127.0.0.1:6379,abortConnect=false"));
+}
 
 // HybridCache uses IDistributedCache above as L2 backing store
 builder.Services.AddHybridCache();
@@ -106,11 +114,12 @@ builder.Services.AddHttpClient("WebhookService", client =>
 
 // Activity snapshot repository
 builder.Services.AddScoped<Snakk.Application.Repositories.IActivitySnapshotRepository, Snakk.Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
+builder.Services.AddScoped<Snakk.Application.Repositories.ICounterRepository, Snakk.Infrastructure.Database.Repositories.CounterRepository>();
 builder.Services.AddScoped<Snakk.Application.Services.IVolumeWindowService, Snakk.Infrastructure.Services.VolumeWindowService>();
 builder.Services.AddScoped<Snakk.Application.Repositories.IDiscussionViewRepository, Snakk.Infrastructure.Database.Repositories.DiscussionViewRepository>();
 
 // Stats rollup repository
-builder.Services.AddScoped<Snakk.Application.Repositories.IStatsRollupRepository, Snakk.Infrastructure.Database.Repositories.StatsRollupRepository>();
+builder.Services.AddSingleton<Snakk.Application.Repositories.IStatsRollupRepository, Snakk.Infrastructure.Repositories.ValkeyStatsRollupRepository>();
 
 // Repositories required by StatisticsUseCase
 builder.Services.AddScoped<Snakk.Domain.Repositories.IPostRepository, Snakk.Infrastructure.Adapters.PostRepositoryAdapter>();

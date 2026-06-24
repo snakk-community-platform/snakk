@@ -86,6 +86,17 @@ public class TestWebServer : WebApplicationFactory<Program>
             // outbound calls to the Realtime service (localhost:15300).
             services.AddScoped<Snakk.Application.Services.IRealtimeNotifier, NullRealtimeNotifier>();
 
+            // Replace the real Redis multiplexer — no Redis in test environment.
+            // DiscussionReadStateRepositoryAdapter injects IConnectionMultiplexer directly;
+            // without this the production fallback attempts to connect to 127.0.0.1:6379.
+            services.RemoveAll<StackExchange.Redis.IConnectionMultiplexer>();
+            var redisMock = NSubstitute.Substitute.For<StackExchange.Redis.IConnectionMultiplexer>();
+            var dbMock = NSubstitute.Substitute.For<StackExchange.Redis.IDatabase>();
+            var batchMock = NSubstitute.Substitute.For<StackExchange.Redis.IBatch>();
+            dbMock.CreateBatch(NSubstitute.Arg.Any<object>()).Returns(batchMock);
+            redisMock.GetDatabase(NSubstitute.Arg.Any<int>(), NSubstitute.Arg.Any<object>()).Returns(dbMock);
+            services.AddSingleton(redisMock);
+
             // Use ephemeral (in-memory) data protection — no Postgres key storage needed in tests
             services.AddSingleton<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>(
                 new Microsoft.AspNetCore.DataProtection.EphemeralDataProtectionProvider(

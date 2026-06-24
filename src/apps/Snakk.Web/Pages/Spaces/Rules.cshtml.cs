@@ -31,10 +31,10 @@ public class RulesModel(
         await Task.WhenAll(hubTask, spaceTask, communityTask);
 
         if (!hubTask.Result.IsSuccess)
-            return hubTask.Result.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(hubTask.Result);
 
         if (!spaceTask.Result.IsSuccess)
-            return spaceTask.Result.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(spaceTask.Result);
 
         Hub = hubTask.Result.Value!;
         Space = spaceTask.Result.Value!;

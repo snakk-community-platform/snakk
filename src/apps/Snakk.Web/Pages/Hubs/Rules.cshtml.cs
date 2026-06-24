@@ -20,7 +20,7 @@ public class RulesModel(
         var hubResult = await apiClient.GetHubBySlugResultAsync(slug, CommunityContext.CommunitySlug!);
 
         if (!hubResult.IsSuccess)
-            return hubResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(hubResult);
 
         Hub = hubResult.Value!;
         Rules = await apiClient.GetHubRulesAsync(Hub.PublicId);

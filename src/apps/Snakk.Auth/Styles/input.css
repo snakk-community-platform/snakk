@@ -25,7 +25,9 @@
 @layer components {
     /* ---- Brand Panel ---- */
     .auth-brand-panel {
-        background: linear-gradient(135deg, #0A1F15 0%, #145A41 50%, #0E3328 100%);
+        background:
+            linear-gradient(135deg, rgba(10, 31, 21, 0.80) 0%, rgba(20, 90, 65, 0.65) 50%, rgba(14, 51, 40, 0.80) 100%),
+            url('/auth/bg.webp') center / cover no-repeat;
         position: relative;
         overflow: hidden;
     }
@@ -75,6 +77,12 @@
         display: flex;
         align-items: center;
         justify-content: center;
+
+        @media (min-width: 1024px) {
+            overflow-y: auto;
+            padding-block: 2rem;
+            align-items: safe center;
+        }
     }
 
     .auth-form-card {

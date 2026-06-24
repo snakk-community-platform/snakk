@@ -83,26 +83,13 @@
 
 .sn-debate-bar {
     display: flex;
-    height: 1.375rem;
-    border-radius: var(--radius-sm);
+    height: 6px;
+    border-radius: var(--radius-full);
     overflow: hidden;
 }
 
 .sn-debate-segment {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     min-width: 0;
-    overflow: hidden;
-
-    span {
-        font-size: var(--font-size-2xs);
-        font-weight: 600;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-        overflow: hidden;
-        padding: 0 var(--space-2);
-    }
 }
 
 .sn-debate-labels {
@@ -126,10 +113,6 @@
 
 .sn-debate-segment {
     transition: width var(--duration-slower) cubic-bezier(0.4, 0, 0.2, 1);
-
-    span {
-        color: white;
-    }
 }
 
 .sn-debate-label {

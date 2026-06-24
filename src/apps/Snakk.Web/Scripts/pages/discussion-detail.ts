@@ -62,6 +62,9 @@ interface DiscussionConfig {
     isLocked: boolean;
     spaceSlug?: string;
     hubSlug?: string;
+    spaceId?: string;
+    hubId?: string;
+    communityId?: string;
     postsCurrentOffset: number;
     postsHasMoreItems: boolean;
     hasCodeBlocks: boolean;
@@ -70,6 +73,7 @@ interface DiscussionConfig {
     officialAnswers?: Record<string, string>;
     sort?: string;
     lastReadPostId?: string | null;
+    isModerator?: boolean;
     unreadLabel?: string;
 }
 
@@ -195,7 +199,7 @@ function initReplyEditor(): Promise<void> {
             const btn = document.getElementById('reply-submit-btn') as HTMLButtonElement | null;
             if (!btn) return;
             const form = btn.closest('form') ?? document.getElementById('reply-form');
-            const hasPicker = !!form?.querySelector('.sn-debate-position-picker');
+            const hasPicker = !!form?.querySelector('.debate-position-picker');
             const hasPosition = !!form?.querySelector('input[name="DebatePositionId"]');
             const positionOk = !hasPicker || hasPosition;
             const tooLong = replyMd.length > MAX_POST_LENGTH;
@@ -250,7 +254,7 @@ function initReplyEditor(): Promise<void> {
             // If the debate picker was inserted before the editor finished initializing
             // (fetch resolved before SnakkEditor.init), move it into the message area now.
             const messageArea = container.querySelector('.milkdown-message-area');
-            const earlyPicker = replyForm?.querySelector('.sn-debate-position-picker');
+            const earlyPicker = replyForm?.querySelector('.debate-position-picker');
             if (messageArea && earlyPicker && !messageArea.contains(earlyPicker)) {
                 messageArea.appendChild(earlyPicker);
             }
@@ -366,6 +370,25 @@ function initReplyEditor(): Promise<void> {
 // ===== Reply/Quote Functions =====
 
 // Reply to a specific post
+function openComposer(): void {
+    const drawer = document.getElementById('compose-drawer');
+    const btn = document.getElementById('compose-btn-wrap');
+    if (!drawer) return;
+    drawer.classList.add('sn-compose-drawer--open');
+    btn?.classList.add('sn-hidden');
+    // First open: lazy-load the editor CSS + init
+    loadCSS('snakk-editor-css', '/css/features/editor.css');
+    initReplyEditor().then(() => focusReplyEditor());
+}
+
+function closeComposer(): void {
+    const drawer = document.getElementById('compose-drawer');
+    const btn = document.getElementById('compose-btn-wrap');
+    drawer?.classList.remove('sn-compose-drawer--open');
+    btn?.classList.remove('sn-hidden');
+    clearReplyContext();
+}
+
 function replyToPost(postId: string, authorName: string): void {
     const replyToInput = document.getElementById('reply-to-post-id') as HTMLInputElement;
     const replyContext = document.getElementById('reply-context');
@@ -375,11 +398,7 @@ function replyToPost(postId: string, authorName: string): void {
     if (replyContext) replyContext.classList.remove('sn-hidden');
     if (replyContextAuthor) replyContextAuthor.textContent = authorName;
 
-    // Force-init editor if not loaded yet, then focus
-    initReplyEditor().then(() => {
-        focusReplyEditor();
-        document.getElementById('reply-form-container')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+    openComposer();
 }
 
 // Quote a post's content (or selected text)
@@ -656,28 +675,8 @@ function cancelDiscussionTitle(): void {
     }
 }
 
-// Jump to unread functionality
 let lastReadPostId: string | null = null;
 let unreadLabel: string = '';
-
-function jumpToUnread(): void {
-    if (lastReadPostId) {
-        // Find the next post after lastReadPostId
-        const posts = document.querySelectorAll<HTMLElement>('.sn-post-item');
-        let foundLast = false;
-        for (const post of posts) {
-            if (foundLast) {
-                post.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                post.classList.add('sn-post-highlight');
-                setTimeout(() => post.classList.remove('sn-post-highlight'), 2000);
-                break;
-            }
-            if (post.dataset.postId === lastReadPostId) {
-                foundLast = true;
-            }
-        }
-    }
-}
 
 function insertUnreadSeparator(): void {
     document.getElementById('unread-separator')?.remove();
@@ -780,6 +779,76 @@ const reactionPickerCoarseQuery = window.matchMedia('(hover: none)');
 
 const smileyPlaceholderSvg = '<span class="sn-icon icon-badge-check sn-h-4 sn-w-4" aria-hidden="true"></span>';
 
+// ===== Pending Reaction Persistence =====
+// Survives page refresh until the Valkey-buffered count is flushed to the DB.
+// Key: sn:rx:{postId}  Value: { typeDelta, snapshotTotal, expiresAt }
+
+const RX_LS_PREFIX = 'sn:rx:';
+const RX_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+interface PendingReaction {
+    typeDelta: Record<string, number>;
+    snapshotTotal: number;
+    expiresAt: number;
+}
+
+function rxGetPending(postId: string): PendingReaction | null {
+    try {
+        const raw = localStorage.getItem(RX_LS_PREFIX + postId);
+        if (!raw) return null;
+        const entry = JSON.parse(raw) as PendingReaction;
+        if (Date.now() > entry.expiresAt) {
+            localStorage.removeItem(RX_LS_PREFIX + postId);
+            return null;
+        }
+        return entry;
+    } catch {
+        return null;
+    }
+}
+
+function rxSetPending(postId: string, typeDelta: Record<string, number>, rawCounts: Record<string, number>): void {
+    const snapshotTotal = Object.values(rawCounts).reduce((s, v) => s + v, 0);
+    const entry: PendingReaction = { typeDelta, snapshotTotal, expiresAt: Date.now() + RX_TTL_MS };
+    try { localStorage.setItem(RX_LS_PREFIX + postId, JSON.stringify(entry)); } catch { /* storage full */ }
+}
+
+function rxClearPending(postId: string): void {
+    localStorage.removeItem(RX_LS_PREFIX + postId);
+}
+
+// Apply any pending delta on top of raw server counts.
+// If the DB total has moved since we reacted, the pending entry is stale — clear it and trust the DB.
+function rxApplyPending(postId: string, rawCounts: Record<string, number>): Record<string, number> {
+    const pending = rxGetPending(postId);
+    if (!pending) return rawCounts;
+    const currentTotal = Object.values(rawCounts).reduce((s, v) => s + v, 0);
+    if (currentTotal !== pending.snapshotTotal) {
+        rxClearPending(postId);
+        return rawCounts;
+    }
+    const result: Record<string, number> = { ...rawCounts };
+    for (const [type, delta] of Object.entries(pending.typeDelta)) {
+        const v = (result[type] ?? 0) + delta;
+        if (v <= 0) delete result[type];
+        else result[type] = v;
+    }
+    return result;
+}
+
+function rxCleanupExpired(): void {
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key?.startsWith(RX_LS_PREFIX)) continue;
+        try {
+            const entry = JSON.parse(localStorage.getItem(key)!) as PendingReaction;
+            if (Date.now() > entry.expiresAt) toRemove.push(key);
+        } catch { toRemove.push(key!); }
+    }
+    toRemove.forEach(k => localStorage.removeItem(k));
+}
+
 // Read reaction counts from JSON data-attribute
 function getReactionCounts(el: HTMLElement): Record<string, number> {
     try {
@@ -830,9 +899,10 @@ function updateReactionBadgeIcon(badge: HTMLElement, hasAny: boolean, myReaction
     }
 }
 
-// Render reaction spans from data-attributes
+// Render reaction spans from data-attributes, applying any locally-pending delta on top
 function renderReactionCounts(reactionsBar: HTMLElement): void {
-    const counts = getReactionCounts(reactionsBar);
+    const postId = reactionsBar.id.replace('reactions-', '');
+    const counts = rxApplyPending(postId, getReactionCounts(reactionsBar));
     const myReactions = getMyReactions(reactionsBar);
     let html = '';
     let hasAny = false;
@@ -934,14 +1004,6 @@ function toggleReactionPicker(postId: string, sourceEl?: HTMLElement): void {
     // picker is position:fixed, so use viewport-relative coordinates (no scrollY)
     picker.style.top = `${rect.bottom + 5}px`;
 
-    // Force the hover wrapper visible while picker is open
-    const postArticle = reactionsBar.closest('.sn-post-article');
-    const hoverWrapper = postArticle?.querySelector('.sn-post-hover-actions') as HTMLElement | null;
-    if (hoverWrapper) {
-        hoverWrapper.classList.add('sn-actions-forced');
-        hoverWrapper.dataset.actionsForced = 'true';
-    }
-
     // Force the smiley placeholder visible while picker is open
     const smileyPlaceholder = reactionsBar.querySelector('[data-reaction-placeholder]') as HTMLElement | null;
     if (smileyPlaceholder) {
@@ -977,21 +1039,22 @@ async function toggleReaction(postId: string, reactionType: string): Promise<voi
     const reactionsBar = document.getElementById(`reactions-${postId}`);
     if (!reactionsBar) return;
 
-    // Snapshot for revert on error
-    const snapshotCounts = getReactionCounts(reactionsBar);
+    // Raw server counts (kept in data-attribute; never includes our pending delta)
+    const rawCounts = getReactionCounts(reactionsBar);
     const snapshotMyReactions = getMyReactions(reactionsBar);
 
-    // Compute optimistic state
-    const newCounts = { ...snapshotCounts };
+    // Displayed counts = server counts + any existing pending delta
+    const pendingCounts = rxApplyPending(postId, rawCounts);
+
+    // Compute optimistic state from what the user currently sees
+    const newCounts = { ...pendingCounts };
     const newMyReactions = [...snapshotMyReactions];
     const existingIndex = newMyReactions.indexOf(reactionType);
 
     if (existingIndex >= 0) {
-        // Toggle off: user already has this reaction type
         newCounts[reactionType] = Math.max(0, (newCounts[reactionType] || 0) - 1);
         newMyReactions.splice(existingIndex, 1);
     } else {
-        // Switch: remove any existing reaction first, then add new one
         if (newMyReactions.length > 0) {
             const oldType = newMyReactions[0] as string;
             newCounts[oldType] = Math.max(0, (newCounts[oldType] || 0) - 1);
@@ -1001,8 +1064,22 @@ async function toggleReaction(postId: string, reactionType: string): Promise<voi
         newMyReactions.push(reactionType);
     }
 
-    // Write optimistic state and render immediately
-    setReactionData(reactionsBar, newCounts, newMyReactions);
+    // Persist: net delta vs the raw server baseline (what the DB will eventually have)
+    const allTypes = new Set([...Object.keys(rawCounts), ...Object.keys(newCounts)]);
+    const typeDelta: Record<string, number> = {};
+    for (const type of allTypes) {
+        const d = (newCounts[type] ?? 0) - (rawCounts[type] ?? 0);
+        if (d !== 0) typeDelta[type] = d;
+    }
+    if (Object.keys(typeDelta).length > 0) {
+        rxSetPending(postId, typeDelta, rawCounts);
+    } else {
+        rxClearPending(postId);
+    }
+
+    // Keep raw server data in the attribute; update myReactions optimistically.
+    // renderReactionCounts re-applies the localStorage delta, so displayed counts stay correct.
+    setReactionData(reactionsBar, rawCounts, newMyReactions);
     renderReactionCounts(reactionsBar);
 
     try {
@@ -1014,7 +1091,8 @@ async function toggleReaction(postId: string, reactionType: string): Promise<voi
         });
 
         if (!response.ok) {
-            setReactionData(reactionsBar, snapshotCounts, snapshotMyReactions);
+            rxClearPending(postId);
+            setReactionData(reactionsBar, rawCounts, snapshotMyReactions);
             renderReactionCounts(reactionsBar);
             const errorText = await response.text();
             console.error('Failed to toggle reaction:', response.status, errorText);
@@ -1022,10 +1100,11 @@ async function toggleReaction(postId: string, reactionType: string): Promise<voi
             return;
         }
 
-        // Refresh from server to get accurate counts
+        // Refresh myReactions from server (counts still stale; localStorage covers them)
         await loadReactionsForPost(postId);
     } catch (err) {
-        setReactionData(reactionsBar, snapshotCounts, snapshotMyReactions);
+        rxClearPending(postId);
+        setReactionData(reactionsBar, rawCounts, snapshotMyReactions);
         renderReactionCounts(reactionsBar);
         console.error('Error toggling reaction:', err);
         showToast('Network error. Please check your connection.', 'error');
@@ -1036,18 +1115,25 @@ async function loadReactionsForPost(postId: string): Promise<void> {
     const reactionsBar = document.getElementById(`reactions-${postId}`);
     if (!reactionsBar) return;
 
+    const isAuthenticated = document.body.dataset.isAuthenticated === 'true';
+
     try {
         const [countsResponse, myResponse] = await Promise.all([
             fetch(`/bff/posts/${postId}/reactions`),
-            fetch(`/bff/posts/${postId}/reactions/me`)
+            isAuthenticated ? fetch(`/bff/posts/${postId}/reactions/me`) : Promise.resolve(null)
         ]);
 
         if (!countsResponse.ok) throw new Error(`HTTP ${countsResponse.status}`);
-        if (!myResponse.ok) throw new Error(`HTTP ${myResponse.status}`);
         const countsData: ReactionCountsResponse = await countsResponse.json();
-        const myData: MyReactionsResponse = await myResponse.json();
 
-        setReactionData(reactionsBar, countsData.counts || {}, myData.reactions || []);
+        let myReactions: string[] = [];
+        if (myResponse !== null) {
+            if (!myResponse.ok) throw new Error(`HTTP ${myResponse.status}`);
+            const myData: MyReactionsResponse = await myResponse.json();
+            myReactions = myData.reactions || [];
+        }
+
+        setReactionData(reactionsBar, countsData.counts || {}, myReactions);
         renderReactionCounts(reactionsBar);
     } catch (err) {
         console.error('Error loading reactions:', err);
@@ -1135,19 +1221,7 @@ function updateFollowButton(isFollowing: boolean): void {
         }
     }
 
-    const rpBtn = document.querySelector<HTMLElement>('.rp-subscribe-btn');
-    if (rpBtn) {
-        const rpText = rpBtn.querySelector('span');
-        if (isFollowing) {
-            rpBtn.classList.add('sn-btn-primary');
-            rpBtn.classList.remove('sn-btn-ghost');
-            if (rpText) rpText.textContent = 'Followed';
-        } else {
-            rpBtn.classList.remove('sn-btn-primary');
-            rpBtn.classList.add('sn-btn-ghost');
-            if (rpText) rpText.textContent = 'Follow';
-        }
-    }
+    (window as any).SnakkUtils.updateSubscribeButton('.rp-subscribe-btn', isFollowing);
 }
 
 async function loadFollowStatus(discussionId: string): Promise<void> {
@@ -1275,6 +1349,26 @@ function expandPost(postId: string): void {
     document.body.style.overflow = 'hidden';
     document.body.appendChild(backdrop);
     document.body.appendChild(modal);
+}
+
+// ===== Follow User =====
+async function followUser(userId: string, userName: string): Promise<void> {
+    if (!userId) return;
+    try {
+        const response = await fetch(`/bff/users/${userId}/follow`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            showToast('Failed to follow user. Please try again.', 'error');
+            return;
+        }
+        const data: { isFollowing: boolean } = await response.json();
+        const label = data.isFollowing ? `Now following ${escapeHtml(userName)}` : `Unfollowed ${escapeHtml(userName)}`;
+        showToast(label, 'success');
+    } catch {
+        showToast('Network error. Please try again.', 'error');
+    }
 }
 
 // ===== Hide Posts From User =====
@@ -1453,38 +1547,9 @@ function navigateToPost(index: number): void {
 }
 
 // ===== Toast Notifications =====
-function showToast(message: string, type: 'error' | 'success' | 'info' = 'error', duration: number = 4000): void {
-    const toast = document.createElement('div');
-    const bgColor = type === 'error' ? 'sn-bg-error' : type === 'success' ? 'sn-bg-success' : 'sn-bg-info';
-    toast.className = `sn-fixed sn-bottom-6 sn-right-6 ${bgColor} sn-text-white sn-px-4 sn-py-3 sn-rounded-lg sn-shadow-lg sn-z-50 sn-flex sn-items-center sn-gap-2 sn-max-w-sm`;
-    toast.style.transition = 'all 0.3s ease';
-    toast.style.transform = 'translateX(400px)';
-
-    const icon = type === 'error'
-        ? '<span class="sn-icon icon-exclamation-circle sn-h-5 sn-w-5 sn-shrink-0" aria-hidden="true"></span>'
-        : type === 'success'
-        ? '<span class="sn-icon icon-check sn-h-5 sn-w-5 sn-shrink-0" aria-hidden="true"></span>'
-        : '<span class="sn-icon icon-info-circle sn-h-5 sn-w-5 sn-shrink-0" aria-hidden="true"></span>';
-
-    toast.innerHTML = `
-        ${icon}
-        <p class="sn-text-sm">${escapeHtml(message)}</p>
-    `;
-
-    document.body.appendChild(toast);
-
-    // Animate in
-    setTimeout(() => {
-        toast.style.transform = 'translateX(0)';
-    }, 10);
-
-    // Remove after duration
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(400px)';
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
-}
+// showToast is available globally as window.SnakkUtils.showToast
+const showToast = (message: string, type: 'error' | 'success' | 'info' = 'error', duration: number = 4000): void =>
+    (window as any).SnakkUtils.showToast(message, type, duration);
 
 // ===== IAmA Q&A post insertion =====
 // For IAmA discussions, insert a post adjacent to its paired partner (if known)
@@ -1515,6 +1580,9 @@ let postsHasMoreItems = false;
 let postsIsLoading = false;
 const postsPageSize = 20;
 let postsScrollObserver: IntersectionObserver | null = null;
+// Tracks the publicId of the last rendered post author across chunk boundaries.
+// Stored here rather than read from the DOM so it survives DOM windowing prunes.
+let lastRenderedAuthorId: string | null = null;
 
 // Load-up (earlier posts) state
 let postsStartOffset = 0;
@@ -1528,6 +1596,127 @@ let suppressFragmentUpdate = false;
 // Thread nav state
 let totalPostCount = 0;
 
+// ===== DOM Windowing =====
+interface ChunkRecord { offset: number; el: HTMLDivElement; height: number; }
+const MAX_DOM_CHUNKS = 5;
+const CHUNK_CACHE_MAX = 10;
+let chunksInDom: ChunkRecord[] = [];
+const chunkCache = new Map<number, Post[]>();
+let topSpacerObserver: IntersectionObserver | null = null;
+let bottomSpacerObserver: IntersectionObserver | null = null;
+
+const scrollDbg = {
+    get on(): boolean { return !!(window as any).__snakkScrollDebug || localStorage.getItem('snakk:scroll:debug') === '1'; },
+    log(msg: string, data?: Record<string, unknown>) {
+        if (!this.on) return;
+        const s = 'color:#6ee7b7;font-weight:bold';
+        if (data) console.log(`%c[Scroll] ${msg}`, s, data);
+        else console.log(`%c[Scroll] ${msg}`, s);
+    },
+    state() {
+        if (!this.on) return;
+        console.log('%c[Scroll] state', 'color:#6ee7b7;font-weight:bold', {
+            chunks: chunksInDom.map(c => `off=${c.offset} h=${Math.round(c.height)}px`),
+            cached: [...chunkCache.keys()],
+            postsCurrentOffset,
+            postsStartOffset,
+            postsHasMoreItems,
+            topSpacer: topSpacerEl() ? { h: topSpacerEl()!.style.height, endOff: topSpacerEl()!.dataset.endOffset } : null,
+            bottomSpacer: bottomSpacerEl() ? { h: bottomSpacerEl()!.style.height, startOff: bottomSpacerEl()!.dataset.startOffset } : null,
+        });
+    },
+};
+
+// Exposed on window so devs can run snakkScrollDbg.enable() in console
+(window as any).snakkScrollDbg = {
+    enable: () => { (window as any).__snakkScrollDebug = true; console.log('%c[Scroll] debug ON', 'color:#6ee7b7;font-weight:bold'); },
+    disable: () => { (window as any).__snakkScrollDebug = false; console.log('%c[Scroll] debug OFF', 'color:#6ee7b7'); },
+    state: () => scrollDbg.state(),
+    cache: () => console.table([...chunkCache.entries()].map(([k, v]) => ({ offset: k, posts: v.length }))),
+};
+
+function topSpacerEl(): HTMLDivElement | null { return document.getElementById('top-spacer') as HTMLDivElement | null; }
+function bottomSpacerEl(): HTMLDivElement | null { return document.getElementById('bottom-spacer') as HTMLDivElement | null; }
+function spacerPx(el: HTMLElement | null): number { return parseFloat(el?.style.height ?? '0') || 0; }
+
+function storeInCache(offset: number, posts: Post[]): void {
+    chunkCache.set(offset, posts);
+    while (chunkCache.size > CHUNK_CACHE_MAX) {
+        chunkCache.delete(chunkCache.keys().next().value!);
+    }
+    scrollDbg.log('cached chunk', { offset, posts: posts.length, cacheSize: chunkCache.size });
+}
+
+function pruneTopChunk(): void {
+    const chunk = chunksInDom.shift();
+    if (!chunk) return;
+    // Cache was pre-populated at fetch time; SSR chunk (offset 0) falls back to server on recovery
+    const spacer = topSpacerEl();
+    if (spacer) {
+        spacer.style.height = (spacerPx(spacer) + chunk.height) + 'px';
+        spacer.dataset.endOffset = String(chunk.offset + postsPageSize);
+    }
+    scrollDbg.log('prune top', { offset: chunk.offset, height: chunk.height, topSpacerH: spacer?.style.height });
+    chunk.el.remove();
+    // overflow-anchor:auto on #posts-container compensates scroll automatically
+}
+
+function pruneBottomChunk(): void {
+    const chunk = chunksInDom.pop();
+    if (!chunk) return;
+    const spacer = bottomSpacerEl();
+    if (spacer) {
+        spacer.style.height = (spacerPx(spacer) + chunk.height) + 'px';
+        spacer.dataset.startOffset = String(chunk.offset);
+    }
+    scrollDbg.log('prune bottom', { offset: chunk.offset, height: chunk.height, bottomSpacerH: spacer?.style.height });
+    chunk.el.remove();
+    // Content was below viewport — no scroll compensation needed
+}
+
+function scheduleAppendChunkRecord(offset: number, el: HTMLDivElement): void {
+    requestAnimationFrame(() => {
+        const height = el.getBoundingClientRect().height;
+        chunksInDom.push({ offset, el, height });
+        scrollDbg.log('append chunk', { offset, height, total: chunksInDom.length });
+        while (chunksInDom.length > MAX_DOM_CHUNKS) pruneTopChunk();
+        scrollDbg.state();
+    });
+}
+
+// Returns the last rendered post article in `el` (or container if not specified)
+function lastPostIn(el: HTMLElement): HTMLElement | null {
+    const posts = el.querySelectorAll<HTMLElement>('.sn-post-article[data-author-id]');
+    return posts.length > 0 ? (posts[posts.length - 1] ?? null) : null;
+}
+
+// Returns the first rendered post article in `el`
+function firstPostIn(el: HTMLElement): HTMLElement | null {
+    return el.querySelector<HTMLElement>('.sn-post-article[data-author-id]');
+}
+
+// Re-evaluates sn-same-author / sn-new-author on `next` given what came before it.
+// Called after any prepend or append that creates a new chunk boundary.
+function fixAuthorBoundary(prev: HTMLElement | null, next: HTMLElement | null): void {
+    if (!prev || !next) return;
+    const same = prev.dataset.authorId === next.dataset.authorId;
+    next.classList.toggle('sn-same-author', same);
+    next.classList.toggle('sn-new-author', !same);
+    scrollDbg.log('fix author boundary', { prev: prev.dataset.authorId, next: next.dataset.authorId, same });
+}
+
+function resetChunkState(): void {
+    chunksInDom = [];
+    chunkCache.clear();
+    topSpacerObserver?.disconnect(); topSpacerObserver = null;
+    bottomSpacerObserver?.disconnect(); bottomSpacerObserver = null;
+    const ts = topSpacerEl();
+    if (ts) { ts.style.height = '0'; ts.dataset.endOffset = '0'; }
+    const bs = bottomSpacerEl();
+    if (bs) { bs.style.height = '0'; bs.dataset.startOffset = '0'; }
+    scrollDbg.log('chunk state reset');
+}
+
 function initPostsEndlessScroll(): void {
     const sentinel = document.getElementById('scroll-sentinel');
     if (!sentinel) return;
@@ -1539,14 +1728,15 @@ function initPostsEndlessScroll(): void {
 
     postsScrollObserver = new IntersectionObserver((entries) => {
         const entry = entries[0];
-        if (entry && entry.isIntersecting && postsHasMoreItems && !postsIsLoading) {
-            // This will be called from event delegation with proper params
+        if (!entry?.isIntersecting) return;
+        if (postsHasMoreItems && !postsIsLoading) {
             const discussionId = document.body.dataset.discussionId || '';
             const currentUserId = document.body.dataset.currentUserId || '';
             const isAuthenticated = document.body.dataset.isAuthenticated === 'true';
             const isLocked = document.body.dataset.isLocked === 'true';
-
             loadMorePosts(discussionId, currentUserId, isAuthenticated, isLocked);
+        } else if (!postsHasMoreItems) {
+            document.getElementById('end-message')?.classList.remove('sn-hidden');
         }
     }, { rootMargin: '100px' });
 
@@ -1577,33 +1767,51 @@ async function loadMorePosts(discussionId: string, currentUserId: string, isAuth
         if (!container || !sentinel) return;
 
         if (data.items && data.items.length > 0) {
-            // Track previous author for grouping + previous createdAt for necro
-            const existingPosts = container.querySelectorAll<HTMLElement>('.sn-post-item');
-            let previousAuthorId: string | null = existingPosts.length > 0
-                ? existingPosts[existingPosts.length - 1]?.dataset.authorId || null
-                : null;
-            let previousCreatedAt: string | null = existingPosts.length > 0
-                ? existingPosts[existingPosts.length - 1]?.dataset.createdAt || null
-                : null;
+            // Use the module-level variable (not a DOM query) so the boundary is correct
+            // even after DOM windowing has pruned earlier chunks from the container.
+            let previousAuthorId: string | null = lastRenderedAuthorId;
+            let previousCreatedAt: string | null = lastPostIn(container)?.dataset.createdAt ?? null;
 
-            data.items.forEach((post, idx) => {
-                if (post.isNecro && previousCreatedAt) {
-                    container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), sentinel);
-                }
-                const isSameAuthor = previousAuthorId === post.author.publicId;
-                const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
-                const postElement = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast);
-                if (discussionConfig?.discussionType === 'Iama') {
+            const isIama = discussionConfig?.discussionType === 'Iama';
+            scrollDbg.log('fetch down', { offset: postsCurrentOffset, count: data.items.length, hasMore: data.hasMoreItems, isIama });
+
+            if (isIama) {
+                // IAmA reorders posts across the full container — incompatible with chunk windowing.
+                data.items.forEach((post, idx) => {
+                    if (post.isNecro && previousCreatedAt) {
+                        container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), sentinel);
+                    }
+                    const isSameAuthor = previousAuthorId === post.author.publicId;
+                    const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
+                    const postElement = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast, discussionConfig?.isModerator ?? false);
                     insertIamaPost(postElement, container, sentinel);
-                } else {
-                    container.insertBefore(postElement, sentinel);
-                }
-                previousAuthorId = post.author.publicId;
-                previousCreatedAt = post.createdAt;
+                    previousAuthorId = post.author.publicId;
+                    lastRenderedAuthorId = post.author.publicId;
+                    previousCreatedAt = post.createdAt;
+                    loadReactionsForPost(post.publicId);
+                });
+            } else {
+                storeInCache(postsCurrentOffset, data.items);
+                const chunkEl = document.createElement('div') as HTMLDivElement;
+                chunkEl.dataset.chunkOffset = String(postsCurrentOffset);
+                data.items.forEach((post, idx) => {
+                    if (post.isNecro && previousCreatedAt) {
+                        chunkEl.appendChild(createNecroSeparator(previousCreatedAt, post.createdAt));
+                    }
+                    const isSameAuthor = previousAuthorId === post.author.publicId;
+                    const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
+                    const postElement = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast, discussionConfig?.isModerator ?? false);
+                    chunkEl.appendChild(postElement);
+                    previousAuthorId = post.author.publicId;
+                    lastRenderedAuthorId = post.author.publicId;
+                    previousCreatedAt = post.createdAt;
+                    loadReactionsForPost(post.publicId);
+                });
+                // Insert before bottom spacer (or sentinel if spacer absent) so spacer stays last
+                (bottomSpacerEl() ?? sentinel).before(chunkEl);
+                scheduleAppendChunkRecord(postsCurrentOffset, chunkEl);
+            }
 
-                // Load reactions for this new post
-                loadReactionsForPost(post.publicId);
-            });
             postsCurrentOffset += data.items.length;
 
             // Highlight code blocks in new posts if present
@@ -1693,7 +1901,7 @@ function createNecroSeparator(previousCreatedAt: string, necroCreatedAt: string)
     return el;
 }
 
-function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentUserId: string, isAuthenticated: boolean, isLocked: boolean, isLastPost: boolean = false): HTMLElement {
+function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentUserId: string, isAuthenticated: boolean, isLocked: boolean, _isLastPost: boolean = false, isModerator: boolean = false): HTMLElement {
     const article = document.createElement('article');
     article.id = `post-${post.postNumber}`;
     article.dataset.createdAt = post.createdAt;
@@ -1744,95 +1952,107 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                 badges += '<span class="sn-badge sn-badge-warning sn-badge-xs sn-post-badge-milestone sn-shadow-layered" title="Milestone post">\u2605</span>';
             }
             authorPaneHtml += `<div class="sn-post-author-badges">${badges}</div>`;
+            if (isAuthenticated && !post.author.isDeleted && !isOwner) {
+                const authorOptsId = `sn-author-opts-${post.publicId}`;
+                const banBtn = isModerator
+                    ? `<li><button type="button" data-action="mod-ban-user" data-author-id="${post.author.publicId}" data-author-name="${escapeHtml(post.author.displayName)}" class="sn-text-sm sn-text-error"><span class="icon icon-ban sn-h-4 sn-w-4" aria-hidden="true"></span> Ban user</button></li>`
+                    : '';
+                authorPaneHtml += `
+                    <button type="button"
+                            class="sn-post-author-opts sn-subtle-btn"
+                            popovertarget="${authorOptsId}"
+                            aria-label="Author options">
+                        <span class="icon icon-dots-horizontal sn-h-4 sn-w-4" aria-hidden="true"></span>
+                    </button>
+                    <ul id="${authorOptsId}" popover class="sn-dropdown-panel sn-menu sn-w-48">
+                        <li><button type="button" data-action="follow-user" data-author-id="${post.author.publicId}" data-author-name="${escapeHtml(post.author.displayName)}" class="sn-text-sm"><span class="icon icon-user-follow sn-h-4 sn-w-4" aria-hidden="true"></span> Follow user</button></li>
+                        <li><button type="button" data-action="hide-posts-from-user" data-author-id="${post.author.publicId}" data-author-name="${escapeHtml(post.author.displayName)}" class="sn-text-sm"><span class="icon icon-eye-slash sn-h-4 sn-w-4" aria-hidden="true"></span> Hide posts from user</button></li>
+                        ${banBtn}
+                    </ul>`;
+            }
         }
         authorPaneHtml += '</aside>';
     }
 
-    // Build action buttons (hide reply/quote on own posts that are last or in same-author block)
-    const isOwnPost = post.author.publicId === currentUserId;
-    const hideReplyQuote = isOwnPost && (isLastPost || isSameAuthorAsPrevious);
-    let actionButtonsHtml = '';
-    if (!isLocked && isAuthenticated && !hideReplyQuote) {
-        actionButtonsHtml = `
-            <div class="sn-post-hover-actions">
-            <button data-action="reply-to-post"
-                    data-post-id="${post.publicId}"
-                    data-author-name="${escapeHtml(post.author.displayName)}"
-                    class="sn-subtle-btn"
-                    aria-label="Reply to ${escapeHtml(post.author.displayName)}">
-                <span class="sn-icon icon-reply sn-h-4 sn-w-4" aria-hidden="true"></span>
-                Reply
-            </button>
-            <button data-action="quote-post"
-                    data-post-id="${post.publicId}"
-                    data-content="${escapeHtml(post.content)}"
-                    data-author-name="${escapeHtml(post.author.displayName)}"
-                    class="sn-subtle-btn"
-                    aria-label="Quote post by ${escapeHtml(post.author.displayName)}">
-                <span class="sn-icon icon-chat-square sn-h-4 sn-w-4" aria-hidden="true"></span>
-                Quote
-            </button>
-            </div>`;
-    }
-
-    // Dropdown menu items
-    let ownerItems = '';
-    if (isOwner) {
-        ownerItems = `
-            <li><button data-action="edit-post" data-post-id="${post.publicId}" data-user-id="${currentUserId}" class="sn-text-sm">Edit</button></li>
-            <li>
-                <button hx-delete="/bff/posts/${post.publicId}"
-                        hx-target="#post-${post.publicId}"
-                        hx-swap="outerHTML"
-                        hx-confirm="Are you sure you want to delete this post?"
-                        class="sn-text-sm sn-text-error">
-                    Delete
-                </button>
-            </li>`;
-    }
-
-    let nonOwnerItems = '';
-    if (isAuthenticated && !isOwner) {
-        nonOwnerItems = `
-            <li>
-                <button data-action="hide-posts-from-user" data-author-id="${post.author.publicId}" data-author-name="${escapeHtml(post.author.displayName)}" class="sn-text-sm">
-                    Hide posts from user
-                </button>
-            </li>
-            <li>
-                <button data-action="open-report-modal" data-report-type="post" data-report-id="${post.publicId}" data-report-label="this post" class="sn-text-sm sn-text-error">
+    // Inline post action icons (revealed when ··· toggle is clicked)
+    let inlineActionsHtml = '';
+    if (isAuthenticated) {
+        let historyBtn = '';
+        if (isOwner || isModerator) {
+            historyBtn = `
+                <button hx-get="/bff/posts/${post.publicId}/history"
+                        hx-target="#history-modal-content"
+                        hx-swap="innerHTML"
+                        data-modal-open="history_modal"
+                        class="sn-btn sn-btn-outline sn-btn-sm sn-post-action-btn"
+                        title="History"
+                        aria-label="History">
+                    <span class="icon icon-clock sn-h-4 sn-w-4" aria-hidden="true"></span>
+                    History
+                </button>`;
+        }
+        let reportBtn = '';
+        if (!isOwner && !post.author.isDeleted) {
+            reportBtn = `
+                <button type="button"
+                        data-action="open-report-modal"
+                        data-report-type="post"
+                        data-report-id="${post.publicId}"
+                        data-report-label="this post"
+                        class="sn-btn sn-btn-outline sn-btn-sm sn-post-action-btn"
+                        title="Report post"
+                        aria-label="Report post">
+                    <span class="icon icon-exclamation-triangle sn-h-4 sn-w-4" aria-hidden="true"></span>
                     Report post
+                </button>`;
+        }
+        let removeBtn = '';
+        if (isModerator && !post.author.isDeleted) {
+            removeBtn = `
+                <button type="button"
+                        data-action="mod-delete-post"
+                        data-post-id="${post.publicId}"
+                        data-post-number="${post.postNumber}"
+                        class="sn-btn sn-btn-outline sn-btn-sm sn-post-action-btn sn-text-error"
+                        title="Remove post"
+                        aria-label="Remove post">
+                    <span class="icon icon-trash sn-h-4 sn-w-4" aria-hidden="true"></span>
+                    Remove post
+                </button>`;
+        }
+        inlineActionsHtml = `
+            <div class="sn-post-inline-actions" hidden>
+                ${historyBtn}
+                <button type="button"
+                        data-action="toggle-save-post"
+                        data-post-id="${post.publicId}"
+                        data-saved="false"
+                        aria-pressed="false"
+                        class="sn-btn sn-btn-outline sn-btn-sm sn-post-action-btn sn-post-save-btn"
+                        title="Save post"
+                        aria-label="Save post">
+                    <span class="icon icon-bookmark-alt sn-h-4 sn-w-4" aria-hidden="true"></span>
+                    Save post
                 </button>
-            </li>`;
+                ${reportBtn}
+                ${removeBtn}
+            </div>
+            <button type="button"
+                    class="sn-subtle-btn sn-post-opts-toggle"
+                    data-action="toggle-post-inline-actions"
+                    aria-label="Post options">
+                <span class="icon icon-dots-horizontal sn-h-4 sn-w-4" aria-hidden="true"></span>
+            </button>`;
     }
-
-    const dropdownId = `sn-post-opts-${post.publicId}`;
-    const dropdownHtml = `
-        <div class="sn-dropdown">
-            <button type="button" class="sn-subtle-btn" aria-label="Post options"
-                    popovertarget="${dropdownId}">
-                <span class="sn-icon icon-dots-horizontal sn-h-4 sn-w-4" aria-hidden="true"></span>
-            </button>
-            <ul id="${dropdownId}" popover class="sn-dropdown-panel sn-menu sn-w-48">
-                <li>
-                    <button hx-get="/bff/posts/${post.publicId}/history"
-                            hx-target="#history-modal-content"
-                            hx-swap="innerHTML"
-                            data-modal-open="history_modal"
-                            class="sn-text-sm">
-                        History
-                    </button>
-                </li>
-                ${ownerItems}
-                ${nonOwnerItems}
-            </ul>
-        </div>`;
 
     const canReact = !isLocked && isAuthenticated;
     const smileyPlaceholderHtml = canReact
         ? `<span class="sn-reaction-placeholder" data-reaction-placeholder>${smileyPlaceholderSvg}</span>`
         : '';
-    const reactionsContainerHtml = `<div class="sn-flex sn-items-center sn-gap-2 sn-text-base sn-text-muted${canReact ? ' sn-cursor-pointer' : ''}" id="reactions-${post.publicId}" data-reaction-counts="{}" data-my-reactions="[]"${canReact ? ` data-action="toggle-reaction-picker" data-post-id="${post.publicId}"` : ''} aria-label="${canReact ? 'Add reaction to post' : 'Reactions'}">${smileyPlaceholderHtml}</div>`;
+    const rxData = (post as any).reactions ?? {};
+    const rxCountsAttr = JSON.stringify(rxData.counts ?? {}).replace(/"/g, '&quot;');
+    const rxMyAttr = JSON.stringify(rxData.userReactions ?? []).replace(/"/g, '&quot;');
+    const reactionsContainerHtml = `<div class="sn-flex sn-items-center sn-gap-2 sn-text-base sn-text-muted${canReact ? ' sn-cursor-pointer' : ''}" id="reactions-${post.publicId}" data-reaction-counts="${rxCountsAttr}" data-my-reactions="${rxMyAttr}"${canReact ? ` data-action="toggle-reaction-picker" data-post-id="${post.publicId}"` : ''} aria-label="${canReact ? 'Add reaction to post' : 'Reactions'}">${smileyPlaceholderHtml}</div>`;
 
     // Build toolbar
     const editedTag = post.editedAt ? '<span>(edited)</span>' : '';
@@ -1873,11 +2093,12 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
                 <div class="sn-post-toolbar-left">
                     ${inlineAuthorHtml}
                     <span class="sn-post-time"><time data-timestamp="${post.createdAt}">${formatPostRelativeTime(post.createdAt)}</time>${editedTag}</span>
+                    <span aria-hidden="true">·</span>
+                    <span class="sn-post-number">#${post.postNumber}</span>
                 </div>
                 <div class="sn-post-toolbar-right">
-                    ${actionButtonsHtml}
+                    ${inlineActionsHtml}
                     ${reactionsContainerHtml}
-                    ${dropdownHtml}
                 </div>
             </div>
             ${replyToHtml}
@@ -1887,12 +2108,12 @@ function createPostElement(post: Post, isSameAuthorAsPrevious: boolean, currentU
         </div>
     `;
 
-    // Wire up Popover API positioning for this post's options panel
-    const optPanel = article.querySelector<HTMLElement>(`#${dropdownId}`);
-    if (optPanel) {
-        optPanel.addEventListener('toggle', (e: Event) => {
+    // Wire up Popover API positioning for the author options panel
+    const authorOptsPanel = article.querySelector<HTMLElement>(`[id^="sn-author-opts-"]`);
+    if (authorOptsPanel) {
+        authorOptsPanel.addEventListener('beforetoggle', (e: Event) => {
             if ((e as ToggleEvent).newState === 'open') {
-                (window as any).snakkDropdown?.position(optPanel);
+                (window as any).snakkDropdown?.position(authorOptsPanel);
             }
         });
     }
@@ -2127,8 +2348,10 @@ async function handleFragmentEntry(
     loadUpObserver = null;
     document.getElementById('load-up-sentinel')?.classList.add('sn-hidden');
 
-    // Clear server-rendered posts
+    // Clear server-rendered posts and chunk wrappers, reset DOM windowing state
+    Array.from(container.querySelectorAll('[data-chunk-offset]')).forEach(c => c.remove());
     Array.from(container.querySelectorAll('.sn-post-item')).forEach(p => p.remove());
+    resetChunkState();
 
     const loadingIndicator = document.getElementById('loading-indicator');
     loadingIndicator?.classList.remove('sn-hidden');
@@ -2146,23 +2369,42 @@ async function handleFragmentEntry(
         const data: { items?: Post[]; hasMoreItems: boolean; hasCodeBlocks?: boolean } = await response.json();
 
         if (data.items && data.items.length > 0) {
+            scrollDbg.log('fetch fragment', { targetOffset, count: data.items.length, hasMore: data.hasMoreItems });
+            storeInCache(targetOffset, data.items);
+            const isIama = discussionConfig?.discussionType === 'Iama';
             let previousAuthorId: string | null = null;
             let previousCreatedAt: string | null = null;
-            data.items.forEach((post, idx) => {
-                if (post.isNecro && previousCreatedAt) {
-                    container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), scrollSentinel);
-                }
-                const isSameAuthor = previousAuthorId === post.author.publicId;
-                const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
-                const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast);
-                if (discussionConfig?.discussionType === 'Iama') {
+
+            if (isIama) {
+                data.items.forEach((post, idx) => {
+                    if (post.isNecro && previousCreatedAt) {
+                        container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), scrollSentinel);
+                    }
+                    const isSameAuthor = previousAuthorId === post.author.publicId;
+                    const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
+                    const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast, discussionConfig?.isModerator ?? false);
                     insertIamaPost(el, container, scrollSentinel);
-                } else {
-                    container.insertBefore(el, scrollSentinel);
-                }
-                previousAuthorId = post.author.publicId;
-                previousCreatedAt = post.createdAt;
-            });
+                    previousAuthorId = post.author.publicId;
+                    previousCreatedAt = post.createdAt;
+                });
+            } else {
+                const chunkEl = document.createElement('div') as HTMLDivElement;
+                chunkEl.dataset.chunkOffset = String(targetOffset);
+                data.items.forEach((post, idx) => {
+                    if (post.isNecro && previousCreatedAt) {
+                        chunkEl.appendChild(createNecroSeparator(previousCreatedAt, post.createdAt));
+                    }
+                    const isSameAuthor = previousAuthorId === post.author.publicId;
+                    const isLast = !data.hasMoreItems && idx === data.items!.length - 1;
+                    const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, isLast, discussionConfig?.isModerator ?? false);
+                    chunkEl.appendChild(el);
+                    previousAuthorId = post.author.publicId;
+                    previousCreatedAt = post.createdAt;
+                });
+                (bottomSpacerEl() ?? scrollSentinel).before(chunkEl);
+                scheduleAppendChunkRecord(targetOffset, chunkEl);
+            }
+
             postsCurrentOffset = targetOffset + data.items.length;
 
             console.log('[DiscussionDetail] loadMorePosts (up) â€” hasCodeBlocks:', data.hasCodeBlocks);
@@ -2259,32 +2501,52 @@ async function loadEarlierPosts(
             const container = document.getElementById('posts-container');
             if (!container) return;
 
-            // Scroll anchor: record the position of the first currently-loaded post
-            const firstCurrentPost = container.querySelector<HTMLElement>('.sn-post-item');
+            // Scroll anchor + boundary reference: first post currently in DOM becomes the second chunk's first post after prepend
+            const firstCurrentPost = firstPostIn(container);
             const anchorTop = firstCurrentPost?.getBoundingClientRect().top ?? 0;
 
-            // Build and insert new elements just after the load-up sentinel
-            const loadUpSentinel = document.getElementById('load-up-sentinel');
-            const insertBefore = loadUpSentinel?.nextSibling ?? firstCurrentPost;
+            scrollDbg.log('fetch up (fragment)', { offset: loadOffset, count: data.items.length });
+            storeInCache(loadOffset, data.items);
+
+            const chunkEl = document.createElement('div') as HTMLDivElement;
+            chunkEl.dataset.chunkOffset = String(loadOffset);
             let previousAuthorId: string | null = null;
             let previousCreatedAt: string | null = null;
             data.items.forEach(post => {
                 if (post.isNecro && previousCreatedAt) {
-                    if (insertBefore) container.insertBefore(createNecroSeparator(previousCreatedAt, post.createdAt), insertBefore);
+                    chunkEl.appendChild(createNecroSeparator(previousCreatedAt, post.createdAt));
                 }
                 const isSameAuthor = previousAuthorId === post.author.publicId;
-                const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked);
-                if (insertBefore) container.insertBefore(el, insertBefore);
+                const el = createPostElement(post, post.isNecro ? false : isSameAuthor, currentUserId, isAuthenticated, isLocked, false, discussionConfig?.isModerator ?? false);
+                chunkEl.appendChild(el);
                 previousAuthorId = post.author.publicId;
                 previousCreatedAt = post.createdAt;
             });
+
+            // Insert after top spacer (which sits between load-up-sentinel and first chunk)
+            const ts = topSpacerEl();
+            if (ts) {
+                ts.after(chunkEl);
+            } else {
+                const loadUpSentinel = document.getElementById('load-up-sentinel');
+                (loadUpSentinel?.nextSibling ? container.insertBefore(chunkEl, loadUpSentinel.nextSibling as ChildNode) : container.prepend(chunkEl));
+            }
+
+            const height = chunkEl.getBoundingClientRect().height;
+            chunksInDom.unshift({ offset: loadOffset, el: chunkEl, height });
+            scrollDbg.log('prepend chunk (fragment)', { offset: loadOffset, height, total: chunksInDom.length });
+            while (chunksInDom.length > MAX_DOM_CHUNKS) pruneBottomChunk();
 
             // Restore scroll position to cancel the layout shift from prepended content
             if (firstCurrentPost) {
                 window.scrollBy(0, firstCurrentPost.getBoundingClientRect().top - anchorTop);
             }
 
+            // Fix author-grouping at the boundary: new chunk's last post → existing first post
+            fixAuthorBoundary(lastPostIn(chunkEl), firstCurrentPost);
+
             postsStartOffset = loadOffset;
+            scrollDbg.state();
 
             console.log('[DiscussionDetail] loadMorePosts (fragment) â€” hasCodeBlocks:', data.hasCodeBlocks);
             if (data.hasCodeBlocks && (window as any).SnakkSyntax) {
@@ -2306,6 +2568,188 @@ async function loadEarlierPosts(
         postsIsLoadingEarlier = false;
         indicator?.classList.add('sn-hidden');
     }
+}
+
+// ===== Spacer Observer (DOM-window recovery) =====
+
+function initSpacerObservers(): void {
+    topSpacerObserver?.disconnect();
+    bottomSpacerObserver?.disconnect();
+
+    const tSpacer = topSpacerEl();
+    if (tSpacer) {
+        topSpacerObserver = new IntersectionObserver((entries) => {
+            if (!entries[0]?.isIntersecting) return;
+            if (postsIsLoadingEarlier) return;
+            const endOffset = parseInt(tSpacer.dataset.endOffset ?? '0');
+            if (endOffset <= 0 || spacerPx(tSpacer) <= 0) return;
+            recoverTopChunk(endOffset);
+        }, { rootMargin: '200px' });
+        topSpacerObserver.observe(tSpacer);
+    }
+
+    const bSpacer = bottomSpacerEl();
+    if (bSpacer) {
+        bottomSpacerObserver = new IntersectionObserver((entries) => {
+            if (!entries[0]?.isIntersecting) return;
+            if (postsIsLoading) return;
+            const startOffset = parseInt(bSpacer.dataset.startOffset ?? '0');
+            if (spacerPx(bSpacer) <= 0) return;
+            recoverBottomChunk(startOffset);
+        }, { rootMargin: '100px' });
+        bottomSpacerObserver.observe(bSpacer);
+    }
+}
+
+async function recoverTopChunk(endOffset: number): Promise<void> {
+    postsIsLoadingEarlier = true;
+    const targetOffset = Math.max(0, endOffset - postsPageSize);
+    const fromCache = chunkCache.has(targetOffset);
+    scrollDbg.log('recover top', { targetOffset, fromCache });
+
+    const discussionId = document.body.dataset.discussionId || '';
+    const currentUserId = document.body.dataset.currentUserId || '';
+    const isAuthenticated = document.body.dataset.isAuthenticated === 'true';
+    const isLocked = document.body.dataset.isLocked === 'true';
+
+    let posts: Post[];
+    const cached = chunkCache.get(targetOffset);
+    if (cached) {
+        posts = cached;
+    } else {
+        try {
+            const r = await fetch(
+                `/bff/discussions/${discussionId}/posts?offset=${targetOffset}&pageSize=${postsPageSize}&discussionType=${encodeURIComponent(discussionConfig?.discussionType ?? '')}`,
+                { credentials: 'include' }
+            );
+            if (!r.ok) throw new Error('Failed to recover top chunk');
+            const d: { items?: Post[] } = await r.json();
+            posts = d.items ?? [];
+        } catch (err) {
+            console.error('[Scroll] Failed to recover top chunk:', err);
+            postsIsLoadingEarlier = false;
+            return;
+        }
+    }
+
+    storeInCache(targetOffset, posts);
+
+    const container = document.getElementById('posts-container');
+    const tSpacer = topSpacerEl();
+    if (!container || !tSpacer) { postsIsLoadingEarlier = false; return; }
+
+    // Capture pre-insert anchor + first post of what will become the second chunk
+    const existingFirstPost = firstPostIn(container);
+    const anchorTop = existingFirstPost?.getBoundingClientRect().top ?? 0;
+
+    const chunkEl = document.createElement('div') as HTMLDivElement;
+    chunkEl.dataset.chunkOffset = String(targetOffset);
+    let prevAuthorId: string | null = null;
+    let prevCreatedAt: string | null = null;
+    posts.forEach(post => {
+        if (post.isNecro && prevCreatedAt) chunkEl.appendChild(createNecroSeparator(prevCreatedAt, post.createdAt));
+        const el = createPostElement(post, post.isNecro ? false : prevAuthorId === post.author.publicId, currentUserId, isAuthenticated, isLocked, false, discussionConfig?.isModerator ?? false);
+        chunkEl.appendChild(el);
+        prevAuthorId = post.author.publicId;
+        prevCreatedAt = post.createdAt;
+    });
+
+    tSpacer.after(chunkEl);
+
+    requestAnimationFrame(() => {
+        const height = chunkEl.getBoundingClientRect().height;
+        const newSpacerH = Math.max(0, spacerPx(tSpacer) - height);
+        tSpacer.style.height = newSpacerH + 'px';
+        tSpacer.dataset.endOffset = String(targetOffset);
+        chunksInDom.unshift({ offset: targetOffset, el: chunkEl, height });
+        scrollDbg.log('recover top done', { targetOffset, height, newSpacerH, total: chunksInDom.length });
+
+        if (existingFirstPost) window.scrollBy(0, existingFirstPost.getBoundingClientRect().top - anchorTop);
+
+        // Fix author-grouping at the new chunk boundary
+        fixAuthorBoundary(lastPostIn(chunkEl), existingFirstPost);
+
+        while (chunksInDom.length > MAX_DOM_CHUNKS) pruneBottomChunk();
+
+        postsIsLoadingEarlier = false;
+        observeNewPosts();
+        posts.forEach(p => loadReactionsForPost(p.publicId));
+        if ((window as any).SnakkSyntax) (window as any).SnakkSyntax.highlightAll(chunkEl, 'recover-top');
+        scrollDbg.state();
+    });
+}
+
+async function recoverBottomChunk(startOffset: number): Promise<void> {
+    postsIsLoading = true;
+    const fromCache = chunkCache.has(startOffset);
+    scrollDbg.log('recover bottom', { startOffset, fromCache });
+
+    const discussionId = document.body.dataset.discussionId || '';
+    const currentUserId = document.body.dataset.currentUserId || '';
+    const isAuthenticated = document.body.dataset.isAuthenticated === 'true';
+    const isLocked = document.body.dataset.isLocked === 'true';
+
+    let posts: Post[];
+    const cached = chunkCache.get(startOffset);
+    if (cached) {
+        posts = cached;
+    } else {
+        try {
+            const r = await fetch(
+                `/bff/discussions/${discussionId}/posts?offset=${startOffset}&pageSize=${postsPageSize}&discussionType=${encodeURIComponent(discussionConfig?.discussionType ?? '')}`,
+                { credentials: 'include' }
+            );
+            if (!r.ok) throw new Error('Failed to recover bottom chunk');
+            const d: { items?: Post[] } = await r.json();
+            posts = d.items ?? [];
+        } catch (err) {
+            console.error('[Scroll] Failed to recover bottom chunk:', err);
+            postsIsLoading = false;
+            return;
+        }
+    }
+
+    storeInCache(startOffset, posts);
+
+    const bSpacer = bottomSpacerEl();
+    if (!bSpacer) { postsIsLoading = false; return; }
+
+    const container = document.getElementById('posts-container');
+    // Seed author context from last in-DOM post so the boundary between the existing
+    // last chunk and this recovered chunk gets the correct sn-same-author class.
+    const lastExisting = container ? lastPostIn(container) : null;
+
+    const chunkEl = document.createElement('div') as HTMLDivElement;
+    chunkEl.dataset.chunkOffset = String(startOffset);
+    let prevAuthorId: string | null = lastExisting?.dataset.authorId ?? null;
+    let prevCreatedAt: string | null = lastExisting?.dataset.createdAt ?? null;
+    posts.forEach(post => {
+        if (post.isNecro && prevCreatedAt) chunkEl.appendChild(createNecroSeparator(prevCreatedAt, post.createdAt));
+        const el = createPostElement(post, post.isNecro ? false : prevAuthorId === post.author.publicId, currentUserId, isAuthenticated, isLocked, false, discussionConfig?.isModerator ?? false);
+        chunkEl.appendChild(el);
+        prevAuthorId = post.author.publicId;
+        prevCreatedAt = post.createdAt;
+    });
+
+    bSpacer.before(chunkEl);
+
+    requestAnimationFrame(() => {
+        const height = chunkEl.getBoundingClientRect().height;
+        const newSpacerH = Math.max(0, spacerPx(bSpacer) - height);
+        const newStartOffset = startOffset + postsPageSize;
+        bSpacer.style.height = newSpacerH + 'px';
+        bSpacer.dataset.startOffset = String(newStartOffset);
+        chunksInDom.push({ offset: startOffset, el: chunkEl, height });
+        scrollDbg.log('recover bottom done', { startOffset, height, newSpacerH, newStartOffset, total: chunksInDom.length });
+
+        while (chunksInDom.length > MAX_DOM_CHUNKS) pruneTopChunk();
+
+        postsIsLoading = false;
+        observeNewPosts();
+        posts.forEach(p => loadReactionsForPost(p.publicId));
+        if ((window as any).SnakkSyntax) (window as any).SnakkSyntax.highlightAll(chunkEl, 'recover-bottom');
+        scrollDbg.state();
+    });
 }
 
 // ===== Thread Navigation Bar =====
@@ -2355,9 +2799,12 @@ function initThreadNav(config: DiscussionConfig): void {
         if ((window.innerHeight + window.scrollY) >= document.documentElement.scrollHeight - 10) {
             return totalPostCount;
         }
-        const posts = document.querySelectorAll<HTMLElement>('.sn-post-item[data-post-number]');
+        // .sn-post-article is present on both SSR posts (class: post-item) and
+        // dynamically-loaded posts (class: sn-post-item) — use it so the counter
+        // works from post 1, not just from the first endless-scroll chunk.
+        const posts = document.querySelectorAll<HTMLElement>('.sn-post-article[data-post-number]');
         if (!posts.length) return 1;
-        // Default to the first loaded post's number â€” avoids returning 1 when no post
+        // Default to the first loaded post's number — avoids returning 1 when no post
         // has scrolled above the sticky header threshold (e.g. after a fragment load).
         let current = parseInt(posts[0]?.dataset.postNumber || '1', 10);
         for (const post of posts) {
@@ -2480,12 +2927,47 @@ function initTimestampTicker(): void {
 function initDiscussionPage(config: DiscussionConfig): void {
     discussionConfig = config;
 
+    rxCleanupExpired();
+
+    // Record view — authenticated users go through SharedWorker (batched), anonymous get a direct fetch
+    if (config.discussionId) {
+        const realtime = (window as any).SnakkRealtime;
+        if (realtime?.recordView) {
+            realtime.recordView(config.discussionId);
+        } else {
+            fetch('/bff/views/discussions', {
+                method: 'POST',
+                keepalive: true,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify([config.discussionId]),
+            }).catch(() => {});
+        }
+    }
+
     // Reset editor state for HTMX navigation (DOM was swapped, old editor is gone)
     editorInitPromise = null;
+
+    // Reset DOM windowing state for this page (handles HTMX navigation re-init)
+    resetChunkState();
+
+    // Seed last-rendered author from the SSR posts so the first JS chunk boundary is correct.
+    lastRenderedAuthorId = lastPostIn(document.getElementById('posts-container') ?? document.body)?.dataset.authorId ?? null;
 
     // Set endless scroll state from config
     postsCurrentOffset = config.postsCurrentOffset;
     postsHasMoreItems = config.postsHasMoreItems;
+
+    // Seed the SSR chunk record so pruning knows about it from the start
+    const ssrChunkEl = document.querySelector<HTMLDivElement>('#posts-container [data-chunk-offset="0"]');
+    if (ssrChunkEl) {
+        requestAnimationFrame(() => {
+            const h = ssrChunkEl.getBoundingClientRect().height;
+            if (h > 0) {
+                chunksInDom.push({ offset: 0, el: ssrChunkEl, height: h });
+                scrollDbg.log('seeded SSR chunk', { height: h });
+            }
+        });
+    }
 
     // Seed last-read post id for the separator and jump-to-unread button
     lastReadPostId = config.lastReadPostId ?? null;
@@ -2527,21 +3009,12 @@ function initDiscussionPage(config: DiscussionConfig): void {
         iamaAnswerToQuestion[a] = q;
     }
 
-    // Lazy-load markdown editor when scrolled into view
-    const editorContainer = document.getElementById('editor-container');
-    if (editorContainer) {
-        const editorObserver = new IntersectionObserver((entries) => {
-            for (const entry of entries) {
-                if (entry.isIntersecting) {
-                    editorObserver.disconnect();
-                    loadCSS('snakk-editor-css', '/css/features/editor.css');
-                    initReplyEditor();
-                    break;
-                }
-            }
-        }, { rootMargin: '200px' });
-        editorObserver.observe(editorContainer);
-    }
+    // Escape key closes the drawer when it is open
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.getElementById('compose-drawer')?.classList.contains('sn-compose-drawer--open')) {
+            closeComposer();
+        }
+    });
 
     // Highlight code blocks in initial page load
     console.log('[DiscussionDetail] initDiscussionPage â€” hasCodeBlocks:', (config as any).hasCodeBlocks, 'SnakkSyntax present:', !!(window as any).SnakkSyntax);
@@ -2555,8 +3028,9 @@ function initDiscussionPage(config: DiscussionConfig): void {
         loadMuteStatus(config.discussionId);
     }
 
-    // Initialize endless scroll
+    // Initialize endless scroll and DOM-window spacer observers
     initPostsEndlessScroll();
+    initSpacerObservers();
     // Fragment navigation: load correct page when entering via #post-N link
     handleFragmentEntry(config.discussionId, config.currentUserId || '', config.isAuthenticated, config.isLocked);
     initFragmentTracking();
@@ -2660,6 +3134,117 @@ function setupEventListeners(): void {
     });
 }
 
+// ===== Moderator Actions =====
+
+async function modDeletePost(postId: string): Promise<void> {
+    if (!postId || !confirm('Remove this post? This action cannot be undone.')) return;
+    try {
+        const res = await fetch(`/bff/posts/${postId}/mod`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Server error');
+        const el = document.getElementById(`post-${postId}`);
+        if (el) {
+            el.style.transition = 'opacity 0.3s';
+            el.style.opacity = '0';
+            setTimeout(() => {
+                el.innerHTML = '<div class=”sn-post-deleted-tombstone sn-text-muted sn-text-sm sn-italic sn-py-4 sn-px-6”>[Removed by moderator]</div>';
+                el.style.opacity = '1';
+            }, 300);
+        }
+    } catch {
+        alert('Failed to remove post. Please try again.');
+    }
+}
+
+async function modToggleDiscussionLock(discussionId: string, isLocked: boolean): Promise<void> {
+    try {
+        const method = isLocked ? 'DELETE' : 'POST';
+        const res = await fetch(`/bff/discussions/${discussionId}/lock`, { method });
+        if (!res.ok) throw new Error('Server error');
+        const nowLocked = !isLocked;
+        // Update button state
+        const btn = document.querySelector<HTMLElement>('[data-action=”mod-lock-discussion”]');
+        if (btn) {
+            btn.dataset.isLocked = String(nowLocked);
+            const label = btn.querySelector('span:not(.sn-icon)');
+            if (label) label.textContent = nowLocked ? 'Unlock' : 'Lock';
+            }
+        // Update reply box
+        const replyForm = document.getElementById('reply-form-area');
+        if (replyForm) {
+            if (nowLocked) replyForm.setAttribute('hidden', '');
+            else replyForm.removeAttribute('hidden');
+        }
+    } catch {
+        alert('Failed to update lock state. Please try again.');
+    }
+}
+
+async function modDeleteDiscussion(discussionId: string): Promise<void> {
+    if (!discussionId || !confirm('Remove this discussion? This action cannot be undone.')) return;
+    try {
+        const res = await fetch(`/bff/discussions/${discussionId}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Server error');
+        window.location.href = '/';
+    } catch {
+        alert('Failed to remove discussion. Please try again.');
+    }
+}
+
+let _modBanTargetUserId = '';
+
+function openModUserOptions(authorId: string, authorName: string): void {
+    _modBanTargetUserId = authorId;
+    openModBanModal(authorId, authorName);
+}
+
+function openModBanModal(authorId: string, authorName: string): void {
+    _modBanTargetUserId = authorId;
+    const nameEl = document.getElementById('mod-ban-author-name');
+    if (nameEl) nameEl.textContent = authorName;
+    const errEl = document.getElementById('mod-ban-error');
+    if (errEl) { errEl.textContent = ''; errEl.classList.add('sn-hidden'); }
+    const modal = document.getElementById('mod_ban_modal') as HTMLDialogElement | null;
+    modal?.showModal();
+}
+
+async function submitModBan(): Promise<void> {
+    const userId = _modBanTargetUserId;
+    if (!userId) return;
+
+    const scope = (document.getElementById('mod-ban-scope') as HTMLSelectElement)?.value;
+    const banType = (document.getElementById('mod-ban-type') as HTMLSelectElement)?.value;
+    const durationHours = banType === 'Temporary'
+        ? parseInt((document.getElementById('mod-ban-duration-hours') as HTMLInputElement)?.value || '24', 10)
+        : null;
+    const reason = (document.getElementById('mod-ban-reason') as HTMLTextAreaElement)?.value.trim() || null;
+
+    const config = discussionConfig;
+    const body: Record<string, unknown> = { banType, reason };
+    if (durationHours) body.durationHours = durationHours;
+    if (scope === 'space' && config?.spaceId) body.spaceId = config.spaceId;
+    else if (scope === 'hub' && config?.hubId) body.hubId = config.hubId;
+    else if (scope === 'community' && config?.communityId) body.communityId = config.communityId;
+
+    const submitBtn = document.getElementById('mod-ban-submit') as HTMLButtonElement | null;
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Banning…'; }
+
+    try {
+        const res = await fetch(`/bff/users/${userId}/ban`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error('Server error');
+        const modal = document.getElementById('mod_ban_modal') as HTMLDialogElement | null;
+        modal?.close();
+    } catch {
+        const errEl = document.getElementById('mod-ban-error');
+        if (errEl) { errEl.textContent = 'Failed to ban user. Please try again.'; errEl.classList.remove('sn-hidden'); }
+    } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Ban'; }
+    }
+}
+
 // ===== Event Delegation =====
 // Registered once â€” hx-boost re-executes this script on every discussion page navigation,
 // which would stack duplicate listeners and fire actions N times per click.
@@ -2680,6 +3265,12 @@ document.addEventListener('click', async (e) => {
 
     switch (actionName) {
         // Reply actions
+        case 'open-compose':
+            openComposer();
+            break;
+        case 'close-compose':
+            closeComposer();
+            break;
         case 'reply-to-post':
             replyToPost(action.dataset.postId || '', action.dataset.authorName || '');
             break;
@@ -2716,6 +3307,18 @@ document.addEventListener('click', async (e) => {
             highlightPost(action.dataset.postId || '');
             break;
 
+        case 'toggle-post-inline-actions': {
+            const postArticle = action.closest<HTMLElement>('.sn-post-article');
+            if (!postArticle) break;
+            const inlineActions = postArticle.querySelector<HTMLElement>('.sn-post-inline-actions');
+            const toggleBtn = postArticle.querySelector<HTMLElement>('.sn-post-opts-toggle');
+            const reactionPlaceholder = postArticle.querySelector<HTMLElement>('.sn-reaction-placeholder');
+            if (inlineActions) inlineActions.removeAttribute('hidden');
+            if (toggleBtn) toggleBtn.style.display = 'none';
+            if (reactionPlaceholder) reactionPlaceholder.classList.add('sn-actions-forced');
+            break;
+        }
+
         // Reaction actions
         case 'toggle-reaction-picker':
             toggleReactionPicker(action.dataset.postId || '', action);
@@ -2746,11 +3349,11 @@ document.addEventListener('click', async (e) => {
         case 'toggle-mute-discussion':
             toggleMuteDiscussion(action.dataset.discussionId || '');
             break;
-        case 'jump-to-unread':
-            jumpToUnread();
-            break;
 
         // User actions
+        case 'follow-user':
+            await followUser(action.dataset.authorId || '', action.dataset.authorName || '');
+            break;
         case 'hide-posts-from-user':
             hidePostsFromUser(action.dataset.authorId || '', action.dataset.authorName || '');
             break;
@@ -2785,7 +3388,37 @@ document.addEventListener('click', async (e) => {
                 action.dataset.spaceId
             );
             break;
+
+        // Moderator actions
+        case 'mod-delete-post':
+            await modDeletePost(action.dataset.postId || '');
+            break;
+        case 'mod-user-options':
+            openModUserOptions(action.dataset.authorId || '', action.dataset.authorName || '');
+            break;
+        case 'mod-ban-user':
+            openModBanModal(action.dataset.authorId || '', action.dataset.authorName || '');
+            break;
+        case 'mod-lock-discussion':
+            await modToggleDiscussionLock(
+                action.dataset.discussionId || '',
+                action.dataset.isLocked === 'true'
+            );
+            break;
+        case 'mod-delete-discussion':
+            await modDeleteDiscussion(action.dataset.discussionId || '');
+            break;
     }
+});
+
+// Mod ban modal submit
+document.getElementById('mod-ban-submit')?.addEventListener('click', submitModBan);
+
+// Mod ban type toggle (hide/show duration row)
+document.getElementById('mod-ban-type')?.addEventListener('change', (e) => {
+    const type = (e.target as HTMLSelectElement).value;
+    const row = document.getElementById('mod-ban-duration-row');
+    if (row) row.style.display = type === 'Permanent' ? 'none' : '';
 });
 
 // Register handlers with global delegation system (for data-submit-action and data-input-action)
@@ -2828,9 +3461,16 @@ function bootstrapFromPageConfig(): void {
         document.body.dataset.spaceSlug = config.spaceSlug || '';
         document.body.dataset.hubSlug = config.hubSlug || '';
 
-        // Track in read history
-        if (window.SnakkReadHistory && (config as any).readHistory) {
-            window.SnakkReadHistory.addToHistory((config as any).readHistory);
+        // Track in read history. read-history.js and discussion-detail.js are both
+        // injected as async dynamic scripts by HTMX — execution order is not guaranteed.
+        // If SnakkReadHistory isn't ready yet, queue the entry; read-history.ts drains it.
+        if ((config as any).readHistory) {
+            const entry = (config as any).readHistory;
+            if (window.SnakkReadHistory) {
+                window.SnakkReadHistory.addToHistory(entry);
+            } else {
+                ((window as any)._snakkReadHistoryQueue = (window as any)._snakkReadHistoryQueue || []).push(entry);
+            }
         }
     }
 

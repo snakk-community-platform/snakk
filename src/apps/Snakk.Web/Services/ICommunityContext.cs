@@ -45,6 +45,13 @@ public interface ICommunityContext
         string? timezone = null);
 }
 
+public static class CommunityContextExtensions
+{
+    /// <summary>True when community badges/links should be shown in multi-community mode without a scoped domain.</summary>
+    public static bool ShouldShowCommunity(this ICommunityContext ctx)
+        => ctx.IsMultiCommunityEnabled && string.IsNullOrEmpty(ctx.CommunitySlug) && !ctx.IsCustomDomain;
+}
+
 /// <summary>
 /// Scoped service that holds the current community context for a request.
 /// </summary>

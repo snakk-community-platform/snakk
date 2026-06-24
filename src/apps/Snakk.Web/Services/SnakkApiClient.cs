@@ -205,7 +205,7 @@ public class SnakkApiClient(
 
     public virtual async Task<PagedDiscussionBySpaceList?> GetDiscussionsBySpaceAsync(
         string spaceId, int offset = 0, int pageSize = 20, int? typeFilter = null, string? cursor = null,
-        bool viewerAllowsAdult = false, CancellationToken ct = default)
+        bool viewerAllowsAdult = false, bool includeDeleted = false, CancellationToken ct = default)
     {
         try
         {
@@ -214,7 +214,8 @@ public class SnakkApiClient(
                 SpaceId = spaceId,
                 Offset = offset,
                 PageSize = pageSize,
-                ViewerAllowsAdult = viewerAllowsAdult
+                ViewerAllowsAdult = viewerAllowsAdult,
+                IncludeDeleted = includeDeleted
             };
 
             if (typeFilter.HasValue)
@@ -346,11 +347,11 @@ public class SnakkApiClient(
 
     public virtual async Task<PagedRecentDiscussionList?> GetRecentDiscussionsAsync(
         int offset = 0, int pageSize = 20, string? communityId = null, string? hubId = null, string? spaceId = null, string? cursor = null, string? authorId = null, IReadOnlyList<string>? spaceIds = null,
-        bool viewerAllowsAdult = false, bool sinceLastVisit = false, CancellationToken ct = default)
+        bool viewerAllowsAdult = false, bool sinceLastVisit = false, bool includeDeleted = false, CancellationToken ct = default)
     {
         try
         {
-            var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult, SinceLastVisit = sinceLastVisit };
+            var request = new GetRecentDiscussionsRequest { Offset = offset, PageSize = pageSize, ViewerAllowsAdult = viewerAllowsAdult, SinceLastVisit = sinceLastVisit, IncludeDeleted = includeDeleted };
             if (communityId is not null) request.CommunityId = communityId;
             if (hubId is not null) request.HubId = hubId;
             if (spaceId is not null) request.SpaceId = spaceId;
@@ -1594,9 +1595,9 @@ public class SnakkApiClient(
         CallAsync(() => spaceClient.GetSpaceBySlugAsync(
             new GetSpaceBySlugRequest { Slug = slug, HubSlug = hubSlug }, cancellationToken: ct).ResponseAsync);
 
-    public virtual Task<GrpcResult<DiscussionInfo>> GetDiscussionResultAsync(string publicId, CancellationToken ct = default) =>
+    public virtual Task<GrpcResult<DiscussionInfo>> GetDiscussionResultAsync(string publicId, bool includeDeleted = false, CancellationToken ct = default) =>
         CallAsync(() => discussionClient.GetDiscussionAsync(
-            new GetDiscussionRequest { PublicId = publicId }, cancellationToken: ct).ResponseAsync);
+            new GetDiscussionRequest { PublicId = publicId, IncludeDeleted = includeDeleted }, cancellationToken: ct).ResponseAsync);
 
     public virtual Task<GrpcResult<UserProfileInfo>> GetUserProfileResultAsync(string publicId, CancellationToken ct = default) =>
         CallAsync(() => userClient.GetUserProfileAsync(

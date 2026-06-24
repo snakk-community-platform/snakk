@@ -121,9 +121,7 @@
     .sn-activity-chart-legend {
         color: rgba(255, 255, 255, 0.85);
 
-        // daisyUI util class on the "(N total)" span out-specifies the parent
-        // color, so override it here too.
-        .sn-text-base-content\/50 {
+        .sn-activity-chart-legend-total {
             color: rgba(255, 255, 255, 0.65);
         }
     }

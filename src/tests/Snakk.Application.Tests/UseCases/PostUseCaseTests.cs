@@ -75,7 +75,13 @@ public class PostUseCaseTests
         await Assert.That(result.Value.CreatedByUserId).IsEqualTo(userId);
 
         await _postRepository.Received(1).AddAsync(Arg.Any<Post>());
-        await _discussionRepository.Received(1).UpdateAsync(discussion);
+        await _discussionRepository.Received(1).UpdateWithLastPostAsync(
+            discussion,
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>(),
+            Arg.Any<string?>());
         await _counterService.Received(1).IncrementPostCountAsync(discussionId);
         await _eventDispatcher.Received(1).DispatchAsync(Arg.Any<IEnumerable<IDomainEvent>>());
         await _realtimeNotifier.Received(1).NotifyPostCreatedAsync(Arg.Any<Post>(), user, discussion);

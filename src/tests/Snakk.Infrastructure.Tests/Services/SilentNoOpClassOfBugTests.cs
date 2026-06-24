@@ -3,6 +3,7 @@ using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
+using StackExchange.Redis;
 using Snakk.Application.DTOs.Management;
 using Snakk.Application.Services;
 using Snakk.Domain.Entities;
@@ -35,6 +36,7 @@ public class SilentNoOpClassOfBugTests : IDisposable
     private readonly NoTrackingSqliteTestDatabase _db = new();
     private readonly ServiceProvider _cacheProvider;
     private readonly HybridCache _hybridCache;
+    private readonly IConnectionMultiplexer _redisMock;
 
     public SilentNoOpClassOfBugTests()
     {
@@ -43,6 +45,12 @@ public class SilentNoOpClassOfBugTests : IDisposable
         services.AddHybridCache();
         _cacheProvider = services.BuildServiceProvider();
         _hybridCache = _cacheProvider.GetRequiredService<HybridCache>();
+
+        _redisMock = Substitute.For<IConnectionMultiplexer>();
+        var dbMock    = Substitute.For<IDatabase>();
+        var batchMock = Substitute.For<IBatch>();
+        _redisMock.GetDatabase().Returns(dbMock);
+        dbMock.CreateBatch().Returns(batchMock);
     }
 
     public void Dispose()
@@ -159,40 +167,28 @@ public class SilentNoOpClassOfBugTests : IDisposable
     // ───────── CR-26: DiscussionReadStateRepositoryAdapter ─────────
 
     [Test]
-    public async Task DiscussionReadState_SaveUpdate_PersistsAcrossContexts()
+    public async Task DiscussionReadState_SecondSave_OverwritesFirst()
     {
-        // First save inserts (works via Add). Second save mutates the existing row —
-        // pre-fix that silently no-op'd, leaving the unread indicator stuck.
+        // CR-26 was a silent-no-op bug on the second UPDATE (AsTracking missing in EF context).
+        // SaveAsync now writes to Valkey (write-behind) and populates HybridCache directly,
+        // so the second write atomically supersedes the first. Verify via GetAsync.
         const string userId = "user-readstate";
         const string discussionId = "disc-readstate";
 
-        using (var initialCtx = _db.CreateSeparateContext())
-        {
-            var repo = new DiscussionReadStateRepositoryAdapter(initialCtx, _hybridCache);
-            await repo.SaveAsync(DiscussionReadState.Rehydrate(
-                UserId.From(userId),
-                DiscussionId.From(discussionId),
-                PostId.From("post-1"),
-                DateTime.UtcNow.AddMinutes(-10)));
-        }
+        var repo = new DiscussionReadStateRepositoryAdapter(_db.CreateSeparateContext(), _hybridCache, _redisMock);
+
+        await repo.SaveAsync(DiscussionReadState.Rehydrate(
+            UserId.From(userId), DiscussionId.From(discussionId),
+            PostId.From("post-1"), DateTime.UtcNow.AddMinutes(-10)));
 
         var updatedAt = DateTime.UtcNow;
-        using (var updateCtx = _db.CreateSeparateContext())
-        {
-            var repo = new DiscussionReadStateRepositoryAdapter(updateCtx, _hybridCache);
-            await repo.SaveAsync(DiscussionReadState.Rehydrate(
-                UserId.From(userId),
-                DiscussionId.From(discussionId),
-                PostId.From("post-42"),
-                updatedAt));
-        }
+        await repo.SaveAsync(DiscussionReadState.Rehydrate(
+            UserId.From(userId), DiscussionId.From(discussionId),
+            PostId.From("post-42"), updatedAt));
 
-        using var verifyCtx = _db.CreateSeparateContext();
-        var stored = await verifyCtx.DiscussionReadStates
-            .SingleAsync(rs => rs.UserId == userId && rs.DiscussionId == discussionId);
-        await Assert.That(stored.LastReadPostId).IsEqualTo("post-42");
-        // SQLite drops sub-second precision; compare to whole-second.
-        await Assert.That(stored.LastReadAt.ToString("O")[..19]).IsEqualTo(updatedAt.ToString("O")[..19]);
+        var result = await repo.GetAsync(UserId.From(userId), DiscussionId.From(discussionId));
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.LastReadPostId!.Value).IsEqualTo("post-42");
     }
 
     // ───────── CR-27: SessionManagementService ─────────

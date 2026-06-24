@@ -27,7 +27,7 @@
     gap: 0;
 
     &.sn-new-author {
-        margin-top: var(--space-12);
+        margin-top: var(--space-8);
         border-top: 1px solid var(--border-secondary);
         padding-top: var(--space-8);
     }
@@ -35,18 +35,33 @@
     &.sn-before-necro {
         padding-bottom: var(--space-8);
         border-bottom: 1px solid var(--border-secondary);
-        margin-bottom: var(--space-12);
+        margin-bottom: var(--space-8);
     }
 
     &.sn-same-author {
         .sn-post-main {
             padding-top: 0;
         }
+
+        .sn-post-toolbar-left::before {
+            content: '';
+            display: inline-block;
+            width: 0.875rem;
+            height: 0.875rem;
+            flex-shrink: 0;
+            align-self: center;
+            background-color: currentColor;
+            mask-image: url('/icons/corner-down-right.svg');
+            mask-repeat: no-repeat;
+            mask-size: contain;
+            mask-position: center;
+        }
     }
 }
 
 // Left pane: avatar + username (desktop), just avatar (mobile)
 .sn-post-author-pane {
+    position: relative;
     width: 150px;
     flex-shrink: 0;
     display: flex;
@@ -149,10 +164,15 @@
     color: var(--text-tertiary);
 }
 
+.sn-post-number {
+    font-size: var(--font-size-sm);
+    color: var(--text-tertiary);
+}
+
 .sn-post-toolbar-right {
     display: flex;
     align-items: center;
-    gap: var(--space-2);
+    gap: var(--space-4);
 }
 
 // Mobile-only inline author name (shown in toolbar on small screens)
@@ -388,20 +408,9 @@
 }
 
 // ============================================
-// Post Hover Actions (reply/quote buttons + reaction placeholder)
+// Reaction placeholder
 // Shown on post hover; forced visible while the reaction picker is open.
 // ============================================
-
-.sn-post-hover-actions {
-    display: none;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-.sn-post-article:hover .sn-post-hover-actions,
-.sn-post-hover-actions.sn-actions-forced {
-    display: flex;
-}
 
 .sn-reaction-placeholder {
     display: none;
@@ -410,5 +419,78 @@
 .sn-post-article:hover .sn-reaction-placeholder,
 .sn-reaction-placeholder.sn-actions-forced {
     display: inline;
+}
+
+// ============================================
+// Post ··· toggle button + inline action icons
+// ============================================
+
+// Toggle button: hidden by default, appears on post hover
+.sn-post-opts-toggle {
+    display: none;
+}
+
+.sn-post-article:hover .sn-post-opts-toggle {
+    display: inline-flex;
+}
+
+// Inline icon row (JS removes `hidden` attr on toggle click; stays open)
+.sn-post-inline-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+
+    &[hidden] {
+        display: none !important;
+    }
+}
+
+.sn-post-action-btn {
+    margin-block: -0.25rem;
+    padding: var(--space-1) var(--space-5);
+    min-height: 1.75rem;
+    font-size: var(--font-size-sm);
+}
+
+.sn-post-inline-actions .sn-btn-outline {
+    color: var(--text-secondary);
+    border-color: var(--border-primary);
+
+    &:hover {
+        background: transparent;
+        color: var(--text-primary);
+        border-color: var(--border-subtle);
+    }
+}
+
+// ============================================
+// Author pane ··· button
+// Desktop only: hidden by default, shown on post hover
+// ============================================
+
+.sn-post-author-opts {
+    display: none; // mobile: fully removed from flow
+    position: absolute;
+    top: 5rem;
+}
+
+@media (min-width: 1024px) {
+    .sn-post-author-opts {
+        display: inline-flex; // always in flow — space reserved, no height shift
+        visibility: hidden;
+    }
+    .sn-post-article:hover .sn-post-author-opts {
+        visibility: visible;
+    }
+}
+
+// DOM windowing spacers — excluded from browser scroll-anchor selection so the
+// browser always picks a visible post element as the anchor when content changes.
+#posts-container {
+    overflow-anchor: auto;
+}
+
+.posts-spacer {
+    overflow-anchor: none;
 }
 

@@ -4,6 +4,7 @@
 
 // sn-modal-box is the new name; modal-box is the migration shim
 .sn-modal-box {
+    padding: var(--space-8);
     background: var(--bg-secondary);
     border: 1px solid var(--border-primary);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
@@ -157,5 +158,55 @@
         opacity: 0.4;
         cursor: not-allowed;
     }
+}
+
+// ============================================
+// Dialog-nested modal-box
+// ============================================
+
+// When sn-modal-box sits inside a sn-modal <dialog> it is a content wrapper,
+// not a second card — reset the standalone card styles.
+.sn-modal > .sn-modal-box {
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+// The header must break out of sn-modal-box's surrounding padding so its
+// border-bottom spans the full dialog width.
+.sn-modal > .sn-modal-box > .sn-modal-header {
+    margin: calc(-1 * var(--space-8)) calc(-1 * var(--space-8)) 0;
+}
+
+// ============================================
+// Missing inner-modal elements
+// ============================================
+
+.sn-modal-description {
+    margin-bottom: var(--space-4);
+    font-size: var(--font-size-sm);
+}
+
+.sn-modal-description {
+    color: var(--text-secondary);
+}
+
+.sn-modal-action {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-4);
+    padding-top: var(--space-6);
+    margin-top: var(--space-2);
+}
+
+.sn-modal-action {
+    border-top: 1px solid var(--border-primary);
+}
+
+.sn-modal-loading-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-12) 0;
 }
 

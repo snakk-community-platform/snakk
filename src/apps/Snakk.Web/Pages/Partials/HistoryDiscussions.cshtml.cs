@@ -20,9 +20,7 @@ public class HistoryDiscussionsModel(
         if (string.IsNullOrWhiteSpace(ids))
             return Content("", "text/html");
 
-        ShowCommunity = communityContext.IsMultiCommunityEnabled
-            && string.IsNullOrEmpty(communityContext.CommunitySlug)
-            && !communityContext.IsCustomDomain;
+        ShowCommunity = communityContext.ShouldShowCommunity();
 
         var idList = ids.Split(',', StringSplitOptions.RemoveEmptyEntries)
             .Take(20)

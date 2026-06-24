@@ -52,7 +52,7 @@ public class DetailModel(
         var communityResult = await _apiClient.GetCommunityBySlugResultAsync(slug);
 
         if (!communityResult.IsSuccess)
-            return communityResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(communityResult);
 
         CommunityDetail = communityResult.Value!;
         SidebarScopeId = CommunityDetail.PublicId;

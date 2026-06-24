@@ -1251,6 +1251,10 @@
     "discReportPost": "Report post",
     "discReportDiscussion": "Report discussion",
     "discReportThisPost": "this post",
+    "discRemovePost": "Remove post",
+    "discFollowUser": "Follow user",
+    "discBanUser": "Ban user",
+    "discAriaAuthorOptions": "Author options",
     "discAriaReactionAdd": "Add reaction to post",
     "discAriaReactions": "Reactions",
     "discLockedBanner": "This discussion has been locked. No new replies can be posted.",
@@ -1355,7 +1359,9 @@
     "messagesDeleteDesc": "Choose how to delete this conversation.",
     "messagesDeleteMsgsDesc": "Choose how to delete the selected messages.",
     "messagesDeleteForMe": "Delete for me",
-    "messagesDeleteForAll": "Delete for everyone"
+    "messagesDeleteForAll": "Delete for everyone",
+    "modDeletedDiscussionBanner": "This discussion has been deleted and is only visible to moderators.",
+    "modDeletedBadge": "Deleted"
   },
   "editor": {
     "insertChart": "Insert Chart",

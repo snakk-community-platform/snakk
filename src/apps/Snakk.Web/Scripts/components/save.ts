@@ -20,64 +20,49 @@
             .forEach(b => setSaveState(b, isSaved));
     }
 
-    async function toggleSaveDiscussion(btn: HTMLElement, discussionId: string): Promise<void> {
+    async function toggleSave(
+        btn: HTMLElement,
+        url: string,
+        applyState: (isSaved: boolean) => void,
+        updateCache: (isSaved: boolean) => void
+    ): Promise<void> {
         const currentlySaved = btn.dataset.saved === 'true';
-
-        // Optimistic update — sync all save buttons for this discussion
-        updateAllSaveButtons(discussionId, !currentlySaved);
-
-        const cache = (window as any).SnakkSaveCache;
-        if (cache) cache.setDiscussionSaved(discussionId, !currentlySaved);
-
+        applyState(!currentlySaved);
+        updateCache(!currentlySaved);
         try {
-            const response = await fetch(`/bff/discussions/${discussionId}/save`, {
-                method: 'POST',
-                credentials: 'include'
-            });
-
+            const response = await fetch(url, { method: 'POST', credentials: 'include' });
             if (!response.ok) {
-                updateAllSaveButtons(discussionId, currentlySaved);
-                if (cache) cache.setDiscussionSaved(discussionId, currentlySaved);
+                applyState(currentlySaved);
+                updateCache(currentlySaved);
                 return;
             }
-
             const result: SaveToggleResponse = await response.json();
-            updateAllSaveButtons(discussionId, result.isSaved);
-            if (cache) cache.setDiscussionSaved(discussionId, result.isSaved);
+            applyState(result.isSaved);
+            updateCache(result.isSaved);
         } catch {
-            updateAllSaveButtons(discussionId, currentlySaved);
-            if (cache) cache.setDiscussionSaved(discussionId, currentlySaved);
+            applyState(currentlySaved);
+            updateCache(currentlySaved);
         }
     }
 
-    async function toggleSavePost(btn: HTMLElement, postId: string): Promise<void> {
-        const currentlySaved = btn.dataset.saved === 'true';
-
-        // Optimistic update
-        setSaveState(btn, !currentlySaved);
-
+    async function toggleSaveDiscussion(btn: HTMLElement, discussionId: string): Promise<void> {
         const cache = (window as any).SnakkSaveCache;
-        if (cache) cache.setPostSaved(postId, !currentlySaved);
+        await toggleSave(
+            btn,
+            `/bff/discussions/${discussionId}/save`,
+            isSaved => updateAllSaveButtons(discussionId, isSaved),
+            isSaved => { if (cache) cache.setDiscussionSaved(discussionId, isSaved); }
+        );
+    }
 
-        try {
-            const response = await fetch(`/bff/posts/${postId}/save`, {
-                method: 'POST',
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                setSaveState(btn, currentlySaved);
-                if (cache) cache.setPostSaved(postId, currentlySaved);
-                return;
-            }
-
-            const result: SaveToggleResponse = await response.json();
-            setSaveState(btn, result.isSaved);
-            if (cache) cache.setPostSaved(postId, result.isSaved);
-        } catch {
-            setSaveState(btn, currentlySaved);
-            if (cache) cache.setPostSaved(postId, currentlySaved);
-        }
+    async function toggleSavePost(btn: HTMLElement, postId: string): Promise<void> {
+        const cache = (window as any).SnakkSaveCache;
+        await toggleSave(
+            btn,
+            `/bff/posts/${postId}/save`,
+            isSaved => setSaveState(btn, isSaved),
+            isSaved => { if (cache) cache.setPostSaved(postId, isSaved); }
+        );
     }
 
     function setSaveState(btn: HTMLElement, isSaved: boolean): void {

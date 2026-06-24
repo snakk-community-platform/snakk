@@ -47,6 +47,19 @@ public class DiscussionRepositoryAdapter(
         return projection?.ToDomain();
     }
 
+    public async Task<Discussion?> GetByPublicIdIncludingDeletedAsync(DiscussionId publicId, CancellationToken ct = default)
+    {
+        var projection = await context.Discussions
+            .IgnoreQueryFilters()
+            .Where(d => d.PublicId == publicId.Value)
+            .Select(d => new DiscussionProjection(
+                d.PublicId, d.SpacePublicId!, d.CreatedByUserPublicId,
+                d.Title, d.Slug, d.Type, d.CreatedAt, d.LastModifiedAt, d.LastActivityAt,
+                d.IsPinned, d.IsLocked, d.IsAdultOnly, d.WasNormalized, d.PostCount))
+            .FirstOrDefaultAsync(ct);
+        return projection?.ToDomain();
+    }
+
     public async Task<Discussion?> GetBySlugAsync(string slug, CancellationToken ct = default)
     {
         var projection = await context.Discussions
@@ -182,13 +195,11 @@ public class DiscussionRepositoryAdapter(
 
     public async Task UpdateAsync(Discussion discussion, CancellationToken ct = default)
     {
-        // Fetch existing entity
         var entity = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussion.PublicId.Value, ct);
 
         if (entity is null)
             throw new InvalidOperationException($"Discussion with PublicId '{discussion.PublicId}' not found");
 
-        // Update properties
         entity.Title = discussion.Title;
         entity.Slug = discussion.Slug;
         entity.Type = (int)discussion.Type;
@@ -196,6 +207,31 @@ public class DiscussionRepositoryAdapter(
         entity.LastActivityAt = discussion.LastActivityAt;
         entity.IsPinned = discussion.IsPinned;
         entity.IsLocked = discussion.IsLocked;
+
+        await databaseRepository.UpdateAsync(entity, ct);
+        await databaseRepository.SaveChangesAsync(ct);
+    }
+
+    public async Task UpdateWithLastPostAsync(Discussion discussion, string? authorPublicId, string? displayName,
+        string? avatarFile, string? thumbFile, string? excerpt, CancellationToken ct = default)
+    {
+        var entity = await context.Discussions.FirstOrDefaultAsync(d => d.PublicId == discussion.PublicId.Value, ct);
+
+        if (entity is null)
+            throw new InvalidOperationException($"Discussion with PublicId '{discussion.PublicId}' not found");
+
+        entity.Title = discussion.Title;
+        entity.Slug = discussion.Slug;
+        entity.Type = (int)discussion.Type;
+        entity.LastModifiedAt = discussion.LastModifiedAt;
+        entity.LastActivityAt = discussion.LastActivityAt;
+        entity.IsPinned = discussion.IsPinned;
+        entity.IsLocked = discussion.IsLocked;
+        entity.LastPostAuthorPublicId = authorPublicId;
+        entity.LastPostAuthorDisplayName = displayName;
+        entity.LastPostAuthorAvatarFileName = avatarFile;
+        entity.LastPostAuthorAvatarThumbnailFileName = thumbFile;
+        entity.LastPostPlainTextExcerpt = excerpt;
 
         await databaseRepository.UpdateAsync(entity, ct);
         await databaseRepository.SaveChangesAsync(ct);

@@ -12,6 +12,7 @@
  *   { type: 'unsubscribe', group: string }
  *   { type: 'unregister' }             — sent on pagehide; cleans up tab entry and group subscriptions
  *   { type: 'invoke', method: string, args: any[] }
+ *   { type: 'view', discussionId: string }  — queued; batch-flushed to /bff/views/discussions every 2 min or on last tab close
  *
  * Protocol (worker → tab):
  *   { type: 'tab-id', tabId: number }
@@ -48,6 +49,23 @@ let tokenExpiry = 0;
 let lastNotificationCount: number | null = null;
 let lastDmCount: number | null = null;
 
+// View queue — accumulated across all tabs, flushed every 2 minutes or on last tab close
+const viewQueue = new Set<string>();
+
+function flushViews(): void {
+    if (viewQueue.size === 0) return;
+    const ids = [...viewQueue];
+    viewQueue.clear();
+    fetch('/bff/views/discussions', {
+        method: 'POST',
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ids),
+    }).catch(() => {});
+}
+
+setInterval(flushViews, 2 * 60 * 1000);
+
 // ============================================================================
 // Tab cleanup helper
 // ============================================================================
@@ -67,6 +85,7 @@ function removeTab(tabId: number): void {
         }
     }
     tabs.delete(tabId);
+    if (tabs.size === 0) flushViews();
 }
 
 // ============================================================================
@@ -136,6 +155,10 @@ async function handleMessage(tabId: number, _port: MessagePort, data: any): Prom
             }
             break;
 
+        case 'view':
+            if (data.discussionId) viewQueue.add(String(data.discussionId));
+            break;
+
         case 'unregister':
             removeTab(tabId);
             break;
@@ -176,6 +199,12 @@ async function connect(): Promise<void> {
         .withUrl(realtimeUrl, { accessTokenFactory: getToken })
         .withAutomaticReconnect([0, 2000, 10000, 30000])
         .build();
+
+    // Server KeepAliveInterval is 30 s — client timeout must be well above that
+    // to survive latency/jitter. Default (30 s) matches the ping interval exactly,
+    // causing spurious disconnects. Set to 3× per Microsoft's recommendation.
+    connection.serverTimeoutInMilliseconds    = 90_000;
+    connection.keepAliveIntervalInMilliseconds = 15_000;
 
     // Route all incoming messages by their group field
     connection.on('ReceiveUpdate',          (msg: any) => routeMessage('ReceiveUpdate', msg, msg.group));

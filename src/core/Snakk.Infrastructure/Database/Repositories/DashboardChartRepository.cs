@@ -26,6 +26,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 "Community" => db.Discussions.Where(d => d.CommunityPublicId == scopePublicId),
                 "Hub"       => db.Discussions.Where(d => d.HubPublicId == scopePublicId),
                 "Space"     => db.Discussions.Where(d => d.SpacePublicId == scopePublicId),
+                "Site"      => db.Discussions.AsQueryable(),
                 _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
             };
             return q.Where(d => !d.IsDeleted && d.CreatedAt >= since)
@@ -41,6 +42,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 "Community" => db.Posts.Where(p => p.CommunityPublicId == scopePublicId),
                 "Hub"       => db.Posts.Where(p => p.HubPublicId == scopePublicId),
                 "Space"     => db.Posts.Where(p => p.SpacePublicId == scopePublicId),
+                "Site"      => db.Posts.AsQueryable(),
                 _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
             };
             return q.Where(p => !p.IsDeleted && p.CreatedAt >= since)
@@ -77,6 +79,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 "Community" => db.Reports.Where(r => r.Community != null && r.Community.PublicId == scopePublicId),
                 "Hub"       => db.Reports.Where(r => (r.Hub != null && r.Hub.PublicId == scopePublicId) || (r.Space != null && r.Space.HubPublicId == scopePublicId)),
                 "Space"     => db.Reports.Where(r => r.Space != null && r.Space.PublicId == scopePublicId),
+                "Site"      => db.Reports.AsQueryable(),
                 _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
             };
             return q.Where(r => r.CreatedAt >= since)
@@ -92,6 +95,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 "Community" => db.Reports.Where(r => r.Community != null && r.Community.PublicId == scopePublicId),
                 "Hub"       => db.Reports.Where(r => (r.Hub != null && r.Hub.PublicId == scopePublicId) || (r.Space != null && r.Space.HubPublicId == scopePublicId)),
                 "Space"     => db.Reports.Where(r => r.Space != null && r.Space.PublicId == scopePublicId),
+                "Site"      => db.Reports.AsQueryable(),
                 _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
             };
             return q.Where(r => r.ResolvedAt != null && r.ResolvedAt >= since)
@@ -138,6 +142,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 .Where(r => r.Post.HubPublicId == scopePublicId),
             "Space" => _context.PostReactions
                 .Where(r => r.Post.SpacePublicId == scopePublicId),
+            "Site" => _context.PostReactions.AsQueryable(),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };
 
@@ -168,6 +173,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 .Where(d => d.HubPublicId == scopePublicId),
             "Space" => _context.Discussions
                 .Where(d => d.SpacePublicId == scopePublicId),
+            "Site" => _context.Discussions.AsQueryable(),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };
 
@@ -198,6 +204,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 .Where(r => r.Post.HubPublicId == scopePublicId),
             "Space" => _context.PostReactions
                 .Where(r => r.Post.SpacePublicId == scopePublicId),
+            "Site" => _context.PostReactions.AsQueryable(),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };
 
@@ -231,6 +238,7 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 .Where(d => d.HubPublicId == scopePublicId),
             "Space" => _context.Discussions
                 .Where(d => d.SpacePublicId == scopePublicId),
+            "Site" => _context.Discussions.AsQueryable(),
             _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
         };
 
@@ -246,6 +254,89 @@ public class DashboardChartRepository(SnakkDbContext context, IDbContextFactory<
                 d.PostCount,
                 d.ReactionCount))
             .ToListAsync(ct);
+    }
+
+    public async Task<List<TopContributorData>> GetTopContributorsForScopeAsync(
+        string scopeType, string scopePublicId, int days, int limit = 10, CancellationToken ct = default)
+    {
+        var since = DateTime.UtcNow.Date.AddDays(-days);
+
+        var q = scopeType switch
+        {
+            "Community" => _context.Posts.Where(p => p.CommunityPublicId == scopePublicId),
+            "Hub"       => _context.Posts.Where(p => p.HubPublicId == scopePublicId),
+            "Space"     => _context.Posts.Where(p => p.SpacePublicId == scopePublicId),
+            "Site"      => _context.Posts.AsQueryable(),
+            _ => throw new ArgumentException($"Unknown scope type: {scopeType}")
+        };
+
+        var counts = await q
+            .Where(p => !p.IsDeleted && p.CreatedAt >= since)
+            .GroupBy(p => new { p.CreatedByUserId, p.CreatedByUserPublicId })
+            .Select(g => new
+            {
+                UserId = g.Key.CreatedByUserId,
+                UserPublicId = g.Key.CreatedByUserPublicId,
+                PostCount = g.Count(p => !p.IsFirstPost),
+                DiscussionCount = g.Count(p => p.IsFirstPost)
+            })
+            .OrderByDescending(x => x.PostCount + x.DiscussionCount)
+            .Take(limit)
+            .ToListAsync(ct);
+
+        var userIds = counts.Select(x => x.UserId).ToList();
+        var users = await _context.Users
+            .Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.DisplayName, u.AvatarThumbnailFileName })
+            .ToDictionaryAsync(u => u.Id, ct);
+
+        return counts.Select(x =>
+        {
+            users.TryGetValue(x.UserId, out var u);
+            return new TopContributorData(
+                x.UserPublicId ?? "",
+                u?.DisplayName ?? "",
+                u?.AvatarThumbnailFileName,
+                x.PostCount,
+                x.DiscussionCount);
+        }).ToList();
+    }
+
+    public async Task<List<DailyRegistrationData>> GetDailyRegistrationsAsync(
+        int days, CancellationToken ct = default)
+    {
+        var since = DateTime.UtcNow.Date.AddDays(-days);
+
+        var regsByDay = await _context.Users
+            .Where(u => !u.IsDeleted && u.CreatedAt >= since)
+            .GroupBy(u => u.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.Date, x => x.Count, ct);
+
+        var result = new List<DailyRegistrationData>();
+        for (var date = since; date <= DateTime.UtcNow.Date; date = date.AddDays(1))
+        {
+            regsByDay.TryGetValue(date, out var count);
+            result.Add(new DailyRegistrationData(date, count));
+        }
+        return result;
+    }
+
+    public async Task<(int Dau, int Wau, int Mau, int Total)> GetUserActivityCountsAsync(
+        CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var dauSince = now.AddDays(-1);
+        var wauSince = now.AddDays(-7);
+        var mauSince = now.AddDays(-30);
+
+        var dauTask = _context.Users.CountAsync(u => !u.IsDeleted && u.LastSeenAt >= dauSince, ct);
+        var wauTask = _context.Users.CountAsync(u => !u.IsDeleted && u.LastSeenAt >= wauSince, ct);
+        var mauTask = _context.Users.CountAsync(u => !u.IsDeleted && u.LastSeenAt >= mauSince, ct);
+        var totalTask = _context.Users.CountAsync(u => !u.IsDeleted, ct);
+
+        await Task.WhenAll(dauTask, wauTask, mauTask, totalTask);
+        return (dauTask.Result, wauTask.Result, mauTask.Result, totalTask.Result);
     }
 
     private static DateTime StartOfWeek(DateTime date)

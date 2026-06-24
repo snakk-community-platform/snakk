@@ -1,31 +1,41 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider Auth
+@inject AdminThemeService ThemeService
 
 <MudLayout>
-    <MudAppBar Elevation="1" Dense="true">
+    <MudAppBar Elevation="0" Dense="true" Class="admin-appbar">
         <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
                        OnClick="@(() => _drawerOpen = !_drawerOpen)" />
-        <MudText Typo="Typo.h6" Class="ml-2 fw-bold">Snakk Admin</MudText>
         <MudSpacer />
         <AuthorizeView>
             <Authorized>
-                <MudText Class="mr-3 mud-text-secondary" Typo="Typo.body2">@context.User.Identity?.Name</MudText>
-                <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small"
-                           OnClick="@(() => Navigation.NavigateTo("Auth/Logout", true))">
-                    Sign out
-                </MudButton>
+                <MudText Class="mr-2 mud-text-secondary" Typo="Typo.body2">@context.User.Identity?.Name</MudText>
             </Authorized>
         </AuthorizeView>
+        <MudIconButton Icon="@(_darkModeIcon)" Color="Color.Inherit" Title="Toggle theme"
+                       OnClick="ThemeService.Toggle" Size="Size.Small" />
+        <MudButton Variant="Variant.Text" Color="Color.Inherit" Size="Size.Small" Class="ml-1"
+                   OnClick="@(() => Navigation.NavigateTo("Auth/Logout", true))">
+            Sign out
+        </MudButton>
     </MudAppBar>
 
-    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always">
-        <MudNavMenu>
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="0" ClipMode="DrawerClipMode.Always" Class="admin-drawer">
+        <div class="admin-sidebar-brand">
+            <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Small" Color="Color.Primary" />
+            <div>
+                <MudText Typo="Typo.subtitle2" Class="fw-bold lh-1">Snakk</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="font-size:0.65rem;">Admin Panel</MudText>
+            </div>
+        </div>
+
+        <MudNavMenu Class="px-2">
             <MudNavLink Href="" Icon="@Icons.Material.Filled.Dashboard" Match="NavLinkMatch.All">
                 Dashboard
             </MudNavLink>
 
-            <MudDivider Class="my-1" />
+            <MudDivider Class="my-2" />
 
             <MudNavLink Href="users" Icon="@Icons.Material.Filled.People">
                 Users
@@ -33,8 +43,11 @@
             <MudNavLink Href="communities" Icon="@Icons.Material.Filled.AccountTree">
                 Communities
             </MudNavLink>
+            <MudNavLink Href="statistics" Icon="@Icons.Material.Filled.BarChart">
+                Statistics
+            </MudNavLink>
 
-            <MudDivider Class="my-1" />
+            <MudDivider Class="my-2" />
 
             <MudNavGroup Title="Moderation" Icon="@Icons.Material.Filled.Shield" Expanded="false">
                 <MudNavLink Href="moderation/reports" Icon="@Icons.Material.Filled.Flag">
@@ -48,7 +61,7 @@
                 </MudNavLink>
             </MudNavGroup>
 
-            <MudDivider Class="my-1" />
+            <MudDivider Class="my-2" />
 
             <MudNavGroup Title="Platform" Icon="@Icons.Material.Filled.Tune" Expanded="false">
                 <MudNavLink Href="settings" Icon="@Icons.Material.Filled.Settings">
@@ -76,11 +89,15 @@
         </MudNavMenu>
     </MudDrawer>
 
-    <MudMainContent Class="pa-6 mt-8">
+    <MudMainContent Class="pa-6 mt-14">
         @Body
     </MudMainContent>
 </MudLayout>
 
 @code {
     private bool _drawerOpen = true;
+
+    private string _darkModeIcon => ThemeService.IsDarkMode
+        ? Icons.Material.Filled.LightMode
+        : Icons.Material.Filled.DarkMode;
 }

@@ -107,13 +107,14 @@ public static class InfrastructureDatabaseRegistration
         services.AddScoped<Snakk.Application.Repositories.IStatsRepository, Snakk.Infrastructure.Database.Repositories.StatsRepository>();
         services.AddScoped<Snakk.Application.Repositories.IActivitySnapshotRepository, Snakk.Infrastructure.Database.Repositories.ActivitySnapshotRepository>();
         services.AddScoped<Snakk.Application.Repositories.IDiscussionViewRepository, Snakk.Infrastructure.Database.Repositories.DiscussionViewRepository>();
-        services.AddScoped<Snakk.Application.Repositories.IStatsRollupRepository, Snakk.Infrastructure.Database.Repositories.StatsRollupRepository>();
+        services.AddSingleton<Snakk.Application.Repositories.IStatsRollupRepository, Snakk.Infrastructure.Repositories.ValkeyStatsRollupRepository>();
         services.AddScoped<Snakk.Application.Repositories.IDashboardChartRepository, Snakk.Infrastructure.Database.Repositories.DashboardChartRepository>();
         services.AddScoped<Snakk.Application.Repositories.IDisplayNameHistoryRepository, Snakk.Infrastructure.Database.Repositories.DisplayNameHistoryRepository>();
         services.AddScoped<Snakk.Application.Repositories.IPasswordResetTokenRepository, Snakk.Infrastructure.Database.Repositories.PasswordResetTokenRepository>();
         services.AddScoped<Snakk.Application.Repositories.IPasswordResetRequestRepository, Snakk.Infrastructure.Database.Repositories.PasswordResetRequestRepository>();
         services.AddScoped<Snakk.Application.Repositories.IDmRepository, Snakk.Infrastructure.Database.Repositories.DmRepository>();
         services.AddScoped<Snakk.Application.Repositories.IGdprRepository, Snakk.Infrastructure.Database.Repositories.GdprRepository>();
+        services.AddScoped<Snakk.Application.Repositories.ICounterRepository, Snakk.Infrastructure.Database.Repositories.CounterRepository>();
 
         return services;
     }

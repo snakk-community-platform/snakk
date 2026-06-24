@@ -199,6 +199,10 @@
     <div class="sn-card-heading-row">
         <div class="sn-card-heading">
             <a href="@cardUrl" class="u-url p-name">@discussion.Title</a>
+            @if (discussion.IsDeleted)
+            {
+                <span class="sn-badge sn-badge-sm sn-badge-error sn-ml-1">@T.Pages.ModDeletedBadge</span>
+            }
         </div>
         <span class="sn-card-stat sn-card-reactions@(discussion.ReactionCount == 0 || Model.HideInlineStats ? " hidden" : "")">
             <span class="sn-icon icon-badge-check" style="width:16px;height:16px" aria-hidden="true"></span>
@@ -295,10 +299,6 @@
                                  data-debate-width="@(pct)%"
                                  data-position-index="@position.Index"
                                  title="@position.Label: @(totalPosts > 0 ? (int)Math.Round(100.0 * position.PostCount / totalPosts) : 0)%">
-                                @if (pct >= 15)
-                                {
-                                    <span>@position.Label</span>
-                                }
                             </div>
                         }
                     </div>

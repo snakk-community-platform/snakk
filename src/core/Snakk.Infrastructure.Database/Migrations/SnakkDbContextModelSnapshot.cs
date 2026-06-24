@@ -18,7 +18,7 @@ namespace Snakk.Infrastructure.Database.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.8")
+                .HasAnnotation("ProductVersion", "10.0.9")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
@@ -390,6 +390,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("Timezone")
                         .HasColumnType("text");
 
+                    b.Property<long>("ViewCount")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("VisibilityId")
                         .HasColumnType("integer");
 
@@ -649,6 +652,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<int>("Type")
                         .HasColumnType("integer");
+
+                    b.Property<long>("ViewCount")
+                        .HasColumnType("bigint");
 
                     b.Property<bool>("WasNormalized")
                         .HasColumnType("boolean");
@@ -1637,6 +1643,9 @@ namespace Snakk.Infrastructure.Database.Migrations
 
                     b.Property<string>("TeamRevision")
                         .HasColumnType("text");
+
+                    b.Property<long>("ViewCount")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -2874,6 +2883,9 @@ namespace Snakk.Infrastructure.Database.Migrations
                     b.Property<string>("TeamRevision")
                         .HasColumnType("text");
 
+                    b.Property<long>("ViewCount")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CommunityPublicId")
@@ -2891,37 +2903,6 @@ namespace Snakk.Infrastructure.Database.Migrations
                         .IsUnique();
 
                     b.ToTable("Space");
-                });
-
-            modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.StatsRollupDatabaseEntity", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("ComputedAt")
-                        .HasColumnType("timestamptz");
-
-                    b.Property<string>("PayloadJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Rank")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("StatKind")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StatKind", "Rank")
-                        .HasDatabaseName("IX_StatsRollup_StatKind_Rank");
-
-                    b.ToTable("StatsRollup");
                 });
 
             modelBuilder.Entity("Snakk.Infrastructure.Database.Entities.SystemSettingDatabaseEntity", b =>

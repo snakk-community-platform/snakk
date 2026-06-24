@@ -45,7 +45,7 @@ public class ProfileModel(
         var profileResult = await _apiClient.GetUserBySlugResultAsync(slug, cancellationToken);
 
         if (!profileResult.IsSuccess)
-            return profileResult.Status == GrpcStatus.NotFound ? NotFound() : StatusCode(503);
+            return GrpcError(profileResult);
 
         Profile = profileResult.Value;
         ActiveTab = tab is "top" or "posts" ? tab : "discussions";
